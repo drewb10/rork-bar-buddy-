@@ -7,7 +7,6 @@ import { useThemeStore } from '@/stores/themeStore';
 import { venues } from '@/mocks/venues';
 import FilterBar from '@/components/FilterBar';
 import EmptyState from '@/components/EmptyState';
-import GradientBackground from '@/components/GradientBackground';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // This is a placeholder for the map component
@@ -70,19 +69,19 @@ export default function MapScreen() {
 
   if (!hasLocationPermission) {
     return (
-      <GradientBackground>
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <EmptyState
           title="Location Access Required"
           message="Please enable location services to view nearby venues on the map."
           icon={<AlertCircle size={48} color={themeColors.primary} />}
         />
-      </GradientBackground>
+      </View>
     );
   }
 
   return (
-    <GradientBackground>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <FilterBar
         filters={filters}
@@ -105,11 +104,14 @@ export default function MapScreen() {
             : 'Showing all venues'}
         </Text>
       </View>
-    </GradientBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   mapContainer: {
     flex: 1,
     justifyContent: 'center',

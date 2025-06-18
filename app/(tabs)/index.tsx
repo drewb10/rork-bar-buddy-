@@ -10,7 +10,6 @@ import SpecialCard from '@/components/SpecialCard';
 import SectionHeader from '@/components/SectionHeader';
 import FilterBar from '@/components/FilterBar';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
-import GradientBackground from '@/components/GradientBackground';
 import TopPickCard from '@/components/TopPickCard';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import { Venue, Special } from '@/types/venue';
@@ -74,10 +73,10 @@ export default function HomeScreen() {
   };
 
   return (
-    <GradientBackground>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <ScrollView 
-        style={styles.container}
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
         {/* BarBuddy Logo */}
@@ -127,7 +126,7 @@ export default function HomeScreen() {
 
         <View style={styles.footer} />
       </ScrollView>
-    </GradientBackground>
+    </View>
   );
 }
 
@@ -138,6 +137,9 @@ function getCurrentDay(): string {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  scrollView: {
     flex: 1,
   },
   logoContainer: {

@@ -5,7 +5,6 @@ import { Eye, EyeOff, Mail, Lock } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
-import GradientBackground from '@/components/GradientBackground';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -39,10 +38,10 @@ export default function SignInScreen() {
   };
 
   return (
-    <GradientBackground>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <KeyboardAvoidingView 
-        style={styles.container} 
+        style={styles.keyboardView} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.content}>
@@ -129,12 +128,15 @@ export default function SignInScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
-    </GradientBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  keyboardView: {
     flex: 1,
   },
   content: {

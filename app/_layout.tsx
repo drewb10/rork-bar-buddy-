@@ -3,13 +3,12 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import { StatusBar } from "expo-status-bar";
+import { StatusBar, View } from "react-native";
 import { useThemeStore } from "@/stores/themeStore";
 import { useAuthStore } from "@/stores/authStore";
 import { colors } from "@/constants/colors";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/lib/trpc";
-import { View } from "react-native";
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
@@ -62,7 +61,7 @@ function RootLayoutNav() {
   const themeColors = colors[theme];
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: themeColors.background }}>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -110,6 +109,6 @@ function RootLayoutNav() {
           </>
         )}
       </Stack>
-    </>
+    </View>
   );
 }

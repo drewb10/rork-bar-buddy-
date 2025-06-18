@@ -5,7 +5,6 @@ import { useThemeStore } from '@/stores/themeStore';
 import { venues } from '@/mocks/venues';
 import VenueCard from '@/components/VenueCard';
 import FilterBar from '@/components/FilterBar';
-import GradientBackground from '@/components/GradientBackground';
 
 export default function AllVenuesScreen() {
   const { theme } = useThemeStore();
@@ -17,7 +16,7 @@ export default function AllVenuesScreen() {
     : venues;
 
   return (
-    <GradientBackground>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <FilterBar
         filters={filters}
@@ -34,11 +33,14 @@ export default function AllVenuesScreen() {
         ))}
         <View style={styles.footer} />
       </ScrollView>
-    </GradientBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   venueList: {
     flex: 1,
     paddingHorizontal: 16,

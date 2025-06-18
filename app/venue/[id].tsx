@@ -8,7 +8,6 @@ import { getVenueById } from '@/mocks/venues';
 import SpecialCard from '@/components/SpecialCard';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import GradientBackground from '@/components/GradientBackground';
 
 export default function VenueDetailScreen() {
   const { id, specialId } = useLocalSearchParams<{ id: string; specialId?: string }>();
@@ -28,10 +27,10 @@ export default function VenueDetailScreen() {
 
   if (!venue) {
     return (
-      <GradientBackground>
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <Text style={[styles.errorText, { color: themeColors.text }]}>Venue not found</Text>
-      </GradientBackground>
+      </View>
     );
   }
 
@@ -90,9 +89,9 @@ export default function VenueDetailScreen() {
   );
 
   return (
-    <GradientBackground>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      <ScrollView style={styles.container}>
+      <ScrollView>
         <View style={styles.imageGallery}>
           <ScrollView
             horizontal
@@ -270,7 +269,7 @@ export default function VenueDetailScreen() {
           )}
         </View>
       </ScrollView>
-    </GradientBackground>
+    </View>
   );
 }
 
