@@ -33,7 +33,7 @@ export default function HomeScreen() {
     
     // Get the 3 specific venues for top picks
     const topPickVenueIds = ['2', '5', '6']; // The Library, Late Nite, JBA
-    const topPicks: TopPickItem[] = topPickVenueIds
+    const topPicks = topPickVenueIds
       .map(venueId => {
         const venue = venues.find(v => v.id === venueId);
         if (!venue) return null;
@@ -43,7 +43,7 @@ export default function HomeScreen() {
         
         return { venue, todaySpecial };
       })
-      .filter((pick): pick is TopPickItem => pick !== null);
+      .filter((pick): pick is TopPickItem => pick !== null && 'venue' in pick);
     
     setTopPickVenues(topPicks);
     resetInteractionsIfNeeded();
