@@ -1,7 +1,7 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useFonts } from "expo-font";
-import { Stack, SplashScreen } from "expo-router";
-import * as SplashScreenLib from "expo-splash-screen";
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import { useThemeStore } from "@/stores/themeStore";
@@ -9,13 +9,14 @@ import { useAuthStore } from "@/stores/authStore";
 import { colors } from "@/constants/colors";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/lib/trpc";
+import { View } from "react-native";
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreenLib.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync();
 
 // Create a client
 const queryClient = new QueryClient();
@@ -36,13 +37,13 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (loaded && !authLoading) {
-      SplashScreenLib.hideAsync();
+      SplashScreen.hideAsync();
     }
   }, [loaded, authLoading]);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   if (!loaded || authLoading) {
-    return <SplashScreen />;
+    return <View />; // Return empty view while loading
   }
 
   return (
