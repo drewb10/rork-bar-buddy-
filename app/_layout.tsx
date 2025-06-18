@@ -41,9 +41,9 @@ export default function RootLayout() {
     }
   }, [loaded, authLoading]);
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
+  // Return null instead of SplashScreen component
   if (!loaded || authLoading) {
-    return null; // Return null instead of SplashScreen component
+    return null;
   }
 
   return (
@@ -74,14 +74,12 @@ function RootLayoutNav() {
           contentStyle: {
             backgroundColor: themeColors.background,
           },
-          headerShown: false, // This ensures no headers show by default
+          headerShown: false,
         }}
       >
         {!isAuthenticated ? (
-          // Auth screens
           <Stack.Screen name="auth" options={{ headerShown: false }} />
         ) : (
-          // App screens
           <>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen 

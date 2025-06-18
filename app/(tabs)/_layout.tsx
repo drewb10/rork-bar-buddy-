@@ -4,7 +4,6 @@ import { Home, MapPin } from "lucide-react-native";
 import { colors } from "@/constants/colors";
 import { useThemeStore } from "@/stores/themeStore";
 import { StyleSheet, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 
 export default function TabLayout() {
   const { theme } = useThemeStore();
@@ -30,15 +29,7 @@ export default function TabLayout() {
           fontSize: 12,
           fontWeight: '500',
         },
-        headerShown: false, // This completely removes all headers from tabs
-        tabBarBackground: () => (
-          <View style={StyleSheet.absoluteFill}>
-            <LinearGradient
-              colors={['rgba(0,0,0,0.8)', '#000']}
-              style={StyleSheet.absoluteFill}
-            />
-          </View>
-        ),
+        headerShown: false,
       }}
     >
       <Tabs.Screen
@@ -49,10 +40,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeTabContainer : null}>
               <Home size={22} color={color} />
-              {focused && <LinearGradient
-                colors={['transparent', themeColors.primary + '40']}
-                style={styles.activeTabGlow}
-              />}
             </View>
           ),
         }}
@@ -65,10 +52,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeTabContainer : null}>
               <MapPin size={22} color={color} />
-              {focused && <LinearGradient
-                colors={['transparent', themeColors.primary + '40']}
-                style={styles.activeTabGlow}
-              />}
             </View>
           ),
         }}
@@ -80,14 +63,5 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   activeTabContainer: {
     position: 'relative',
-  },
-  activeTabGlow: {
-    position: 'absolute',
-    width: 40,
-    height: 20,
-    borderRadius: 20,
-    top: -10,
-    left: -9,
-    opacity: 0.6,
   },
 });
