@@ -37,13 +37,14 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (loaded && !authLoading) {
+      // Hide splash screen once everything is ready
       SplashScreen.hideAsync();
     }
   }, [loaded, authLoading]);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   if (!loaded || authLoading) {
-    return <View />; // Return empty view while loading
+    return null; // Return null instead of SplashScreen component
   }
 
   return (
