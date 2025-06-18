@@ -29,7 +29,7 @@ export default function RootLayout() {
           name="venue/[id]" 
           options={{
             headerShown: true,
-            presentation: 'push',
+            presentation: 'card',
             animation: 'slide_from_right',
           }}
         />

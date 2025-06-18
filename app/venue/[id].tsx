@@ -18,24 +18,181 @@ export default function VenueDetailScreen() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
 
-  // Add Stack.Screen options to customize header
+  if (!venue) return null;
+
   return (
     <>
       <Stack.Screen 
         options={{
-          headerTitle: venue?.name || 'Venue',
-          headerBackTitle: '', // iOS: Remove back button text
+          title: venue.name,
+          headerBackTitle: '',
           headerTitleStyle: {
-            fontSize: 16, // Make title smaller to prevent overflow
+            fontSize: 16,
           },
         }} 
       />
       
-      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-        {/* Rest of your existing component code... */}
-      </View>
+      <ScrollView style={styles.container}>
+        <View style={styles.imageContainer}>
+          <Image 
+            source={{ uri: venue.images[activeImageIndex] }} 
+            style={styles.image}
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.7)']}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
+
+        <View style={styles.content}>
+          <Text style={[styles.name, { color: themeColors.text }]}>
+            {venue.name}
+          </Text>
+          
+          <View style={styles.typeContainer}>
+            {venue.types.map((type, index) => (
+              <View 
+                key={index} 
+                style={[styles.typeTag, { backgroundColor: themeColors.primary + '20' }]}
+              >
+                <Text style={[styles.typeText, { color: themeColors.primary }]}>
+                  {type.replace('-', ' ')}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <Text style={[styles.description, { color: themeColors.text }]}>
+            {venue.description}
+          </Text>
+
+          <View style={styles.infoContainer}>
+            <Pressable 
+              style={styles.infoRow}
+              onPress={() => Linking.openURL(`https://maps.google.com/?q=${venue.address}`)}
+            >
+              <MapPin size={20} color={themeColors.primary} />
+              <Text style={[styles.infoText, { color: themeColors.text }]}>
+                {venue.address}
+              </Text>
+            </Pressable>
+
+            <Pressable 
+              style={styles.infoRow}
+              onPress={() => Linking.openURL(`tel:${venue.phone}`)}
+            >
+              <Phone size={20} color={themeColors.primary} />
+              <Text style={[styles.infoText, { color: themeColors.text }]}>
+                {venue.phone}
+              </Text>
+            </Pressable>
+
+            {venue.website && (
+              <Pressable 
+                style={styles.infoRow}
+                onPress={() => Linking.openURL(venue.website!)}
+              >
+                <Globe size={20} color={themeColors.primary} />
+                <Text style={[styles.infoText, { color: themeColors.text }]}>
+                  {venue.website}
+                </Text>
+              </Pressable>
+            )}
+
+            {venue.instagram && (
+              <Pressable 
+                style={styles.infoRow}
+                onPress={() => Linking.openURL(`https://instagram.com/${venue.instagram}`)}
+              >
+                <Instagram size={20} color={themeColors.primary} />
+                <Text style={[styles.infoText, { color: themeColors.text }]}>
+                  @{venue.instagram}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+
+          {venue.specials.length > 0 && (
+            <View style={styles.specialsSection}>
+              <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
+                Specials
+              </Text>
+              {venue.specials.map(special => (
+                <SpecialCard 
+                  key={special.id} 
+                  special={special}
+                  venue={venue}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </>
   );
 }
 
-// Rest of your existing styles and code...
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  imageContainer: {
+    height: 300,
+    width: '100%',
+    position: 'relative',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  content: {
+    padding: 16,
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  typeContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 16,
+  },
+  typeTag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  typeText: {
+    fontSize: 14,
+    fontWeight: '500',
+    textTransform: 'capitalize',
+  },
+  description: {
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  infoContainer: {
+    marginBottom: 24,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  infoText: {
+    fontSize: 16,
+    marginLeft: 12,
+  },
+  specialsSection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 16,
+  },
+});
