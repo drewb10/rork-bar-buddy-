@@ -94,7 +94,8 @@ export default function HomeScreen() {
           <View style={styles.section}>
             <SectionHeader 
               title="Bar Buddy's Top Picks" 
-              onSeeAll={navigateToAllSpecials}
+              centered={true}
+              showSeeAll={false}
             />
             <ScrollView 
               horizontal 
