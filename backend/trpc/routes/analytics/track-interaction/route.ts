@@ -1,9 +1,6 @@
 import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
-
-// In a real app, this would save to a database
-// For now, we'll just log the data
-const interactions: any[] = [];
+import { supabase } from "@/lib/supabase";
 
 export default publicProcedure
   .input(z.object({ 
@@ -13,21 +10,40 @@ export default publicProcedure
     timestamp: z.string(),
     sessionId: z.string().optional(),
   }))
-  .mutation(({ input }) => {
-    // Store the interaction data
-    const interaction = {
-      ...input,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date().toISOString(),
-    };
-    
-    interactions.push(interaction);
-    
-    console.log('New venue interaction tracked:', interaction);
-    
-    return {
-      success: true,
-      interactionId: interaction.id,
-      message: 'Interaction tracked successfully'
-    };
+  .mutation(async ({ input }) => {
+    try {
+      const { error } = await supabase
+        .from('venue_interactions')
+        .insert({
+          user_id: input.userId || 'anonymous',
+          venue_id: input.venueId,
+          interaction_type: 'like',
+          arrival_time: input.arrivalTime,
+          timestamp: input.timestamp,
+          session_id: input.sessionId,
+        });
+
+      if (error) {
+        console.error('Supabase error:', error);
+        return {
+          success: false,
+          error: error.message,
+          message: 'Failed to track interaction'
+        };
+      }
+
+      console.log('Venue interaction tracked in Supabase:', input);
+      
+      return {
+        success: true,
+        message: 'Interaction tracked successfully'
+      };
+    } catch (error) {
+      console.error('Error tracking interaction:', error);
+      return {
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to track interaction'
+      };
+    }
   });

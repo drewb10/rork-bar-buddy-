@@ -1,8 +1,6 @@
 import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
-
-// In a real app, this would save to a database
-const drunkScaleRatings: any[] = [];
+import { supabase } from "@/lib/supabase";
 
 export default publicProcedure
   .input(z.object({ 
@@ -11,21 +9,25 @@ export default publicProcedure
     timestamp: z.string(),
     sessionId: z.string().optional(),
   }))
-  .mutation(({ input }) => {
-    // Store the drunk scale rating
-    const rating = {
-      ...input,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date().toISOString(),
-    };
-    
-    drunkScaleRatings.push(rating);
-    
-    console.log('New drunk scale rating tracked:', rating);
-    
-    return {
-      success: true,
-      ratingId: rating.id,
-      message: 'Drunk scale rating tracked successfully'
-    };
+  .mutation(async ({ input }) => {
+    try {
+      // For drunk scale ratings, we could create a separate table or store in user_profiles
+      // For now, we'll log it and could extend the user_profiles table to track these
+      console.log('Drunk scale rating tracked:', input);
+      
+      // If we want to store these separately, we could create a drunk_scale_ratings table
+      // For now, this is handled in the user profile store
+      
+      return {
+        success: true,
+        message: 'Drunk scale rating tracked successfully'
+      };
+    } catch (error) {
+      console.error('Error tracking drunk scale rating:', error);
+      return {
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to track drunk scale rating'
+      };
+    }
   });

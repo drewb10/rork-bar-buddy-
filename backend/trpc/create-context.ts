@@ -6,7 +6,7 @@ import superjson from "superjson";
 export const createContext = async (opts: FetchCreateContextFnOptions) => {
   return {
     req: opts.req,
-    // You can add more context items here like database connections, auth, etc.
+    // Supabase client is imported directly in routes as needed
   };
 };
 

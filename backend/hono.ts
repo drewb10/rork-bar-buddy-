@@ -22,7 +22,23 @@ app.use(
 
 // Simple health check endpoint
 app.get("/", (c) => {
-  return c.json({ status: "ok", message: "API is running" });
+  return c.json({ status: "ok", message: "API is running with Supabase integration" });
+});
+
+// Supabase admin dashboard info
+app.get("/admin", (c) => {
+  return c.json({ 
+    message: "Supabase Admin Dashboard",
+    dashboard_url: "https://supabase.com/dashboard/project/your-project-id",
+    tables: [
+      "user_profiles",
+      "friends", 
+      "bingo_completions",
+      "venue_interactions",
+      "bingo_card_completions"
+    ],
+    note: "Replace 'your-project-id' with your actual Supabase project ID"
+  });
 });
 
 export default app;

@@ -1,8 +1,6 @@
 import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
-
-// In a real app, this would save to a database
-const bingoTaskCompletions: any[] = [];
+import { supabase } from "@/lib/supabase";
 
 export default publicProcedure
   .input(z.object({ 
@@ -11,21 +9,41 @@ export default publicProcedure
     timestamp: z.string(),
     sessionId: z.string().optional(),
   }))
-  .mutation(({ input }) => {
-    // Store the bingo task completion
-    const completion = {
-      ...input,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date().toISOString(),
-    };
-    
-    bingoTaskCompletions.push(completion);
-    
-    console.log('Bingo task completed:', completion);
-    
-    return {
-      success: true,
-      completionId: completion.id,
-      message: 'Bingo task completion tracked successfully'
-    };
+  .mutation(async ({ input }) => {
+    try {
+      const { data, error } = await supabase
+        .from('bingo_completions')
+        .insert({
+          user_id: input.userId || 'anonymous',
+          task_id: input.taskId,
+          completed_at: input.timestamp,
+          session_id: input.sessionId,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        return {
+          success: false,
+          error: error.message,
+          message: 'Failed to track bingo task completion'
+        };
+      }
+
+      console.log('Bingo task completed in Supabase:', data);
+      
+      return {
+        success: true,
+        completionId: data.id,
+        message: 'Bingo task completion tracked successfully'
+      };
+    } catch (error) {
+      console.error('Error tracking bingo task:', error);
+      return {
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to track bingo task completion'
+      };
+    }
   });

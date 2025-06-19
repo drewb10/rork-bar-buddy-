@@ -1,14 +1,14 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { trpcClient } from '@/lib/trpc';
+import { supabase } from '@/lib/supabase';
 
 interface VenueInteraction {
   venueId: string;
   count: number;
-  lastReset: string; // ISO date string
-  lastInteraction: string; // ISO date string
-  arrivalTime?: string; // Time slot selected by user
+  lastReset: string;
+  lastInteraction: string;
+  arrivalTime?: string;
 }
 
 interface VenueInteractionState {
@@ -18,9 +18,10 @@ interface VenueInteractionState {
   resetInteractionsIfNeeded: () => void;
   canInteract: (venueId: string) => boolean;
   getPopularArrivalTime: (venueId: string) => string | null;
+  syncToSupabase: (venueId: string, arrivalTime?: string) => Promise<void>;
+  loadPopularTimesFromSupabase: () => Promise<void>;
 }
 
-// Reset time is 5:00 AM
 const RESET_HOUR = 5;
 
 const shouldReset = (lastReset: string): boolean => {
@@ -28,7 +29,6 @@ const shouldReset = (lastReset: string): boolean => {
     const lastResetDate = new Date(lastReset);
     const now = new Date();
     
-    // If it's past 5 AM and the last reset was before today at 5 AM
     const resetTime = new Date(now);
     resetTime.setHours(RESET_HOUR, 0, 0, 0);
     
@@ -45,7 +45,6 @@ const canInteractWithVenue = (lastInteraction: string | undefined): boolean => {
     const lastInteractionDate = new Date(lastInteraction);
     const now = new Date();
     
-    // 24-hour cooldown
     const cooldownTime = new Date(lastInteractionDate);
     cooldownTime.setHours(cooldownTime.getHours() + 24);
     
@@ -60,25 +59,16 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
     (set, get) => ({
       interactions: [],
       
-      incrementInteraction: (venueId, arrivalTime) => {
+      incrementInteraction: async (venueId, arrivalTime) => {
         try {
           get().resetInteractionsIfNeeded();
           
           if (!get().canInteract(venueId)) return;
           
+          const now = new Date().toISOString();
+          
           set((state) => {
             const existingInteraction = state.interactions.find(i => i.venueId === venueId);
-            const now = new Date().toISOString();
-            
-            // Track interaction in cloud storage
-            trpcClient.analytics.trackInteraction.mutate({
-              venueId,
-              arrivalTime,
-              timestamp: now,
-              sessionId: Math.random().toString(36).substr(2, 9),
-            }).catch(error => {
-              console.warn('Failed to track interaction in cloud:', error);
-            });
             
             if (existingInteraction) {
               return {
@@ -108,6 +98,9 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
               };
             }
           });
+
+          // Sync to Supabase
+          await get().syncToSupabase(venueId, arrivalTime);
         } catch (error) {
           console.warn('Error incrementing interaction:', error);
         }
@@ -160,14 +153,12 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
       
       getPopularArrivalTime: (venueId) => {
         try {
-          // Get all interactions for this venue from all users/sessions
           const allInteractions = get().interactions.filter(i => 
             i.venueId === venueId && i.arrivalTime && i.count > 0
           );
           
           if (allInteractions.length === 0) return null;
           
-          // Count occurrences of each arrival time across all interactions
           const timeCounts: Record<string, number> = {};
           allInteractions.forEach(interaction => {
             if (interaction.arrivalTime) {
@@ -177,19 +168,77 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           
           if (Object.keys(timeCounts).length === 0) return null;
           
-          // Find the maximum count
           const maxCount = Math.max(...Object.values(timeCounts));
           
-          // Get all times that have the maximum count
           const popularTimes = Object.entries(timeCounts)
             .filter(([time, count]) => count === maxCount)
             .map(([time]) => time)
-            .sort(); // Sort times for consistent display
+            .sort();
           
-          // Return times separated by slash if multiple, or single time
           return popularTimes.join('/');
         } catch {
           return null;
+        }
+      },
+
+      syncToSupabase: async (venueId: string, arrivalTime?: string) => {
+        try {
+          // Get current user profile to get user_id
+          const userProfileStore = (window as any).__userProfileStore;
+          if (!userProfileStore?.getState?.()?.profile?.userId) return;
+
+          const userId = userProfileStore.getState().profile.userId;
+          if (userId === 'default') return;
+
+          const { error } = await supabase
+            .from('venue_interactions')
+            .insert({
+              user_id: userId,
+              venue_id: venueId,
+              interaction_type: 'like',
+              arrival_time: arrivalTime,
+              timestamp: new Date().toISOString(),
+              session_id: Math.random().toString(36).substr(2, 9),
+            });
+
+          if (error) {
+            console.warn('Failed to sync venue interaction to Supabase:', error);
+          }
+        } catch (error) {
+          console.warn('Error syncing venue interaction to Supabase:', error);
+        }
+      },
+
+      loadPopularTimesFromSupabase: async () => {
+        try {
+          const { data, error } = await supabase
+            .from('venue_interactions')
+            .select('venue_id, arrival_time')
+            .not('arrival_time', 'is', null);
+
+          if (error) {
+            console.warn('Failed to load popular times from Supabase:', error);
+            return;
+          }
+
+          // Process the data to update local popular times
+          // This is a simplified version - in production you'd want more sophisticated analytics
+          const venueTimeCounts: Record<string, Record<string, number>> = {};
+          
+          data?.forEach(interaction => {
+            if (!venueTimeCounts[interaction.venue_id]) {
+              venueTimeCounts[interaction.venue_id] = {};
+            }
+            if (interaction.arrival_time) {
+              venueTimeCounts[interaction.venue_id][interaction.arrival_time] = 
+                (venueTimeCounts[interaction.venue_id][interaction.arrival_time] || 0) + 1;
+            }
+          });
+
+          // Update local state with popular times from cloud data
+          // This would be used to show global popular times vs just local user data
+        } catch (error) {
+          console.warn('Error loading popular times from Supabase:', error);
         }
       }
     }),
@@ -199,3 +248,8 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
     }
   )
 );
+
+// Store reference for cross-store access
+if (typeof window !== 'undefined') {
+  (window as any).__venueInteractionStore = useVenueInteractionStore;
+}

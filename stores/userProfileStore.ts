@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { trpcClient } from '@/lib/trpc';
+import { supabase } from '@/lib/supabase';
 
 interface Friend {
   userId: string;
@@ -32,6 +32,7 @@ interface UserProfile {
 
 interface UserProfileState {
   profile: UserProfile;
+  isLoading: boolean;
   updateProfile: (updates: Partial<UserProfile>) => void;
   incrementNightsOut: () => void;
   incrementBarsHit: () => void;
@@ -48,6 +49,8 @@ interface UserProfileState {
   removeFriend: (friendUserId: string) => void;
   searchUser: (userId: string) => Promise<Friend | null>;
   resetProfile: () => void;
+  syncToSupabase: () => Promise<void>;
+  loadFromSupabase: () => Promise<void>;
 }
 
 const defaultProfile: UserProfile = {
@@ -87,15 +90,18 @@ export const useUserProfileStore = create<UserProfileState>()(
   persist(
     (set, get) => ({
       profile: defaultProfile,
+      isLoading: false,
       
-      updateProfile: (updates) => 
+      updateProfile: (updates) => {
         set((state) => ({
           profile: { 
             ...state.profile, 
             ...updates,
             hasCustomizedProfile: true
           }
-        })),
+        }));
+        get().syncToSupabase();
+      },
       
       incrementNightsOut: () => {
         try {
@@ -110,31 +116,26 @@ export const useUserProfileStore = create<UserProfileState>()(
                 lastNightOutDate: today
               }
             }));
+            get().syncToSupabase();
           }
         } catch (error) {
           console.warn('Error incrementing nights out:', error);
         }
       },
       
-      incrementBarsHit: () =>
+      incrementBarsHit: () => {
         set((state) => ({
           profile: {
             ...state.profile,
             barsHit: state.profile.barsHit + 1
           }
-        })),
+        }));
+        get().syncToSupabase();
+      },
       
       addDrunkScaleRating: (rating) => {
         try {
           const today = new Date().toISOString();
-          
-          trpcClient.analytics.trackDrunkScale.mutate({
-            rating,
-            timestamp: today,
-            sessionId: Math.random().toString(36).substr(2, 9),
-          }).catch(error => {
-            console.warn('Failed to track drunk scale rating in cloud:', error);
-          });
           
           set((state) => ({
             profile: {
@@ -143,6 +144,7 @@ export const useUserProfileStore = create<UserProfileState>()(
               lastDrunkScaleDate: today
             }
           }));
+          get().syncToSupabase();
         } catch (error) {
           console.warn('Error adding drunk scale rating:', error);
         }
@@ -196,6 +198,7 @@ export const useUserProfileStore = create<UserProfileState>()(
             hasCustomizedProfile: true
           }
         }));
+        get().syncToSupabase();
       },
 
       setUserName: (firstName: string, lastName: string) => {
@@ -207,6 +210,7 @@ export const useUserProfileStore = create<UserProfileState>()(
             hasCustomizedProfile: true
           }
         }));
+        get().syncToSupabase();
       },
 
       generateUserId: (firstName: string, lastName: string) => {
@@ -215,7 +219,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         return `#${cleanName}${randomDigits}`;
       },
 
-      completeOnboarding: (firstName: string, lastName: string) => {
+      completeOnboarding: async (firstName: string, lastName: string) => {
         const userId = get().generateUserId(firstName, lastName);
         
         set((state) => ({
@@ -229,15 +233,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           }
         }));
 
-        // Sync to cloud
-        trpcClient.user.createProfile.mutate({
-          userId,
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          profilePicture: get().profile.profilePicture,
-        }).catch(error => {
-          console.warn('Failed to sync profile to cloud:', error);
-        });
+        await get().syncToSupabase();
       },
 
       addFriend: async (friendUserId: string) => {
@@ -250,6 +246,19 @@ export const useUserProfileStore = create<UserProfileState>()(
             return false; // Already friends
           }
 
+          // Add to Supabase
+          const { error } = await supabase
+            .from('friends')
+            .insert({
+              user_id: profile.userId!,
+              friend_user_id: friendUserId,
+            });
+
+          if (error) {
+            console.warn('Failed to add friend to Supabase:', error);
+            return false;
+          }
+
           set((state) => ({
             profile: {
               ...state.profile,
@@ -257,21 +266,22 @@ export const useUserProfileStore = create<UserProfileState>()(
             }
           }));
 
-          // Sync to cloud
-          trpcClient.user.addFriend.mutate({
-            userId: profile.userId!,
-            friendUserId,
-          }).catch(error => {
-            console.warn('Failed to sync friend to cloud:', error);
-          });
-
           return true;
         } catch {
           return false;
         }
       },
 
-      removeFriend: (friendUserId: string) => {
+      removeFriend: async (friendUserId: string) => {
+        const { profile } = get();
+        
+        // Remove from Supabase
+        await supabase
+          .from('friends')
+          .delete()
+          .eq('user_id', profile.userId!)
+          .eq('friend_user_id', friendUserId);
+
         set((state) => ({
           profile: {
             ...state.profile,
@@ -282,19 +292,25 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       searchUser: async (userId: string) => {
         try {
-          const result = await trpcClient.user.searchUser.query({ userId });
-          if (result.success && result.user) {
-            return {
-              userId: result.user.userId,
-              name: `${result.user.firstName} ${result.user.lastName}`,
-              profilePicture: result.user.profilePicture,
-              nightsOut: result.user.nightsOut,
-              barsHit: result.user.barsHit,
-              rankTitle: result.user.rankTitle,
-              addedAt: new Date().toISOString(),
-            };
+          const { data, error } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+          if (error || !data) {
+            return null;
           }
-          return null;
+
+          return {
+            userId: data.user_id,
+            name: `${data.first_name} ${data.last_name}`,
+            profilePicture: data.profile_pic || undefined,
+            nightsOut: data.total_nights_out,
+            barsHit: data.total_bars_hit,
+            rankTitle: data.ranking,
+            addedAt: new Date().toISOString(),
+          };
         } catch {
           return null;
         }
@@ -304,6 +320,111 @@ export const useUserProfileStore = create<UserProfileState>()(
         const { profile } = get();
         if (!profile.hasCustomizedProfile) {
           set({ profile: defaultProfile });
+        }
+      },
+
+      syncToSupabase: async () => {
+        try {
+          const { profile } = get();
+          if (!profile.userId || profile.userId === 'default') return;
+
+          const rankInfo = get().getRank();
+          
+          const { error } = await supabase
+            .from('user_profiles')
+            .upsert({
+              user_id: profile.userId,
+              username: `${profile.firstName}${profile.lastName}`,
+              first_name: profile.firstName,
+              last_name: profile.lastName,
+              email: profile.email,
+              profile_pic: profile.profilePicture,
+              total_nights_out: profile.nightsOut,
+              total_bars_hit: profile.barsHit,
+              drunk_scale_ratings: profile.drunkScaleRatings,
+              last_night_out_date: profile.lastNightOutDate,
+              last_drunk_scale_date: profile.lastDrunkScaleDate,
+              has_completed_onboarding: profile.hasCompletedOnboarding,
+              ranking: rankInfo.title,
+              join_date: profile.joinDate,
+            });
+
+          if (error) {
+            console.warn('Failed to sync profile to Supabase:', error);
+          }
+        } catch (error) {
+          console.warn('Error syncing to Supabase:', error);
+        }
+      },
+
+      loadFromSupabase: async () => {
+        try {
+          set({ isLoading: true });
+          const { profile } = get();
+          if (!profile.userId || profile.userId === 'default') {
+            set({ isLoading: false });
+            return;
+          }
+
+          const { data, error } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('user_id', profile.userId)
+            .single();
+
+          if (error || !data) {
+            set({ isLoading: false });
+            return;
+          }
+
+          // Load friends
+          const { data: friendsData } = await supabase
+            .from('friends')
+            .select(`
+              friend_user_id,
+              user_profiles!friends_friend_user_id_fkey (
+                user_id,
+                first_name,
+                last_name,
+                profile_pic,
+                total_nights_out,
+                total_bars_hit,
+                ranking
+              )
+            `)
+            .eq('user_id', profile.userId);
+
+          const friends: Friend[] = friendsData?.map(f => ({
+            userId: f.user_profiles.user_id,
+            name: `${f.user_profiles.first_name} ${f.user_profiles.last_name}`,
+            profilePicture: f.user_profiles.profile_pic || undefined,
+            nightsOut: f.user_profiles.total_nights_out,
+            barsHit: f.user_profiles.total_bars_hit,
+            rankTitle: f.user_profiles.ranking,
+            addedAt: new Date().toISOString(),
+          })) || [];
+
+          set({
+            profile: {
+              ...profile,
+              firstName: data.first_name,
+              lastName: data.last_name,
+              email: data.email || profile.email,
+              profilePicture: data.profile_pic || undefined,
+              nightsOut: data.total_nights_out,
+              barsHit: data.total_bars_hit,
+              drunkScaleRatings: data.drunk_scale_ratings || [],
+              lastNightOutDate: data.last_night_out_date || undefined,
+              lastDrunkScaleDate: data.last_drunk_scale_date || undefined,
+              hasCompletedOnboarding: data.has_completed_onboarding,
+              joinDate: data.join_date,
+              friends,
+            },
+            isLoading: false
+          });
+        } catch (error) {
+          console.warn('Error loading from Supabase:', error);
+          set({ isLoading: false });
         }
       }
     }),

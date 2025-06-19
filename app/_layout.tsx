@@ -6,6 +6,8 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { useAgeVerificationStore } from "@/stores/ageVerificationStore";
 import { useUserProfileStore } from "@/stores/userProfileStore";
+import { useVenueInteractionStore } from "@/stores/venueInteractionStore";
+import { useBingoStore } from "@/stores/bingoStore";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
 import OnboardingModal from "@/components/OnboardingModal";
 
@@ -20,17 +22,38 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   const { isVerified, setVerified } = useAgeVerificationStore();
-  const { profile, completeOnboarding } = useUserProfileStore();
+  const { profile, completeOnboarding, loadFromSupabase } = useUserProfileStore();
+  const { loadPopularTimesFromSupabase } = useVenueInteractionStore();
+  const { initializeTasks } = useBingoStore();
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
+    // Initialize stores and load data from Supabase
+    const initializeApp = async () => {
+      try {
+        // Initialize bingo tasks
+        initializeTasks();
+        
+        // Load data from Supabase if user has completed onboarding
+        if (profile.hasCompletedOnboarding && profile.userId !== 'default') {
+          await loadFromSupabase();
+          await loadPopularTimesFromSupabase();
+        }
+      } catch (error) {
+        console.warn('Error initializing app:', error);
+      }
+    };
+
     // Show age verification modal if not verified
     if (!isVerified) {
       setShowAgeVerification(true);
     } else if (!profile.hasCompletedOnboarding) {
       // Show onboarding after age verification
       setShowOnboarding(true);
+    } else {
+      // Initialize app if user is verified and onboarded
+      initializeApp();
     }
   }, [isVerified, profile.hasCompletedOnboarding]);
 
@@ -43,8 +66,8 @@ export default function RootLayout() {
     }
   };
 
-  const handleOnboardingComplete = (firstName: string, lastName: string) => {
-    completeOnboarding(firstName, lastName);
+  const handleOnboardingComplete = async (firstName: string, lastName: string) => {
+    await completeOnboarding(firstName, lastName);
     setShowOnboarding(false);
   };
 
