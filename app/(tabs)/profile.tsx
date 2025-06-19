@@ -18,7 +18,8 @@ export default function TrackingScreen() {
     addDrunkScaleRating,
     canSubmitDrunkScale,
     getRank,
-    setProfilePicture
+    setProfilePicture,
+    setUserName
   } = useUserProfileStore();
   
   const [nameEditModalVisible, setNameEditModalVisible] = useState(false);
@@ -44,10 +45,7 @@ export default function TrackingScreen() {
 
   const handleNameSave = () => {
     if (editFirstName.trim() && editLastName.trim()) {
-      updateProfile({
-        firstName: editFirstName.trim(),
-        lastName: editLastName.trim()
-      });
+      setUserName(editFirstName.trim(), editLastName.trim());
       setNameEditModalVisible(false);
     } else {
       Alert.alert('Error', 'Please enter both first and last name.');

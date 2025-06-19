@@ -13,9 +13,11 @@ interface UserProfile {
   drunkScaleRatings: number[];
   lastNightOutDate?: string; // Track last date to prevent multiple increments per day
   lastDrunkScaleDate?: string; // Track last drunk scale submission date
-  profilePicture?: string; // Store profile picture URI
+  profilePicture?: string; // Store profile picture URI - persists across sessions
   // Add a unique identifier to ensure stats persist across different users
   userId?: string;
+  // Track if profile has been customized to prevent resets
+  hasCustomizedProfile?: boolean;
 }
 
 interface UserProfileState {
@@ -29,6 +31,7 @@ interface UserProfileState {
   canIncrementNightsOut: () => boolean;
   canSubmitDrunkScale: () => boolean;
   setProfilePicture: (uri: string) => void;
+  setUserName: (firstName: string, lastName: string) => void;
   // Add method to safely reset only if needed (not on logout)
   resetProfile: () => void;
 }
@@ -42,6 +45,7 @@ const defaultProfile: UserProfile = {
   barsHit: 0,
   drunkScaleRatings: [],
   userId: 'default',
+  hasCustomizedProfile: false,
 };
 
 const getRankInfo = (averageScore: number): { rank: number; title: string; color: string } => {
@@ -70,7 +74,11 @@ export const useUserProfileStore = create<UserProfileState>()(
       
       updateProfile: (updates) => 
         set((state) => ({
-          profile: { ...state.profile, ...updates }
+          profile: { 
+            ...state.profile, 
+            ...updates,
+            hasCustomizedProfile: true // Mark as customized when any update is made
+          }
         })),
       
       incrementNightsOut: () => {
@@ -169,19 +177,38 @@ export const useUserProfileStore = create<UserProfileState>()(
         set((state) => ({
           profile: {
             ...state.profile,
-            profilePicture: uri
+            profilePicture: uri,
+            hasCustomizedProfile: true
           }
         }));
       },
 
-      // Only reset if explicitly called (not on logout)
+      setUserName: (firstName: string, lastName: string) => {
+        set((state) => ({
+          profile: {
+            ...state.profile,
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            hasCustomizedProfile: true
+          }
+        }));
+      },
+
+      // Only reset if explicitly called and profile hasn't been customized
       resetProfile: () => {
-        set({ profile: defaultProfile });
+        const { profile } = get();
+        if (!profile.hasCustomizedProfile) {
+          set({ profile: defaultProfile });
+        }
       }
     }),
     {
       name: 'user-profile-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      // Ensure all profile data persists, especially customizations
+      partialize: (state) => ({
+        profile: state.profile,
+      }),
     }
   )
 );

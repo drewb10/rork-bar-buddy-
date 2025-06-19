@@ -24,6 +24,11 @@ export const useAgeVerificationStore = create<AgeVerificationState>()(
     {
       name: 'age-verification-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      // Ensure verification status persists across all sessions
+      partialize: (state) => ({
+        isVerified: state.isVerified,
+        verificationDate: state.verificationDate,
+      }),
     }
   )
 );

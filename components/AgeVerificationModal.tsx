@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, Pressable, Modal, Alert, Image } from 'react-native';
-import { Calendar, X } from 'lucide-react-native';
+import { X } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 
@@ -17,7 +17,7 @@ export default function AgeVerificationModal({ visible, onVerify }: AgeVerificat
     if (!isOfAge) {
       Alert.alert(
         'Age Restriction',
-        'You must be at least 18 years old to use this app.',
+        'You must be at least 21 years old to use this app.',
         [{ text: 'OK', onPress: () => onVerify(false) }]
       );
     } else {
@@ -44,16 +44,8 @@ export default function AgeVerificationModal({ visible, onVerify }: AgeVerificat
             Age Verification Required
           </Text>
           
-          <View style={styles.iconContainer}>
-            <Calendar size={48} color={themeColors.primary} />
-          </View>
-          
-          <Text style={[styles.message, { color: themeColors.text }]}>
-            You must be at least 18 years old to use Bar Buddy.
-          </Text>
-          
           <Text style={[styles.question, { color: themeColors.text }]}>
-            Are you 18 years of age or older?
+            Are you 21 years of age or older?
           </Text>
           
           <View style={styles.buttonContainer}>
@@ -62,7 +54,7 @@ export default function AgeVerificationModal({ visible, onVerify }: AgeVerificat
               onPress={() => handleVerification(false)}
             >
               <Text style={[styles.buttonText, { color: themeColors.error }]}>
-                No, I'm under 18
+                No, I'm under 21
               </Text>
             </Pressable>
             
@@ -71,7 +63,7 @@ export default function AgeVerificationModal({ visible, onVerify }: AgeVerificat
               onPress={() => handleVerification(true)}
             >
               <Text style={[styles.buttonText, { color: 'white' }]}>
-                Yes, I'm 18 or older
+                Yes, I'm 21 or older
               </Text>
             </Pressable>
           </View>
@@ -96,7 +88,7 @@ const styles = StyleSheet.create({
     width: '90%',
     maxWidth: 400,
     borderRadius: 20,
-    padding: 24,
+    padding: 32,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
@@ -107,33 +99,25 @@ const styles = StyleSheet.create({
   popupImage: {
     width: 120,
     height: 120,
-    marginBottom: 16,
+    marginBottom: 24,
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    marginBottom: 20,
+    marginBottom: 32,
     textAlign: 'center',
-  },
-  iconContainer: {
-    marginBottom: 20,
-  },
-  message: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 16,
-    lineHeight: 24,
   },
   question: {
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
+    lineHeight: 26,
   },
   buttonContainer: {
     width: '100%',
-    gap: 12,
-    marginBottom: 20,
+    gap: 16,
+    marginBottom: 24,
   },
   button: {
     paddingVertical: 16,
@@ -155,6 +139,6 @@ const styles = StyleSheet.create({
   disclaimer: {
     fontSize: 12,
     textAlign: 'center',
-    lineHeight: 16,
+    lineHeight: 18,
   },
 });
