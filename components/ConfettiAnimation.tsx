@@ -9,6 +9,7 @@ interface ConfettiPiece {
   y: Animated.Value;
   rotation: Animated.Value;
   color: string;
+  xOffset: number;
 }
 
 export default function ConfettiAnimation() {
@@ -17,13 +18,19 @@ export default function ConfettiAnimation() {
 
   useEffect(() => {
     // Create confetti pieces
-    confettiPieces.current = Array.from({ length: 50 }, (_, i) => ({
-      id: i,
-      x: new Animated.Value(Math.random() * screenWidth),
-      y: new Animated.Value(-20),
-      rotation: new Animated.Value(0),
-      color: colors[Math.floor(Math.random() * colors.length)],
-    }));
+    confettiPieces.current = Array.from({ length: 50 }, (_, i) => {
+      const initialX = Math.random() * screenWidth;
+      const xOffset = (Math.random() - 0.5) * 200;
+      
+      return {
+        id: i,
+        x: new Animated.Value(initialX),
+        y: new Animated.Value(-20),
+        rotation: new Animated.Value(0),
+        color: colors[Math.floor(Math.random() * colors.length)],
+        xOffset,
+      };
+    });
 
     // Animate confetti
     const animations = confettiPieces.current.map((piece) => {
@@ -34,7 +41,7 @@ export default function ConfettiAnimation() {
           useNativeDriver: true,
         }),
         Animated.timing(piece.x, {
-          toValue: piece.x._value + (Math.random() - 0.5) * 200,
+          toValue: piece.xOffset,
           duration: 3000 + Math.random() * 2000,
           useNativeDriver: true,
         }),
