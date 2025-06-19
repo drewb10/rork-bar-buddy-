@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, TextInput } from 'react-native';
-import { User, TrendingUp, MapPin, Zap, Settings, Edit3, X } from 'lucide-react-native';
+import { User, TrendingUp, MapPin, Zap, Settings, Edit3, X, Award } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
@@ -19,7 +19,8 @@ export default function TrackingScreen() {
     updateProfile, 
     getAverageDrunkScale, 
     addDrunkScaleRating,
-    canSubmitDrunkScale 
+    canSubmitDrunkScale,
+    getRank
   } = useUserProfileStore();
   const { interactions } = useVenueInteractionStore();
   
@@ -30,6 +31,7 @@ export default function TrackingScreen() {
   
   const averageDrunkScale = getAverageDrunkScale();
   const canSubmitToday = canSubmitDrunkScale();
+  const rankInfo = getRank();
 
   const formatJoinDate = (dateString: string) => {
     try {
@@ -204,6 +206,19 @@ export default function TrackingScreen() {
               How lit did you get last night?
             </Text>
           </Pressable>
+
+          {/* Ranking Card */}
+          <View style={[styles.rankingCard, { backgroundColor: themeColors.card }]}>
+            <Award size={20} color={rankInfo.color} />
+            <View style={styles.rankingInfo}>
+              <Text style={[styles.rankingTitle, { color: rankInfo.color }]}>
+                {rankInfo.title}
+              </Text>
+              <Text style={[styles.rankingSubtext, { color: themeColors.subtext }]}>
+                Rank {rankInfo.rank}/4
+              </Text>
+            </View>
+          </View>
 
           {/* Activity Summary */}
           <View style={[styles.summaryCard, { backgroundColor: themeColors.card }]}>
@@ -439,7 +454,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -449,6 +464,31 @@ const styles = StyleSheet.create({
   drunkScaleButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  rankingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  rankingInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  rankingTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  rankingSubtext: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   summaryCard: {
     borderRadius: 16,

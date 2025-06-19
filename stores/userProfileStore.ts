@@ -23,7 +23,7 @@ interface UserProfileState {
   incrementBarsHit: () => void;
   addDrunkScaleRating: (rating: number) => void;
   getAverageDrunkScale: () => number;
-  getRank: () => { rank: number; title: string };
+  getRank: () => { rank: number; title: string; color: string };
   canIncrementNightsOut: () => boolean;
   canSubmitDrunkScale: () => boolean;
   // Add method to safely reset only if needed (not on logout)
@@ -41,17 +41,11 @@ const defaultProfile: UserProfile = {
   userId: 'default',
 };
 
-const getRankInfo = (averageScore: number): { rank: number; title: string } => {
-  if (averageScore >= 8.5) return { rank: 10, title: 'Legendary Partier' };
-  if (averageScore >= 7.5) return { rank: 9, title: 'Party Animal' };
-  if (averageScore >= 6.5) return { rank: 8, title: 'Night Owl' };
-  if (averageScore >= 5.5) return { rank: 7, title: 'Social Butterfly' };
-  if (averageScore >= 4.5) return { rank: 6, title: 'Weekend Warrior' };
-  if (averageScore >= 3.5) return { rank: 5, title: 'Casual Drinker' };
-  if (averageScore >= 2.5) return { rank: 4, title: 'Light Sipper' };
-  if (averageScore >= 1.5) return { rank: 3, title: 'Designated Driver' };
-  if (averageScore >= 0.5) return { rank: 2, title: 'Teetotaler' };
-  return { rank: 1, title: 'Newbie' };
+const getRankInfo = (averageScore: number): { rank: number; title: string; color: string } => {
+  if (averageScore >= 8.5) return { rank: 4, title: 'Blackout Boss', color: '#9C27B0' };
+  if (averageScore >= 5.51) return { rank: 3, title: 'Buzzed Beginner', color: '#FF9800' };
+  if (averageScore >= 3.01) return { rank: 2, title: 'Tipsy Talent', color: '#FFC107' };
+  return { rank: 1, title: 'Sober Star', color: '#4CAF50' };
 };
 
 const isSameDay = (date1: string, date2: string): boolean => {
@@ -134,7 +128,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           const averageScore = get().getAverageDrunkScale();
           return getRankInfo(averageScore);
         } catch {
-          return { rank: 1, title: 'Newbie' };
+          return { rank: 1, title: 'Sober Star', color: '#4CAF50' };
         }
       },
       
