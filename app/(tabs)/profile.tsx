@@ -1,15 +1,18 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform } from 'react-native';
-import { User, TrendingUp, MapPin, BarChart3 } from 'lucide-react-native';
+import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert } from 'react-native';
+import { User, TrendingUp, MapPin, BarChart3, Settings } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
+import { useAuthStore } from '@/stores/authStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 
 export default function TrackingScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
+  const { signOut } = useAuthStore();
+  const { resetProfile } = useUserProfileStore();
   
   // Get data from stores with error handling
   let profile, interactions, totalInteractions;
@@ -51,6 +54,39 @@ export default function TrackingScreen() {
     } catch {
       return 'Recently';
     }
+  };
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Your stats will be saved and restored when you sign back in.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Sign Out', 
+          style: 'destructive',
+          onPress: signOut
+        }
+      ]
+    );
+  };
+
+  const handleResetStats = () => {
+    Alert.alert(
+      'Reset All Stats',
+      'This will permanently delete all your progress. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Reset', 
+          style: 'destructive',
+          onPress: () => {
+            resetProfile();
+            Alert.alert('Stats Reset', 'All your stats have been reset.');
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -135,7 +171,42 @@ export default function TrackingScreen() {
               You've been out {profile.nightsOut || 0} {(profile.nightsOut || 0) === 1 ? 'night' : 'nights'} and visited {profile.barsHit || 0} different {(profile.barsHit || 0) === 1 ? 'bar' : 'bars'}. 
               {totalInteractions > 0 && ` You've checked in ${totalInteractions} ${totalInteractions === 1 ? 'time' : 'times'} total.`}
             </Text>
+            
+            <Text style={[styles.persistenceNote, { color: themeColors.primary }]}>
+              💾 Your stats are automatically saved and will persist even if you log out or reinstall the app.
+            </Text>
           </View>
+        </View>
+
+        {/* Settings Section */}
+        <View style={styles.settingsSection}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
+            Settings
+          </Text>
+          
+          <Pressable 
+            style={[styles.settingButton, { backgroundColor: themeColors.card }]}
+            onPress={handleSignOut}
+          >
+            <Text style={[styles.settingButtonText, { color: themeColors.text }]}>
+              Sign Out
+            </Text>
+            <Text style={[styles.settingButtonSubtext, { color: themeColors.subtext }]}>
+              Your stats will be saved
+            </Text>
+          </Pressable>
+
+          <Pressable 
+            style={[styles.settingButton, styles.dangerButton, { backgroundColor: themeColors.error + '20' }]}
+            onPress={handleResetStats}
+          >
+            <Text style={[styles.settingButtonText, { color: themeColors.error }]}>
+              Reset All Stats
+            </Text>
+            <Text style={[styles.settingButtonSubtext, { color: themeColors.error }]}>
+              Permanently delete all progress
+            </Text>
+          </Pressable>
         </View>
 
         <View style={styles.footer} />
@@ -255,6 +326,33 @@ const styles = StyleSheet.create({
   summaryText: {
     fontSize: 14,
     lineHeight: 20,
+    marginBottom: 12,
+  },
+  persistenceNote: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '500',
+  },
+  settingsSection: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  settingButton: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  dangerButton: {
+    borderWidth: 1,
+    borderColor: 'rgba(244, 67, 54, 0.3)',
+  },
+  settingButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  settingButtonSubtext: {
+    fontSize: 12,
   },
   footer: {
     height: 24,

@@ -11,6 +11,8 @@ interface UserProfile {
   barsHit: number;
   drunkScaleRatings: number[];
   lastNightOutDate?: string; // Track last date to prevent multiple increments per day
+  // Add a unique identifier to ensure stats persist across different users
+  userId?: string;
 }
 
 interface UserProfileState {
@@ -22,6 +24,8 @@ interface UserProfileState {
   getAverageDrunkScale: () => number;
   getRank: () => { rank: number; title: string };
   canIncrementNightsOut: () => boolean;
+  // Add method to safely reset only if needed (not on logout)
+  resetProfile: () => void;
 }
 
 const defaultProfile: UserProfile = {
@@ -32,6 +36,7 @@ const defaultProfile: UserProfile = {
   nightsOut: 0,
   barsHit: 0,
   drunkScaleRatings: [],
+  userId: 'default',
 };
 
 const getRankInfo = (averageScore: number): { rank: number; title: string } => {
@@ -132,6 +137,11 @@ export const useUserProfileStore = create<UserProfileState>()(
         } catch {
           return true;
         }
+      },
+
+      // Only reset if explicitly called (not on logout)
+      resetProfile: () => {
+        set({ profile: defaultProfile });
       }
     }),
     {
@@ -143,6 +153,10 @@ export const useUserProfileStore = create<UserProfileState>()(
           state = { ...state, profile: defaultProfile };
         }
       },
+      // Persist all profile data - this ensures stats survive logout
+      partialize: (state) => ({
+        profile: state.profile,
+      }),
     }
   )
 );

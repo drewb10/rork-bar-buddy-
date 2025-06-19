@@ -4,26 +4,25 @@ import { LogOut, User } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
-import { useRouter } from 'expo-router';
 
 export default function UserProfile() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const { user, signOut } = useAuthStore();
-  const router = useRouter();
 
   const handleSignOut = () => {
     Alert.alert(
       'Sign Out',
-      'Are you sure you want to sign out?',
+      'Are you sure you want to sign out? Your stats and progress will be saved.',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Sign Out', 
           style: 'destructive',
           onPress: () => {
+            // This only clears auth data, not user stats
             signOut();
-            router.replace('/auth/sign-in');
+            // Note: User stats persist in AsyncStorage even after logout
           }
         }
       ]
