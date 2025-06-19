@@ -147,10 +147,6 @@ export const useUserProfileStore = create<UserProfileState>()(
     {
       name: 'user-profile-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      // Persist all profile data - this ensures stats survive logout
-      partialize: (state) => ({
-        profile: state.profile,
-      }),
     }
   )
 );

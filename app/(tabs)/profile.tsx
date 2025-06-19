@@ -141,12 +141,8 @@ export default function TrackingScreen() {
               Activity Summary
             </Text>
             <Text style={[styles.summaryText, { color: themeColors.subtext }]}>
-              You've been out {profile.nightsOut} {profile.nightsOut === 1 ? 'night' : 'nights'} and visited {profile.barsHit} different {profile.barsHit === 1 ? 'bar' : 'bars'}. 
+              You've been out {profile.nightsOut} {profile.nightsOut === 1 ? 'night' : 'nights'} and visited {profile.barsHit} different {profile.barsHit === 1 ? 'bar' : 'bars'}.
               {totalInteractions > 0 && ` You've checked in ${totalInteractions} ${totalInteractions === 1 ? 'time' : 'times'} total.`}
-            </Text>
-            
-            <Text style={[styles.persistenceNote, { color: themeColors.primary }]}>
-              💾 Your stats are automatically saved and will persist even if you log out or reinstall the app.
             </Text>
           </View>
         </View>
@@ -243,7 +239,7 @@ const styles = StyleSheet.create({
   },
   statsSection: {
     paddingHorizontal: 16,
-    marginBottom: 24,
+    marginBottom: 32,
   },
   sectionTitle: {
     fontSize: 20,
@@ -269,7 +265,7 @@ const styles = StyleSheet.create({
   fullWidthCard: {
     flex: 0,
     width: '100%',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   statNumber: {
     fontSize: 32,
@@ -299,12 +295,6 @@ const styles = StyleSheet.create({
   summaryText: {
     fontSize: 14,
     lineHeight: 20,
-    marginBottom: 12,
-  },
-  persistenceNote: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '500',
   },
   settingsSection: {
     paddingHorizontal: 16,
