@@ -6,7 +6,6 @@ import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
-import { LinearGradient } from 'expo-linear-gradient';
 
 export default function TrackingScreen() {
   const { theme } = useThemeStore();
@@ -88,10 +87,6 @@ export default function TrackingScreen() {
 
         {/* Profile Card */}
         <View style={[styles.profileCard, { backgroundColor: themeColors.card }]}>
-          <LinearGradient
-            colors={['rgba(255,106,0,0.1)', 'transparent']}
-            style={styles.profileGradient}
-          />
           <View style={styles.profileHeader}>
             <View style={[styles.avatar, { backgroundColor: themeColors.primary }]}>
               <User size={32} color="white" />
@@ -153,10 +148,6 @@ export default function TrackingScreen() {
           <View style={styles.statsGrid}>
             {/* Nights Out */}
             <View style={[styles.statCard, styles.largeStatCard, { backgroundColor: themeColors.card }]}>
-              <LinearGradient
-                colors={['rgba(255,106,0,0.15)', 'transparent']}
-                style={styles.statGradient}
-              />
               <View style={styles.statHeader}>
                 <TrendingUp size={28} color={themeColors.primary} />
                 <View style={[styles.statBadge, { backgroundColor: themeColors.primary }]}>
@@ -176,10 +167,6 @@ export default function TrackingScreen() {
 
             {/* Bars Hit */}
             <View style={[styles.statCard, styles.largeStatCard, { backgroundColor: themeColors.card }]}>
-              <LinearGradient
-                colors={['rgba(255,106,0,0.15)', 'transparent']}
-                style={styles.statGradient}
-              />
               <View style={styles.statHeader}>
                 <MapPin size={28} color={themeColors.primary} />
                 <View style={[styles.statBadge, { backgroundColor: themeColors.primary }]}>
@@ -420,13 +407,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
-  profileGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
   profileHeader: {
     width: '100%',
     flexDirection: 'row',
@@ -532,13 +512,6 @@ const styles = StyleSheet.create({
   largeStatCard: {
     flex: 1,
     padding: 20,
-  },
-  statGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
   statHeader: {
     flexDirection: 'row',
