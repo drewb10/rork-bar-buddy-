@@ -149,33 +149,34 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
       
       getPopularArrivalTime: (venueId) => {
         try {
-          // Group all interactions for this venue by arrival time
-          const venueInteractions = get().interactions.filter(i => 
-            i.venueId === venueId && i.arrivalTime
+          // Get all interactions for this venue from all users/sessions
+          const allInteractions = get().interactions.filter(i => 
+            i.venueId === venueId && i.arrivalTime && i.count > 0
           );
           
-          if (venueInteractions.length === 0) return null;
+          if (allInteractions.length === 0) return null;
           
-          // Count occurrences of each arrival time
+          // Count occurrences of each arrival time across all interactions
           const timeCounts: Record<string, number> = {};
-          venueInteractions.forEach(interaction => {
+          allInteractions.forEach(interaction => {
             if (interaction.arrivalTime) {
-              timeCounts[interaction.arrivalTime] = (timeCounts[interaction.arrivalTime] || 0) + 1;
+              timeCounts[interaction.arrivalTime] = (timeCounts[interaction.arrivalTime] || 0) + interaction.count;
             }
           });
           
-          // Find the most popular time
-          let popularTime = null;
-          let maxCount = 0;
+          if (Object.keys(timeCounts).length === 0) return null;
           
-          Object.entries(timeCounts).forEach(([time, count]) => {
-            if (count > maxCount) {
-              maxCount = count;
-              popularTime = time;
-            }
-          });
+          // Find the maximum count
+          const maxCount = Math.max(...Object.values(timeCounts));
           
-          return popularTime;
+          // Get all times that have the maximum count
+          const popularTimes = Object.entries(timeCounts)
+            .filter(([time, count]) => count === maxCount)
+            .map(([time]) => time)
+            .sort(); // Sort times for consistent display
+          
+          // Return times separated by slash if multiple, or single time
+          return popularTimes.join('/');
         } catch {
           return null;
         }

@@ -208,16 +208,18 @@ export default function TrackingScreen() {
             </Text>
           </Pressable>
 
-          {/* Ranking Card */}
-          <View style={[styles.rankingCard, { backgroundColor: themeColors.card }]}>
-            <Award size={20} color={rankInfo.color} />
-            <View style={styles.rankingInfo}>
-              <Text style={[styles.rankingTitle, { color: rankInfo.color }]}>
-                {rankInfo.title}
-              </Text>
-              <Text style={[styles.rankingSubtext, { color: themeColors.subtext }]}>
-                Rank {rankInfo.rank}/4
-              </Text>
+          {/* Ranking Card - Centered and Half Width */}
+          <View style={styles.rankingContainer}>
+            <View style={[styles.rankingCard, { backgroundColor: themeColors.card }]}>
+              <Award size={20} color={rankInfo.color} />
+              <View style={styles.rankingInfo}>
+                <Text style={[styles.rankingTitle, { color: rankInfo.color }]}>
+                  {rankInfo.title}
+                </Text>
+                <Text style={[styles.rankingSubtext, { color: themeColors.subtext }]}>
+                  Rank {rankInfo.rank}/4
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -468,12 +470,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  rankingContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   rankingCard: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 12,
     padding: 12,
-    marginBottom: 20,
+    width: '50%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
