@@ -15,10 +15,9 @@ export default function FilterBar({ filters, onFilterChange, filterType }: Filte
   const themeColors = colors[theme];
 
   const venueTypes: { value: VenueType; label: string }[] = [
-    { value: 'dive-bar', label: 'Dive Bar' },
     { value: 'sports-bar', label: 'Sports Bar' },
     { value: 'club', label: 'Club' },
-    { value: 'brewery', label: 'Brewery' },
+    { value: 'hangout', label: 'Hangout' },
   ];
 
   const specialTypes: { value: SpecialType; label: string }[] = [

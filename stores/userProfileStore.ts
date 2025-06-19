@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { trpcClient } from '@/lib/trpc';
 
 interface UserProfile {
   firstName: string;
@@ -100,6 +101,16 @@ export const useUserProfileStore = create<UserProfileState>()(
       addDrunkScaleRating: (rating) => {
         try {
           const today = new Date().toISOString();
+          
+          // Track drunk scale rating in cloud storage
+          trpcClient.analytics.trackDrunkScale.mutate({
+            rating,
+            timestamp: today,
+            sessionId: Math.random().toString(36).substr(2, 9),
+          }).catch(error => {
+            console.warn('Failed to track drunk scale rating in cloud:', error);
+          });
+          
           set((state) => ({
             profile: {
               ...state.profile,

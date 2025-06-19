@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { trpcClient } from '@/lib/trpc';
 
 interface VenueInteraction {
   venueId: string;
@@ -68,6 +69,16 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           set((state) => {
             const existingInteraction = state.interactions.find(i => i.venueId === venueId);
             const now = new Date().toISOString();
+            
+            // Track interaction in cloud storage
+            trpcClient.analytics.trackInteraction.mutate({
+              venueId,
+              arrivalTime,
+              timestamp: now,
+              sessionId: Math.random().toString(36).substr(2, 9),
+            }).catch(error => {
+              console.warn('Failed to track interaction in cloud:', error);
+            });
             
             if (existingInteraction) {
               return {

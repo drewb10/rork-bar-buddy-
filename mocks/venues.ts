@@ -9,7 +9,7 @@ export const venues: Venue[] = [
     phone: "(478) 741-9130",
     website: "https://www.thebirdstage.com/",
     instagram: "hummingbirdmacon",
-    types: ['brewery'],
+    types: ['hangout'],
     rating: 4.6,
     priceLevel: 2,
     openHours: [
@@ -143,7 +143,7 @@ export const venues: Venue[] = [
     phone: "(478) 742-3627",
     website: "https://www.cashmansmacon.com/",
     instagram: "cashmanspub",
-    types: ['dive-bar', 'sports-bar'],
+    types: ['sports-bar', 'hangout'],
     rating: 4.5,
     priceLevel: 2,
     openHours: [
@@ -205,7 +205,7 @@ export const venues: Venue[] = [
     phone: "(478) 742-6403",
     website: "https://historicgrants.com/",
     instagram: "historicgrantslounge",
-    types: ['dive-bar'],
+    types: ['hangout'],
     rating: 4.4,
     priceLevel: 2,
     openHours: [
@@ -301,7 +301,7 @@ export const venues: Venue[] = [
     phone: "(478) 257-6456",
     website: "https://www.jbamacon.com/",
     instagram: "jbamacongeorgia",
-    types: ['club'],
+    types: ['club', 'hangout'],
     rating: 4.7,
     priceLevel: 3,
     openHours: [
@@ -354,7 +354,7 @@ export const venues: Venue[] = [
     phone: "(478) 621-2646",
     website: "https://www.rebootmacon.com/",
     instagram: "rebootmacon",
-    types: ['brewery'],
+    types: ['hangout'],
     rating: 4.8,
     priceLevel: 2,
     openHours: [

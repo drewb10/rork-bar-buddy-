@@ -1,29 +1,23 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, TextInput } from 'react-native';
-import { User, TrendingUp, MapPin, Zap, Settings, Edit3, X, Award } from 'lucide-react-native';
+import { User, TrendingUp, MapPin, Zap, Edit3, X, Award } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
-import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
-import { useAuthStore } from '@/stores/authStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import DrunkScaleSlider from '@/components/DrunkScaleSlider';
-import DataViewer from '@/components/DataViewer';
 
 export default function TrackingScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { signOut } = useAuthStore();
   const { 
     profile, 
-    resetProfile, 
     updateProfile, 
     getAverageDrunkScale, 
     addDrunkScaleRating,
     canSubmitDrunkScale,
     getRank
   } = useUserProfileStore();
-  const { interactions } = useVenueInteractionStore();
   
   const [nameEditModalVisible, setNameEditModalVisible] = useState(false);
   const [drunkScaleModalVisible, setDrunkScaleModalVisible] = useState(false);
@@ -62,39 +56,6 @@ export default function TrackingScreen() {
     addDrunkScaleRating(rating);
     setDrunkScaleModalVisible(false);
     Alert.alert('Rating Submitted', `You rated last night as ${rating}/10 on the drunk scale!`);
-  };
-
-  const handleSignOut = () => {
-    Alert.alert(
-      'Sign Out',
-      'Your stats will be saved and restored when you sign back in.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Sign Out', 
-          style: 'destructive',
-          onPress: signOut
-        }
-      ]
-    );
-  };
-
-  const handleResetStats = () => {
-    Alert.alert(
-      'Reset All Stats',
-      'This will permanently delete all your progress. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Reset', 
-          style: 'destructive',
-          onPress: () => {
-            resetProfile();
-            Alert.alert('Stats Reset', 'All your stats have been reset.');
-          }
-        }
-      ]
-    );
   };
 
   return (
@@ -208,18 +169,16 @@ export default function TrackingScreen() {
             </Text>
           </Pressable>
 
-          {/* Ranking Card - Centered and Half Width */}
+          {/* Ranking Card - Centered and Stacked */}
           <View style={styles.rankingContainer}>
             <View style={[styles.rankingCard, { backgroundColor: themeColors.card }]}>
-              <Award size={20} color={rankInfo.color} />
-              <View style={styles.rankingInfo}>
-                <Text style={[styles.rankingTitle, { color: rankInfo.color }]}>
-                  {rankInfo.title}
-                </Text>
-                <Text style={[styles.rankingSubtext, { color: themeColors.subtext }]}>
-                  Rank {rankInfo.rank}/4
-                </Text>
-              </View>
+              <Award size={24} color={rankInfo.color} />
+              <Text style={[styles.rankingTitle, { color: rankInfo.color }]}>
+                {rankInfo.title}
+              </Text>
+              <Text style={[styles.rankingSubtext, { color: themeColors.subtext }]}>
+                Rank {rankInfo.rank}/4
+              </Text>
             </View>
           </View>
 
@@ -229,39 +188,6 @@ export default function TrackingScreen() {
               You have been out {profile.nightsOut} {profile.nightsOut === 1 ? 'night' : 'nights'} and visited {profile.barsHit} different {profile.barsHit === 1 ? 'bar' : 'bars'}.
             </Text>
           </View>
-        </View>
-
-        {/* Settings Section */}
-        <View style={styles.settingsSection}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-            Settings
-          </Text>
-          
-          <DataViewer />
-          
-          <Pressable 
-            style={[styles.settingButton, { backgroundColor: themeColors.card }]}
-            onPress={handleSignOut}
-          >
-            <Text style={[styles.settingButtonText, { color: themeColors.text }]}>
-              Sign Out
-            </Text>
-            <Text style={[styles.settingButtonSubtext, { color: themeColors.subtext }]}>
-              Your stats will be saved
-            </Text>
-          </Pressable>
-
-          <Pressable 
-            style={[styles.settingButton, styles.dangerButton, { backgroundColor: themeColors.error + '20' }]}
-            onPress={handleResetStats}
-          >
-            <Text style={[styles.settingButtonText, { color: themeColors.error }]}>
-              Reset All Stats
-            </Text>
-            <Text style={[styles.settingButtonSubtext, { color: themeColors.error }]}>
-              Permanently delete all progress
-            </Text>
-          </Pressable>
         </View>
 
         <View style={styles.footer} />
@@ -475,10 +401,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   rankingCard: {
-    flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 12,
-    padding: 12,
+    padding: 16,
     width: '50%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -486,18 +411,17 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  rankingInfo: {
-    marginLeft: 12,
-    flex: 1,
-  },
   rankingTitle: {
     fontSize: 16,
     fontWeight: '700',
-    marginBottom: 2,
+    marginTop: 8,
+    marginBottom: 4,
+    textAlign: 'center',
   },
   rankingSubtext: {
     fontSize: 12,
     fontWeight: '500',
+    textAlign: 'center',
   },
   summaryCard: {
     borderRadius: 16,
@@ -511,27 +435,6 @@ const styles = StyleSheet.create({
   summaryText: {
     fontSize: 14,
     lineHeight: 20,
-  },
-  settingsSection: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
-  },
-  settingButton: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  dangerButton: {
-    borderWidth: 1,
-    borderColor: 'rgba(244, 67, 54, 0.3)',
-  },
-  settingButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  settingButtonSubtext: {
-    fontSize: 12,
   },
   footer: {
     height: 24,
