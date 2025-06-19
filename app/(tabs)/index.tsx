@@ -43,7 +43,7 @@ export default function HomeScreen() {
         
         return { venue, todaySpecial };
       })
-      .filter((pick): pick is TopPickItem => pick !== null && 'venue' in pick);
+      .filter((pick): pick is TopPickItem => pick !== null);
     
     setTopPickVenues(topPicks);
     resetInteractionsIfNeeded();
@@ -60,24 +60,13 @@ export default function HomeScreen() {
     return bCount - aCount;
   });
 
-  const navigateToMap = () => {
-    router.push('/map');
-  };
-
-  const navigateToAllVenues = () => {
-    router.push('/all-venues');
-  };
-
-  const navigateToAllSpecials = () => {
-    router.push('/all-specials');
-  };
-
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <ScrollView 
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
         {/* BarBuddy Logo */}
         <View style={styles.logoContainer}>
@@ -116,7 +105,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <SectionHeader 
             title="Popular Venues" 
-            onSeeAll={navigateToAllVenues}
+            showSeeAll={false}
           />
           <View style={styles.venueList}>
             {sortedVenues.map(venue => (
@@ -143,9 +132,11 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+  },
   logoContainer: {
     alignItems: 'center',
-    paddingTop: 40,
     paddingBottom: 10,
     paddingHorizontal: 16,
   },

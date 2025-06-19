@@ -1,11 +1,11 @@
 // Color palette for the app
 export const colors = {
   dark: {
-    background: '#0A0A0A',
-    gradient: ['#0A0A0A', '#000000'],
-    card: '#1A1A1A',
-    text: '#F2F2F2',
-    subtext: '#BBBBBB',
+    background: '#121212', // Slightly lighter black for better visibility
+    gradient: ['#121212', '#000000'],
+    card: '#1E1E1E', // Lighter card background
+    text: '#FFFFFF', // Pure white for better contrast
+    subtext: '#B3B3B3', // Lighter gray for better visibility
     primary: '#FF6A00', // flame orange
     secondary: '#FF944D',
     accent: '#FF6A00',

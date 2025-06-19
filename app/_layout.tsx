@@ -19,18 +19,17 @@ export default function RootLayout() {
           contentStyle: {
             backgroundColor: themeColors.background,
           },
-          // Hide header for tab screens
           headerShown: false,
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        {/* Show header for venue screens with custom styling */}
         <Stack.Screen 
           name="venue/[id]" 
           options={{
             headerShown: true,
             presentation: 'card',
-            animation: 'slide_from_right',
+            headerBackTitle: '',
+            headerTitle: '',
           }}
         />
       </Stack>

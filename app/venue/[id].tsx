@@ -24,116 +24,123 @@ export default function VenueDetailScreen() {
     <>
       <Stack.Screen 
         options={{
-          title: venue.name,
+          headerShown: true,
           headerBackTitle: '',
-          headerTitleStyle: {
-            fontSize: 16,
+          headerTitle: '',
+          headerStyle: {
+            backgroundColor: themeColors.background,
           },
+          headerTintColor: themeColors.text,
         }} 
       />
       
-      <ScrollView style={styles.container}>
-        <View style={styles.imageContainer}>
-          <Image 
-            source={{ uri: venue.images[activeImageIndex] }} 
-            style={styles.image}
-          />
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.7)']}
-            style={StyleSheet.absoluteFill}
-          />
-        </View>
-
-        <View style={styles.content}>
-          <Text style={[styles.name, { color: themeColors.text }]}>
-            {venue.name}
-          </Text>
-          
-          <View style={styles.typeContainer}>
-            {venue.types.map((type, index) => (
-              <View 
-                key={index} 
-                style={[styles.typeTag, { backgroundColor: themeColors.primary + '20' }]}
-              >
-                <Text style={[styles.typeText, { color: themeColors.primary }]}>
-                  {type.replace('-', ' ')}
-                </Text>
-              </View>
-            ))}
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.imageContainer}>
+            <Image 
+              source={{ uri: venue.images[activeImageIndex] }} 
+              style={styles.image}
+            />
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.7)']}
+              style={StyleSheet.absoluteFill}
+            />
           </View>
 
-          <Text style={[styles.description, { color: themeColors.text }]}>
-            {venue.description}
-          </Text>
-
-          <View style={styles.infoContainer}>
-            <Pressable 
-              style={styles.infoRow}
-              onPress={() => Linking.openURL(`https://maps.google.com/?q=${venue.address}`)}
-            >
-              <MapPin size={20} color={themeColors.primary} />
-              <Text style={[styles.infoText, { color: themeColors.text }]}>
-                {venue.address}
-              </Text>
-            </Pressable>
-
-            <Pressable 
-              style={styles.infoRow}
-              onPress={() => Linking.openURL(`tel:${venue.phone}`)}
-            >
-              <Phone size={20} color={themeColors.primary} />
-              <Text style={[styles.infoText, { color: themeColors.text }]}>
-                {venue.phone}
-              </Text>
-            </Pressable>
-
-            {venue.website && (
-              <Pressable 
-                style={styles.infoRow}
-                onPress={() => Linking.openURL(venue.website!)}
-              >
-                <Globe size={20} color={themeColors.primary} />
-                <Text style={[styles.infoText, { color: themeColors.text }]}>
-                  {venue.website}
-                </Text>
-              </Pressable>
-            )}
-
-            {venue.instagram && (
-              <Pressable 
-                style={styles.infoRow}
-                onPress={() => Linking.openURL(`https://instagram.com/${venue.instagram}`)}
-              >
-                <Instagram size={20} color={themeColors.primary} />
-                <Text style={[styles.infoText, { color: themeColors.text }]}>
-                  @{venue.instagram}
-                </Text>
-              </Pressable>
-            )}
-          </View>
-
-          {venue.specials.length > 0 && (
-            <View style={styles.specialsSection}>
-              <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-                Specials
-              </Text>
-              {venue.specials.map(special => (
-                <SpecialCard 
-                  key={special.id} 
-                  special={special}
-                  venue={venue}
-                />
+          <View style={styles.content}>
+            <Text style={[styles.name, { color: themeColors.text }]}>
+              {venue.name}
+            </Text>
+            
+            <View style={styles.typeContainer}>
+              {venue.types.map((type, index) => (
+                <View 
+                  key={index} 
+                  style={[styles.typeTag, { backgroundColor: themeColors.primary + '20' }]}
+                >
+                  <Text style={[styles.typeText, { color: themeColors.primary }]}>
+                    {type.replace('-', ' ')}
+                  </Text>
+                </View>
               ))}
             </View>
-          )}
-        </View>
-      </ScrollView>
+
+            <Text style={[styles.description, { color: themeColors.text }]}>
+              {venue.description}
+            </Text>
+
+            <View style={styles.infoContainer}>
+              <Pressable 
+                style={styles.infoRow}
+                onPress={() => Linking.openURL(`https://maps.google.com/?q=${venue.address}`)}
+              >
+                <MapPin size={20} color={themeColors.primary} />
+                <Text style={[styles.infoText, { color: themeColors.text }]}>
+                  {venue.address}
+                </Text>
+              </Pressable>
+
+              <Pressable 
+                style={styles.infoRow}
+                onPress={() => Linking.openURL(`tel:${venue.phone}`)}
+              >
+                <Phone size={20} color={themeColors.primary} />
+                <Text style={[styles.infoText, { color: themeColors.text }]}>
+                  {venue.phone}
+                </Text>
+              </Pressable>
+
+              {venue.website && (
+                <Pressable 
+                  style={styles.infoRow}
+                  onPress={() => Linking.openURL(venue.website!)}
+                >
+                  <Globe size={20} color={themeColors.primary} />
+                  <Text style={[styles.infoText, { color: themeColors.text }]}>
+                    {venue.website}
+                  </Text>
+                </Pressable>
+              )}
+
+              {venue.instagram && (
+                <Pressable 
+                  style={styles.infoRow}
+                  onPress={() => Linking.openURL(`https://instagram.com/${venue.instagram}`)}
+                >
+                  <Instagram size={20} color={themeColors.primary} />
+                  <Text style={[styles.infoText, { color: themeColors.text }]}>
+                    @{venue.instagram}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+
+            {venue.specials.length > 0 && (
+              <View style={styles.specialsSection}>
+                <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
+                  Specials
+                </Text>
+                {venue.specials.map(special => (
+                  <SpecialCard 
+                    key={special.id} 
+                    special={special}
+                    venue={venue}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  scrollView: {
     flex: 1,
   },
   imageContainer: {
