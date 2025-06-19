@@ -8,6 +8,7 @@ import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import { useAuthStore } from '@/stores/authStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import DrunkScaleSlider from '@/components/DrunkScaleSlider';
+import DataViewer from '@/components/DataViewer';
 
 export default function TrackingScreen() {
   const { theme } = useThemeStore();
@@ -223,7 +224,7 @@ export default function TrackingScreen() {
           {/* Activity Summary */}
           <View style={[styles.summaryCard, { backgroundColor: themeColors.card }]}>
             <Text style={[styles.summaryText, { color: themeColors.subtext }]}>
-              You've been out {profile.nightsOut} {profile.nightsOut === 1 ? 'night' : 'nights'} and visited {profile.barsHit} different {profile.barsHit === 1 ? 'bar' : 'bars'}.
+              You have been out {profile.nightsOut} {profile.nightsOut === 1 ? 'night' : 'nights'} and visited {profile.barsHit} different {profile.barsHit === 1 ? 'bar' : 'bars'}.
             </Text>
           </View>
         </View>
@@ -233,6 +234,8 @@ export default function TrackingScreen() {
           <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
             Settings
           </Text>
+          
+          <DataViewer />
           
           <Pressable 
             style={[styles.settingButton, { backgroundColor: themeColors.card }]}
