@@ -5,7 +5,14 @@ import { trpc, trpcClient } from "@/lib/trpc";
 import { useThemeStore } from "@/stores/themeStore";
 import { colors } from "@/constants/colors";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    },
+  },
+});
 
 export default function RootLayout() {
   const { theme } = useThemeStore();

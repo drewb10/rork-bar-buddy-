@@ -6,8 +6,14 @@ import superjson from "superjson";
 export const trpc = createTRPCReact<AppRouter>();
 
 const getBaseUrl = () => {
+  // For development, use a fallback URL
   if (process.env.EXPO_PUBLIC_RORK_API_BASE_URL) {
     return process.env.EXPO_PUBLIC_RORK_API_BASE_URL;
+  }
+  
+  // Fallback for development
+  if (__DEV__) {
+    return "http://localhost:3000";
   }
 
   throw new Error(
