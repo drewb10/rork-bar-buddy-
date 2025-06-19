@@ -48,11 +48,15 @@ const getRankInfo = (averageScore: number): { rank: number; title: string } => {
 };
 
 const isSameDay = (date1: string, date2: string): boolean => {
-  const d1 = new Date(date1);
-  const d2 = new Date(date2);
-  return d1.getFullYear() === d2.getFullYear() &&
-         d1.getMonth() === d2.getMonth() &&
-         d1.getDate() === d2.getDate();
+  try {
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    return d1.getFullYear() === d2.getFullYear() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getDate() === d2.getDate();
+  } catch {
+    return false;
+  }
 };
 
 export const useUserProfileStore = create<UserProfileState>()(
@@ -66,17 +70,21 @@ export const useUserProfileStore = create<UserProfileState>()(
         })),
       
       incrementNightsOut: () => {
-        const today = new Date().toISOString();
-        const { profile } = get();
-        
-        if (!profile.lastNightOutDate || !isSameDay(profile.lastNightOutDate, today)) {
-          set((state) => ({
-            profile: {
-              ...state.profile,
-              nightsOut: state.profile.nightsOut + 1,
-              lastNightOutDate: today
-            }
-          }));
+        try {
+          const today = new Date().toISOString();
+          const { profile } = get();
+          
+          if (!profile.lastNightOutDate || !isSameDay(profile.lastNightOutDate, today)) {
+            set((state) => ({
+              profile: {
+                ...state.profile,
+                nightsOut: state.profile.nightsOut + 1,
+                lastNightOutDate: today
+              }
+            }));
+          }
+        } catch (error) {
+          console.warn('Error incrementing nights out:', error);
         }
       },
       
@@ -97,26 +105,44 @@ export const useUserProfileStore = create<UserProfileState>()(
         })),
       
       getAverageDrunkScale: () => {
-        const { drunkScaleRatings } = get().profile;
-        if (drunkScaleRatings.length === 0) return 0;
-        const sum = drunkScaleRatings.reduce((acc, rating) => acc + rating, 0);
-        return Math.round((sum / drunkScaleRatings.length) * 10) / 10;
+        try {
+          const { drunkScaleRatings } = get().profile;
+          if (drunkScaleRatings.length === 0) return 0;
+          const sum = drunkScaleRatings.reduce((acc, rating) => acc + rating, 0);
+          return Math.round((sum / drunkScaleRatings.length) * 10) / 10;
+        } catch {
+          return 0;
+        }
       },
       
       getRank: () => {
-        const averageScore = get().getAverageDrunkScale();
-        return getRankInfo(averageScore);
+        try {
+          const averageScore = get().getAverageDrunkScale();
+          return getRankInfo(averageScore);
+        } catch {
+          return { rank: 1, title: 'Newbie' };
+        }
       },
       
       canIncrementNightsOut: () => {
-        const today = new Date().toISOString();
-        const { profile } = get();
-        return !profile.lastNightOutDate || !isSameDay(profile.lastNightOutDate, today);
+        try {
+          const today = new Date().toISOString();
+          const { profile } = get();
+          return !profile.lastNightOutDate || !isSameDay(profile.lastNightOutDate, today);
+        } catch {
+          return true;
+        }
       }
     }),
     {
       name: 'user-profile-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        // Ensure we have a valid profile after rehydration
+        if (!state?.profile) {
+          state = { ...state, profile: defaultProfile };
+        }
+      },
     }
   )
 );
