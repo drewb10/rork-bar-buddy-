@@ -6,6 +6,7 @@ import { Venue } from '@/types/venue';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
+import { useUserProfileStore } from '@/stores/userProfileStore';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +21,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const { incrementInteraction, getInteractionCount, canInteract, getPopularArrivalTime } = useVenueInteractionStore();
+  const { incrementNightsOut, incrementBarsHit, canIncrementNightsOut } = useUserProfileStore();
   const interactionCount = getInteractionCount(venue.id);
   const popularTime = getPopularArrivalTime(venue.id);
   const [rsvpModalVisible, setRsvpModalVisible] = useState(false);
@@ -44,6 +46,15 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const handleRsvpSubmit = () => {
     if (selectedTime) {
       incrementInteraction(venue.id, selectedTime);
+      
+      // Increment bars hit (always increments)
+      incrementBarsHit();
+      
+      // Increment nights out (only once per day)
+      if (canIncrementNightsOut()) {
+        incrementNightsOut();
+      }
+      
       setRsvpModalVisible(false);
       setSelectedTime(null);
     }
