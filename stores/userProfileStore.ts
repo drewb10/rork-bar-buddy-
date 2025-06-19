@@ -394,7 +394,7 @@ export const useUserProfileStore = create<UserProfileState>()(
             `)
             .eq('user_id', profile.userId);
 
-          const friends: Friend[] = friendsData?.map(f => {
+          const friendsWithNulls = friendsData?.map(f => {
             // Handle the case where user_profiles might be an array or object
             const userProfile = Array.isArray(f.user_profiles) ? f.user_profiles[0] : f.user_profiles;
             
@@ -409,7 +409,11 @@ export const useUserProfileStore = create<UserProfileState>()(
               rankTitle: userProfile.ranking,
               addedAt: new Date().toISOString(),
             };
-          }).filter(Boolean) || [];
+          }) || [];
+
+          const friends: Friend[] = friendsWithNulls.filter(
+            (f): f is Friend => f !== null
+          );
 
           set({
             profile: {
