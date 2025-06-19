@@ -403,7 +403,7 @@ export const useUserProfileStore = create<UserProfileState>()(
             return {
               userId: userProfile.user_id,
               name: `${userProfile.first_name} ${userProfile.last_name}`,
-              profilePicture: userProfile.profile_pic || undefined,
+              ...(userProfile.profile_pic && { profilePicture: userProfile.profile_pic }),
               nightsOut: userProfile.total_nights_out,
               barsHit: userProfile.total_bars_hit,
               rankTitle: userProfile.ranking,
