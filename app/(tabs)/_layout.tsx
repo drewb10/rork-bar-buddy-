@@ -1,6 +1,6 @@
 import React from "react";
 import { Tabs } from "expo-router";
-import { Home, User } from "lucide-react-native";
+import { Home, BarChart3 } from "lucide-react-native";
 import { colors } from "@/constants/colors";
 import { useThemeStore } from "@/stores/themeStore";
 import { StyleSheet, View } from "react-native";
@@ -47,11 +47,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: "Tracking",
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeTabContainer : null}>
-              <User size={22} color={color} />
+              <BarChart3 size={22} color={color} />
             </View>
           ),
         }}
