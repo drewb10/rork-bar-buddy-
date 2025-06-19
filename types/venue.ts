@@ -1,7 +1,8 @@
 export type VenueType = 
   | 'sports-bar'
   | 'club'
-  | 'hangout';
+  | 'hangout'
+  | 'pool';
 
 export type SpecialType =
   | 'happy-hour'

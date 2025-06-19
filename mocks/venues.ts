@@ -205,7 +205,7 @@ export const venues: Venue[] = [
     phone: "(478) 742-6403",
     website: "https://historicgrants.com/",
     instagram: "historicgrantslounge",
-    types: ['hangout'],
+    types: ['hangout', 'pool'],
     rating: 4.4,
     priceLevel: 2,
     openHours: [
@@ -301,7 +301,7 @@ export const venues: Venue[] = [
     phone: "(478) 257-6456",
     website: "https://www.jbamacon.com/",
     instagram: "jbamacongeorgia",
-    types: ['club', 'hangout'],
+    types: ['club', 'hangout', 'pool'],
     rating: 4.7,
     priceLevel: 3,
     openHours: [

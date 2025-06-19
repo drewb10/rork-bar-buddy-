@@ -13,6 +13,7 @@ interface UserProfile {
   drunkScaleRatings: number[];
   lastNightOutDate?: string; // Track last date to prevent multiple increments per day
   lastDrunkScaleDate?: string; // Track last drunk scale submission date
+  profilePicture?: string; // Store profile picture URI
   // Add a unique identifier to ensure stats persist across different users
   userId?: string;
 }
@@ -27,6 +28,7 @@ interface UserProfileState {
   getRank: () => { rank: number; title: string; color: string };
   canIncrementNightsOut: () => boolean;
   canSubmitDrunkScale: () => boolean;
+  setProfilePicture: (uri: string) => void;
   // Add method to safely reset only if needed (not on logout)
   resetProfile: () => void;
 }
@@ -161,6 +163,15 @@ export const useUserProfileStore = create<UserProfileState>()(
         } catch {
           return true;
         }
+      },
+
+      setProfilePicture: (uri: string) => {
+        set((state) => ({
+          profile: {
+            ...state.profile,
+            profilePicture: uri
+          }
+        }));
       },
 
       // Only reset if explicitly called (not on logout)

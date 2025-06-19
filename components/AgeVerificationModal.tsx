@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, Pressable, Modal, Alert } from 'react-native';
+import { StyleSheet, View, Text, Pressable, Modal, Alert, Image } from 'react-native';
 import { Calendar, X } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
-import BarBuddyLogo from './BarBuddyLogo';
 
 interface AgeVerificationModalProps {
   visible: boolean;
@@ -35,7 +34,11 @@ export default function AgeVerificationModal({ visible, onVerify }: AgeVerificat
     >
       <View style={styles.overlay}>
         <View style={[styles.container, { backgroundColor: themeColors.card }]}>
-          <BarBuddyLogo size="medium" />
+          <Image
+            source={{ uri: 'https://i.postimg.cc/PJBBvg5t/Screenshot-2025-06-19-at-1-25-27-PM.png' }}
+            style={styles.popupImage}
+            resizeMode="contain"
+          />
           
           <Text style={[styles.title, { color: themeColors.text }]}>
             Age Verification Required
@@ -101,10 +104,14 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
+  popupImage: {
+    width: 120,
+    height: 120,
+    marginBottom: 16,
+  },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    marginTop: 16,
     marginBottom: 20,
     textAlign: 'center',
   },

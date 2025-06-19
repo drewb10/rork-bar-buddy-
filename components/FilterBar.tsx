@@ -18,6 +18,7 @@ export default function FilterBar({ filters, onFilterChange, filterType }: Filte
     { value: 'sports-bar', label: 'Sports Bar' },
     { value: 'club', label: 'Club' },
     { value: 'hangout', label: 'Hangout' },
+    { value: 'pool', label: 'Pool' },
   ];
 
   const specialTypes: { value: SpecialType; label: string }[] = [

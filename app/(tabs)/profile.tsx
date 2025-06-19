@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, TextInput } from 'react-native';
-import { User, TrendingUp, MapPin, Zap, Edit3, X, Award } from 'lucide-react-native';
+import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, TextInput, Image } from 'react-native';
+import { User, TrendingUp, MapPin, Zap, Edit3, X, Award, Camera } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import DrunkScaleSlider from '@/components/DrunkScaleSlider';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function TrackingScreen() {
   const { theme } = useThemeStore();
@@ -16,7 +17,8 @@ export default function TrackingScreen() {
     getAverageDrunkScale, 
     addDrunkScaleRating,
     canSubmitDrunkScale,
-    getRank
+    getRank,
+    setProfilePicture
   } = useUserProfileStore();
   
   const [nameEditModalVisible, setNameEditModalVisible] = useState(false);
@@ -58,6 +60,65 @@ export default function TrackingScreen() {
     Alert.alert('Rating Submitted', `You rated last night as ${rating}/10 on the drunk scale!`);
   };
 
+  const handleProfilePicturePress = () => {
+    Alert.alert(
+      'Change Profile Picture',
+      'Choose how you would like to update your profile picture',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Camera Roll', onPress: pickImageFromLibrary },
+        { text: 'Take Photo', onPress: takePhoto },
+      ]
+    );
+  };
+
+  const pickImageFromLibrary = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please grant camera roll permissions to change your profile picture.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setProfilePicture(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.warn('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
+
+  const takePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please grant camera permissions to take a photo.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setProfilePicture(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.warn('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo. Please try again.');
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: '#121212' }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -77,9 +138,18 @@ export default function TrackingScreen() {
 
         {/* Profile Card */}
         <View style={[styles.profileCard, { backgroundColor: themeColors.card }]}>
-          <View style={[styles.avatar, { backgroundColor: themeColors.primary }]}>
-            <User size={32} color="white" />
-          </View>
+          <Pressable style={styles.avatarContainer} onPress={handleProfilePicturePress}>
+            {profile.profilePicture ? (
+              <Image source={{ uri: profile.profilePicture }} style={styles.avatarImage} />
+            ) : (
+              <View style={[styles.avatar, { backgroundColor: themeColors.primary }]}>
+                <User size={32} color="white" />
+              </View>
+            )}
+            <View style={[styles.cameraIcon, { backgroundColor: themeColors.primary }]}>
+              <Camera size={16} color="white" />
+            </View>
+          </Pressable>
           
           <View style={styles.nameContainer}>
             <Text style={[styles.userName, { color: themeColors.text }]}>
@@ -311,18 +381,38 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  cameraIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#121212',
   },
   nameContainer: {
     flexDirection: 'row',
