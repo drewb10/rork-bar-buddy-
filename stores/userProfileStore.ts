@@ -11,6 +11,7 @@ interface UserProfile {
   barsHit: number;
   drunkScaleRatings: number[];
   lastNightOutDate?: string; // Track last date to prevent multiple increments per day
+  lastDrunkScaleDate?: string; // Track last drunk scale submission date
   // Add a unique identifier to ensure stats persist across different users
   userId?: string;
 }
@@ -24,6 +25,7 @@ interface UserProfileState {
   getAverageDrunkScale: () => number;
   getRank: () => { rank: number; title: string };
   canIncrementNightsOut: () => boolean;
+  canSubmitDrunkScale: () => boolean;
   // Add method to safely reset only if needed (not on logout)
   resetProfile: () => void;
 }
@@ -101,13 +103,20 @@ export const useUserProfileStore = create<UserProfileState>()(
           }
         })),
       
-      addDrunkScaleRating: (rating) =>
-        set((state) => ({
-          profile: {
-            ...state.profile,
-            drunkScaleRatings: [...state.profile.drunkScaleRatings, rating]
-          }
-        })),
+      addDrunkScaleRating: (rating) => {
+        try {
+          const today = new Date().toISOString();
+          set((state) => ({
+            profile: {
+              ...state.profile,
+              drunkScaleRatings: [...state.profile.drunkScaleRatings, rating],
+              lastDrunkScaleDate: today
+            }
+          }));
+        } catch (error) {
+          console.warn('Error adding drunk scale rating:', error);
+        }
+      },
       
       getAverageDrunkScale: () => {
         try {
@@ -134,6 +143,16 @@ export const useUserProfileStore = create<UserProfileState>()(
           const today = new Date().toISOString();
           const { profile } = get();
           return !profile.lastNightOutDate || !isSameDay(profile.lastNightOutDate, today);
+        } catch {
+          return true;
+        }
+      },
+
+      canSubmitDrunkScale: () => {
+        try {
+          const today = new Date().toISOString();
+          const { profile } = get();
+          return !profile.lastDrunkScaleDate || !isSameDay(profile.lastDrunkScaleDate, today);
         } catch {
           return true;
         }
