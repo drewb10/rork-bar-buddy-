@@ -1,6 +1,4 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface VenueInteraction {
   venueId: string;
@@ -46,116 +44,108 @@ const canInteractWithVenue = (lastInteraction: string | undefined): boolean => {
   return now >= cooldownTime;
 };
 
-export const useVenueInteractionStore = create<VenueInteractionState>()(
-  persist(
-    (set, get) => ({
-      interactions: [],
+export const useVenueInteractionStore = create<VenueInteractionState>()((set, get) => ({
+  interactions: [],
+  
+  incrementInteraction: (venueId, arrivalTime) => {
+    get().resetInteractionsIfNeeded();
+    
+    if (!get().canInteract(venueId)) return;
+    
+    set((state) => {
+      const existingInteraction = state.interactions.find(i => i.venueId === venueId);
+      const now = new Date().toISOString();
       
-      incrementInteraction: (venueId, arrivalTime) => {
-        get().resetInteractionsIfNeeded();
-        
-        if (!get().canInteract(venueId)) return;
-        
-        set((state) => {
-          const existingInteraction = state.interactions.find(i => i.venueId === venueId);
-          const now = new Date().toISOString();
-          
-          if (existingInteraction) {
-            return {
-              interactions: state.interactions.map(i => 
-                i.venueId === venueId 
-                  ? { 
-                      ...i, 
-                      count: i.count + 1,
-                      lastInteraction: now,
-                      arrivalTime: arrivalTime || i.arrivalTime
-                    } 
-                  : i
-              )
-            };
-          } else {
-            return {
-              interactions: [
-                ...state.interactions, 
-                { 
-                  venueId, 
-                  count: 1, 
-                  lastReset: now,
+      if (existingInteraction) {
+        return {
+          interactions: state.interactions.map(i => 
+            i.venueId === venueId 
+              ? { 
+                  ...i, 
+                  count: i.count + 1,
                   lastInteraction: now,
-                  arrivalTime
-                }
-              ]
-            };
-          }
-        });
-      },
-      
-      getInteractionCount: (venueId) => {
-        get().resetInteractionsIfNeeded();
-        const interaction = get().interactions.find(i => i.venueId === venueId);
-        return interaction ? interaction.count : 0;
-      },
-      
-      resetInteractionsIfNeeded: () => {
-        set((state) => {
-          const needsReset = state.interactions.some(
-            i => shouldReset(i.lastReset)
-          );
-          
-          if (needsReset) {
-            return {
-              interactions: state.interactions.map(i => ({
-                ...i,
-                count: 0,
-                lastReset: new Date().toISOString(),
-                arrivalTime: undefined
-              }))
-            };
-          }
-          
-          return state;
-        });
-      },
-      
-      canInteract: (venueId) => {
-        get().resetInteractionsIfNeeded();
-        const interaction = get().interactions.find(i => i.venueId === venueId);
-        return canInteractWithVenue(interaction?.lastInteraction);
-      },
-      
-      getPopularArrivalTime: (venueId) => {
-        // Group all interactions for this venue by arrival time
-        const venueInteractions = get().interactions.filter(i => 
-          i.venueId === venueId && i.arrivalTime
-        );
-        
-        if (venueInteractions.length === 0) return null;
-        
-        // Count occurrences of each arrival time
-        const timeCounts: Record<string, number> = {};
-        venueInteractions.forEach(interaction => {
-          if (interaction.arrivalTime) {
-            timeCounts[interaction.arrivalTime] = (timeCounts[interaction.arrivalTime] || 0) + 1;
-          }
-        });
-        
-        // Find the most popular time
-        let popularTime = null;
-        let maxCount = 0;
-        
-        Object.entries(timeCounts).forEach(([time, count]) => {
-          if (count > maxCount) {
-            maxCount = count;
-            popularTime = time;
-          }
-        });
-        
-        return popularTime;
+                  arrivalTime: arrivalTime || i.arrivalTime
+                } 
+              : i
+          )
+        };
+      } else {
+        return {
+          interactions: [
+            ...state.interactions, 
+            { 
+              venueId, 
+              count: 1, 
+              lastReset: now,
+              lastInteraction: now,
+              arrivalTime
+            }
+          ]
+        };
       }
-    }),
-    {
-      name: 'venue-interactions-storage',
-      storage: createJSONStorage(() => AsyncStorage),
-    }
-  )
-);
+    });
+  },
+  
+  getInteractionCount: (venueId) => {
+    get().resetInteractionsIfNeeded();
+    const interaction = get().interactions.find(i => i.venueId === venueId);
+    return interaction ? interaction.count : 0;
+  },
+  
+  resetInteractionsIfNeeded: () => {
+    set((state) => {
+      const needsReset = state.interactions.some(
+        i => shouldReset(i.lastReset)
+      );
+      
+      if (needsReset) {
+        return {
+          interactions: state.interactions.map(i => ({
+            ...i,
+            count: 0,
+            lastReset: new Date().toISOString(),
+            arrivalTime: undefined
+          }))
+        };
+      }
+      
+      return state;
+    });
+  },
+  
+  canInteract: (venueId) => {
+    get().resetInteractionsIfNeeded();
+    const interaction = get().interactions.find(i => i.venueId === venueId);
+    return canInteractWithVenue(interaction?.lastInteraction);
+  },
+  
+  getPopularArrivalTime: (venueId) => {
+    // Group all interactions for this venue by arrival time
+    const venueInteractions = get().interactions.filter(i => 
+      i.venueId === venueId && i.arrivalTime
+    );
+    
+    if (venueInteractions.length === 0) return null;
+    
+    // Count occurrences of each arrival time
+    const timeCounts: Record<string, number> = {};
+    venueInteractions.forEach(interaction => {
+      if (interaction.arrivalTime) {
+        timeCounts[interaction.arrivalTime] = (timeCounts[interaction.arrivalTime] || 0) + 1;
+      }
+    });
+    
+    // Find the most popular time
+    let popularTime = null;
+    let maxCount = 0;
+    
+    Object.entries(timeCounts).forEach(([time, count]) => {
+      if (count > maxCount) {
+        maxCount = count;
+        popularTime = time;
+      }
+    });
+    
+    return popularTime;
+  }
+}));
