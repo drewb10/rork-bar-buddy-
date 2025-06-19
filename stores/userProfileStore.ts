@@ -377,7 +377,7 @@ export const useUserProfileStore = create<UserProfileState>()(
             return;
           }
 
-          // Load friends
+          // Load friends with proper join query
           const { data: friendsData } = await supabase
             .from('friends')
             .select(`
@@ -394,15 +394,22 @@ export const useUserProfileStore = create<UserProfileState>()(
             `)
             .eq('user_id', profile.userId);
 
-          const friends: Friend[] = friendsData?.map(f => ({
-            userId: f.user_profiles.user_id,
-            name: `${f.user_profiles.first_name} ${f.user_profiles.last_name}`,
-            profilePicture: f.user_profiles.profile_pic || undefined,
-            nightsOut: f.user_profiles.total_nights_out,
-            barsHit: f.user_profiles.total_bars_hit,
-            rankTitle: f.user_profiles.ranking,
-            addedAt: new Date().toISOString(),
-          })) || [];
+          const friends: Friend[] = friendsData?.map(f => {
+            // Handle the case where user_profiles might be an array or object
+            const userProfile = Array.isArray(f.user_profiles) ? f.user_profiles[0] : f.user_profiles;
+            
+            if (!userProfile) return null;
+            
+            return {
+              userId: userProfile.user_id,
+              name: `${userProfile.first_name} ${userProfile.last_name}`,
+              profilePicture: userProfile.profile_pic || undefined,
+              nightsOut: userProfile.total_nights_out,
+              barsHit: userProfile.total_bars_hit,
+              rankTitle: userProfile.ranking,
+              addedAt: new Date().toISOString(),
+            };
+          }).filter(Boolean) || [];
 
           set({
             profile: {
