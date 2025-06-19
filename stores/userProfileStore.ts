@@ -147,12 +147,6 @@ export const useUserProfileStore = create<UserProfileState>()(
     {
       name: 'user-profile-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      onRehydrateStorage: () => (state) => {
-        // Ensure we have a valid profile after rehydration
-        if (!state?.profile) {
-          state = { ...state, profile: defaultProfile };
-        }
-      },
       // Persist all profile data - this ensures stats survive logout
       partialize: (state) => ({
         profile: state.profile,

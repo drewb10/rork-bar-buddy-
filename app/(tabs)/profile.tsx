@@ -12,37 +12,10 @@ export default function TrackingScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const { signOut } = useAuthStore();
-  const { resetProfile } = useUserProfileStore();
+  const { profile, resetProfile } = useUserProfileStore();
+  const { interactions } = useVenueInteractionStore();
   
-  // Get data from stores with error handling
-  let profile, interactions, totalInteractions;
-  
-  try {
-    const userStore = useUserProfileStore();
-    const interactionStore = useVenueInteractionStore();
-    
-    profile = userStore.profile || {
-      firstName: 'Bar',
-      lastName: 'Buddy',
-      nightsOut: 0,
-      barsHit: 0,
-      joinDate: new Date().toISOString()
-    };
-    
-    interactions = interactionStore.interactions || [];
-    totalInteractions = interactions.reduce((sum, interaction) => sum + (interaction.count || 0), 0);
-  } catch (error) {
-    // Fallback data if stores fail
-    profile = {
-      firstName: 'Bar',
-      lastName: 'Buddy',
-      nightsOut: 0,
-      barsHit: 0,
-      joinDate: new Date().toISOString()
-    };
-    interactions = [];
-    totalInteractions = 0;
-  }
+  const totalInteractions = interactions.reduce((sum, interaction) => sum + (interaction.count || 0), 0);
 
   const formatJoinDate = (dateString: string) => {
     try {
@@ -132,7 +105,7 @@ export default function TrackingScreen() {
             <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
               <TrendingUp size={28} color={themeColors.primary} />
               <Text style={[styles.statNumber, { color: themeColors.text }]}>
-                {profile.nightsOut || 0}
+                {profile.nightsOut}
               </Text>
               <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
                 Nights Out
@@ -143,7 +116,7 @@ export default function TrackingScreen() {
             <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
               <MapPin size={28} color={themeColors.primary} />
               <Text style={[styles.statNumber, { color: themeColors.text }]}>
-                {profile.barsHit || 0}
+                {profile.barsHit}
               </Text>
               <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
                 Bars Hit
@@ -168,7 +141,7 @@ export default function TrackingScreen() {
               Activity Summary
             </Text>
             <Text style={[styles.summaryText, { color: themeColors.subtext }]}>
-              You've been out {profile.nightsOut || 0} {(profile.nightsOut || 0) === 1 ? 'night' : 'nights'} and visited {profile.barsHit || 0} different {(profile.barsHit || 0) === 1 ? 'bar' : 'bars'}. 
+              You've been out {profile.nightsOut} {profile.nightsOut === 1 ? 'night' : 'nights'} and visited {profile.barsHit} different {profile.barsHit === 1 ? 'bar' : 'bars'}. 
               {totalInteractions > 0 && ` You've checked in ${totalInteractions} ${totalInteractions === 1 ? 'time' : 'times'} total.`}
             </Text>
             

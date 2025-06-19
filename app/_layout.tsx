@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +46,7 @@ export default function RootLayout() {
               headerTintColor: '#FFFFFF',
             }}
           />
+          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         </Stack>
       </QueryClientProvider>
     </trpc.Provider>
