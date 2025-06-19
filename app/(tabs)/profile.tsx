@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform } from 'react-native';
-import { User, TrendingUp, MapPin, Award, BarChart3 } from 'lucide-react-native';
+import { User, TrendingUp, MapPin, BarChart3 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
@@ -11,20 +11,28 @@ export default function TrackingScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   
-  // Safely get data from stores with fallbacks
-  const userStore = useUserProfileStore();
-  const interactionStore = useVenueInteractionStore();
+  // Get data from stores with error handling
+  let profile, interactions, totalInteractions;
   
-  const profile = userStore?.profile || {
-    firstName: 'Bar',
-    lastName: 'Buddy',
-    nightsOut: 0,
-    barsHit: 0,
-    joinDate: new Date().toISOString()
-  };
-  
-  const interactions = interactionStore?.interactions || [];
-  const totalInteractions = interactions.reduce((sum, interaction) => sum + interaction.count, 0);
+  try {
+    const userStore = useUserProfileStore();
+    const interactionStore = useVenueInteractionStore();
+    
+    profile = userStore.profile;
+    interactions = interactionStore.interactions;
+    totalInteractions = interactions.reduce((sum, interaction) => sum + interaction.count, 0);
+  } catch (error) {
+    // Fallback data if stores fail
+    profile = {
+      firstName: 'Bar',
+      lastName: 'Buddy',
+      nightsOut: 0,
+      barsHit: 0,
+      joinDate: new Date().toISOString()
+    };
+    interactions = [];
+    totalInteractions = 0;
+  }
 
   const formatJoinDate = (dateString: string) => {
     try {
@@ -108,6 +116,17 @@ export default function TrackingScreen() {
             </Text>
             <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
               Total Check-ins
+            </Text>
+          </View>
+
+          {/* Activity Summary */}
+          <View style={[styles.summaryCard, { backgroundColor: themeColors.card }]}>
+            <Text style={[styles.summaryTitle, { color: themeColors.text }]}>
+              Activity Summary
+            </Text>
+            <Text style={[styles.summaryText, { color: themeColors.subtext }]}>
+              You've been out {profile.nightsOut} {profile.nightsOut === 1 ? 'night' : 'nights'} and visited {profile.barsHit} different {profile.barsHit === 1 ? 'bar' : 'bars'}. 
+              {totalInteractions > 0 && ` You've checked in ${totalInteractions} ${totalInteractions === 1 ? 'time' : 'times'} total.`}
             </Text>
           </View>
         </View>
@@ -199,6 +218,7 @@ const styles = StyleSheet.create({
   fullWidthCard: {
     flex: 0,
     width: '100%',
+    marginBottom: 16,
   },
   statNumber: {
     fontSize: 32,
@@ -210,6 +230,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     fontWeight: '600',
+  },
+  summaryCard: {
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  summaryText: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   footer: {
     height: 24,
