@@ -70,7 +70,7 @@ export default function DrunkScaleSlider({ onSubmit, onCancel }: DrunkScaleSlide
               onValueChange={setRating}
               minimumTrackTintColor={getRatingColor(rating)}
               maximumTrackTintColor={themeColors.border}
-              thumbStyle={{ backgroundColor: getRatingColor(rating) }}
+              thumbTintColor={getRatingColor(rating)}
             />
             <View style={styles.sliderLabels}>
               <Text style={[styles.sliderLabel, { color: themeColors.subtext }]}>1</Text>
