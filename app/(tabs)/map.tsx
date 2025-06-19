@@ -16,15 +16,15 @@ const MapPlaceholder = ({ onPressMarker }: { onPressMarker: (id: string) => void
   const themeColors = colors[theme];
   
   return (
-    <View style={[styles.mapContainer, { backgroundColor: themeColors.card }]}>
+    <View style={[styles.mapContainer, { backgroundColor: '#1E1E1E' }]}>
       <LinearGradient
         colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.5)']}
         style={StyleSheet.absoluteFill}
       />
-      <Text style={[styles.mapPlaceholderText, { color: themeColors.text }]}>
+      <Text style={[styles.mapPlaceholderText, { color: '#FFFFFF' }]}>
         Map View
       </Text>
-      <Text style={[styles.mapSubtext, { color: themeColors.subtext }]}>
+      <Text style={[styles.mapSubtext, { color: '#B3B3B3' }]}>
         In a real app, this would be an interactive map showing all venues
       </Text>
       
@@ -37,7 +37,7 @@ const MapPlaceholder = ({ onPressMarker }: { onPressMarker: (id: string) => void
               { 
                 left: `${30 + Math.random() * 40}%`, 
                 top: `${20 + Math.random() * 50}%`,
-                backgroundColor: themeColors.primary
+                backgroundColor: '#FF6A00'
               }
             ]}
             onTouchEnd={() => onPressMarker(venue.id)}
@@ -69,19 +69,19 @@ export default function MapScreen() {
 
   if (!hasLocationPermission) {
     return (
-      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <View style={[styles.container, { backgroundColor: '#121212' }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <EmptyState
           title="Location Access Required"
           message="Please enable location services to view nearby venues on the map."
-          icon={<AlertCircle size={48} color={themeColors.primary} />}
+          icon={<AlertCircle size={48} color="#FF6A00" />}
         />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+    <View style={[styles.container, { backgroundColor: '#121212' }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <FilterBar
         filters={filters}
@@ -98,7 +98,7 @@ export default function MapScreen() {
       )}
       
       <View style={styles.footer}>
-        <Text style={[styles.footerText, { color: themeColors.subtext }]}>
+        <Text style={[styles.footerText, { color: '#B3B3B3' }]}>
           {filters.length > 0 
             ? `Showing ${filters.length} filtered venue types` 
             : 'Showing all venues'}
