@@ -189,12 +189,15 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           </Text>
         </View>
 
-        {/* Hot Time Badge */}
+        {/* Hot Time Badge - Updated to show only most popular time(s) */}
         {popularTime && (
           <View style={[styles.hotTimeBadge, { backgroundColor: themeColors.primary + '20' }]}>
             <Flame size={14} color={themeColors.primary} />
             <Text style={[styles.hotTimeText, { color: themeColors.primary }]}>
-              Hot Time: {formatTimeSlot(popularTime)}
+              Hot Time: {popularTime.includes('/') 
+                ? popularTime.split('/').map(time => formatTimeSlot(time)).join('/')
+                : formatTimeSlot(popularTime)
+              }
             </Text>
           </View>
         )}

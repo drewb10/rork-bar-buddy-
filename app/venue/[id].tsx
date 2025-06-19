@@ -25,7 +25,7 @@ export default function VenueDetailScreen() {
       <Stack.Screen 
         options={{
           headerShown: true,
-          headerBackTitle: '',
+          headerBackTitle: 'Home',
           headerTitle: '',
           headerStyle: {
             backgroundColor: themeColors.background,

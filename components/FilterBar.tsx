@@ -43,55 +43,58 @@ export default function FilterBar({ filters, onFilterChange, filterType }: Filte
   };
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.container}
-    >
-      {options.map((option) => (
-        <Pressable
-          key={option.value}
-          style={[
-            styles.filterButton,
-            {
-              backgroundColor: filters.includes(option.value)
-                ? themeColors.primary
-                : 'transparent',
-              borderColor: themeColors.primary,
-            },
-          ]}
-          onPress={() => toggleFilter(option.value)}
-        >
-          <Text
+    <View style={styles.container}>
+      <View style={styles.centeredContent}>
+        {options.map((option) => (
+          <Pressable
+            key={option.value}
             style={[
-              styles.filterText,
+              styles.filterButton,
               {
-                color: filters.includes(option.value)
-                  ? 'white'
-                  : themeColors.primary,
+                backgroundColor: filters.includes(option.value)
+                  ? themeColors.primary
+                  : 'transparent',
+                borderColor: themeColors.primary,
               },
             ]}
+            onPress={() => toggleFilter(option.value)}
           >
-            {option.label}
-          </Text>
-        </Pressable>
-      ))}
-    </ScrollView>
+            <Text
+              style={[
+                styles.filterText,
+                {
+                  color: filters.includes(option.value)
+                    ? 'white'
+                    : themeColors.primary,
+                },
+              ]}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
     paddingVertical: 12,
+    alignItems: 'center',
+  },
+  centeredContent: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     gap: 8,
+    paddingHorizontal: 16,
   },
   filterButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    marginRight: 8,
   },
   filterText: {
     fontSize: 14,

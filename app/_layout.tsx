@@ -5,7 +5,9 @@ import { trpc, trpcClient } from "@/lib/trpc";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { useAgeVerificationStore } from "@/stores/ageVerificationStore";
+import { useUserProfileStore } from "@/stores/userProfileStore";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
+import OnboardingModal from "@/components/OnboardingModal";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,23 +20,32 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   const { isVerified, setVerified } = useAgeVerificationStore();
+  const { profile, completeOnboarding } = useUserProfileStore();
   const [showAgeVerification, setShowAgeVerification] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     // Show age verification modal if not verified
     if (!isVerified) {
       setShowAgeVerification(true);
+    } else if (!profile.hasCompletedOnboarding) {
+      // Show onboarding after age verification
+      setShowOnboarding(true);
     }
-  }, [isVerified]);
+  }, [isVerified, profile.hasCompletedOnboarding]);
 
   const handleAgeVerification = (verified: boolean) => {
     setVerified(verified);
     setShowAgeVerification(false);
     
-    if (!verified) {
-      // If user is under 18, you might want to close the app
-      // For now, we'll just keep the modal closed but they can't use the app
+    if (verified && !profile.hasCompletedOnboarding) {
+      setShowOnboarding(true);
     }
+  };
+
+  const handleOnboardingComplete = (firstName: string, lastName: string) => {
+    completeOnboarding(firstName, lastName);
+    setShowOnboarding(false);
   };
 
   return (
@@ -60,7 +71,7 @@ export default function RootLayout() {
             options={{
               headerShown: true,
               presentation: 'card',
-              headerBackTitle: '',
+              headerBackTitle: 'Home',
               headerTitle: '',
               headerStyle: {
                 backgroundColor: '#121212',
@@ -74,6 +85,11 @@ export default function RootLayout() {
         <AgeVerificationModal
           visible={showAgeVerification}
           onVerify={handleAgeVerification}
+        />
+
+        <OnboardingModal
+          visible={showOnboarding}
+          onComplete={handleOnboardingComplete}
         />
       </QueryClientProvider>
     </trpc.Provider>

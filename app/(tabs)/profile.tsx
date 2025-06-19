@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, TextInput, Image } from 'react-native';
-import { User, TrendingUp, MapPin, Zap, Edit3, X, Award, Camera } from 'lucide-react-native';
+import { User, TrendingUp, MapPin, Zap, Edit3, X, Award, Camera, Share2, Users } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import DrunkScaleSlider from '@/components/DrunkScaleSlider';
+import ShareStatsModal from '@/components/ShareStatsModal';
+import FriendsModal from '@/components/FriendsModal';
 import * as ImagePicker from 'expo-image-picker';
 
 export default function TrackingScreen() {
@@ -24,6 +26,8 @@ export default function TrackingScreen() {
   
   const [nameEditModalVisible, setNameEditModalVisible] = useState(false);
   const [drunkScaleModalVisible, setDrunkScaleModalVisible] = useState(false);
+  const [shareStatsModalVisible, setShareStatsModalVisible] = useState(false);
+  const [friendsModalVisible, setFriendsModalVisible] = useState(false);
   const [editFirstName, setEditFirstName] = useState(profile.firstName);
   const [editLastName, setEditLastName] = useState(profile.lastName);
   
@@ -168,9 +172,26 @@ export default function TrackingScreen() {
           <Text style={[styles.joinDate, { color: themeColors.subtext }]}>
             Member since {formatJoinDate(profile.joinDate)}
           </Text>
+
+          {profile.userId && (
+            <Text style={[styles.userId, { color: themeColors.primary }]}>
+              {profile.userId}
+            </Text>
+          )}
         </View>
 
-        {/* Stats Grid */}
+        {/* Friends Button */}
+        <Pressable 
+          style={[styles.friendsButton, { backgroundColor: themeColors.card }]}
+          onPress={() => setFriendsModalVisible(true)}
+        >
+          <Users size={20} color={themeColors.primary} />
+          <Text style={[styles.friendsButtonText, { color: themeColors.primary }]}>
+            Friends ({profile.friends.length})
+          </Text>
+        </Pressable>
+
+        {/* Stats Section */}
         <View style={styles.statsSection}>
           <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
             Your Nightlife Stats
@@ -249,6 +270,17 @@ export default function TrackingScreen() {
               </Text>
             </View>
           </View>
+
+          {/* Share Stats Button */}
+          <Pressable 
+            style={[styles.shareButton, { backgroundColor: themeColors.card }]}
+            onPress={() => setShareStatsModalVisible(true)}
+          >
+            <Share2 size={20} color={themeColors.primary} />
+            <Text style={[styles.shareButtonText, { color: themeColors.primary }]}>
+              Share Your Stats
+            </Text>
+          </Pressable>
 
           {/* Activity Summary */}
           <View style={[styles.summaryCard, { backgroundColor: themeColors.card }]}>
@@ -343,6 +375,33 @@ export default function TrackingScreen() {
           onCancel={() => setDrunkScaleModalVisible(false)}
         />
       </Modal>
+
+      {/* Share Stats Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={shareStatsModalVisible}
+        onRequestClose={() => setShareStatsModalVisible(false)}
+      >
+        <ShareStatsModal
+          profile={profile}
+          rankInfo={rankInfo}
+          onClose={() => setShareStatsModalVisible(false)}
+        />
+      </Modal>
+
+      {/* Friends Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={friendsModalVisible}
+        onRequestClose={() => setFriendsModalVisible(false)}
+      >
+        <FriendsModal
+          visible={friendsModalVisible}
+          onClose={() => setFriendsModalVisible(false)}
+        />
+      </Modal>
     </View>
   );
 }
@@ -369,7 +428,7 @@ const styles = StyleSheet.create({
   },
   profileCard: {
     marginHorizontal: 16,
-    marginBottom: 24,
+    marginBottom: 16,
     borderRadius: 20,
     padding: 24,
     alignItems: 'center',
@@ -427,6 +486,30 @@ const styles = StyleSheet.create({
   },
   joinDate: {
     fontSize: 14,
+    marginBottom: 8,
+  },
+  userId: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  friendsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 16,
+    marginBottom: 24,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  friendsButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   statsSection: {
     paddingHorizontal: 16,
@@ -436,6 +519,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     marginBottom: 16,
+    textAlign: 'center',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -510,6 +594,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  shareButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  shareButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   summaryCard: {
     borderRadius: 16,
