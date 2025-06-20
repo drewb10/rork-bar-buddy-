@@ -27,7 +27,7 @@ export const likeMessageProcedure = publicProcedure
       }
 
       // Get current message with venue verification through session join
-      const { data: messageWithSession, error: fetchError } = await supabase
+      const { data: messageData, error: fetchError } = await supabase
         .from('chat_messages')
         .select(`
           id, 
@@ -41,13 +41,13 @@ export const likeMessageProcedure = publicProcedure
         .eq('id', messageId)
         .single();
 
-      if (fetchError || !messageWithSession) {
+      if (fetchError || !messageData) {
         throw new Error('Message not found or access denied');
       }
 
       // Type assertion to ensure proper typing
-      const typedMessage = messageWithSession as MessageWithSession;
-      const sessionVenueId = typedMessage.chat_sessions.venue_id;
+      const messageWithSession = messageData as unknown as MessageWithSession;
+      const sessionVenueId = messageWithSession.chat_sessions.venue_id;
 
       // Verify venue access if venueId is provided
       if (venueId && sessionVenueId !== venueId) {
@@ -57,7 +57,7 @@ export const likeMessageProcedure = publicProcedure
       // Increment likes count
       const { data: updatedMessage, error: updateError } = await supabase
         .from('chat_messages')
-        .update({ likes: (typedMessage.likes || 0) + 1 })
+        .update({ likes: (messageWithSession.likes || 0) + 1 })
         .eq('id', messageId)
         .select('id, likes')
         .single();

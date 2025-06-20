@@ -194,7 +194,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       // Get messages with session info for anonymous names, filtered by venue through join
-      const { data: messagesWithSessions, error } = await supabase
+      const { data: messagesData, error } = await supabase
         .from('chat_messages')
         .select(`
           *,
@@ -212,7 +212,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       // Transform messages to include anonymous_name and venue_id
-      const transformedMessages = (messagesWithSessions as MessageWithSession[])?.map(msg => {
+      const transformedMessages = (messagesData as unknown as MessageWithSession[])?.map(msg => {
         return {
           ...msg,
           anonymous_name: msg.chat_sessions.anonymous_name || 'Anonymous Buddy',
@@ -285,7 +285,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       // Get current message with session data to verify venue and get likes
-      const { data: messageWithSession, error: fetchError } = await supabase
+      const { data: messageData, error: fetchError } = await supabase
         .from('chat_messages')
         .select(`
           id,
@@ -297,13 +297,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
         .eq('id', messageId)
         .single();
 
-      if (fetchError || !messageWithSession) {
+      if (fetchError || !messageData) {
         throw new Error('Message not found');
       }
 
       // Type assertion to ensure proper typing
-      const typedMessage = messageWithSession as MessageForLike;
-      const sessionVenueId = typedMessage.chat_sessions.venue_id;
+      const messageForLike = messageData as unknown as MessageForLike;
+      const sessionVenueId = messageForLike.chat_sessions.venue_id;
 
       // Verify venue access if venueId is provided
       if (venueId && sessionVenueId !== venueId) {
@@ -313,7 +313,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // Increment likes count
       const { data, error } = await supabase
         .from('chat_messages')
-        .update({ likes: (typedMessage.likes || 0) + 1 })
+        .update({ likes: (messageForLike.likes || 0) + 1 })
         .eq('id', messageId)
         .select('id, likes')
         .single();
