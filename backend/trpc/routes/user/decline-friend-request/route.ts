@@ -4,18 +4,18 @@ import { supabase } from "../../../../../lib/supabase";
 
 export default protectedProcedure
   .input(z.object({
+    userId: z.string(),
     requestId: z.string(),
   }))
-  .mutation(async ({ input, ctx }) => {
-    const { requestId } = input;
-    const currentUserId = ctx.user.id;
+  .mutation(async ({ input }) => {
+    const { requestId, userId } = input;
 
     // Update request status to declined
     const { error } = await supabase
       .from('friend_requests')
       .update({ status: 'declined' })
       .eq('id', requestId)
-      .eq('receiver_id', currentUserId)
+      .eq('receiver_id', userId)
       .eq('status', 'pending');
 
     if (error) {

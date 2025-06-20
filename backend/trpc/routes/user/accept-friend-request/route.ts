@@ -4,18 +4,18 @@ import { supabase } from "../../../../../lib/supabase";
 
 export default protectedProcedure
   .input(z.object({
+    userId: z.string(),
     requestId: z.string(),
   }))
-  .mutation(async ({ input, ctx }) => {
-    const { requestId } = input;
-    const currentUserId = ctx.user.id;
+  .mutation(async ({ input }) => {
+    const { requestId, userId } = input;
 
     // Get the friend request
     const { data: request, error: requestError } = await supabase
       .from('friend_requests')
       .select('*')
       .eq('id', requestId)
-      .eq('receiver_id', currentUserId)
+      .eq('receiver_id', userId)
       .eq('status', 'pending')
       .single();
 
@@ -27,7 +27,7 @@ export default protectedProcedure
     const { error: friendshipError } = await supabase
       .from('friendships')
       .insert({
-        user_id: currentUserId,
+        user_id: userId,
         friend_id: request.sender_id,
         created_at: new Date().toISOString()
       });

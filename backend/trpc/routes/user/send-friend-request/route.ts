@@ -4,17 +4,17 @@ import { supabase } from "../../../../../lib/supabase";
 
 export default protectedProcedure
   .input(z.object({
+    userId: z.string(),
     targetUserId: z.string(),
   }))
-  .mutation(async ({ input, ctx }) => {
-    const { targetUserId } = input;
-    const currentUserId = ctx.user.id;
+  .mutation(async ({ input }) => {
+    const { targetUserId, userId } = input;
 
     // Check if users are already friends
     const { data: existingFriendship } = await supabase
       .from('friendships')
       .select('*')
-      .or(`and(user_id.eq.${currentUserId},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${currentUserId})`)
+      .or(`and(user_id.eq.${userId},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${userId})`)
       .single();
 
     if (existingFriendship) {
@@ -25,7 +25,7 @@ export default protectedProcedure
     const { data: existingRequest } = await supabase
       .from('friend_requests')
       .select('*')
-      .eq('sender_id', currentUserId)
+      .eq('sender_id', userId)
       .eq('receiver_id', targetUserId)
       .single();
 
@@ -37,7 +37,7 @@ export default protectedProcedure
     const { data, error } = await supabase
       .from('friend_requests')
       .insert({
-        sender_id: currentUserId,
+        sender_id: userId,
         receiver_id: targetUserId,
         status: 'pending'
       })

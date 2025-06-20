@@ -1,9 +1,13 @@
+import { z } from "zod";
 import { protectedProcedure } from "../../../create-context";
 import { supabase } from "../../../../../lib/supabase";
 
 export default protectedProcedure
-  .query(async ({ ctx }) => {
-    const currentUserId = ctx.user.id;
+  .input(z.object({
+    userId: z.string(),
+  }))
+  .query(async ({ input }) => {
+    const { userId } = input;
 
     // Get pending friend requests
     const { data: requests, error } = await supabase
@@ -20,7 +24,7 @@ export default protectedProcedure
           rank_title
         )
       `)
-      .eq('receiver_id', currentUserId)
+      .eq('receiver_id', userId)
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
 
