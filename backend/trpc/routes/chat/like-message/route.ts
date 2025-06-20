@@ -52,12 +52,17 @@ export const likeMessageProcedure = publicProcedure
         throw new Error(`Failed to update likes: ${updateError.message}`);
       }
 
+      // Fix: Access venue_id from the first element of the joined array
+      const sessionData = Array.isArray(updatedMessage.chat_sessions) 
+        ? updatedMessage.chat_sessions[0] 
+        : updatedMessage.chat_sessions;
+
       return { 
         success: true, 
         message: {
           id: updatedMessage.id,
           likes: updatedMessage.likes,
-          venue_id: updatedMessage.chat_sessions?.venue_id,
+          venue_id: sessionData?.venue_id,
         },
         newLikeCount: updatedMessage.likes 
       };

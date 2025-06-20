@@ -35,11 +35,18 @@ export const getMessagesProcedure = publicProcedure
       }
 
       // Transform messages to include anonymous_name and venue_id
-      const transformedMessages = messages?.map(msg => ({
-        ...msg,
-        anonymous_name: msg.chat_sessions?.anonymous_name || 'Anonymous Buddy',
-        venue_id: msg.chat_sessions?.venue_id || venueId,
-      })) || [];
+      const transformedMessages = messages?.map(msg => {
+        // Fix: Access session data from the first element of the joined array
+        const sessionData = Array.isArray(msg.chat_sessions) 
+          ? msg.chat_sessions[0] 
+          : msg.chat_sessions;
+        
+        return {
+          ...msg,
+          anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
+          venue_id: sessionData?.venue_id || venueId,
+        };
+      }) || [];
 
       return { 
         success: true, 
