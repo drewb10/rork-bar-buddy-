@@ -9,7 +9,7 @@ interface MessageWithSession {
   chat_sessions: {
     id: string;
     venue_id: string;
-  };
+  }[];
 }
 
 export const likeMessageProcedure = publicProcedure
@@ -45,9 +45,15 @@ export const likeMessageProcedure = publicProcedure
         throw new Error('Message not found or access denied');
       }
 
-      // Type assertion to ensure proper typing
+      // Handle the joined data structure - chat_sessions comes as an array
       const messageWithSession = messageData as unknown as MessageWithSession;
-      const sessionVenueId = messageWithSession.chat_sessions.venue_id;
+      const sessionData = messageWithSession.chat_sessions[0]; // Get first (and only) session
+      
+      if (!sessionData) {
+        throw new Error('Session data not found');
+      }
+
+      const sessionVenueId = sessionData.venue_id;
 
       // Verify venue access if venueId is provided
       if (venueId && sessionVenueId !== venueId) {

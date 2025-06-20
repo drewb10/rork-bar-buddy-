@@ -34,7 +34,7 @@ interface MessageWithSession {
   chat_sessions: {
     anonymous_name: string;
     venue_id: string;
-  };
+  }[];
 }
 
 interface MessageForLike {
@@ -42,7 +42,7 @@ interface MessageForLike {
   likes: number;
   chat_sessions: {
     venue_id: string;
-  };
+  }[];
 }
 
 interface ChatState {
@@ -212,11 +212,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       // Transform messages to include anonymous_name and venue_id
+      // Handle the joined data structure - chat_sessions comes as an array
       const transformedMessages = (messagesData as unknown as MessageWithSession[])?.map(msg => {
+        const sessionData = msg.chat_sessions[0]; // Get first (and only) session
         return {
           ...msg,
-          anonymous_name: msg.chat_sessions.anonymous_name || 'Anonymous Buddy',
-          venue_id: msg.chat_sessions.venue_id,
+          anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
+          venue_id: sessionData?.venue_id || venueId,
         };
       }) || [];
 
@@ -301,9 +303,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw new Error('Message not found');
       }
 
-      // Type assertion to ensure proper typing
+      // Handle the joined data structure - chat_sessions comes as an array
       const messageForLike = messageData as unknown as MessageForLike;
-      const sessionVenueId = messageForLike.chat_sessions.venue_id;
+      const sessionData = messageForLike.chat_sessions[0]; // Get first (and only) session
+      
+      if (!sessionData) {
+        throw new Error('Session data not found');
+      }
+
+      const sessionVenueId = sessionData.venue_id;
 
       // Verify venue access if venueId is provided
       if (venueId && sessionVenueId !== venueId) {

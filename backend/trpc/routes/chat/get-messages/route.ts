@@ -13,7 +13,7 @@ interface MessageWithSession {
   chat_sessions: {
     anonymous_name: string;
     venue_id: string;
-  };
+  }[];
 }
 
 export const getMessagesProcedure = publicProcedure
@@ -49,11 +49,13 @@ export const getMessagesProcedure = publicProcedure
       }
 
       // Transform messages to include anonymous_name and venue_id
+      // Handle the joined data structure - chat_sessions comes as an array
       const transformedMessages = (messagesWithSessions as MessageWithSession[])?.map(msg => {
+        const sessionData = msg.chat_sessions[0]; // Get first (and only) session
         return {
           ...msg,
-          anonymous_name: msg.chat_sessions.anonymous_name || 'Anonymous Buddy',
-          venue_id: msg.chat_sessions.venue_id,
+          anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
+          venue_id: sessionData?.venue_id || venueId,
         };
       }) || [];
 
