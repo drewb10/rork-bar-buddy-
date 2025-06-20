@@ -217,7 +217,6 @@ export interface Database {
           id: string
           session_id: string
           content: string
-          likes: number
           timestamp: string
           is_flagged: boolean
           created_at: string
@@ -226,7 +225,6 @@ export interface Database {
           id?: string
           session_id: string
           content: string
-          likes?: number
           timestamp?: string
           is_flagged?: boolean
           created_at?: string
@@ -235,7 +233,6 @@ export interface Database {
           id?: string
           session_id?: string
           content?: string
-          likes?: number
           timestamp?: string
           is_flagged?: boolean
           created_at?: string

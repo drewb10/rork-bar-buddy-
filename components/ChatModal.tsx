@@ -12,7 +12,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { X, Send, AlertTriangle, Heart, MessageCircle } from 'lucide-react-native';
+import { X, Send, AlertTriangle, MessageCircle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useChatStore } from '@/stores/chatStore';
@@ -32,7 +32,6 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
     messages, 
     sendMessage, 
     loadMessages, 
-    likeMessage,
     createOrGetSession,
     subscribeToMessages,
     unsubscribeFromMessages,
@@ -116,19 +115,6 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
       );
     } finally {
       setIsSending(false);
-    }
-  };
-
-  const handleLikeMessage = async (messageId: string) => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    
-    try {
-      await likeMessage(messageId, venue.id);
-    } catch (error) {
-      console.error('Failed to like message:', error);
-      // Don't show alert for like failures as they're not critical
     }
   };
 
@@ -250,23 +236,6 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
                   <Text style={[styles.messageText, { color: themeColors.text }]}>
                     {message.content}
                   </Text>
-                  <View style={styles.messageActions}>
-                    <Pressable
-                      style={styles.likeButton}
-                      onPress={() => handleLikeMessage(message.id)}
-                    >
-                      <Heart 
-                        size={16} 
-                        color={message.likes > 0 ? themeColors.primary : themeColors.subtext}
-                        fill={message.likes > 0 ? themeColors.primary : 'transparent'}
-                      />
-                      {message.likes > 0 && (
-                        <Text style={[styles.likeCount, { color: themeColors.subtext }]}>
-                          {message.likes}
-                        </Text>
-                      )}
-                    </Pressable>
-                  </View>
                 </View>
               </View>
             ))
@@ -327,7 +296,18 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               </Text>
               <ScrollView style={styles.termsScroll}>
                 <Text style={[styles.termsText, { color: themeColors.text }]}>
-                  {"Welcome to BarBuddy's anonymous chat! To keep our community safe and fun:\n\n• Be respectful and kind to others\n• No inappropriate language or content\n• No sharing of personal information\n• No harassment or bullying\n• No spam or promotional content\n• Keep conversations venue-related and fun\n\nMessages are automatically filtered for inappropriate content. Violations may result in temporary chat restrictions.\n\nHave fun and stay safe! 🍻"}
+                  {"Welcome to BarBuddy's anonymous chat! To keep our community safe and fun:
+
+• Be respectful and kind to others
+• No inappropriate language or content
+• No sharing of personal information
+• No harassment or bullying
+• No spam or promotional content
+• Keep conversations venue-related and fun
+
+Messages are automatically filtered for inappropriate content. Violations may result in temporary chat restrictions.
+
+Have fun and stay safe! 🍻"}
                 </Text>
               </ScrollView>
               <Pressable
@@ -454,20 +434,6 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 16,
     lineHeight: 20,
-    marginBottom: 8,
-  },
-  messageActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  likeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 4,
-  },
-  likeCount: {
-    fontSize: 12,
-    marginLeft: 4,
   },
   inputContainer: {
     flexDirection: 'row',

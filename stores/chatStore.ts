@@ -7,7 +7,6 @@ export interface ChatMessage {
   id: string;
   session_id: string;
   content: string;
-  likes: number;
   timestamp: string;
   anonymous_name: string;
   venue_id: string;
@@ -28,21 +27,11 @@ interface MessageWithJoinedSession {
   id: string;
   session_id: string;
   content: string;
-  likes: number;
   timestamp: string;
   is_flagged: boolean;
   created_at: string;
   chat_sessions: {
     anonymous_name: string;
-    venue_id: string;
-  };
-}
-
-// Type for message with session data for likes (as returned by Supabase)
-interface MessageForLikeWithJoinedSession {
-  id: string;
-  likes: number;
-  chat_sessions: {
     venue_id: string;
   };
 }
@@ -55,7 +44,6 @@ interface ChatState {
   subscription: any;
   loadMessages: (venueId: string) => Promise<void>;
   sendMessage: (venueId: string, content: string) => Promise<void>;
-  likeMessage: (messageId: string, venueId?: string) => Promise<void>;
   createOrGetSession: (venueId: string) => Promise<ChatSession>;
   subscribeToMessages: (venueId: string) => void;
   unsubscribeFromMessages: () => void;
@@ -200,7 +188,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         .from('chat_messages')
         .select(`
           *,
-          chat_sessions:chat_sessions(
+          chat_sessions:session_id(
             anonymous_name,
             venue_id
           )
@@ -278,70 +266,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  likeMessage: async (messageId: string, venueId?: string): Promise<void> => {
-    try {
-      if (!messageId) {
-        throw new Error('Message ID is required');
-      }
-
-      // Get current message with session data to verify venue and get likes
-      const { data: messageData, error: fetchError } = await supabase
-        .from('chat_messages')
-        .select(`
-          id,
-          likes,
-          chat_sessions:chat_sessions(
-            venue_id
-          )
-        `)
-        .eq('id', messageId)
-        .single();
-
-      if (fetchError || !messageData) {
-        throw new Error('Message not found');
-      }
-
-      const messageForLike = messageData as MessageForLikeWithJoinedSession;
-      
-      if (!messageForLike.chat_sessions) {
-        throw new Error('Session data not found');
-      }
-
-      const sessionVenueId = messageForLike.chat_sessions.venue_id;
-
-      // Verify venue access if venueId is provided
-      if (venueId && sessionVenueId !== venueId) {
-        throw new Error('Message does not belong to the specified venue');
-      }
-
-      // Increment likes count
-      const { data, error } = await supabase
-        .from('chat_messages')
-        .update({ likes: (messageForLike.likes || 0) + 1 })
-        .eq('id', messageId)
-        .select('id, likes')
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      // Update local state only if this message belongs to the current venue
-      const currentMessages = get().messages;
-      const messageExists = currentMessages.find(msg => msg.id === messageId);
-      
-      if (messageExists) {
-        const updatedMessages = currentMessages.map(msg =>
-          msg.id === messageId ? { ...msg, likes: data.likes } : msg
-        );
-        set({ messages: updatedMessages });
-      }
-    } catch (error) {
-      console.error('Failed to like message:', error);
-      // Don't set error state for like failures as they're not critical
-    }
-  },
-
   subscribeToMessages: (venueId: string): void => {
     try {
       if (!venueId) {
@@ -388,38 +312,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
               }
             } catch (error) {
               console.error('Failed to process new message:', error);
-            }
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'chat_messages',
-          },
-          async (payload) => {
-            try {
-              // Get the session info to check venue
-              const { data: sessionData } = await supabase
-                .from('chat_sessions')
-                .select('venue_id')
-                .eq('id', payload.new.session_id)
-                .single();
-
-              // Only process updates for the current venue
-              if (sessionData?.venue_id !== venueId) {
-                return;
-              }
-
-              const updatedMessage = payload.new as ChatMessage;
-              const currentMessages = get().messages;
-              const updatedMessages = currentMessages.map(msg =>
-                msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg
-              );
-              set({ messages: updatedMessages });
-            } catch (error) {
-              console.error('Failed to process message update:', error);
             }
           }
         )

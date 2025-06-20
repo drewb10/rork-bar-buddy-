@@ -7,7 +7,6 @@ interface MessageWithJoinedSession {
   id: string;
   session_id: string;
   content: string;
-  likes: number;
   timestamp: string;
   is_flagged: boolean;
   created_at: string;
@@ -36,7 +35,7 @@ export const getMessagesProcedure = publicProcedure
         .from('chat_messages')
         .select(`
           *,
-          chat_sessions:chat_sessions(
+          chat_sessions:session_id(
             anonymous_name,
             venue_id
           )

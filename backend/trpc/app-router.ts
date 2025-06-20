@@ -15,7 +15,6 @@ import { getFriendRequestsProcedure } from './routes/user/get-friend-requests/ro
 import { createSessionProcedure } from './routes/chat/create-session/route';
 import { getMessagesProcedure } from './routes/chat/get-messages/route';
 import { sendMessageProcedure } from './routes/chat/send-message/route';
-import { likeMessageProcedure } from './routes/chat/like-message/route';
 
 export const appRouter = router({
   example: router({
@@ -43,7 +42,6 @@ export const appRouter = router({
     createSession: createSessionProcedure,
     getMessages: getMessagesProcedure,
     sendMessage: sendMessageProcedure,
-    likeMessage: likeMessageProcedure,
   }),
 });
 
