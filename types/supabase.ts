@@ -88,6 +88,32 @@ export interface Database {
           created_at?: string
         }
       }
+      friend_requests: {
+        Row: {
+          id: string
+          from_user_id: string
+          to_user_id: string
+          status: 'pending' | 'accepted' | 'declined'
+          sent_at: string
+          responded_at: string | null
+        }
+        Insert: {
+          id?: string
+          from_user_id: string
+          to_user_id: string
+          status?: 'pending' | 'accepted' | 'declined'
+          sent_at?: string
+          responded_at?: string | null
+        }
+        Update: {
+          id?: string
+          from_user_id?: string
+          to_user_id?: string
+          status?: 'pending' | 'accepted' | 'declined'
+          sent_at?: string
+          responded_at?: string | null
+        }
+      }
       bingo_completions: {
         Row: {
           id: string

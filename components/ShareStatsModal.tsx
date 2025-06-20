@@ -98,14 +98,14 @@ export default function ShareStatsModal({ profile, rankInfo, onClose }: ShareSta
             </View>
           </View>
 
-          {/* Rank Badge */}
+          {/* Rank Badge - Updated for 5-tier system */}
           <View style={[styles.rankBadge, { backgroundColor: themeColors.background }]}>
             <Award size={20} color={rankInfo.color} />
             <Text style={[styles.rankTitle, { color: rankInfo.color }]}>
               {rankInfo.title}
             </Text>
             <Text style={[styles.rankSubtext, { color: themeColors.subtext }]}>
-              Rank {rankInfo.rank}/4
+              Rank {rankInfo.rank}/5
             </Text>
           </View>
 

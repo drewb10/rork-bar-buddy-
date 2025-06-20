@@ -6,6 +6,10 @@ import trackDrunkScaleRoute from "./routes/analytics/track-drunk-scale/route";
 import createProfileRoute from "./routes/user/create-profile/route";
 import searchUserRoute from "./routes/user/search-user/route";
 import addFriendRoute from "./routes/user/add-friend/route";
+import sendFriendRequestRoute from "./routes/user/send-friend-request/route";
+import acceptFriendRequestRoute from "./routes/user/accept-friend-request/route";
+import declineFriendRequestRoute from "./routes/user/decline-friend-request/route";
+import getFriendRequestsRoute from "./routes/user/get-friend-requests/route";
 import completeTaskRoute from "./routes/bingo/complete-task/route";
 import completeBingoRoute from "./routes/bingo/complete-bingo/route";
 
@@ -22,6 +26,10 @@ export const appRouter = createTRPCRouter({
     createProfile: createProfileRoute,
     searchUser: searchUserRoute,
     addFriend: addFriendRoute,
+    sendFriendRequest: sendFriendRequestRoute,
+    acceptFriendRequest: acceptFriendRequestRoute,
+    declineFriendRequest: declineFriendRequestRoute,
+    getFriendRequests: getFriendRequestsRoute,
   }),
   bingo: createTRPCRouter({
     completeTask: completeTaskRoute,

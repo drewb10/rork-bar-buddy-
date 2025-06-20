@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, TextInput, Image } from 'react-native';
-import { User, TrendingUp, MapPin, Zap, Edit3, X, Award, Camera, Share2, Users } from 'lucide-react-native';
+import { User, TrendingUp, MapPin, Zap, Edit3, X, Award, Camera, Share2, Users, RotateCcw } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
@@ -21,7 +21,8 @@ export default function TrackingScreen() {
     canSubmitDrunkScale,
     getRank,
     setProfilePicture,
-    setUserName
+    setUserName,
+    resetStats
   } = useUserProfileStore();
   
   const [nameEditModalVisible, setNameEditModalVisible] = useState(false);
@@ -60,6 +61,24 @@ export default function TrackingScreen() {
     addDrunkScaleRating(rating);
     setDrunkScaleModalVisible(false);
     Alert.alert('Rating Submitted', `You rated last night as ${rating}/10 on the drunk scale!`);
+  };
+
+  const handleResetStats = () => {
+    Alert.alert(
+      'Reset My Stats',
+      'Are you sure you want to reset all your stats? This will set your nights out, bars hit, and drunk scale ratings back to zero. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Reset', 
+          style: 'destructive',
+          onPress: () => {
+            resetStats();
+            Alert.alert('Stats Reset', 'Your stats have been reset to zero.');
+          }
+        },
+      ]
+    );
   };
 
   const handleProfilePicturePress = () => {
@@ -189,6 +208,13 @@ export default function TrackingScreen() {
           <Text style={[styles.friendsButtonText, { color: themeColors.primary }]}>
             Friends ({profile.friends.length})
           </Text>
+          {profile.friendRequests.length > 0 && (
+            <View style={[styles.notificationBadge, { backgroundColor: '#FF4444' }]}>
+              <Text style={styles.notificationText}>
+                {profile.friendRequests.length}
+              </Text>
+            </View>
+          )}
         </Pressable>
 
         {/* Stats Section */}
@@ -258,7 +284,7 @@ export default function TrackingScreen() {
             </Text>
           </Pressable>
 
-          {/* Ranking Card - Centered and Stacked */}
+          {/* Ranking Card - Updated with new 5-tier system */}
           <View style={styles.rankingContainer}>
             <View style={[styles.rankingCard, { backgroundColor: themeColors.card }]}>
               <Award size={24} color={rankInfo.color} />
@@ -266,21 +292,35 @@ export default function TrackingScreen() {
                 {rankInfo.title}
               </Text>
               <Text style={[styles.rankingSubtext, { color: themeColors.subtext }]}>
-                Rank {rankInfo.rank}/4
+                Rank {rankInfo.rank}/5
               </Text>
             </View>
           </View>
 
-          {/* Share Stats Button */}
-          <Pressable 
-            style={[styles.shareButton, { backgroundColor: themeColors.card }]}
-            onPress={() => setShareStatsModalVisible(true)}
-          >
-            <Share2 size={20} color={themeColors.primary} />
-            <Text style={[styles.shareButtonText, { color: themeColors.primary }]}>
-              Share Your Stats
-            </Text>
-          </Pressable>
+          {/* Action Buttons Row */}
+          <View style={styles.actionButtonsRow}>
+            {/* Share Stats Button */}
+            <Pressable 
+              style={[styles.actionButton, { backgroundColor: themeColors.card }]}
+              onPress={() => setShareStatsModalVisible(true)}
+            >
+              <Share2 size={18} color={themeColors.primary} />
+              <Text style={[styles.actionButtonText, { color: themeColors.primary }]}>
+                Share Stats
+              </Text>
+            </Pressable>
+
+            {/* Reset Stats Button */}
+            <Pressable 
+              style={[styles.actionButton, { backgroundColor: themeColors.card }]}
+              onPress={handleResetStats}
+            >
+              <RotateCcw size={18} color="#FF4444" />
+              <Text style={[styles.actionButtonText, { color: "#FF4444" }]}>
+                Reset Stats
+              </Text>
+            </Pressable>
+          </View>
 
           {/* Activity Summary */}
           <View style={[styles.summaryCard, { backgroundColor: themeColors.card }]}>
@@ -505,11 +545,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+    position: 'relative',
   },
   friendsButtonText: {
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '700',
   },
   statsSection: {
     paddingHorizontal: 16,
@@ -576,7 +632,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 12,
     padding: 16,
-    width: '50%',
+    width: '60%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -595,23 +651,28 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
   },
-  shareButton: {
+  actionButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  actionButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
+    padding: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
-  shareButtonText: {
-    fontSize: 16,
+  actionButtonText: {
+    fontSize: 14,
     fontWeight: '600',
-    marginLeft: 8,
+    marginLeft: 6,
   },
   summaryCard: {
     borderRadius: 16,

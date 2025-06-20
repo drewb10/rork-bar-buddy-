@@ -13,6 +13,15 @@ interface Friend {
   addedAt: string;
 }
 
+interface FriendRequest {
+  id: string;
+  fromUserId: string;
+  fromUserName: string;
+  fromUserProfilePicture?: string;
+  fromUserRank: string;
+  sentAt: string;
+}
+
 interface UserProfile {
   firstName: string;
   lastName: string;
@@ -28,6 +37,7 @@ interface UserProfile {
   hasCustomizedProfile?: boolean;
   hasCompletedOnboarding?: boolean;
   friends: Friend[];
+  friendRequests: FriendRequest[];
 }
 
 interface UserProfileState {
@@ -48,7 +58,12 @@ interface UserProfileState {
   addFriend: (friendUserId: string) => Promise<boolean>;
   removeFriend: (friendUserId: string) => void;
   searchUser: (userId: string) => Promise<Friend | null>;
+  sendFriendRequest: (friendUserId: string) => Promise<boolean>;
+  acceptFriendRequest: (requestId: string) => Promise<boolean>;
+  declineFriendRequest: (requestId: string) => Promise<boolean>;
+  loadFriendRequests: () => Promise<void>;
   resetProfile: () => void;
+  resetStats: () => void;
   syncToSupabase: () => Promise<void>;
   loadFromSupabase: () => Promise<void>;
 }
@@ -65,12 +80,14 @@ const defaultProfile: UserProfile = {
   hasCustomizedProfile: false,
   hasCompletedOnboarding: false,
   friends: [],
+  friendRequests: [],
 };
 
 const getRankInfo = (averageScore: number): { rank: number; title: string; color: string } => {
-  if (averageScore >= 8.5) return { rank: 4, title: 'Blackout Boss', color: '#9C27B0' };
-  if (averageScore >= 5.51) return { rank: 3, title: 'Buzzed Beginner', color: '#FF9800' };
-  if (averageScore >= 3.01) return { rank: 2, title: 'Tipsy Talent', color: '#FFC107' };
+  if (averageScore >= 8.1) return { rank: 5, title: 'Scoop & Score Champ', color: '#9C27B0' };
+  if (averageScore >= 6.1) return { rank: 4, title: 'Big Chocolate', color: '#FF5722' };
+  if (averageScore >= 4.1) return { rank: 3, title: 'Tipsy Talent', color: '#FF9800' };
+  if (averageScore >= 2.1) return { rank: 2, title: 'Buzzed Beginner', color: '#FFC107' };
   return { rank: 1, title: 'Sober Star', color: '#4CAF50' };
 };
 
@@ -316,10 +333,185 @@ export const useUserProfileStore = create<UserProfileState>()(
         }
       },
 
+      sendFriendRequest: async (friendUserId: string) => {
+        try {
+          const { profile } = get();
+          if (!profile.userId || profile.userId === 'default') return false;
+
+          // Check if user exists
+          const targetUser = await get().searchUser(friendUserId);
+          if (!targetUser) return false;
+
+          // Check if already friends
+          if (profile.friends.some(f => f.userId === friendUserId)) return false;
+
+          // Check if request already sent
+          const { data: existingRequest } = await supabase
+            .from('friend_requests')
+            .select('id')
+            .eq('from_user_id', profile.userId)
+            .eq('to_user_id', friendUserId)
+            .eq('status', 'pending')
+            .single();
+
+          if (existingRequest) return false; // Request already sent
+
+          // Send friend request
+          const { error } = await supabase
+            .from('friend_requests')
+            .insert({
+              from_user_id: profile.userId,
+              to_user_id: friendUserId,
+              status: 'pending'
+            });
+
+          return !error;
+        } catch {
+          return false;
+        }
+      },
+
+      acceptFriendRequest: async (requestId: string) => {
+        try {
+          const { profile } = get();
+          if (!profile.userId || profile.userId === 'default') return false;
+
+          // Get the friend request
+          const { data: request, error: requestError } = await supabase
+            .from('friend_requests')
+            .select('from_user_id')
+            .eq('id', requestId)
+            .eq('to_user_id', profile.userId)
+            .eq('status', 'pending')
+            .single();
+
+          if (requestError || !request) return false;
+
+          // Add both users as friends
+          const { error: friendError1 } = await supabase
+            .from('friends')
+            .insert({
+              user_id: profile.userId,
+              friend_user_id: request.from_user_id,
+            });
+
+          const { error: friendError2 } = await supabase
+            .from('friends')
+            .insert({
+              user_id: request.from_user_id,
+              friend_user_id: profile.userId,
+            });
+
+          // Update request status
+          const { error: updateError } = await supabase
+            .from('friend_requests')
+            .update({ status: 'accepted' })
+            .eq('id', requestId);
+
+          if (friendError1 || friendError2 || updateError) return false;
+
+          // Refresh friends and requests
+          await get().loadFromSupabase();
+          await get().loadFriendRequests();
+
+          return true;
+        } catch {
+          return false;
+        }
+      },
+
+      declineFriendRequest: async (requestId: string) => {
+        try {
+          const { profile } = get();
+          if (!profile.userId || profile.userId === 'default') return false;
+
+          const { error } = await supabase
+            .from('friend_requests')
+            .update({ status: 'declined' })
+            .eq('id', requestId)
+            .eq('to_user_id', profile.userId);
+
+          if (!error) {
+            await get().loadFriendRequests();
+          }
+
+          return !error;
+        } catch {
+          return false;
+        }
+      },
+
+      loadFriendRequests: async () => {
+        try {
+          const { profile } = get();
+          if (!profile.userId || profile.userId === 'default') return;
+
+          const { data, error } = await supabase
+            .from('friend_requests')
+            .select(`
+              id,
+              from_user_id,
+              sent_at,
+              user_profiles!friend_requests_from_user_id_fkey (
+                first_name,
+                last_name,
+                profile_pic,
+                ranking
+              )
+            `)
+            .eq('to_user_id', profile.userId)
+            .eq('status', 'pending');
+
+          if (error || !data) return;
+
+          const friendRequests: FriendRequest[] = data.map(request => {
+            const userProfile = Array.isArray(request.user_profiles) 
+              ? request.user_profiles[0] 
+              : request.user_profiles;
+
+            return {
+              id: request.id,
+              fromUserId: request.from_user_id,
+              fromUserName: userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : 'Unknown User',
+              fromUserProfilePicture: userProfile?.profile_pic || undefined,
+              fromUserRank: userProfile?.ranking || 'Sober Star',
+              sentAt: request.sent_at,
+            };
+          });
+
+          set((state) => ({
+            profile: {
+              ...state.profile,
+              friendRequests
+            }
+          }));
+        } catch (error) {
+          console.warn('Error loading friend requests:', error);
+        }
+      },
+
       resetProfile: () => {
         const { profile } = get();
         if (!profile.hasCustomizedProfile) {
           set({ profile: defaultProfile });
+        }
+      },
+
+      resetStats: async () => {
+        try {
+          set((state) => ({
+            profile: {
+              ...state.profile,
+              nightsOut: 0,
+              barsHit: 0,
+              drunkScaleRatings: [],
+              lastNightOutDate: undefined,
+              lastDrunkScaleDate: undefined,
+            }
+          }));
+          await get().syncToSupabase();
+        } catch (error) {
+          console.warn('Error resetting stats:', error);
         }
       },
 
@@ -433,6 +625,9 @@ export const useUserProfileStore = create<UserProfileState>()(
             },
             isLoading: false
           });
+
+          // Load friend requests
+          await get().loadFriendRequests();
         } catch (error) {
           console.warn('Error loading from Supabase:', error);
           set({ isLoading: false });
