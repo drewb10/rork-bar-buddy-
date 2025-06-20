@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
+import { supabase } from "@/lib/supabase";
 
 const getMessagesSchema = z.object({
   venueId: z.string(),
@@ -12,41 +13,26 @@ export const getMessagesProcedure = publicProcedure
     const { venueId, limit } = input;
 
     try {
-      // In a real app, this would query Supabase
-      // For now, return mock messages based on venueId
-      
-      const mockMessages = [
-        {
-          id: `msg_1_${venueId}`,
-          venueId,
-          userId: 'anon_user_1',
-          content: 'Anyone here tonight?',
-          timestamp: new Date(Date.now() - 300000).toISOString(), // 5 minutes ago
-        },
-        {
-          id: `msg_2_${venueId}`,
-          venueId,
-          userId: 'anon_user_2',
-          content: 'Yeah! Great crowd tonight 🍻',
-          timestamp: new Date(Date.now() - 240000).toISOString(), // 4 minutes ago
-        },
-        {
-          id: `msg_3_${venueId}`,
-          venueId,
-          userId: 'anon_user_3',
-          content: 'The music is awesome!',
-          timestamp: new Date(Date.now() - 180000).toISOString(), // 3 minutes ago
-        },
-        {
-          id: `msg_4_${venueId}`,
-          venueId,
-          userId: 'anon_user_4',
-          content: 'First time here, loving the vibe!',
-          timestamp: new Date(Date.now() - 120000).toISOString(), // 2 minutes ago
-        },
-      ];
+      // Get messages with session info for anonymous names
+      const { data: messages, error } = await supabase
+        .from('chat_messages')
+        .select(`
+          *,
+          chat_sessions!inner(anonymous_name)
+        `)
+        .eq('venue_id', venueId)
+        .order('timestamp', { ascending: true })
+        .limit(limit);
 
-      return mockMessages.slice(0, limit);
+      if (error) throw error;
+
+      // Transform messages to include anonymous_name
+      const transformedMessages = messages?.map(msg => ({
+        ...msg,
+        anonymous_name: msg.chat_sessions.anonymous_name,
+      })) || [];
+
+      return transformedMessages;
     } catch (error) {
       throw new Error(`Failed to get messages: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }

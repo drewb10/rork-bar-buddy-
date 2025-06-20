@@ -186,6 +186,64 @@ export interface Database {
           session_id?: string | null
         }
       }
+      chat_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          venue_id: string
+          anonymous_name: string
+          created_at: string
+          last_active: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          venue_id: string
+          anonymous_name: string
+          created_at?: string
+          last_active?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          venue_id?: string
+          anonymous_name?: string
+          created_at?: string
+          last_active?: string
+        }
+      }
+      chat_messages: {
+        Row: {
+          id: string
+          session_id: string
+          venue_id: string
+          content: string
+          likes: number
+          timestamp: string
+          is_flagged: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          venue_id: string
+          content: string
+          likes?: number
+          timestamp?: string
+          is_flagged?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          venue_id?: string
+          content?: string
+          likes?: number
+          timestamp?: string
+          is_flagged?: boolean
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

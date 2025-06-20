@@ -11,7 +11,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { X, Send, AlertTriangle } from 'lucide-react-native';
+import { X, Send, AlertTriangle, Heart } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useChatStore } from '@/stores/chatStore';
@@ -27,16 +27,42 @@ interface ChatModalProps {
 export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { messages, sendMessage, loadMessages, isLoading } = useChatStore();
+  const { 
+    messages, 
+    sendMessage, 
+    loadMessages, 
+    likeMessage,
+    createOrGetSession,
+    subscribeToMessages,
+    unsubscribeFromMessages,
+    cleanup,
+    isLoading 
+  } = useChatStore();
   const [inputText, setInputText] = useState('');
   const [showTerms, setShowTerms] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     if (visible) {
-      loadMessages(venue.id);
+      initializeChat();
+    } else {
+      cleanup();
     }
+
+    return () => {
+      cleanup();
+    };
   }, [visible, venue.id]);
+
+  const initializeChat = async () => {
+    try {
+      await createOrGetSession(venue.id);
+      await loadMessages(venue.id);
+      subscribeToMessages(venue.id);
+    } catch (error) {
+      console.error('Failed to initialize chat:', error);
+    }
+  };
 
   useEffect(() => {
     // Auto-scroll to bottom when new messages arrive
@@ -64,8 +90,28 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
 
-    await sendMessage(venue.id, inputText.trim());
-    setInputText('');
+    try {
+      await sendMessage(venue.id, inputText.trim());
+      setInputText('');
+    } catch (error) {
+      Alert.alert(
+        'Failed to Send',
+        'Could not send your message. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const handleLikeMessage = async (messageId: string) => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    
+    try {
+      await likeMessage(messageId);
+    } catch (error) {
+      console.error('Failed to like message:', error);
+    }
   };
 
   const containsInappropriateContent = (text: string): boolean => {
@@ -84,15 +130,6 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const generateAnonymousName = (userId: string) => {
-    const adjectives = ['Cool', 'Happy', 'Chill', 'Fun', 'Wild', 'Smooth', 'Fresh', 'Bold'];
-    
-    // Use userId to generate consistent but anonymous name
-    const adjIndex = userId.length % adjectives.length;
-    
-    return `${adjectives[adjIndex]} Buddy`;
   };
 
   return (
@@ -150,7 +187,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               <View key={message.id} style={styles.messageContainer}>
                 <View style={styles.messageHeader}>
                   <Text style={[styles.messageSender, { color: themeColors.primary }]}>
-                    {generateAnonymousName(message.userId)}
+                    {message.anonymous_name}
                   </Text>
                   <Text style={[styles.messageTime, { color: themeColors.subtext }]}>
                     {formatTime(message.timestamp)}
@@ -160,6 +197,23 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
                   <Text style={[styles.messageText, { color: themeColors.text }]}>
                     {message.content}
                   </Text>
+                  <View style={styles.messageActions}>
+                    <Pressable
+                      style={styles.likeButton}
+                      onPress={() => handleLikeMessage(message.id)}
+                    >
+                      <Heart 
+                        size={16} 
+                        color={message.likes > 0 ? themeColors.primary : themeColors.subtext}
+                        fill={message.likes > 0 ? themeColors.primary : 'transparent'}
+                      />
+                      {message.likes > 0 && (
+                        <Text style={[styles.likeCount, { color: themeColors.subtext }]}>
+                          {message.likes}
+                        </Text>
+                      )}
+                    </Pressable>
+                  </View>
                 </View>
               </View>
             ))
@@ -215,18 +269,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               </Text>
               <ScrollView style={styles.termsScroll}>
                 <Text style={[styles.termsText, { color: themeColors.text }]}>
-                  {`Welcome to BarBuddy's anonymous chat! To keep our community safe and fun:
-
-• Be respectful and kind to others
-• No inappropriate language or content
-• No sharing of personal information
-• No harassment or bullying
-• No spam or promotional content
-• Keep conversations venue-related and fun
-
-Messages are automatically filtered for inappropriate content. Violations may result in temporary chat restrictions.
-
-Have fun and stay safe! 🍻`}
+                  {"Welcome to BarBuddy's anonymous chat! To keep our community safe and fun:\n\n• Be respectful and kind to others\n• No inappropriate language or content\n• No sharing of personal information\n• No harassment or bullying\n• No spam or promotional content\n• Keep conversations venue-related and fun\n\nMessages are automatically filtered for inappropriate content. Violations may result in temporary chat restrictions.\n\nHave fun and stay safe! 🍻"}
                 </Text>
               </ScrollView>
               <Pressable
@@ -318,6 +361,20 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 16,
     lineHeight: 20,
+    marginBottom: 8,
+  },
+  messageActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  likeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 4,
+  },
+  likeCount: {
+    fontSize: 12,
+    marginLeft: 4,
   },
   inputContainer: {
     flexDirection: 'row',

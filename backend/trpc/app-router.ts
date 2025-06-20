@@ -1,45 +1,49 @@
-import { createTRPCRouter } from "./create-context";
-import hiRoute from "./routes/example/hi/route";
-import trackInteractionRoute from "./routes/analytics/track-interaction/route";
-import getInteractionsRoute from "./routes/analytics/get-interactions/route";
-import trackDrunkScaleRoute from "./routes/analytics/track-drunk-scale/route";
-import createProfileRoute from "./routes/user/create-profile/route";
-import searchUserRoute from "./routes/user/search-user/route";
-import addFriendRoute from "./routes/user/add-friend/route";
-import sendFriendRequestRoute from "./routes/user/send-friend-request/route";
-import acceptFriendRequestRoute from "./routes/user/accept-friend-request/route";
-import declineFriendRequestRoute from "./routes/user/decline-friend-request/route";
-import getFriendRequestsRoute from "./routes/user/get-friend-requests/route";
-import completeTaskRoute from "./routes/bingo/complete-task/route";
-import completeBingoRoute from "./routes/bingo/complete-bingo/route";
-import sendMessageRoute from "./routes/chat/send-message/route";
-import getMessagesRoute from "./routes/chat/get-messages/route";
+import { router } from './create-context';
+import { hiProcedure } from './routes/example/hi/route';
+import { trackInteractionProcedure } from './routes/analytics/track-interaction/route';
+import { getInteractionsProcedure } from './routes/analytics/get-interactions/route';
+import { trackDrunkScaleProcedure } from './routes/analytics/track-drunk-scale/route';
+import { createProfileProcedure } from './routes/user/create-profile/route';
+import { searchUserProcedure } from './routes/user/search-user/route';
+import { addFriendProcedure } from './routes/user/add-friend/route';
+import { sendFriendRequestProcedure } from './routes/user/send-friend-request/route';
+import { acceptFriendRequestProcedure } from './routes/user/accept-friend-request/route';
+import { declineFriendRequestProcedure } from './routes/user/decline-friend-request/route';
+import { getFriendRequestsProcedure } from './routes/user/get-friend-requests/route';
+import { completeTaskProcedure } from './routes/bingo/complete-task/route';
+import { completeBingoProcedure } from './routes/bingo/complete-bingo/route';
+import { sendMessageProcedure } from './routes/chat/send-message/route';
+import { getMessagesProcedure } from './routes/chat/get-messages/route';
+import { createSessionProcedure } from './routes/chat/create-session/route';
+import { likeMessageProcedure } from './routes/chat/like-message/route';
 
-export const appRouter = createTRPCRouter({
-  example: createTRPCRouter({
-    hi: hiRoute,
+export const appRouter = router({
+  example: router({
+    hi: hiProcedure,
   }),
-  analytics: createTRPCRouter({
-    trackInteraction: trackInteractionRoute,
-    getInteractions: getInteractionsRoute,
-    trackDrunkScale: trackDrunkScaleRoute,
+  analytics: router({
+    trackInteraction: trackInteractionProcedure,
+    getInteractions: getInteractionsProcedure,
+    trackDrunkScale: trackDrunkScaleProcedure,
   }),
-  user: createTRPCRouter({
-    createProfile: createProfileRoute,
-    searchUser: searchUserRoute,
-    addFriend: addFriendRoute,
-    sendFriendRequest: sendFriendRequestRoute,
-    acceptFriendRequest: acceptFriendRequestRoute,
-    declineFriendRequest: declineFriendRequestRoute,
-    getFriendRequests: getFriendRequestsRoute,
+  user: router({
+    createProfile: createProfileProcedure,
+    searchUser: searchUserProcedure,
+    addFriend: addFriendProcedure,
+    sendFriendRequest: sendFriendRequestProcedure,
+    acceptFriendRequest: acceptFriendRequestProcedure,
+    declineFriendRequest: declineFriendRequestProcedure,
+    getFriendRequests: getFriendRequestsProcedure,
   }),
-  bingo: createTRPCRouter({
-    completeTask: completeTaskRoute,
-    completeBingo: completeBingoRoute,
+  bingo: router({
+    completeTask: completeTaskProcedure,
+    completeBingo: completeBingoProcedure,
   }),
-  chat: createTRPCRouter({
-    sendMessage: sendMessageRoute,
-    getMessages: getMessagesRoute,
+  chat: router({
+    sendMessage: sendMessageProcedure,
+    getMessages: getMessagesProcedure,
+    createSession: createSessionProcedure,
+    likeMessage: likeMessageProcedure,
   }),
 });
 
