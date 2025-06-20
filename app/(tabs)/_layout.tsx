@@ -39,7 +39,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="bingo"
+        name="tracking"
         options={{
           title: "Tracking",
           headerShown: false,

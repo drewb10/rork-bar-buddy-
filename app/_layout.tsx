@@ -7,7 +7,6 @@ import { useEffect, useState } from "react";
 import { useAgeVerificationStore } from "@/stores/ageVerificationStore";
 import { useUserProfileStore } from "@/stores/userProfileStore";
 import { useVenueInteractionStore } from "@/stores/venueInteractionStore";
-import { useBingoStore } from "@/stores/bingoStore";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
 import OnboardingModal from "@/components/OnboardingModal";
 
@@ -24,18 +23,14 @@ export default function RootLayout() {
   const { isVerified, setVerified } = useAgeVerificationStore();
   const { profile, completeOnboarding, loadFromSupabase } = useUserProfileStore();
   const { loadPopularTimesFromSupabase } = useVenueInteractionStore();
-  const { initializeTasks } = useBingoStore();
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    // Initialize stores and load data from Supabase
+    // Initialize stores and load data
     const initializeApp = async () => {
       try {
-        // Initialize bingo tasks
-        initializeTasks();
-        
-        // Load data from Supabase if user has completed onboarding
+        // Load data if user has completed onboarding
         if (profile.hasCompletedOnboarding && profile.userId !== 'default') {
           await loadFromSupabase();
           await loadPopularTimesFromSupabase();

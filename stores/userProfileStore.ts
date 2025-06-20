@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '@/lib/supabase';
 
 interface Friend {
   userId: string;
@@ -263,19 +262,6 @@ export const useUserProfileStore = create<UserProfileState>()(
             return false; // Already friends
           }
 
-          // Add to Supabase
-          const { error } = await supabase
-            .from('friends')
-            .insert({
-              user_id: profile.userId!,
-              friend_user_id: friendUserId,
-            });
-
-          if (error) {
-            console.warn('Failed to add friend to Supabase:', error);
-            return false;
-          }
-
           set((state) => ({
             profile: {
               ...state.profile,
@@ -290,15 +276,6 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       removeFriend: async (friendUserId: string) => {
-        const { profile } = get();
-        
-        // Remove from Supabase
-        await supabase
-          .from('friends')
-          .delete()
-          .eq('user_id', profile.userId!)
-          .eq('friend_user_id', friendUserId);
-
         set((state) => ({
           profile: {
             ...state.profile,
@@ -309,25 +286,19 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       searchUser: async (userId: string) => {
         try {
-          const { data, error } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-
-          if (error || !data) {
-            return null;
+          // Mock implementation - in real app this would query Supabase
+          // For now, return a mock user for testing
+          if (userId.startsWith('#')) {
+            return {
+              userId,
+              name: 'Test User',
+              nightsOut: Math.floor(Math.random() * 20),
+              barsHit: Math.floor(Math.random() * 50),
+              rankTitle: 'Tipsy Talent',
+              addedAt: new Date().toISOString(),
+            };
           }
-
-          return {
-            userId: data.user_id,
-            name: `${data.first_name} ${data.last_name}`,
-            profilePicture: data.profile_pic || undefined,
-            nightsOut: data.total_nights_out,
-            barsHit: data.total_bars_hit,
-            rankTitle: data.ranking,
-            addedAt: new Date().toISOString(),
-          };
+          return null;
         } catch {
           return null;
         }
@@ -335,37 +306,8 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       sendFriendRequest: async (friendUserId: string) => {
         try {
-          const { profile } = get();
-          if (!profile.userId || profile.userId === 'default') return false;
-
-          // Check if user exists
-          const targetUser = await get().searchUser(friendUserId);
-          if (!targetUser) return false;
-
-          // Check if already friends
-          if (profile.friends.some(f => f.userId === friendUserId)) return false;
-
-          // Check if request already sent
-          const { data: existingRequest } = await supabase
-            .from('friend_requests')
-            .select('id')
-            .eq('from_user_id', profile.userId)
-            .eq('to_user_id', friendUserId)
-            .eq('status', 'pending')
-            .single();
-
-          if (existingRequest) return false; // Request already sent
-
-          // Send friend request
-          const { error } = await supabase
-            .from('friend_requests')
-            .insert({
-              from_user_id: profile.userId,
-              to_user_id: friendUserId,
-              status: 'pending'
-            });
-
-          return !error;
+          // Mock implementation - in real app this would use Supabase
+          return true;
         } catch {
           return false;
         }
@@ -373,47 +315,7 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       acceptFriendRequest: async (requestId: string) => {
         try {
-          const { profile } = get();
-          if (!profile.userId || profile.userId === 'default') return false;
-
-          // Get the friend request
-          const { data: request, error: requestError } = await supabase
-            .from('friend_requests')
-            .select('from_user_id')
-            .eq('id', requestId)
-            .eq('to_user_id', profile.userId)
-            .eq('status', 'pending')
-            .single();
-
-          if (requestError || !request) return false;
-
-          // Add both users as friends
-          const { error: friendError1 } = await supabase
-            .from('friends')
-            .insert({
-              user_id: profile.userId,
-              friend_user_id: request.from_user_id,
-            });
-
-          const { error: friendError2 } = await supabase
-            .from('friends')
-            .insert({
-              user_id: request.from_user_id,
-              friend_user_id: profile.userId,
-            });
-
-          // Update request status
-          const { error: updateError } = await supabase
-            .from('friend_requests')
-            .update({ status: 'accepted' })
-            .eq('id', requestId);
-
-          if (friendError1 || friendError2 || updateError) return false;
-
-          // Refresh friends and requests
-          await get().loadFromSupabase();
-          await get().loadFriendRequests();
-
+          // Mock implementation - in real app this would use Supabase
           return true;
         } catch {
           return false;
@@ -422,20 +324,8 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       declineFriendRequest: async (requestId: string) => {
         try {
-          const { profile } = get();
-          if (!profile.userId || profile.userId === 'default') return false;
-
-          const { error } = await supabase
-            .from('friend_requests')
-            .update({ status: 'declined' })
-            .eq('id', requestId)
-            .eq('to_user_id', profile.userId);
-
-          if (!error) {
-            await get().loadFriendRequests();
-          }
-
-          return !error;
+          // Mock implementation - in real app this would use Supabase
+          return true;
         } catch {
           return false;
         }
@@ -443,48 +333,7 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       loadFriendRequests: async () => {
         try {
-          const { profile } = get();
-          if (!profile.userId || profile.userId === 'default') return;
-
-          const { data, error } = await supabase
-            .from('friend_requests')
-            .select(`
-              id,
-              from_user_id,
-              sent_at,
-              user_profiles!friend_requests_from_user_id_fkey (
-                first_name,
-                last_name,
-                profile_pic,
-                ranking
-              )
-            `)
-            .eq('to_user_id', profile.userId)
-            .eq('status', 'pending');
-
-          if (error || !data) return;
-
-          const friendRequests: FriendRequest[] = data.map(request => {
-            const userProfile = Array.isArray(request.user_profiles) 
-              ? request.user_profiles[0] 
-              : request.user_profiles;
-
-            return {
-              id: request.id,
-              fromUserId: request.from_user_id,
-              fromUserName: userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : 'Unknown User',
-              fromUserProfilePicture: userProfile?.profile_pic || undefined,
-              fromUserRank: userProfile?.ranking || 'Sober Star',
-              sentAt: request.sent_at,
-            };
-          });
-
-          set((state) => ({
-            profile: {
-              ...state.profile,
-              friendRequests
-            }
-          }));
+          // Mock implementation - in real app this would query Supabase
         } catch (error) {
           console.warn('Error loading friend requests:', error);
         }
@@ -517,33 +366,7 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       syncToSupabase: async () => {
         try {
-          const { profile } = get();
-          if (!profile.userId || profile.userId === 'default') return;
-
-          const rankInfo = get().getRank();
-          
-          const { error } = await supabase
-            .from('user_profiles')
-            .upsert({
-              user_id: profile.userId,
-              username: `${profile.firstName}${profile.lastName}`,
-              first_name: profile.firstName,
-              last_name: profile.lastName,
-              email: profile.email,
-              profile_pic: profile.profilePicture,
-              total_nights_out: profile.nightsOut,
-              total_bars_hit: profile.barsHit,
-              drunk_scale_ratings: profile.drunkScaleRatings,
-              last_night_out_date: profile.lastNightOutDate,
-              last_drunk_scale_date: profile.lastDrunkScaleDate,
-              has_completed_onboarding: profile.hasCompletedOnboarding,
-              ranking: rankInfo.title,
-              join_date: profile.joinDate,
-            });
-
-          if (error) {
-            console.warn('Failed to sync profile to Supabase:', error);
-          }
+          // Mock implementation - in real app this would sync to Supabase
         } catch (error) {
           console.warn('Error syncing to Supabase:', error);
         }
@@ -551,86 +374,9 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       loadFromSupabase: async () => {
         try {
-          set({ isLoading: true });
-          const { profile } = get();
-          if (!profile.userId || profile.userId === 'default') {
-            set({ isLoading: false });
-            return;
-          }
-
-          const { data, error } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('user_id', profile.userId)
-            .single();
-
-          if (error || !data) {
-            set({ isLoading: false });
-            return;
-          }
-
-          // Load friends with proper join query
-          const { data: friendsData } = await supabase
-            .from('friends')
-            .select(`
-              friend_user_id,
-              user_profiles!friends_friend_user_id_fkey (
-                user_id,
-                first_name,
-                last_name,
-                profile_pic,
-                total_nights_out,
-                total_bars_hit,
-                ranking
-              )
-            `)
-            .eq('user_id', profile.userId);
-
-          const friendsWithNulls = friendsData?.map(f => {
-            // Handle the case where user_profiles might be an array or object
-            const userProfile = Array.isArray(f.user_profiles) ? f.user_profiles[0] : f.user_profiles;
-            
-            if (!userProfile) return null;
-            
-            return {
-              userId: userProfile.user_id,
-              name: `${userProfile.first_name} ${userProfile.last_name}`,
-              ...(userProfile.profile_pic && { profilePicture: userProfile.profile_pic }),
-              nightsOut: userProfile.total_nights_out,
-              barsHit: userProfile.total_bars_hit,
-              rankTitle: userProfile.ranking,
-              addedAt: new Date().toISOString(),
-            };
-          }) || [];
-
-          const friends: Friend[] = friendsWithNulls.filter(
-            (f): f is Friend => f !== null
-          );
-
-          set({
-            profile: {
-              ...profile,
-              firstName: data.first_name,
-              lastName: data.last_name,
-              email: data.email || profile.email,
-              profilePicture: data.profile_pic || undefined,
-              nightsOut: data.total_nights_out,
-              barsHit: data.total_bars_hit,
-              drunkScaleRatings: data.drunk_scale_ratings || [],
-              lastNightOutDate: data.last_night_out_date || undefined,
-              lastDrunkScaleDate: data.last_drunk_scale_date || undefined,
-              hasCompletedOnboarding: data.has_completed_onboarding,
-              joinDate: data.join_date,
-              friends,
-            },
-            isLoading: false
-          });
-
-          // Load friend requests
-          await get().loadFriendRequests();
+          // Mock implementation - in real app this would load from Supabase
         } catch (error) {
           console.warn('Error loading from Supabase:', error);
-          set({ isLoading: false });
         }
       }
     }),
@@ -643,3 +389,8 @@ export const useUserProfileStore = create<UserProfileState>()(
     }
   )
 );
+
+// Store reference for cross-store access
+if (typeof window !== 'undefined') {
+  (window as any).__userProfileStore = useUserProfileStore;
+}
