@@ -218,7 +218,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
                 Start the conversation!
               </Text>
               <Text style={[styles.emptyStateText, { color: themeColors.subtext }]}>
-                Be the first to say hello in {venue.name}'s chat
+                Be the first to say hello in {venue.name} chat
               </Text>
             </View>
           ) : (
@@ -296,18 +296,15 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               </Text>
               <ScrollView style={styles.termsScroll}>
                 <Text style={[styles.termsText, { color: themeColors.text }]}>
-                  {"Welcome to BarBuddy's anonymous chat! To keep our community safe and fun:
-
-• Be respectful and kind to others
-• No inappropriate language or content
-• No sharing of personal information
-• No harassment or bullying
-• No spam or promotional content
-• Keep conversations venue-related and fun
-
-Messages are automatically filtered for inappropriate content. Violations may result in temporary chat restrictions.
-
-Have fun and stay safe! 🍻"}
+                  Welcome to BarBuddy anonymous chat! To keep our community safe and fun:{'\n\n'}
+                  • Be respectful and kind to others{'\n'}
+                  • No inappropriate language or content{'\n'}
+                  • No sharing of personal information{'\n'}
+                  • No harassment or bullying{'\n'}
+                  • No spam or promotional content{'\n'}
+                  • Keep conversations venue-related and fun{'\n\n'}
+                  Messages are automatically filtered for inappropriate content. Violations may result in temporary chat restrictions.{'\n\n'}
+                  Have fun and stay safe! 🍻
                 </Text>
               </ScrollView>
               <Pressable
