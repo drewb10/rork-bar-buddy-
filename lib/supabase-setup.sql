@@ -35,8 +35,7 @@ CREATE TABLE friend_requests (
   to_user_id TEXT NOT NULL REFERENCES user_profiles(user_id) ON DELETE CASCADE,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
   sent_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  responded_at TIMESTAMP WITH TIME ZONE,
-  UNIQUE(from_user_id, to_user_id)
+  responded_at TIMESTAMP WITH TIME ZONE
 );
 
 -- Create bingo_completions table
@@ -78,7 +77,7 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
   UNIQUE(user_id, venue_id)
 );
 
--- Create chat_messages table (venue_id removed, accessed through session join)
+-- Create chat_messages table with timestamp column
 CREATE TABLE IF NOT EXISTS chat_messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   session_id UUID NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
@@ -88,18 +87,6 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   is_flagged BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-
--- Remove venue_id column from chat_messages if it exists
-DO $$ 
-BEGIN 
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'chat_messages' 
-    AND column_name = 'venue_id'
-  ) THEN
-    ALTER TABLE chat_messages DROP COLUMN venue_id;
-  END IF;
-END $$;
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);

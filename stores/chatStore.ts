@@ -197,11 +197,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
         let sessionVenueId: string;
         
         if (Array.isArray(sessionData)) {
-          anonymousName = sessionData[0]?.anonymous_name || 'Anonymous Buddy';
-          sessionVenueId = sessionData[0]?.venue_id || venueId;
+          if (sessionData.length === 0) {
+            anonymousName = 'Anonymous Buddy';
+            sessionVenueId = venueId;
+          } else {
+            anonymousName = sessionData[0].anonymous_name || 'Anonymous Buddy';
+            sessionVenueId = sessionData[0].venue_id || venueId;
+          }
         } else {
-          anonymousName = (sessionData as any)?.anonymous_name || 'Anonymous Buddy';
-          sessionVenueId = (sessionData as any)?.venue_id || venueId;
+          anonymousName = sessionData.anonymous_name || 'Anonymous Buddy';
+          sessionVenueId = sessionData.venue_id || venueId;
         }
         
         return {
@@ -297,9 +302,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
       let sessionVenueId: string;
       
       if (Array.isArray(sessionData)) {
-        sessionVenueId = sessionData[0]?.venue_id;
+        if (sessionData.length === 0) {
+          throw new Error('No session data found for message');
+        }
+        sessionVenueId = sessionData[0].venue_id;
       } else {
-        sessionVenueId = (sessionData as any)?.venue_id;
+        sessionVenueId = sessionData.venue_id;
       }
 
       // Verify venue access if venueId is provided

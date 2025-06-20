@@ -40,9 +40,12 @@ export const likeMessageProcedure = publicProcedure
       let sessionVenueId: string;
       
       if (Array.isArray(sessionData)) {
-        sessionVenueId = sessionData[0]?.venue_id;
+        if (sessionData.length === 0) {
+          throw new Error('No session data found');
+        }
+        sessionVenueId = sessionData[0].venue_id;
       } else {
-        sessionVenueId = (sessionData as any)?.venue_id;
+        sessionVenueId = sessionData.venue_id;
       }
 
       // Verify venue access if venueId is provided

@@ -42,11 +42,16 @@ export const getMessagesProcedure = publicProcedure
         let sessionVenueId: string;
         
         if (Array.isArray(sessionData)) {
-          anonymousName = sessionData[0]?.anonymous_name || 'Anonymous Buddy';
-          sessionVenueId = sessionData[0]?.venue_id || venueId;
+          if (sessionData.length === 0) {
+            anonymousName = 'Anonymous Buddy';
+            sessionVenueId = venueId;
+          } else {
+            anonymousName = sessionData[0].anonymous_name || 'Anonymous Buddy';
+            sessionVenueId = sessionData[0].venue_id || venueId;
+          }
         } else {
-          anonymousName = (sessionData as any)?.anonymous_name || 'Anonymous Buddy';
-          sessionVenueId = (sessionData as any)?.venue_id || venueId;
+          anonymousName = sessionData.anonymous_name || 'Anonymous Buddy';
+          sessionVenueId = sessionData.venue_id || venueId;
         }
         
         return {
