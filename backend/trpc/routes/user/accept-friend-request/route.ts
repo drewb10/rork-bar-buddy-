@@ -1,50 +1,61 @@
 import { z } from "zod";
-import { protectedProcedure } from "../../../create-context";
-import { supabase } from "../../../../../lib/supabase";
+import { publicProcedure } from "../../../create-context";
+import { supabase } from "@/lib/supabase";
 
-export default protectedProcedure
-  .input(z.object({
-    userId: z.string(),
+export const acceptFriendRequestProcedure = publicProcedure
+  .input(z.object({ 
     requestId: z.string(),
+    userId: z.string(),
+    friendId: z.string(),
   }))
   .mutation(async ({ input }) => {
-    const { requestId, userId } = input;
+    try {
+      // Update friend request status
+      const { error: updateError } = await supabase
+        .from('friend_requests')
+        .update({ status: 'accepted' })
+        .eq('id', input.requestId);
 
-    // Get the friend request
-    const { data: request, error: requestError } = await supabase
-      .from('friend_requests')
-      .select('*')
-      .eq('id', requestId)
-      .eq('receiver_id', userId)
-      .eq('status', 'pending')
-      .single();
+      if (updateError) throw updateError;
 
-    if (requestError || !request) {
-      throw new Error('Friend request not found');
+      // Add friendship (both directions)
+      const { error: error1 } = await supabase
+        .from('user_friends')
+        .insert({
+          user_id: input.userId,
+          friend_id: input.friendId,
+          status: 'accepted',
+        });
+
+      const { error: error2 } = await supabase
+        .from('user_friends')
+        .insert({
+          user_id: input.friendId,
+          friend_id: input.userId,
+          status: 'accepted',
+        });
+
+      if (error1 || error2) {
+        console.error('Supabase error:', error1 || error2);
+        return {
+          success: false,
+          error: (error1 || error2)?.message,
+          message: 'Failed to accept friend request'
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Friend request accepted successfully'
+      };
+    } catch (error) {
+      console.error('Error accepting friend request:', error);
+      return {
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to accept friend request'
+      };
     }
-
-    // Create friendship
-    const { error: friendshipError } = await supabase
-      .from('friendships')
-      .insert({
-        user_id: userId,
-        friend_id: request.sender_id,
-        created_at: new Date().toISOString()
-      });
-
-    if (friendshipError) {
-      throw new Error('Failed to create friendship');
-    }
-
-    // Update request status
-    const { error: updateError } = await supabase
-      .from('friend_requests')
-      .update({ status: 'accepted' })
-      .eq('id', requestId);
-
-    if (updateError) {
-      throw new Error('Failed to update request status');
-    }
-
-    return { success: true };
   });
+
+export default acceptFriendRequestProcedure;

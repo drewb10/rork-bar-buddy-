@@ -1,26 +1,39 @@
 import { z } from "zod";
-import { protectedProcedure } from "../../../create-context";
-import { supabase } from "../../../../../lib/supabase";
+import { publicProcedure } from "../../../create-context";
+import { supabase } from "@/lib/supabase";
 
-export default protectedProcedure
-  .input(z.object({
-    userId: z.string(),
+export const declineFriendRequestProcedure = publicProcedure
+  .input(z.object({ 
     requestId: z.string(),
   }))
   .mutation(async ({ input }) => {
-    const { requestId, userId } = input;
+    try {
+      const { error } = await supabase
+        .from('friend_requests')
+        .update({ status: 'declined' })
+        .eq('id', input.requestId);
 
-    // Update request status to declined
-    const { error } = await supabase
-      .from('friend_requests')
-      .update({ status: 'declined' })
-      .eq('id', requestId)
-      .eq('receiver_id', userId)
-      .eq('status', 'pending');
+      if (error) {
+        console.error('Supabase error:', error);
+        return {
+          success: false,
+          error: error.message,
+          message: 'Failed to decline friend request'
+        };
+      }
 
-    if (error) {
-      throw new Error('Failed to decline friend request');
+      return {
+        success: true,
+        message: 'Friend request declined successfully'
+      };
+    } catch (error) {
+      console.error('Error declining friend request:', error);
+      return {
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to decline friend request'
+      };
     }
-
-    return { success: true };
   });
+
+export default declineFriendRequestProcedure;

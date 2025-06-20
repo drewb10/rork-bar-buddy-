@@ -2,7 +2,7 @@ import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
 import { supabase } from "@/lib/supabase";
 
-export default publicProcedure
+export const createProfileProcedure = publicProcedure
   .input(z.object({ 
     userId: z.string(),
     firstName: z.string(),
@@ -49,3 +49,5 @@ export default publicProcedure
       };
     }
   });
+
+export default createProfileProcedure;

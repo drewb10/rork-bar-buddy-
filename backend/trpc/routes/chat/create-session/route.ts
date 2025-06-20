@@ -2,14 +2,12 @@ import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
 import { supabase } from "@/lib/supabase";
 
-const createSessionSchema = z.object({
-  userId: z.string(),
-  venueId: z.string(),
-  anonymousName: z.string(),
-});
-
 export const createSessionProcedure = publicProcedure
-  .input(createSessionSchema)
+  .input(z.object({
+    userId: z.string(),
+    venueId: z.string(),
+    anonymousName: z.string(),
+  }))
   .mutation(async ({ input }) => {
     const { userId, venueId, anonymousName } = input;
 
@@ -24,15 +22,14 @@ export const createSessionProcedure = publicProcedure
 
       if (existingSession && !fetchError) {
         // Update last_active
-        const { data: updatedSession, error: updateError } = await supabase
+        const { data: updatedSession } = await supabase
           .from('chat_sessions')
           .update({ last_active: new Date().toISOString() })
           .eq('id', existingSession.id)
           .select()
           .single();
-
-        if (updateError) throw updateError;
-        return { success: true, session: updatedSession };
+        
+        return { success: true, session: updatedSession || existingSession };
       }
 
       // Create new session

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
 import { supabase } from "@/lib/supabase";
 
-export default publicProcedure
+export const trackInteractionProcedure = publicProcedure
   .input(z.object({ 
     venueId: z.string(),
     userId: z.string().optional(),
@@ -47,3 +47,5 @@ export default publicProcedure
       };
     }
   });
+
+export default trackInteractionProcedure;

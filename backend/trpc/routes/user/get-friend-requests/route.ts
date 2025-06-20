@@ -1,36 +1,44 @@
 import { z } from "zod";
-import { protectedProcedure } from "../../../create-context";
-import { supabase } from "../../../../../lib/supabase";
+import { publicProcedure } from "../../../create-context";
+import { supabase } from "@/lib/supabase";
 
-export default protectedProcedure
-  .input(z.object({
+export const getFriendRequestsProcedure = publicProcedure
+  .input(z.object({ 
     userId: z.string(),
   }))
   .query(async ({ input }) => {
-    const { userId } = input;
+    try {
+      const { data: requests, error } = await supabase
+        .from('friend_requests')
+        .select(`
+          *,
+          from_user:user_profiles!friend_requests_from_user_id_fkey(*)
+        `)
+        .eq('to_user_id', input.userId)
+        .eq('status', 'pending');
 
-    // Get pending friend requests
-    const { data: requests, error } = await supabase
-      .from('friend_requests')
-      .select(`
-        id,
-        sender_id,
-        created_at,
-        profiles!friend_requests_sender_id_fkey (
-          name,
-          profile_picture,
-          nights_out,
-          bars_hit,
-          rank_title
-        )
-      `)
-      .eq('receiver_id', userId)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false });
+      if (error) {
+        console.error('Supabase error:', error);
+        return {
+          success: false,
+          error: error.message,
+          requests: []
+        };
+      }
 
-    if (error) {
-      throw new Error('Failed to fetch friend requests');
+      return {
+        success: true,
+        requests: requests || [],
+        message: 'Friend requests retrieved successfully'
+      };
+    } catch (error) {
+      console.error('Error getting friend requests:', error);
+      return {
+        success: false,
+        error: 'Internal server error',
+        requests: []
+      };
     }
-
-    return requests || [];
   });
+
+export default getFriendRequestsProcedure;

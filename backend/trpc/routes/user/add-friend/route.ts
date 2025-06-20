@@ -2,36 +2,41 @@ import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
 import { supabase } from "@/lib/supabase";
 
-export default publicProcedure
+export const addFriendProcedure = publicProcedure
   .input(z.object({ 
     userId: z.string(),
-    friendUserId: z.string(),
+    friendId: z.string(),
   }))
   .mutation(async ({ input }) => {
     try {
-      const { data, error } = await supabase
-        .from('friends')
+      // Add friendship (both directions)
+      const { error: error1 } = await supabase
+        .from('user_friends')
         .insert({
           user_id: input.userId,
-          friend_user_id: input.friendUserId,
-        })
-        .select()
-        .single();
+          friend_id: input.friendId,
+          status: 'accepted',
+        });
 
-      if (error) {
-        console.error('Supabase error:', error);
+      const { error: error2 } = await supabase
+        .from('user_friends')
+        .insert({
+          user_id: input.friendId,
+          friend_id: input.userId,
+          status: 'accepted',
+        });
+
+      if (error1 || error2) {
+        console.error('Supabase error:', error1 || error2);
         return {
           success: false,
-          error: error.message,
+          error: (error1 || error2)?.message,
           message: 'Failed to add friend'
         };
       }
 
-      console.log('Friend connection created in Supabase:', data);
-      
       return {
         success: true,
-        connectionId: data.id,
         message: 'Friend added successfully'
       };
     } catch (error) {
@@ -43,3 +48,5 @@ export default publicProcedure
       };
     }
   });
+
+export default addFriendProcedure;

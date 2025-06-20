@@ -2,7 +2,7 @@ import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
 import { supabase } from "@/lib/supabase";
 
-export default publicProcedure
+export const completeBingoProcedure = publicProcedure
   .input(z.object({ 
     userId: z.string().optional(),
     timestamp: z.string(),
@@ -45,3 +45,5 @@ export default publicProcedure
       };
     }
   });
+
+export default completeBingoProcedure;

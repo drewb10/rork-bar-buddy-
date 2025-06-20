@@ -12,10 +12,19 @@ export const likeMessageProcedure = publicProcedure
     const { messageId } = input;
 
     try {
+      // First get the current likes count
+      const { data: currentMessage, error: fetchError } = await supabase
+        .from('chat_messages')
+        .select('likes')
+        .eq('id', messageId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
       // Increment likes count
       const { data: message, error } = await supabase
         .from('chat_messages')
-        .update({ likes: supabase.sql`likes + 1` })
+        .update({ likes: (currentMessage.likes || 0) + 1 })
         .eq('id', messageId)
         .select()
         .single();

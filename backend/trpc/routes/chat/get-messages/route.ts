@@ -2,18 +2,15 @@ import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
 import { supabase } from "@/lib/supabase";
 
-const getMessagesSchema = z.object({
-  venueId: z.string(),
-  limit: z.number().optional().default(50),
-});
-
 export const getMessagesProcedure = publicProcedure
-  .input(getMessagesSchema)
+  .input(z.object({
+    venueId: z.string(),
+    limit: z.number().optional().default(50),
+  }))
   .query(async ({ input }) => {
     const { venueId, limit } = input;
 
     try {
-      // Get messages with session info for anonymous names
       const { data: messages, error } = await supabase
         .from('chat_messages')
         .select(`
@@ -32,7 +29,7 @@ export const getMessagesProcedure = publicProcedure
         anonymous_name: msg.chat_sessions.anonymous_name,
       })) || [];
 
-      return transformedMessages;
+      return { success: true, messages: transformedMessages };
     } catch (error) {
       throw new Error(`Failed to get messages: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
