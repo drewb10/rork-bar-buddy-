@@ -173,7 +173,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         )}
       </Pressable>
 
-      {/* Chat Button - Twice the size of interaction button, no text */}
+      {/* Chat Button - Removed "Buddy" text, kept only icon */}
       <Pressable 
         style={[
           styles.chatButton, 

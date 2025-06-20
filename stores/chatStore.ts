@@ -65,7 +65,7 @@ const getUserId = async () => {
   return userId;
 };
 
-// Generate anonymous name
+// Generate anonymous name - changed from "Fun Friend" to "Buddy"
 const generateAnonymousName = (userId: string) => {
   const adjectives = ['Cool', 'Happy', 'Chill', 'Fun', 'Wild', 'Smooth', 'Fresh', 'Bold'];
   const adjIndex = userId.length % adjectives.length;

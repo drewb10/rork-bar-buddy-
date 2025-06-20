@@ -6,7 +6,7 @@ const likeMessageSchema = z.object({
   messageId: z.string(),
 });
 
-export const likeMessageProcedure = publicProcedure
+const likeMessageProcedure = publicProcedure
   .input(likeMessageSchema)
   .mutation(async ({ input }) => {
     const { messageId } = input;
