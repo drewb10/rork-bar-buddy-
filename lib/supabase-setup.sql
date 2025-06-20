@@ -71,12 +71,21 @@ CREATE TABLE bingo_card_completions (
 CREATE TABLE IF NOT EXISTS chat_sessions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id TEXT NOT NULL,
-  venue_id TEXT NOT NULL,
-  anonymous_name TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  last_active TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id, venue_id)
+  last_active TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Add venue_id column if it doesn't exist (for existing databases)
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'chat_sessions' 
+    AND column_name = 'venue_id'
+  ) THEN
+    ALTER TABLE chat_sessions ADD COLUMN venue_id TEXT NOT NULL DEFAULT '';
+  END IF;
+END $$;
 
 -- Add anonymous_name column if it doesn't exist (for existing databases)
 DO $$ 
@@ -87,6 +96,18 @@ BEGIN
     AND column_name = 'anonymous_name'
   ) THEN
     ALTER TABLE chat_sessions ADD COLUMN anonymous_name TEXT NOT NULL DEFAULT 'Anonymous Buddy';
+  END IF;
+END $$;
+
+-- Add unique constraint if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints 
+    WHERE table_name = 'chat_sessions' 
+    AND constraint_name = 'chat_sessions_user_id_venue_id_key'
+  ) THEN
+    ALTER TABLE chat_sessions ADD CONSTRAINT chat_sessions_user_id_venue_id_key UNIQUE(user_id, venue_id);
   END IF;
 END $$;
 
