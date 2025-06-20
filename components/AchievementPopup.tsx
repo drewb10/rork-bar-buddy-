@@ -60,6 +60,30 @@ export default function AchievementPopup({ visible, onClose }: AchievementPopupP
     onClose();
   };
 
+  const getCategoryTitle = (category: Achievement['category']) => {
+    switch (category) {
+      case 'bars': return 'Bar Hopping';
+      case 'activities': return 'Activities';
+      case 'social': return 'Social';
+      case 'milestones': return 'Milestones';
+      default: return 'Other';
+    }
+  };
+
+  // Group achievements by category
+  const achievementsByCategory = availableAchievements.reduce((acc, achievement) => {
+    if (!acc[achievement.category]) {
+      acc[achievement.category] = [];
+    }
+    acc[achievement.category].push(achievement);
+    return acc;
+  }, {} as Record<Achievement['category'], Achievement[]>);
+
+  // Sort achievements within each category by order
+  Object.keys(achievementsByCategory).forEach(category => {
+    achievementsByCategory[category as Achievement['category']].sort((a, b) => a.order - b.order);
+  });
+
   return (
     <Modal
       animationType="slide"
@@ -83,48 +107,56 @@ export default function AchievementPopup({ visible, onClose }: AchievementPopupP
             Check off what you accomplished tonight!
           </Text>
 
-          {/* Achievement List */}
+          {/* Achievement List by Category */}
           <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-            {availableAchievements.map((achievement) => (
-              <Pressable
-                key={achievement.id}
-                style={[
-                  styles.achievementItem,
-                  { 
-                    backgroundColor: selectedAchievements.includes(achievement.id) 
-                      ? themeColors.primary + '20' 
-                      : themeColors.background,
-                    borderColor: selectedAchievements.includes(achievement.id)
-                      ? themeColors.primary
-                      : themeColors.border,
-                  }
-                ]}
-                onPress={() => toggleAchievement(achievement.id)}
-              >
-                <View style={styles.achievementContent}>
-                  <Text style={styles.achievementIcon}>{achievement.icon}</Text>
-                  <View style={styles.achievementText}>
-                    <Text style={[
-                      styles.achievementTitle, 
+            {Object.entries(achievementsByCategory).map(([category, categoryAchievements]) => (
+              <View key={category} style={styles.categorySection}>
+                <Text style={[styles.categoryTitle, { color: themeColors.primary }]}>
+                  {getCategoryTitle(category as Achievement['category'])}
+                </Text>
+                
+                {categoryAchievements.map((achievement) => (
+                  <Pressable
+                    key={achievement.id}
+                    style={[
+                      styles.achievementItem,
                       { 
-                        color: selectedAchievements.includes(achievement.id) 
-                          ? themeColors.primary 
-                          : themeColors.text 
+                        backgroundColor: selectedAchievements.includes(achievement.id) 
+                          ? themeColors.primary + '20' 
+                          : themeColors.background,
+                        borderColor: selectedAchievements.includes(achievement.id)
+                          ? themeColors.primary
+                          : themeColors.border,
                       }
-                    ]}>
-                      {achievement.title}
-                    </Text>
-                    <Text style={[styles.achievementDescription, { color: themeColors.subtext }]}>
-                      {achievement.description}
-                    </Text>
-                  </View>
-                  {selectedAchievements.includes(achievement.id) ? (
-                    <CheckCircle size={24} color={themeColors.primary} />
-                  ) : (
-                    <Circle size={24} color={themeColors.subtext} />
-                  )}
-                </View>
-              </Pressable>
+                    ]}
+                    onPress={() => toggleAchievement(achievement.id)}
+                  >
+                    <View style={styles.achievementContent}>
+                      <Text style={styles.achievementIcon}>{achievement.icon}</Text>
+                      <View style={styles.achievementText}>
+                        <Text style={[
+                          styles.achievementTitle, 
+                          { 
+                            color: selectedAchievements.includes(achievement.id) 
+                              ? themeColors.primary 
+                              : themeColors.text 
+                          }
+                        ]}>
+                          {achievement.title}
+                        </Text>
+                        <Text style={[styles.achievementDescription, { color: themeColors.subtext }]}>
+                          {achievement.description}
+                        </Text>
+                      </View>
+                      {selectedAchievements.includes(achievement.id) ? (
+                        <CheckCircle size={24} color={themeColors.primary} />
+                      ) : (
+                        <Circle size={24} color={themeColors.subtext} />
+                      )}
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
             ))}
           </ScrollView>
 
@@ -194,6 +226,14 @@ const styles = StyleSheet.create({
   scrollView: {
     maxHeight: 300,
     marginBottom: 20,
+  },
+  categorySection: {
+    marginBottom: 20,
+  },
+  categoryTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
   },
   achievementItem: {
     borderRadius: 12,

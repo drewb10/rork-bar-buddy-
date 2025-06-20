@@ -173,7 +173,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         )}
       </Pressable>
 
-      {/* Chat Button - Twice the size of interaction button */}
+      {/* Chat Button - Twice the size of interaction button, no text */}
       <Pressable 
         style={[
           styles.chatButton, 
@@ -182,7 +182,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         onPress={handleChatPress}
       >
         <MessageCircle size={24} color="white" />
-        <Text style={styles.chatButtonText}>Buddy</Text>
       </Pressable>
       
       <View style={styles.content}>
@@ -402,12 +401,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
-  },
-  chatButtonText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: '600',
-    marginTop: 2,
   },
   interactionCount: {
     position: 'absolute',

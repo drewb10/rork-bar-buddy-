@@ -88,13 +88,11 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
 
   const generateAnonymousName = (userId: string) => {
     const adjectives = ['Cool', 'Happy', 'Chill', 'Fun', 'Wild', 'Smooth', 'Fresh', 'Bold'];
-    const nouns = ['Buddy', 'Friend', 'Pal', 'Mate', 'Dude', 'Guy', 'Person', 'User'];
     
     // Use userId to generate consistent but anonymous name
     const adjIndex = userId.length % adjectives.length;
-    const nounIndex = (userId.charCodeAt(0) || 0) % nouns.length;
     
-    return `${adjectives[adjIndex]} ${nouns[nounIndex]}`;
+    return `${adjectives[adjIndex]} Buddy`;
   };
 
   return (
@@ -218,22 +216,33 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               <ScrollView style={styles.termsScroll}>
                 <Text style={[styles.termsText, { color: themeColors.text }]}>
                   Welcome to BarBuddy's anonymous chat! To keep our community safe and fun:
-                  {'\n\n'}
+                  {'
+
+'}
                   • Be respectful and kind to others
-                  {'\n'}
+                  {'
+'}
                   • No inappropriate language or content
-                  {'\n'}
+                  {'
+'}
                   • No sharing of personal information
-                  {'\n'}
+                  {'
+'}
                   • No harassment or bullying
-                  {'\n'}
+                  {'
+'}
                   • No spam or promotional content
-                  {'\n'}
+                  {'
+'}
                   • Keep conversations venue-related and fun
-                  {'\n\n'}
+                  {'
+
+'}
                   Messages are automatically filtered for inappropriate content. 
                   Violations may result in temporary chat restrictions.
-                  {'\n\n'}
+                  {'
+
+'}
                   Have fun and stay safe! 🍻
                 </Text>
               </ScrollView>
