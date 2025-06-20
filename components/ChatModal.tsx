@@ -83,10 +83,20 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!inputText.trim() || isSending) return;
+    if (!inputText || !inputText.trim() || isSending) return;
+
+    const trimmedContent = inputText.trim();
+    if (trimmedContent.length === 0) {
+      Alert.alert(
+        'Empty Message',
+        'Please enter a message before sending.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
 
     // Check for inappropriate content
-    if (containsInappropriateContent(inputText)) {
+    if (containsInappropriateContent(trimmedContent)) {
       Alert.alert(
         'Message Blocked',
         'Your message contains inappropriate content. Please keep the chat friendly and respectful.',
@@ -100,7 +110,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
     }
 
     setIsSending(true);
-    const messageToSend = inputText.trim();
+    const messageToSend = trimmedContent;
     setInputText(''); // Clear input immediately for better UX
 
     try {
@@ -267,12 +277,12 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
             style={[
               styles.sendButton,
               {
-                backgroundColor: (inputText.trim() && !isSending) ? themeColors.primary : themeColors.border,
-                opacity: (inputText.trim() && !isSending) ? 1 : 0.5,
+                backgroundColor: (inputText && inputText.trim() && !isSending) ? themeColors.primary : themeColors.border,
+                opacity: (inputText && inputText.trim() && !isSending) ? 1 : 0.5,
               }
             ]}
             onPress={handleSendMessage}
-            disabled={!inputText.trim() || isSending}
+            disabled={!inputText || !inputText.trim() || isSending}
           >
             {isSending ? (
               <ActivityIndicator size="small" color="white" />
@@ -296,7 +306,15 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               </Text>
               <ScrollView style={styles.termsScroll}>
                 <Text style={[styles.termsText, { color: themeColors.text }]}>
-                  {"Welcome to BarBuddy anonymous chat! To keep our community safe and fun:\n\n• Be respectful and kind to others\n• No inappropriate language or content\n• No sharing of personal information\n• No harassment or bullying\n• No spam or promotional content\n• Keep conversations venue-related and fun\n\nMessages are automatically filtered for inappropriate content. Violations may result in temporary chat restrictions.\n\nHave fun and stay safe! 🍻"}
+                  Welcome to BarBuddy anonymous chat! To keep our community safe and fun:{'\n\n'}
+                  • Be respectful and kind to others{'\n'}
+                  • No inappropriate language or content{'\n'}
+                  • No sharing of personal information{'\n'}
+                  • No harassment or bullying{'\n'}
+                  • No spam or promotional content{'\n'}
+                  • Keep conversations venue-related and fun{'\n\n'}
+                  Messages are automatically filtered for inappropriate content. Violations may result in temporary chat restrictions.{'\n\n'}
+                  Have fun and stay safe! 🍻
                 </Text>
               </ScrollView>
               <Pressable

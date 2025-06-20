@@ -19,8 +19,21 @@ export const sendMessageProcedure = publicProcedure
 
     try {
       // Validate inputs
-      if (!sessionId || !venueId || !content.trim()) {
-        throw new Error('Missing required fields: sessionId, venueId, and content are required');
+      if (!sessionId || sessionId.trim() === '') {
+        throw new Error('Session ID is required and cannot be empty');
+      }
+      
+      if (!venueId || venueId.trim() === '') {
+        throw new Error('Venue ID is required and cannot be empty');
+      }
+      
+      if (!content || content.trim() === '') {
+        throw new Error('Message content is required and cannot be empty');
+      }
+
+      const trimmedContent = content.trim();
+      if (trimmedContent.length === 0) {
+        throw new Error('Message content cannot be empty after trimming');
       }
 
       // Verify session exists and belongs to the venue
@@ -38,14 +51,21 @@ export const sendMessageProcedure = publicProcedure
       // Type assertion to ensure proper typing
       const typedSession = session as ChatSession;
 
-      // Insert the message using the content field
+      // Insert the message using the content field - ensure content is not null
       const { data: newMessage, error: insertError } = await supabase
         .from('chat_messages')
         .insert({
           session_id: sessionId,
-          content: content.trim(),
+          content: trimmedContent,
         })
-        .select()
+        .select(`
+          id,
+          session_id,
+          content,
+          timestamp,
+          is_flagged,
+          created_at
+        `)
         .single();
 
       if (insertError) {

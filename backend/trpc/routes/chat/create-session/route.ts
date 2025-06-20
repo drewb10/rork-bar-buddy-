@@ -13,8 +13,16 @@ export const createSessionProcedure = publicProcedure
 
     try {
       // Validate inputs
-      if (!userId || !venueId || !anonymousName) {
-        throw new Error('Missing required fields: userId, venueId, and anonymousName are required');
+      if (!userId || userId.trim() === '') {
+        throw new Error('User ID is required and cannot be empty');
+      }
+      
+      if (!venueId || venueId.trim() === '') {
+        throw new Error('Venue ID is required and cannot be empty');
+      }
+      
+      if (!anonymousName || anonymousName.trim() === '') {
+        throw new Error('Anonymous name is required and cannot be empty');
       }
 
       // Check if session already exists for this user and venue
@@ -51,9 +59,9 @@ export const createSessionProcedure = publicProcedure
       const { data: newSession, error: createError } = await supabase
         .from('chat_sessions')
         .insert({
-          user_id: userId,
-          venue_id: venueId,
-          anonymous_name: anonymousName,
+          user_id: userId.trim(),
+          venue_id: venueId.trim(),
+          anonymous_name: anonymousName.trim(),
         })
         .select()
         .single();

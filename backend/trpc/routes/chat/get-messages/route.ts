@@ -26,16 +26,21 @@ export const getMessagesProcedure = publicProcedure
 
     try {
       // Validate venue ID
-      if (!venueId) {
-        throw new Error('Venue ID is required');
+      if (!venueId || venueId.trim() === '') {
+        throw new Error('Venue ID is required and cannot be empty');
       }
 
       // Get messages with session info for anonymous names, filtered by venue through join
-      // Using single object syntax for chat_sessions
+      // Using explicit field selection to ensure we get content field
       const { data: messagesWithSessions, error } = await supabase
         .from('chat_messages')
         .select(`
-          *,
+          id,
+          session_id,
+          content,
+          timestamp,
+          is_flagged,
+          created_at,
           chat_sessions:session_id(
             anonymous_name,
             venue_id

@@ -112,8 +112,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      if (!venueId) {
-        throw new Error('Venue ID is required');
+      if (!venueId || venueId.trim() === '') {
+        throw new Error('Venue ID is required and cannot be empty');
       }
 
       const userId = await getUserId();
@@ -179,15 +179,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      if (!venueId) {
-        throw new Error('Venue ID is required');
+      if (!venueId || venueId.trim() === '') {
+        throw new Error('Venue ID is required and cannot be empty');
       }
 
       // Get messages with session info for anonymous names, filtered by venue through join
       const { data: messagesData, error } = await supabase
         .from('chat_messages')
         .select(`
-          *,
+          id,
+          session_id,
+          content,
+          timestamp,
+          is_flagged,
+          created_at,
           chat_sessions:session_id(
             anonymous_name,
             venue_id
@@ -220,25 +225,37 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      if (!venueId) {
-        throw new Error('Venue ID is required');
+      if (!venueId || venueId.trim() === '') {
+        throw new Error('Venue ID is required and cannot be empty');
       }
 
-      if (!content.trim()) {
-        throw new Error('Message content is required');
+      if (!content || content.trim() === '') {
+        throw new Error('Message content is required and cannot be empty');
+      }
+
+      const trimmedContent = content.trim();
+      if (trimmedContent.length === 0) {
+        throw new Error('Message content cannot be empty after trimming');
       }
 
       // Ensure we have a session
       const session = get().currentSession || await get().createOrGetSession(venueId);
 
-      // Insert message with content field
+      // Insert message with content field - ensure content is not null or empty
       const { data: newMessage, error } = await supabase
         .from('chat_messages')
         .insert({
           session_id: session.id,
-          content: content.trim(),
+          content: trimmedContent,
         })
-        .select()
+        .select(`
+          id,
+          session_id,
+          content,
+          timestamp,
+          is_flagged,
+          created_at
+        `)
         .single();
 
       if (error) {
@@ -268,8 +285,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   subscribeToMessages: (venueId: string): void => {
     try {
-      if (!venueId) {
-        console.error('Cannot subscribe: Venue ID is required');
+      if (!venueId || venueId.trim() === '') {
+        console.error('Cannot subscribe: Venue ID is required and cannot be empty');
         return;
       }
 
