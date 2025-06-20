@@ -215,35 +215,18 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               </Text>
               <ScrollView style={styles.termsScroll}>
                 <Text style={[styles.termsText, { color: themeColors.text }]}>
-                  Welcome to BarBuddy's anonymous chat! To keep our community safe and fun:
-                  {'
+                  {`Welcome to BarBuddy's anonymous chat! To keep our community safe and fun:
 
-'}
-                  • Be respectful and kind to others
-                  {'
-'}
-                  • No inappropriate language or content
-                  {'
-'}
-                  • No sharing of personal information
-                  {'
-'}
-                  • No harassment or bullying
-                  {'
-'}
-                  • No spam or promotional content
-                  {'
-'}
-                  • Keep conversations venue-related and fun
-                  {'
+• Be respectful and kind to others
+• No inappropriate language or content
+• No sharing of personal information
+• No harassment or bullying
+• No spam or promotional content
+• Keep conversations venue-related and fun
 
-'}
-                  Messages are automatically filtered for inappropriate content. 
-                  Violations may result in temporary chat restrictions.
-                  {'
+Messages are automatically filtered for inappropriate content. Violations may result in temporary chat restrictions.
 
-'}
-                  Have fun and stay safe! 🍻
+Have fun and stay safe! 🍻`}
                 </Text>
               </ScrollView>
               <Pressable
