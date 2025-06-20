@@ -2,7 +2,8 @@ import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
 import { supabase } from "@/lib/supabase";
 
-interface MessageWithSession {
+// Type for message with joined session data (as returned by Supabase)
+interface MessageWithJoinedSession {
   id: string;
   session_id: string;
   content: string;
@@ -49,15 +50,11 @@ export const getMessagesProcedure = publicProcedure
       }
 
       // Transform messages to include anonymous_name and venue_id
-      // Handle the joined data structure - chat_sessions comes as a single object
-      const transformedMessages = (messagesWithSessions as MessageWithSession[])?.map(msg => {
-        const sessionData = msg.chat_sessions; // Single object, not array
-        return {
-          ...msg,
-          anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
-          venue_id: sessionData?.venue_id || venueId,
-        };
-      }) || [];
+      const transformedMessages = (messagesWithSessions as MessageWithJoinedSession[])?.map(msg => ({
+        ...msg,
+        anonymous_name: msg.chat_sessions.anonymous_name || 'Anonymous Buddy',
+        venue_id: msg.chat_sessions.venue_id || venueId,
+      })) || [];
 
       return { 
         success: true, 

@@ -23,7 +23,8 @@ export interface ChatSession {
   last_active: string;
 }
 
-interface MessageWithSession {
+// Type for message with joined session data (as returned by Supabase)
+interface MessageWithJoinedSession {
   id: string;
   session_id: string;
   content: string;
@@ -37,7 +38,8 @@ interface MessageWithSession {
   };
 }
 
-interface MessageForLike {
+// Type for message with session data for likes (as returned by Supabase)
+interface MessageForLikeWithJoinedSession {
   id: string;
   likes: number;
   chat_sessions: {
@@ -212,15 +214,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       // Transform messages to include anonymous_name and venue_id
-      // Handle the joined data structure - chat_sessions comes as a single object
-      const transformedMessages = (messagesData as unknown as MessageWithSession[])?.map(msg => {
-        const sessionData = msg.chat_sessions; // Single object, not array
-        return {
-          ...msg,
-          anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
-          venue_id: sessionData?.venue_id || venueId,
-        };
-      }) || [];
+      const transformedMessages = (messagesData as MessageWithJoinedSession[])?.map(msg => ({
+        ...msg,
+        anonymous_name: msg.chat_sessions.anonymous_name || 'Anonymous Buddy',
+        venue_id: msg.chat_sessions.venue_id || venueId,
+      })) || [];
 
       set({ messages: transformedMessages, isLoading: false });
     } catch (error) {
@@ -303,15 +301,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw new Error('Message not found');
       }
 
-      // Handle the joined data structure - chat_sessions comes as a single object
-      const messageForLike = messageData as unknown as MessageForLike;
-      const sessionData = messageForLike.chat_sessions; // Single object, not array
-      
-      if (!sessionData) {
-        throw new Error('Session data not found');
-      }
-
-      const sessionVenueId = sessionData.venue_id;
+      const messageForLike = messageData as MessageForLikeWithJoinedSession;
+      const sessionVenueId = messageForLike.chat_sessions.venue_id;
 
       // Verify venue access if venueId is provided
       if (venueId && sessionVenueId !== venueId) {

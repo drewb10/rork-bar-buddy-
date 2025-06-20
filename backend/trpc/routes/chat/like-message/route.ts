@@ -2,7 +2,8 @@ import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
 import { supabase } from "@/lib/supabase";
 
-interface MessageWithSession {
+// Type for message with joined session data (as returned by Supabase)
+interface MessageWithJoinedSession {
   id: string;
   likes: number;
   session_id: string;
@@ -45,15 +46,8 @@ export const likeMessageProcedure = publicProcedure
         throw new Error('Message not found or access denied');
       }
 
-      // Handle the joined data structure - chat_sessions comes as a single object
-      const messageWithSession = messageData as unknown as MessageWithSession;
-      const sessionData = messageWithSession.chat_sessions; // Single object, not array
-      
-      if (!sessionData) {
-        throw new Error('Session data not found');
-      }
-
-      const sessionVenueId = sessionData.venue_id;
+      const messageWithSession = messageData as MessageWithJoinedSession;
+      const sessionVenueId = messageWithSession.chat_sessions.venue_id;
 
       // Verify venue access if venueId is provided
       if (venueId && sessionVenueId !== venueId) {

@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
   UNIQUE(user_id, venue_id)
 );
 
--- Create chat_messages table with timestamp column
+-- Create chat_messages table with content column and timestamp column
 CREATE TABLE IF NOT EXISTS chat_messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   session_id UUID NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
