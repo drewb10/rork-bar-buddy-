@@ -1,6 +1,6 @@
 import React from "react";
 import { Tabs } from "expo-router";
-import { Home, BarChart3, Grid3X3, Users } from "lucide-react-native";
+import { Home, TrendingUp, User } from "lucide-react-native";
 import { Platform } from "react-native";
 
 export default function TabLayout() {
@@ -41,20 +41,20 @@ export default function TabLayout() {
       <Tabs.Screen
         name="bingo"
         options={{
-          title: "Bingo",
+          title: "Tracking",
           headerShown: false,
           tabBarIcon: ({ color }) => (
-            <Grid3X3 size={22} color={color} />
+            <TrendingUp size={22} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Tracking",
+          title: "Profile",
           headerShown: false,
           tabBarIcon: ({ color }) => (
-            <BarChart3 size={22} color={color} />
+            <User size={22} color={color} />
           ),
         }}
       />
