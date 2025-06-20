@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, Pressable, Image, Dimensions, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MapPin, Clock, Star, Flame } from 'lucide-react-native';
+import { MapPin, Clock, Star, Flame, MessageCircle } from 'lucide-react-native';
 import { Venue } from '@/types/venue';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
@@ -10,6 +10,7 @@ import { useUserProfileStore } from '@/stores/userProfileStore';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import ChatModal from '@/components/ChatModal';
 
 interface VenueCardProps {
   venue: Venue;
@@ -25,6 +26,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const interactionCount = getInteractionCount(venue.id);
   const popularTime = getPopularArrivalTime(venue.id);
   const [rsvpModalVisible, setRsvpModalVisible] = useState(false);
+  const [chatModalVisible, setChatModalVisible] = useState(false);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const canInteractWithVenue = canInteract(venue.id);
 
@@ -41,6 +43,13 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     
     // Show RSVP modal
     setRsvpModalVisible(true);
+  };
+
+  const handleChatPress = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setChatModalVisible(true);
   };
 
   const handleRsvpSubmit = () => {
@@ -162,6 +171,18 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         {interactionCount > 0 && (
           <Text style={styles.interactionCount}>{interactionCount}</Text>
         )}
+      </Pressable>
+
+      {/* Chat Button - Twice the size of interaction button */}
+      <Pressable 
+        style={[
+          styles.chatButton, 
+          { backgroundColor: themeColors.primary }
+        ]}
+        onPress={handleChatPress}
+      >
+        <MessageCircle size={24} color="white" />
+        <Text style={styles.chatButtonText}>Buddy</Text>
       </Pressable>
       
       <View style={styles.content}>
@@ -301,6 +322,13 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           </View>
         </View>
       </Modal>
+
+      {/* Chat Modal */}
+      <ChatModal
+        visible={chatModalVisible}
+        onClose={() => setChatModalVisible(false)}
+        venue={venue}
+      />
     </Pressable>
   );
 }
@@ -360,6 +388,27 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
+  chatButton: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  chatButtonText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
+  },
   interactionCount: {
     position: 'absolute',
     top: -5,
@@ -376,6 +425,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+    paddingBottom: 90, // Extra padding to account for chat button
   },
   header: {
     flexDirection: 'row',

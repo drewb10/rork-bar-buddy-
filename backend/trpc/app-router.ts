@@ -12,6 +12,8 @@ import declineFriendRequestRoute from "./routes/user/decline-friend-request/rout
 import getFriendRequestsRoute from "./routes/user/get-friend-requests/route";
 import completeTaskRoute from "./routes/bingo/complete-task/route";
 import completeBingoRoute from "./routes/bingo/complete-bingo/route";
+import sendMessageRoute from "./routes/chat/send-message/route";
+import getMessagesRoute from "./routes/chat/get-messages/route";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -34,6 +36,10 @@ export const appRouter = createTRPCRouter({
   bingo: createTRPCRouter({
     completeTask: completeTaskRoute,
     completeBingo: completeBingoRoute,
+  }),
+  chat: createTRPCRouter({
+    sendMessage: sendMessageRoute,
+    getMessages: getMessagesRoute,
   }),
 });
 

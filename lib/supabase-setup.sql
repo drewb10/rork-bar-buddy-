@@ -67,6 +67,17 @@ CREATE TABLE bingo_card_completions (
   session_id TEXT
 );
 
+-- Create chat_messages table
+CREATE TABLE chat_messages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  venue_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  content TEXT NOT NULL,
+  timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  is_flagged BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create indexes for better performance
 CREATE INDEX idx_user_profiles_user_id ON user_profiles(user_id);
 CREATE INDEX idx_friends_user_id ON friends(user_id);
@@ -78,6 +89,8 @@ CREATE INDEX idx_bingo_completions_user_id ON bingo_completions(user_id);
 CREATE INDEX idx_venue_interactions_user_id ON venue_interactions(user_id);
 CREATE INDEX idx_venue_interactions_venue_id ON venue_interactions(venue_id);
 CREATE INDEX idx_bingo_card_completions_user_id ON bingo_card_completions(user_id);
+CREATE INDEX idx_chat_messages_venue_id ON chat_messages(venue_id);
+CREATE INDEX idx_chat_messages_timestamp ON chat_messages(timestamp);
 
 -- Enable Row Level Security
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
@@ -86,6 +99,7 @@ ALTER TABLE friend_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bingo_completions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE venue_interactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bingo_card_completions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for user_profiles
 CREATE POLICY "Users can view all profiles" ON user_profiles FOR SELECT USING (true);
@@ -114,6 +128,10 @@ CREATE POLICY "Users can insert venue interactions" ON venue_interactions FOR IN
 CREATE POLICY "Users can view all bingo card completions" ON bingo_card_completions FOR SELECT USING (true);
 CREATE POLICY "Users can insert bingo card completions" ON bingo_card_completions FOR INSERT WITH CHECK (true);
 
+-- Create policies for chat_messages
+CREATE POLICY "Users can view all chat messages" ON chat_messages FOR SELECT USING (true);
+CREATE POLICY "Users can insert chat messages" ON chat_messages FOR INSERT WITH CHECK (true);
+
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -138,3 +156,15 @@ END;
 $$ language 'plpgsql';
 
 CREATE TRIGGER update_friend_requests_responded_at BEFORE UPDATE ON friend_requests FOR EACH ROW EXECUTE FUNCTION update_friend_request_responded_at();
+
+-- Create function to automatically clean up old chat messages (older than 24 hours)
+CREATE OR REPLACE FUNCTION cleanup_old_chat_messages()
+RETURNS void AS $$
+BEGIN
+    DELETE FROM chat_messages 
+    WHERE timestamp < NOW() - INTERVAL '24 hours';
+END;
+$$ language 'plpgsql';
+
+-- Create a scheduled job to run cleanup (this would need to be set up in your hosting environment)
+-- For example, you could run this as a cron job or use Supabase Edge Functions
