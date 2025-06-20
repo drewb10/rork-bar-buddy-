@@ -214,11 +214,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       // Transform messages to include anonymous_name and venue_id
-      const transformedMessages = (messagesData as MessageWithJoinedSession[])?.map(msg => ({
-        ...msg,
-        anonymous_name: msg.chat_sessions.anonymous_name || 'Anonymous Buddy',
-        venue_id: msg.chat_sessions.venue_id || venueId,
-      })) || [];
+      const transformedMessages = (messagesData as MessageWithJoinedSession[])?.map(msg => {
+        // Handle the case where chat_sessions might be an array
+        const sessionData = Array.isArray(msg.chat_sessions) ? msg.chat_sessions[0] : msg.chat_sessions;
+        return {
+          ...msg,
+          anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
+          venue_id: sessionData?.venue_id || venueId,
+        };
+      }) || [];
 
       set({ messages: transformedMessages, isLoading: false });
     } catch (error) {
@@ -301,8 +305,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw new Error('Message not found');
       }
 
-      const messageForLike = messageData as MessageForLikeWithJoinedSession;
-      const sessionVenueId = messageForLike.chat_sessions.venue_id;
+      // Handle the case where chat_sessions might be an array
+      const messageForLike = messageData as any;
+      const sessionData = Array.isArray(messageForLike.chat_sessions) 
+        ? messageForLike.chat_sessions[0] 
+        : messageForLike.chat_sessions;
+      
+      if (!sessionData) {
+        throw new Error('Session data not found');
+      }
+
+      const sessionVenueId = sessionData.venue_id;
 
       // Verify venue access if venueId is provided
       if (venueId && sessionVenueId !== venueId) {
