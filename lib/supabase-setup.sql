@@ -68,7 +68,7 @@ CREATE TABLE bingo_card_completions (
 );
 
 -- Create chat_sessions table
-CREATE TABLE chat_sessions (
+CREATE TABLE IF NOT EXISTS chat_sessions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id TEXT NOT NULL,
   venue_id TEXT NOT NULL,
@@ -79,7 +79,7 @@ CREATE TABLE chat_sessions (
 );
 
 -- Create chat_messages table
-CREATE TABLE chat_messages (
+CREATE TABLE IF NOT EXISTS chat_messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   session_id UUID NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
   venue_id TEXT NOT NULL,
@@ -91,21 +91,21 @@ CREATE TABLE chat_messages (
 );
 
 -- Create indexes for better performance
-CREATE INDEX idx_user_profiles_user_id ON user_profiles(user_id);
-CREATE INDEX idx_friends_user_id ON friends(user_id);
-CREATE INDEX idx_friends_friend_user_id ON friends(friend_user_id);
-CREATE INDEX idx_friend_requests_from_user_id ON friend_requests(from_user_id);
-CREATE INDEX idx_friend_requests_to_user_id ON friend_requests(to_user_id);
-CREATE INDEX idx_friend_requests_status ON friend_requests(status);
-CREATE INDEX idx_bingo_completions_user_id ON bingo_completions(user_id);
-CREATE INDEX idx_venue_interactions_user_id ON venue_interactions(user_id);
-CREATE INDEX idx_venue_interactions_venue_id ON venue_interactions(venue_id);
-CREATE INDEX idx_bingo_card_completions_user_id ON bingo_card_completions(user_id);
-CREATE INDEX idx_chat_sessions_user_id ON chat_sessions(user_id);
-CREATE INDEX idx_chat_sessions_venue_id ON chat_sessions(venue_id);
-CREATE INDEX idx_chat_messages_session_id ON chat_messages(session_id);
-CREATE INDEX idx_chat_messages_venue_id ON chat_messages(venue_id);
-CREATE INDEX idx_chat_messages_timestamp ON chat_messages(timestamp);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_friends_user_id ON friends(user_id);
+CREATE INDEX IF NOT EXISTS idx_friends_friend_user_id ON friends(friend_user_id);
+CREATE INDEX IF NOT EXISTS idx_friend_requests_from_user_id ON friend_requests(from_user_id);
+CREATE INDEX IF NOT EXISTS idx_friend_requests_to_user_id ON friend_requests(to_user_id);
+CREATE INDEX IF NOT EXISTS idx_friend_requests_status ON friend_requests(status);
+CREATE INDEX IF NOT EXISTS idx_bingo_completions_user_id ON bingo_completions(user_id);
+CREATE INDEX IF NOT EXISTS idx_venue_interactions_user_id ON venue_interactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_venue_interactions_venue_id ON venue_interactions(venue_id);
+CREATE INDEX IF NOT EXISTS idx_bingo_card_completions_user_id ON bingo_card_completions(user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_id ON chat_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_venue_id ON chat_sessions(venue_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_session_id ON chat_messages(session_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_venue_id ON chat_messages(venue_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_timestamp ON chat_messages(timestamp);
 
 -- Enable Row Level Security
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
@@ -201,5 +201,6 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Enable realtime for chat_messages
+-- Enable realtime for chat_messages and chat_sessions
 ALTER PUBLICATION supabase_realtime ADD TABLE chat_messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE chat_sessions;
