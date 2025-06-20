@@ -2,6 +2,20 @@ import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
 import { supabase } from "@/lib/supabase";
 
+interface MessageWithSession {
+  id: string;
+  session_id: string;
+  content: string;
+  likes: number;
+  timestamp: string;
+  is_flagged: boolean;
+  created_at: string;
+  chat_sessions: {
+    anonymous_name: string;
+    venue_id: string;
+  };
+}
+
 export const getMessagesProcedure = publicProcedure
   .input(z.object({
     venueId: z.string().min(1, "Venue ID is required"),
@@ -35,29 +49,11 @@ export const getMessagesProcedure = publicProcedure
       }
 
       // Transform messages to include anonymous_name and venue_id
-      const transformedMessages = messagesWithSessions?.map(msg => {
-        // Handle session data - can be array or object
-        const sessionData = msg.chat_sessions;
-        let anonymousName: string;
-        let sessionVenueId: string;
-        
-        if (Array.isArray(sessionData)) {
-          if (sessionData.length === 0) {
-            anonymousName = 'Anonymous Buddy';
-            sessionVenueId = venueId;
-          } else {
-            anonymousName = sessionData[0].anonymous_name || 'Anonymous Buddy';
-            sessionVenueId = sessionData[0].venue_id || venueId;
-          }
-        } else {
-          anonymousName = sessionData.anonymous_name || 'Anonymous Buddy';
-          sessionVenueId = sessionData.venue_id || venueId;
-        }
-        
+      const transformedMessages = (messagesWithSessions as MessageWithSession[])?.map(msg => {
         return {
           ...msg,
-          anonymous_name: anonymousName,
-          venue_id: sessionVenueId,
+          anonymous_name: msg.chat_sessions.anonymous_name || 'Anonymous Buddy',
+          venue_id: msg.chat_sessions.venue_id,
         };
       }) || [];
 

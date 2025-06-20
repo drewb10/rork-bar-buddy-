@@ -2,6 +2,16 @@ import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
 import { supabase } from "@/lib/supabase";
 
+interface MessageWithSession {
+  id: string;
+  likes: number;
+  session_id: string;
+  chat_sessions: {
+    id: string;
+    venue_id: string;
+  };
+}
+
 export const likeMessageProcedure = publicProcedure
   .input(z.object({
     messageId: z.string().min(1, "Message ID is required"),
@@ -35,18 +45,9 @@ export const likeMessageProcedure = publicProcedure
         throw new Error('Message not found or access denied');
       }
 
-      // Extract session data - handle both array and object cases
-      const sessionData = messageWithSession.chat_sessions;
-      let sessionVenueId: string;
-      
-      if (Array.isArray(sessionData)) {
-        if (sessionData.length === 0) {
-          throw new Error('No session data found');
-        }
-        sessionVenueId = sessionData[0].venue_id;
-      } else {
-        sessionVenueId = sessionData.venue_id;
-      }
+      // Type the response properly
+      const typedMessage = messageWithSession as MessageWithSession;
+      const sessionVenueId = typedMessage.chat_sessions.venue_id;
 
       // Verify venue access if venueId is provided
       if (venueId && sessionVenueId !== venueId) {
@@ -56,7 +57,7 @@ export const likeMessageProcedure = publicProcedure
       // Increment likes count
       const { data: updatedMessage, error: updateError } = await supabase
         .from('chat_messages')
-        .update({ likes: (messageWithSession.likes || 0) + 1 })
+        .update({ likes: (typedMessage.likes || 0) + 1 })
         .eq('id', messageId)
         .select('id, likes')
         .single();

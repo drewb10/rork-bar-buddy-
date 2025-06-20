@@ -2,6 +2,12 @@ import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
 import { supabase } from "@/lib/supabase";
 
+interface ChatSession {
+  id: string;
+  venue_id: string;
+  anonymous_name: string;
+}
+
 export const sendMessageProcedure = publicProcedure
   .input(z.object({
     sessionId: z.string().min(1, "Session ID is required"),
@@ -29,6 +35,9 @@ export const sendMessageProcedure = publicProcedure
         throw new Error('Invalid session or session does not belong to this venue');
       }
 
+      // Type the session properly
+      const typedSession = session as ChatSession;
+
       // Insert the message
       const { data: newMessage, error: insertError } = await supabase
         .from('chat_messages')
@@ -46,8 +55,8 @@ export const sendMessageProcedure = publicProcedure
       // Return message with anonymous name and venue_id from session
       const messageWithDetails = {
         ...newMessage,
-        anonymous_name: session.anonymous_name,
-        venue_id: session.venue_id,
+        anonymous_name: typedSession.anonymous_name,
+        venue_id: typedSession.venue_id,
       };
 
       return { success: true, message: messageWithDetails };
