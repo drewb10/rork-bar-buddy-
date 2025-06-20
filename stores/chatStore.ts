@@ -34,7 +34,7 @@ interface MessageWithSession {
   chat_sessions: {
     anonymous_name: string;
     venue_id: string;
-  }[];
+  };
 }
 
 interface MessageForLike {
@@ -42,7 +42,7 @@ interface MessageForLike {
   likes: number;
   chat_sessions: {
     venue_id: string;
-  }[];
+  };
 }
 
 interface ChatState {
@@ -212,9 +212,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       // Transform messages to include anonymous_name and venue_id
-      // Handle the joined data structure - chat_sessions comes as an array
+      // Handle the joined data structure - chat_sessions comes as a single object
       const transformedMessages = (messagesData as unknown as MessageWithSession[])?.map(msg => {
-        const sessionData = msg.chat_sessions[0]; // Get first (and only) session
+        const sessionData = msg.chat_sessions; // Single object, not array
         return {
           ...msg,
           anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
@@ -245,7 +245,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // Ensure we have a session
       const session = get().currentSession || await get().createOrGetSession(venueId);
 
-      // Insert message
+      // Insert message with content field
       const { data: newMessage, error } = await supabase
         .from('chat_messages')
         .insert({
@@ -303,9 +303,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw new Error('Message not found');
       }
 
-      // Handle the joined data structure - chat_sessions comes as an array
+      // Handle the joined data structure - chat_sessions comes as a single object
       const messageForLike = messageData as unknown as MessageForLike;
-      const sessionData = messageForLike.chat_sessions[0]; // Get first (and only) session
+      const sessionData = messageForLike.chat_sessions; // Single object, not array
       
       if (!sessionData) {
         throw new Error('Session data not found');

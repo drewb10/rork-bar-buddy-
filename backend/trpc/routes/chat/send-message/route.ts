@@ -38,7 +38,7 @@ export const sendMessageProcedure = publicProcedure
       // Type assertion to ensure proper typing
       const typedSession = session as ChatSession;
 
-      // Insert the message
+      // Insert the message using the content field
       const { data: newMessage, error: insertError } = await supabase
         .from('chat_messages')
         .insert({
