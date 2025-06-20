@@ -4,32 +4,47 @@ import { supabase } from "@/lib/supabase";
 
 export const createSessionProcedure = publicProcedure
   .input(z.object({
-    userId: z.string(),
-    venueId: z.string(),
-    anonymousName: z.string(),
+    userId: z.string().min(1, "User ID is required"),
+    venueId: z.string().min(1, "Venue ID is required"),
+    anonymousName: z.string().min(1, "Anonymous name is required"),
   }))
   .mutation(async ({ input }) => {
     const { userId, venueId, anonymousName } = input;
 
     try {
-      // Check if session already exists
+      // Validate inputs
+      if (!userId || !venueId || !anonymousName) {
+        throw new Error('Missing required fields: userId, venueId, and anonymousName are required');
+      }
+
+      // Check if session already exists for this user and venue
       const { data: existingSession, error: fetchError } = await supabase
         .from('chat_sessions')
         .select('*')
         .eq('user_id', userId)
         .eq('venue_id', venueId)
-        .single();
+        .maybeSingle();
 
-      if (existingSession && !fetchError) {
-        // Update last_active
-        const { data: updatedSession } = await supabase
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw new Error(`Failed to check existing session: ${fetchError.message}`);
+      }
+
+      if (existingSession) {
+        // Update last_active timestamp
+        const { data: updatedSession, error: updateError } = await supabase
           .from('chat_sessions')
           .update({ last_active: new Date().toISOString() })
           .eq('id', existingSession.id)
           .select()
           .single();
         
-        return { success: true, session: updatedSession || existingSession };
+        if (updateError) {
+          console.warn('Failed to update session timestamp:', updateError);
+          // Return existing session even if timestamp update fails
+          return { success: true, session: existingSession };
+        }
+        
+        return { success: true, session: updatedSession };
       }
 
       // Create new session
@@ -43,10 +58,13 @@ export const createSessionProcedure = publicProcedure
         .select()
         .single();
 
-      if (createError) throw createError;
+      if (createError) {
+        throw new Error(`Failed to create session: ${createError.message}`);
+      }
 
       return { success: true, session: newSession };
     } catch (error) {
+      console.error('Create session error:', error);
       throw new Error(`Failed to create session: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });

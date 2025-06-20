@@ -4,15 +4,33 @@ import { supabase } from "@/lib/supabase";
 
 export const sendMessageProcedure = publicProcedure
   .input(z.object({
-    sessionId: z.string(),
-    venueId: z.string(),
-    content: z.string(),
+    sessionId: z.string().min(1, "Session ID is required"),
+    venueId: z.string().min(1, "Venue ID is required"),
+    content: z.string().min(1, "Message content is required").max(500, "Message too long"),
   }))
   .mutation(async ({ input }) => {
     const { sessionId, venueId, content } = input;
 
     try {
-      const { data: newMessage, error } = await supabase
+      // Validate inputs
+      if (!sessionId || !venueId || !content.trim()) {
+        throw new Error('Missing required fields: sessionId, venueId, and content are required');
+      }
+
+      // Verify session exists and belongs to the venue
+      const { data: session, error: sessionError } = await supabase
+        .from('chat_sessions')
+        .select('id, venue_id, anonymous_name')
+        .eq('id', sessionId)
+        .eq('venue_id', venueId)
+        .single();
+
+      if (sessionError || !session) {
+        throw new Error('Invalid session or session does not belong to this venue');
+      }
+
+      // Insert the message
+      const { data: newMessage, error: insertError } = await supabase
         .from('chat_messages')
         .insert({
           session_id: sessionId,
@@ -22,10 +40,19 @@ export const sendMessageProcedure = publicProcedure
         .select()
         .single();
 
-      if (error) throw error;
+      if (insertError) {
+        throw new Error(`Failed to insert message: ${insertError.message}`);
+      }
 
-      return { success: true, message: newMessage };
+      // Return message with anonymous name
+      const messageWithName = {
+        ...newMessage,
+        anonymous_name: session.anonymous_name,
+      };
+
+      return { success: true, message: messageWithName };
     } catch (error) {
+      console.error('Send message error:', error);
       throw new Error(`Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });

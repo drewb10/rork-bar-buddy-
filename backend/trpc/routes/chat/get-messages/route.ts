@@ -4,13 +4,19 @@ import { supabase } from "@/lib/supabase";
 
 export const getMessagesProcedure = publicProcedure
   .input(z.object({
-    venueId: z.string(),
-    limit: z.number().optional().default(50),
+    venueId: z.string().min(1, "Venue ID is required"),
+    limit: z.number().min(1).max(200).optional().default(100),
   }))
   .query(async ({ input }) => {
     const { venueId, limit } = input;
 
     try {
+      // Validate venue ID
+      if (!venueId) {
+        throw new Error('Venue ID is required');
+      }
+
+      // Get messages with session info for anonymous names, filtered by venue
       const { data: messages, error } = await supabase
         .from('chat_messages')
         .select(`
@@ -21,16 +27,23 @@ export const getMessagesProcedure = publicProcedure
         .order('timestamp', { ascending: true })
         .limit(limit);
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(`Failed to fetch messages: ${error.message}`);
+      }
 
       // Transform messages to include anonymous_name
       const transformedMessages = messages?.map(msg => ({
         ...msg,
-        anonymous_name: msg.chat_sessions.anonymous_name,
+        anonymous_name: msg.chat_sessions?.anonymous_name || 'Anonymous Buddy',
       })) || [];
 
-      return { success: true, messages: transformedMessages };
+      return { 
+        success: true, 
+        messages: transformedMessages,
+        count: transformedMessages.length 
+      };
     } catch (error) {
+      console.error('Get messages error:', error);
       throw new Error(`Failed to get messages: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });

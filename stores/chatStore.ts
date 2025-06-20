@@ -27,6 +27,7 @@ interface ChatState {
   messages: ChatMessage[];
   currentSession: ChatSession | null;
   isLoading: boolean;
+  error: string | null;
   subscription: any;
   loadMessages: (venueId: string) => Promise<void>;
   sendMessage: (venueId: string, content: string) => Promise<void>;
@@ -35,72 +36,104 @@ interface ChatState {
   subscribeToMessages: (venueId: string) => void;
   unsubscribeFromMessages: () => void;
   cleanup: () => void;
+  clearError: () => void;
 }
 
-// Generate a simple user ID for anonymous chat
-const getUserId = async () => {
+// Generate a persistent user ID for anonymous chat
+const getUserId = async (): Promise<string> => {
   let userId = '';
   
   if (Platform.OS === 'web') {
-    // For web, use sessionStorage
-    userId = sessionStorage.getItem('anonymous-user-id') || '';
+    // For web, use localStorage for persistence
+    userId = localStorage.getItem('barbuddy-anonymous-user-id') || '';
     if (!userId) {
-      userId = 'user_' + Math.random().toString(36).substr(2, 9);
-      sessionStorage.setItem('anonymous-user-id', userId);
+      userId = 'user_' + Math.random().toString(36).substr(2, 12) + Date.now().toString(36);
+      localStorage.setItem('barbuddy-anonymous-user-id', userId);
     }
   } else {
     // For mobile, use AsyncStorage
     try {
-      userId = await AsyncStorage.getItem('anonymous-user-id') || '';
+      userId = await AsyncStorage.getItem('barbuddy-anonymous-user-id') || '';
       if (!userId) {
-        userId = 'user_' + Math.random().toString(36).substr(2, 9);
-        await AsyncStorage.setItem('anonymous-user-id', userId);
+        userId = 'user_' + Math.random().toString(36).substr(2, 12) + Date.now().toString(36);
+        await AsyncStorage.setItem('barbuddy-anonymous-user-id', userId);
       }
     } catch (error) {
+      console.error('Failed to get/set user ID:', error);
       // Fallback to session-based ID
-      userId = 'user_' + Math.random().toString(36).substr(2, 9);
+      userId = 'user_' + Math.random().toString(36).substr(2, 12) + Date.now().toString(36);
     }
   }
   
   return userId;
 };
 
-// Generate anonymous name - changed from "Fun Friend" to "Buddy"
-const generateAnonymousName = (userId: string) => {
-  const adjectives = ['Cool', 'Happy', 'Chill', 'Fun', 'Wild', 'Smooth', 'Fresh', 'Bold'];
-  const adjIndex = userId.length % adjectives.length;
-  return `${adjectives[adjIndex]} Buddy`;
+// Generate fun anonymous names
+const generateAnonymousName = (userId: string): string => {
+  const adjectives = [
+    'Cool', 'Happy', 'Chill', 'Fun', 'Wild', 'Smooth', 'Fresh', 'Bold',
+    'Epic', 'Rad', 'Zen', 'Swift', 'Bright', 'Clever', 'Witty', 'Groovy'
+  ];
+  const nouns = [
+    'Buddy', 'Pal', 'Friend', 'Mate', 'Champ', 'Hero', 'Star', 'Legend',
+    'Ninja', 'Wizard', 'Phoenix', 'Tiger', 'Eagle', 'Wolf', 'Bear', 'Fox'
+  ];
+  
+  // Use userId to generate consistent but random-looking name
+  const adjIndex = userId.charCodeAt(0) % adjectives.length;
+  const nounIndex = userId.charCodeAt(userId.length - 1) % nouns.length;
+  const number = (userId.charCodeAt(Math.floor(userId.length / 2)) % 99) + 1;
+  
+  return `${adjectives[adjIndex]}${nouns[nounIndex]}${number}`;
 };
 
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   currentSession: null,
   isLoading: false,
+  error: null,
   subscription: null,
 
-  createOrGetSession: async (venueId: string) => {
+  clearError: () => set({ error: null }),
+
+  createOrGetSession: async (venueId: string): Promise<ChatSession> => {
     try {
+      set({ isLoading: true, error: null });
+      
+      if (!venueId) {
+        throw new Error('Venue ID is required');
+      }
+
       const userId = await getUserId();
       
-      // Check if session already exists
+      // Check if session already exists for this user and venue
       const { data: existingSession, error: fetchError } = await supabase
         .from('chat_sessions')
         .select('*')
         .eq('user_id', userId)
         .eq('venue_id', venueId)
-        .single();
+        .maybeSingle();
 
-      if (existingSession && !fetchError) {
-        // Update last_active
-        const { data: updatedSession } = await supabase
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
+      }
+
+      if (existingSession) {
+        // Update last_active timestamp
+        const { data: updatedSession, error: updateError } = await supabase
           .from('chat_sessions')
           .update({ last_active: new Date().toISOString() })
           .eq('id', existingSession.id)
           .select()
           .single();
         
+        if (updateError) {
+          console.warn('Failed to update session timestamp:', updateError);
+          // Continue with existing session even if timestamp update fails
+        }
+        
         const session = updatedSession || existingSession;
-        set({ currentSession: session });
+        set({ currentSession: session, isLoading: false });
         return session;
       }
 
@@ -116,20 +149,28 @@ export const useChatStore = create<ChatState>((set, get) => ({
         .select()
         .single();
 
-      if (createError) throw createError;
+      if (createError) {
+        throw createError;
+      }
 
-      set({ currentSession: newSession });
+      set({ currentSession: newSession, isLoading: false });
       return newSession;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create session';
       console.error('Failed to create or get session:', error);
+      set({ error: errorMessage, isLoading: false });
       throw error;
     }
   },
 
-  loadMessages: async (venueId: string) => {
+  loadMessages: async (venueId: string): Promise<void> => {
     try {
-      set({ isLoading: true });
+      set({ isLoading: true, error: null });
       
+      if (!venueId) {
+        throw new Error('Venue ID is required');
+      }
+
       // Get messages with session info for anonymous names
       const { data: messages, error } = await supabase
         .from('chat_messages')
@@ -139,27 +180,38 @@ export const useChatStore = create<ChatState>((set, get) => ({
         `)
         .eq('venue_id', venueId)
         .order('timestamp', { ascending: true })
-        .limit(50);
+        .limit(100);
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       // Transform messages to include anonymous_name
       const transformedMessages = messages?.map(msg => ({
         ...msg,
-        anonymous_name: msg.chat_sessions.anonymous_name,
+        anonymous_name: msg.chat_sessions?.anonymous_name || 'Anonymous Buddy',
       })) || [];
 
       set({ messages: transformedMessages, isLoading: false });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load messages';
       console.error('Failed to load messages:', error);
-      set({ isLoading: false });
+      set({ error: errorMessage, isLoading: false });
     }
   },
 
-  sendMessage: async (venueId: string, content: string) => {
+  sendMessage: async (venueId: string, content: string): Promise<void> => {
     try {
-      set({ isLoading: true });
+      set({ isLoading: true, error: null });
       
+      if (!venueId) {
+        throw new Error('Venue ID is required');
+      }
+
+      if (!content.trim()) {
+        throw new Error('Message content is required');
+      }
+
       // Ensure we have a session
       const session = get().currentSession || await get().createOrGetSession(venueId);
 
@@ -176,12 +228,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
         `)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       // Transform message to include anonymous_name
       const transformedMessage = {
         ...newMessage,
-        anonymous_name: newMessage.chat_sessions.anonymous_name,
+        anonymous_name: newMessage.chat_sessions?.anonymous_name || session.anonymous_name,
       };
 
       // Add the new message to current messages
@@ -191,22 +245,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
         isLoading: false 
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
       console.error('Failed to send message:', error);
-      set({ isLoading: false });
+      set({ error: errorMessage, isLoading: false });
       throw error;
     }
   },
 
-  likeMessage: async (messageId: string) => {
+  likeMessage: async (messageId: string): Promise<void> => {
     try {
+      if (!messageId) {
+        throw new Error('Message ID is required');
+      }
+
       // First get the current likes count
       const { data: currentMessage, error: fetchError } = await supabase
         .from('chat_messages')
-        .select('likes')
+        .select('likes, venue_id')
         .eq('id', messageId)
         .single();
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        throw fetchError;
+      }
 
       // Increment likes count
       const { data, error } = await supabase
@@ -216,85 +277,125 @@ export const useChatStore = create<ChatState>((set, get) => ({
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      // Update local state
+      // Update local state only if this message belongs to the current venue
       const currentMessages = get().messages;
-      const updatedMessages = currentMessages.map(msg =>
-        msg.id === messageId ? { ...msg, likes: data.likes } : msg
-      );
-      set({ messages: updatedMessages });
+      const messageExists = currentMessages.find(msg => msg.id === messageId);
+      
+      if (messageExists) {
+        const updatedMessages = currentMessages.map(msg =>
+          msg.id === messageId ? { ...msg, likes: data.likes } : msg
+        );
+        set({ messages: updatedMessages });
+      }
     } catch (error) {
       console.error('Failed to like message:', error);
+      // Don't set error state for like failures as they're not critical
     }
   },
 
-  subscribeToMessages: (venueId: string) => {
-    // Unsubscribe from any existing subscription
-    get().unsubscribeFromMessages();
+  subscribeToMessages: (venueId: string): void => {
+    try {
+      if (!venueId) {
+        console.error('Cannot subscribe: Venue ID is required');
+        return;
+      }
 
-    const subscription = supabase
-      .channel(`chat_messages_${venueId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_messages',
-          filter: `venue_id=eq.${venueId}`,
-        },
-        async (payload) => {
-          // Get the session info for the new message
-          const { data: sessionData } = await supabase
-            .from('chat_sessions')
-            .select('anonymous_name')
-            .eq('id', payload.new.session_id)
-            .single();
+      // Unsubscribe from any existing subscription
+      get().unsubscribeFromMessages();
 
-          const newMessage = {
-            ...payload.new,
-            anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
-          } as ChatMessage;
+      const subscription = supabase
+        .channel(`chat_messages_${venueId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: `venue_id=eq.${venueId}`,
+          },
+          async (payload) => {
+            try {
+              // Get the session info for the new message
+              const { data: sessionData } = await supabase
+                .from('chat_sessions')
+                .select('anonymous_name')
+                .eq('id', payload.new.session_id)
+                .single();
 
-          const currentMessages = get().messages;
-          // Only add if not already in messages (avoid duplicates)
-          if (!currentMessages.find(msg => msg.id === newMessage.id)) {
-            set({ messages: [...currentMessages, newMessage] });
+              const newMessage = {
+                ...payload.new,
+                anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
+              } as ChatMessage;
+
+              const currentMessages = get().messages;
+              // Only add if not already in messages (avoid duplicates)
+              if (!currentMessages.find(msg => msg.id === newMessage.id)) {
+                set({ messages: [...currentMessages, newMessage] });
+              }
+            } catch (error) {
+              console.error('Failed to process new message:', error);
+            }
           }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'chat_messages',
-          filter: `venue_id=eq.${venueId}`,
-        },
-        (payload) => {
-          const updatedMessage = payload.new as ChatMessage;
-          const currentMessages = get().messages;
-          const updatedMessages = currentMessages.map(msg =>
-            msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg
-          );
-          set({ messages: updatedMessages });
-        }
-      )
-      .subscribe();
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: `venue_id=eq.${venueId}`,
+          },
+          (payload) => {
+            try {
+              const updatedMessage = payload.new as ChatMessage;
+              const currentMessages = get().messages;
+              const updatedMessages = currentMessages.map(msg =>
+                msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg
+              );
+              set({ messages: updatedMessages });
+            } catch (error) {
+              console.error('Failed to process message update:', error);
+            }
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log(`Subscribed to chat for venue ${venueId}`);
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error(`Failed to subscribe to chat for venue ${venueId}`);
+          }
+        });
 
-    set({ subscription });
-  },
-
-  unsubscribeFromMessages: () => {
-    const { subscription } = get();
-    if (subscription) {
-      supabase.removeChannel(subscription);
-      set({ subscription: null });
+      set({ subscription });
+    } catch (error) {
+      console.error('Failed to subscribe to messages:', error);
     }
   },
 
-  cleanup: () => {
+  unsubscribeFromMessages: (): void => {
+    try {
+      const { subscription } = get();
+      if (subscription) {
+        supabase.removeChannel(subscription);
+        set({ subscription: null });
+        console.log('Unsubscribed from chat messages');
+      }
+    } catch (error) {
+      console.error('Failed to unsubscribe from messages:', error);
+    }
+  },
+
+  cleanup: (): void => {
     get().unsubscribeFromMessages();
-    set({ messages: [], currentSession: null });
+    set({ 
+      messages: [], 
+      currentSession: null, 
+      error: null,
+      isLoading: false 
+    });
   },
 }));

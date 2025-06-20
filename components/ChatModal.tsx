@@ -10,8 +10,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
-import { X, Send, AlertTriangle, Heart } from 'lucide-react-native';
+import { X, Send, AlertTriangle, Heart, MessageCircle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useChatStore } from '@/stores/chatStore';
@@ -36,14 +37,17 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
     subscribeToMessages,
     unsubscribeFromMessages,
     cleanup,
-    isLoading 
+    isLoading,
+    error,
+    clearError
   } = useChatStore();
   const [inputText, setInputText] = useState('');
   const [showTerms, setShowTerms] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
-    if (visible) {
+    if (visible && venue?.id) {
       initializeChat();
     } else {
       cleanup();
@@ -52,15 +56,21 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
     return () => {
       cleanup();
     };
-  }, [visible, venue.id]);
+  }, [visible, venue?.id]);
 
   const initializeChat = async () => {
     try {
+      clearError();
       await createOrGetSession(venue.id);
       await loadMessages(venue.id);
       subscribeToMessages(venue.id);
     } catch (error) {
       console.error('Failed to initialize chat:', error);
+      Alert.alert(
+        'Connection Error',
+        'Failed to connect to chat. Please try again.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
@@ -74,7 +84,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || isSending) return;
 
     // Check for inappropriate content
     if (containsInappropriateContent(inputText)) {
@@ -90,15 +100,22 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
 
+    setIsSending(true);
+    const messageToSend = inputText.trim();
+    setInputText(''); // Clear input immediately for better UX
+
     try {
-      await sendMessage(venue.id, inputText.trim());
-      setInputText('');
+      await sendMessage(venue.id, messageToSend);
     } catch (error) {
+      // Restore message if sending failed
+      setInputText(messageToSend);
       Alert.alert(
         'Failed to Send',
         'Could not send your message. Please try again.',
         [{ text: 'OK' }]
       );
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -111,6 +128,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
       await likeMessage(messageId);
     } catch (error) {
       console.error('Failed to like message:', error);
+      // Don't show alert for like failures as they're not critical
     }
   };
 
@@ -128,16 +146,27 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
   };
 
   const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (error) {
+      return '';
+    }
   };
+
+  const handleClose = () => {
+    clearError();
+    onClose();
+  };
+
+  if (!venue) return null;
 
   return (
     <Modal
       animationType="slide"
       transparent={false}
       visible={visible}
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <KeyboardAvoidingView 
         style={[styles.container, { backgroundColor: themeColors.background }]}
@@ -146,11 +175,14 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
         {/* Header */}
         <View style={[styles.header, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
           <View style={styles.headerContent}>
-            <Text style={[styles.headerTitle, { color: themeColors.text }]}>
-              {venue.name} Chat
-            </Text>
+            <View style={styles.headerTitleRow}>
+              <MessageCircle size={20} color={themeColors.primary} />
+              <Text style={[styles.headerTitle, { color: themeColors.text }]}>
+                {venue.name}
+              </Text>
+            </View>
             <Text style={[styles.headerSubtitle, { color: themeColors.subtext }]}>
-              Anonymous • Be respectful
+              Anonymous Chat • {messages.length} messages
             </Text>
           </View>
           <View style={styles.headerActions}>
@@ -162,12 +194,22 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
             </Pressable>
             <Pressable
               style={styles.closeButton}
-              onPress={onClose}
+              onPress={handleClose}
             >
               <X size={24} color={themeColors.text} />
             </Pressable>
           </View>
         </View>
+
+        {/* Error Banner */}
+        {error && (
+          <View style={[styles.errorBanner, { backgroundColor: '#FF4444' }]}>
+            <Text style={styles.errorText}>{error}</Text>
+            <Pressable onPress={clearError}>
+              <X size={16} color="white" />
+            </Pressable>
+          </View>
+        )}
 
         {/* Messages */}
         <ScrollView
@@ -176,10 +218,21 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}
         >
-          {messages.length === 0 ? (
+          {isLoading && messages.length === 0 ? (
+            <View style={styles.loadingState}>
+              <ActivityIndicator size="large" color={themeColors.primary} />
+              <Text style={[styles.loadingText, { color: themeColors.subtext }]}>
+                Loading chat...
+              </Text>
+            </View>
+          ) : messages.length === 0 ? (
             <View style={styles.emptyState}>
+              <MessageCircle size={48} color={themeColors.subtext} />
+              <Text style={[styles.emptyStateTitle, { color: themeColors.text }]}>
+                Start the conversation!
+              </Text>
               <Text style={[styles.emptyStateText, { color: themeColors.subtext }]}>
-                No messages yet. Be the first to say hello!
+                Be the first to say hello in {venue.name}'s chat
               </Text>
             </View>
           ) : (
@@ -236,22 +289,27 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
             value={inputText}
             onChangeText={setInputText}
             multiline
-            maxLength={200}
+            maxLength={500}
             returnKeyType="send"
             onSubmitEditing={handleSendMessage}
+            editable={!isSending}
           />
           <Pressable
             style={[
               styles.sendButton,
               {
-                backgroundColor: inputText.trim() ? themeColors.primary : themeColors.border,
-                opacity: inputText.trim() ? 1 : 0.5,
+                backgroundColor: (inputText.trim() && !isSending) ? themeColors.primary : themeColors.border,
+                opacity: (inputText.trim() && !isSending) ? 1 : 0.5,
               }
             ]}
             onPress={handleSendMessage}
-            disabled={!inputText.trim() || isLoading}
+            disabled={!inputText.trim() || isSending}
           >
-            <Send size={20} color="white" />
+            {isSending ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Send size={20} color="white" />
+            )}
           </Pressable>
         </View>
 
@@ -302,9 +360,14 @@ const styles = StyleSheet.create({
   headerContent: {
     flex: 1,
   },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
+    marginLeft: 8,
   },
   headerSubtitle: {
     fontSize: 14,
@@ -321,11 +384,34 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 8,
   },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  errorText: {
+    color: 'white',
+    fontSize: 14,
+    flex: 1,
+  },
   messagesContainer: {
     flex: 1,
   },
   messagesContent: {
     padding: 16,
+    flexGrow: 1,
+  },
+  loadingState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    marginTop: 12,
   },
   emptyState: {
     flex: 1,
@@ -333,9 +419,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 40,
   },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 8,
+  },
   emptyStateText: {
     fontSize: 16,
     textAlign: 'center',
+    lineHeight: 22,
   },
   messageContainer: {
     marginBottom: 16,
