@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { trpcClient } from '@/lib/trpc';
 
 export interface ChatMessage {
@@ -18,13 +19,18 @@ interface ChatState {
 }
 
 // Generate a simple anonymous user ID for this session
-const generateAnonymousUserId = (): string => {
-  const stored = localStorage?.getItem('anonymous-user-id');
-  if (stored) return stored;
-  
-  const id = `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  localStorage?.setItem('anonymous-user-id', id);
-  return id;
+const generateAnonymousUserId = async (): Promise<string> => {
+  try {
+    const stored = await AsyncStorage.getItem('anonymous-user-id');
+    if (stored) return stored;
+    
+    const id = `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    await AsyncStorage.setItem('anonymous-user-id', id);
+    return id;
+  } catch (error) {
+    // Fallback if AsyncStorage fails
+    return `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
 };
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -35,9 +41,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       set({ isLoading: true });
       
-      const userId = generateAnonymousUserId();
+      const userId = await generateAnonymousUserId();
+      const messageId = `${Date.now()}_${Math.random()}`;
       const message: ChatMessage = {
-        id: `${Date.now()}_${Math.random()}`,
+        id: messageId,
         venueId,
         userId,
         content,
@@ -58,9 +65,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     } catch (error) {
       console.error('Failed to send message:', error);
-      // Remove the optimistic message on error
+      // Remove the optimistic message on error by filtering out the most recent message
       set(state => ({
-        messages: state.messages.filter(m => m.id !== `${Date.now()}_${Math.random()}`)
+        messages: state.messages.slice(0, -1)
       }));
     } finally {
       set({ isLoading: false });
