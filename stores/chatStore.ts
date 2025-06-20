@@ -137,7 +137,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         return session;
       }
 
-      // Create new session
+      // Create new session with venue_id
       const anonymousName = generateAnonymousName(userId);
       const { data: newSession, error: createError } = await supabase
         .from('chat_sessions')
@@ -191,15 +191,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       // Transform messages to include anonymous_name and venue_id
       const transformedMessages = messages?.map(msg => {
-        // Fix: Access session data from the first element of the joined array
-        const sessionData = Array.isArray(msg.chat_sessions) 
-          ? msg.chat_sessions[0] 
-          : msg.chat_sessions;
+        // Safely access session data from the joined result
+        const sessionData = msg?.chat_sessions;
+        const anonymousName = Array.isArray(sessionData) 
+          ? sessionData[0]?.anonymous_name 
+          : sessionData?.anonymous_name;
+        const sessionVenueId = Array.isArray(sessionData) 
+          ? sessionData[0]?.venue_id 
+          : sessionData?.venue_id;
         
         return {
           ...msg,
-          anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
-          venue_id: sessionData?.venue_id || venueId,
+          anonymous_name: anonymousName || 'Anonymous Buddy',
+          venue_id: sessionVenueId || venueId,
         };
       }) || [];
 
@@ -226,7 +230,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // Ensure we have a session
       const session = get().currentSession || await get().createOrGetSession(venueId);
 
-      // Insert message (no venue_id needed in chat_messages)
+      // Insert message
       const { data: newMessage, error } = await supabase
         .from('chat_messages')
         .insert({
@@ -240,7 +244,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw error;
       }
 
-      // Transform message to include anonymous_name and venue_id
+      // Transform message to include anonymous_name and venue_id from session
       const transformedMessage = {
         ...newMessage,
         anonymous_name: session.anonymous_name,

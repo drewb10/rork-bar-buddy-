@@ -47,7 +47,7 @@ export const createSessionProcedure = publicProcedure
         return { success: true, session: updatedSession };
       }
 
-      // Create new session
+      // Create new session with venue_id
       const { data: newSession, error: createError } = await supabase
         .from('chat_sessions')
         .insert({

@@ -29,7 +29,7 @@ export const sendMessageProcedure = publicProcedure
         throw new Error('Invalid session or session does not belong to this venue');
       }
 
-      // Insert the message (no venue_id needed in chat_messages, it's accessed through session)
+      // Insert the message
       const { data: newMessage, error: insertError } = await supabase
         .from('chat_messages')
         .insert({
@@ -43,7 +43,7 @@ export const sendMessageProcedure = publicProcedure
         throw new Error(`Failed to insert message: ${insertError.message}`);
       }
 
-      // Return message with anonymous name and venue_id
+      // Return message with anonymous name and venue_id from session
       const messageWithDetails = {
         ...newMessage,
         anonymous_name: session.anonymous_name,
