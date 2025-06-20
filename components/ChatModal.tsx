@@ -125,7 +125,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
     }
     
     try {
-      await likeMessage(messageId);
+      await likeMessage(messageId, venue.id);
     } catch (error) {
       console.error('Failed to like message:', error);
       // Don't show alert for like failures as they're not critical

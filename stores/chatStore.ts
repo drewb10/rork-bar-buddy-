@@ -31,7 +31,7 @@ interface ChatState {
   subscription: any;
   loadMessages: (venueId: string) => Promise<void>;
   sendMessage: (venueId: string, content: string) => Promise<void>;
-  likeMessage: (messageId: string) => Promise<void>;
+  likeMessage: (messageId: string, venueId?: string) => Promise<void>;
   createOrGetSession: (venueId: string) => Promise<ChatSession>;
   subscribeToMessages: (venueId: string) => void;
   unsubscribeFromMessages: () => void;
@@ -172,7 +172,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       // Get messages with session info for anonymous names, filtered by venue through join
-      const { data: messages, error } = await supabase
+      const { data: messagesWithSessions, error } = await supabase
         .from('chat_messages')
         .select(`
           *,
@@ -190,20 +190,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       // Transform messages to include anonymous_name and venue_id
-      const transformedMessages = messages?.map(msg => {
-        // Safely access session data from the joined result
-        const sessionData = msg?.chat_sessions;
-        const anonymousName = Array.isArray(sessionData) 
-          ? sessionData[0]?.anonymous_name 
-          : sessionData?.anonymous_name;
-        const sessionVenueId = Array.isArray(sessionData) 
-          ? sessionData[0]?.venue_id 
-          : sessionData?.venue_id;
+      const transformedMessages = messagesWithSessions?.map(msg => {
+        // Handle session data - can be array or object
+        const sessionData = msg.chat_sessions;
+        let anonymousName: string;
+        let sessionVenueId: string;
+        
+        if (Array.isArray(sessionData)) {
+          anonymousName = sessionData[0]?.anonymous_name || 'Anonymous Buddy';
+          sessionVenueId = sessionData[0]?.venue_id || venueId;
+        } else {
+          anonymousName = (sessionData as any)?.anonymous_name || 'Anonymous Buddy';
+          sessionVenueId = (sessionData as any)?.venue_id || venueId;
+        }
         
         return {
           ...msg,
-          anonymous_name: anonymousName || 'Anonymous Buddy',
-          venue_id: sessionVenueId || venueId,
+          anonymous_name: anonymousName,
+          venue_id: sessionVenueId,
         };
       }) || [];
 
@@ -265,30 +269,48 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  likeMessage: async (messageId: string): Promise<void> => {
+  likeMessage: async (messageId: string, venueId?: string): Promise<void> => {
     try {
       if (!messageId) {
         throw new Error('Message ID is required');
       }
 
-      // First get the current likes count through session join
-      const { data: currentMessage, error: fetchError } = await supabase
+      // Get current message with session data to verify venue and get likes
+      const { data: messageWithSession, error: fetchError } = await supabase
         .from('chat_messages')
         .select(`
+          id,
           likes,
-          chat_sessions!inner(venue_id)
+          chat_sessions!inner(
+            venue_id
+          )
         `)
         .eq('id', messageId)
         .single();
 
-      if (fetchError) {
-        throw fetchError;
+      if (fetchError || !messageWithSession) {
+        throw new Error('Message not found');
+      }
+
+      // Extract venue ID from session data
+      const sessionData = messageWithSession.chat_sessions;
+      let sessionVenueId: string;
+      
+      if (Array.isArray(sessionData)) {
+        sessionVenueId = sessionData[0]?.venue_id;
+      } else {
+        sessionVenueId = (sessionData as any)?.venue_id;
+      }
+
+      // Verify venue access if venueId is provided
+      if (venueId && sessionVenueId !== venueId) {
+        throw new Error('Message does not belong to the specified venue');
       }
 
       // Increment likes count
       const { data, error } = await supabase
         .from('chat_messages')
-        .update({ likes: (currentMessage.likes || 0) + 1 })
+        .update({ likes: (messageWithSession.likes || 0) + 1 })
         .eq('id', messageId)
         .select('id, likes')
         .single();

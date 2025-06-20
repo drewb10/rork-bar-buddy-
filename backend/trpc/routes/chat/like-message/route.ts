@@ -17,53 +17,57 @@ export const likeMessageProcedure = publicProcedure
       }
 
       // Get current message with venue verification through session join
-      let query = supabase
+      const { data: messageWithSession, error: fetchError } = await supabase
         .from('chat_messages')
         .select(`
           id, 
           likes,
-          chat_sessions!inner(venue_id)
+          session_id,
+          chat_sessions!inner(
+            id,
+            venue_id
+          )
         `)
-        .eq('id', messageId);
+        .eq('id', messageId)
+        .single();
 
-      if (venueId) {
-        query = query.eq('chat_sessions.venue_id', venueId);
+      if (fetchError || !messageWithSession) {
+        throw new Error('Message not found or access denied');
       }
 
-      const { data: currentMessage, error: fetchError } = await query.single();
+      // Extract session data - handle both array and object cases
+      const sessionData = messageWithSession.chat_sessions;
+      let sessionVenueId: string;
+      
+      if (Array.isArray(sessionData)) {
+        sessionVenueId = sessionData[0]?.venue_id;
+      } else {
+        sessionVenueId = (sessionData as any)?.venue_id;
+      }
 
-      if (fetchError || !currentMessage) {
-        throw new Error('Message not found or access denied');
+      // Verify venue access if venueId is provided
+      if (venueId && sessionVenueId !== venueId) {
+        throw new Error('Message does not belong to the specified venue');
       }
 
       // Increment likes count
       const { data: updatedMessage, error: updateError } = await supabase
         .from('chat_messages')
-        .update({ likes: (currentMessage.likes || 0) + 1 })
+        .update({ likes: (messageWithSession.likes || 0) + 1 })
         .eq('id', messageId)
-        .select(`
-          id, 
-          likes,
-          chat_sessions!inner(venue_id)
-        `)
+        .select('id, likes')
         .single();
 
       if (updateError) {
         throw new Error(`Failed to update likes: ${updateError.message}`);
       }
 
-      // Safely access venue_id from the joined session data
-      const sessionData = updatedMessage?.chat_sessions;
-      const venueIdFromSession = Array.isArray(sessionData) 
-        ? sessionData[0]?.venue_id 
-        : sessionData?.venue_id;
-
       return { 
         success: true, 
         message: {
           id: updatedMessage.id,
           likes: updatedMessage.likes,
-          venue_id: venueIdFromSession || venueId,
+          venue_id: sessionVenueId,
         },
         newLikeCount: updatedMessage.likes 
       };

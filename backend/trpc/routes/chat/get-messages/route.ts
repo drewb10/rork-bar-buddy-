@@ -17,7 +17,7 @@ export const getMessagesProcedure = publicProcedure
       }
 
       // Get messages with session info for anonymous names, filtered by venue through join
-      const { data: messages, error } = await supabase
+      const { data: messagesWithSessions, error } = await supabase
         .from('chat_messages')
         .select(`
           *,
@@ -35,20 +35,24 @@ export const getMessagesProcedure = publicProcedure
       }
 
       // Transform messages to include anonymous_name and venue_id
-      const transformedMessages = messages?.map(msg => {
-        // Safely access session data from the joined result
-        const sessionData = msg?.chat_sessions;
-        const anonymousName = Array.isArray(sessionData) 
-          ? sessionData[0]?.anonymous_name 
-          : sessionData?.anonymous_name;
-        const sessionVenueId = Array.isArray(sessionData) 
-          ? sessionData[0]?.venue_id 
-          : sessionData?.venue_id;
+      const transformedMessages = messagesWithSessions?.map(msg => {
+        // Handle session data - can be array or object
+        const sessionData = msg.chat_sessions;
+        let anonymousName: string;
+        let sessionVenueId: string;
+        
+        if (Array.isArray(sessionData)) {
+          anonymousName = sessionData[0]?.anonymous_name || 'Anonymous Buddy';
+          sessionVenueId = sessionData[0]?.venue_id || venueId;
+        } else {
+          anonymousName = (sessionData as any)?.anonymous_name || 'Anonymous Buddy';
+          sessionVenueId = (sessionData as any)?.venue_id || venueId;
+        }
         
         return {
           ...msg,
-          anonymous_name: anonymousName || 'Anonymous Buddy',
-          venue_id: sessionVenueId || venueId,
+          anonymous_name: anonymousName,
+          venue_id: sessionVenueId,
         };
       }) || [];
 
