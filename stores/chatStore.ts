@@ -301,7 +301,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw new Error('Message not found');
       }
 
-      // Type the response properly
+      // Type assertion to ensure proper typing
       const typedMessage = messageWithSession as MessageForLike;
       const sessionVenueId = typedMessage.chat_sessions.venue_id;
 

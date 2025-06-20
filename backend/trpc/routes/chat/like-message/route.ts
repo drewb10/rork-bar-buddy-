@@ -45,7 +45,7 @@ export const likeMessageProcedure = publicProcedure
         throw new Error('Message not found or access denied');
       }
 
-      // Type the response properly
+      // Type assertion to ensure proper typing
       const typedMessage = messageWithSession as MessageWithSession;
       const sessionVenueId = typedMessage.chat_sessions.venue_id;
 

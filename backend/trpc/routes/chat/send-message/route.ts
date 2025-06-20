@@ -35,7 +35,7 @@ export const sendMessageProcedure = publicProcedure
         throw new Error('Invalid session or session does not belong to this venue');
       }
 
-      // Type the session properly
+      // Type assertion to ensure proper typing
       const typedSession = session as ChatSession;
 
       // Insert the message
