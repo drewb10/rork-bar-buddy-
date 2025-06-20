@@ -34,7 +34,7 @@ export const likeMessageProcedure = publicProcedure
           id, 
           likes,
           session_id,
-          chat_sessions!inner(
+          chat_sessions:chat_sessions(
             id,
             venue_id
           )
@@ -46,18 +46,13 @@ export const likeMessageProcedure = publicProcedure
         throw new Error('Message not found or access denied');
       }
 
-      // Since we use .single(), messageData should have the correct structure
-      // But we need to handle the fact that joins still return arrays in some cases
-      const messageWithSession = messageData as any;
-      const sessionData = Array.isArray(messageWithSession.chat_sessions) 
-        ? messageWithSession.chat_sessions[0] 
-        : messageWithSession.chat_sessions;
+      const messageWithSession = messageData as MessageWithJoinedSession;
       
-      if (!sessionData) {
+      if (!messageWithSession.chat_sessions) {
         throw new Error('Session data not found');
       }
 
-      const sessionVenueId = sessionData.venue_id;
+      const sessionVenueId = messageWithSession.chat_sessions.venue_id;
 
       // Verify venue access if venueId is provided
       if (venueId && sessionVenueId !== venueId) {

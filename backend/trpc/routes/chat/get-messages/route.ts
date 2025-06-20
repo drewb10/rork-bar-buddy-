@@ -36,7 +36,7 @@ export const getMessagesProcedure = publicProcedure
         .from('chat_messages')
         .select(`
           *,
-          chat_sessions!inner(
+          chat_sessions:chat_sessions(
             anonymous_name,
             venue_id
           )
@@ -52,8 +52,8 @@ export const getMessagesProcedure = publicProcedure
       // Transform messages to include anonymous_name and venue_id
       const transformedMessages = (messagesWithSessions as MessageWithJoinedSession[])?.map(msg => ({
         ...msg,
-        anonymous_name: msg.chat_sessions.anonymous_name || 'Anonymous Buddy',
-        venue_id: msg.chat_sessions.venue_id || venueId,
+        anonymous_name: msg.chat_sessions?.anonymous_name || 'Anonymous Buddy',
+        venue_id: msg.chat_sessions?.venue_id || venueId,
       })) || [];
 
       return { 
