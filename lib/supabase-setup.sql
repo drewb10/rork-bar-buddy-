@@ -78,6 +78,18 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
   UNIQUE(user_id, venue_id)
 );
 
+-- Add anonymous_name column if it doesn't exist (for existing databases)
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'chat_sessions' 
+    AND column_name = 'anonymous_name'
+  ) THEN
+    ALTER TABLE chat_sessions ADD COLUMN anonymous_name TEXT NOT NULL DEFAULT 'Anonymous Buddy';
+  END IF;
+END $$;
+
 -- Create chat_messages table
 CREATE TABLE IF NOT EXISTS chat_messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
