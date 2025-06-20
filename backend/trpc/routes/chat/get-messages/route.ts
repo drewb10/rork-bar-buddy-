@@ -31,6 +31,7 @@ export const getMessagesProcedure = publicProcedure
       }
 
       // Get messages with session info for anonymous names, filtered by venue through join
+      // Using single object syntax for chat_sessions
       const { data: messagesWithSessions, error } = await supabase
         .from('chat_messages')
         .select(`
