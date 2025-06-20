@@ -6,11 +6,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export interface ChatMessage {
   id: string;
   session_id: string;
-  venue_id: string;
   content: string;
   likes: number;
   timestamp: string;
   anonymous_name: string;
+  venue_id: string;
   created_at: string;
 }
 
@@ -171,14 +171,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw new Error('Venue ID is required');
       }
 
-      // Get messages with session info for anonymous names
+      // Get messages with session info for anonymous names, filtered by venue through join
       const { data: messages, error } = await supabase
         .from('chat_messages')
         .select(`
           *,
-          chat_sessions!inner(anonymous_name)
+          chat_sessions!inner(
+            anonymous_name,
+            venue_id
+          )
         `)
-        .eq('venue_id', venueId)
+        .eq('chat_sessions.venue_id', venueId)
         .order('timestamp', { ascending: true })
         .limit(100);
 
@@ -186,10 +189,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw error;
       }
 
-      // Transform messages to include anonymous_name
+      // Transform messages to include anonymous_name and venue_id
       const transformedMessages = messages?.map(msg => ({
         ...msg,
         anonymous_name: msg.chat_sessions?.anonymous_name || 'Anonymous Buddy',
+        venue_id: msg.chat_sessions?.venue_id || venueId,
       })) || [];
 
       set({ messages: transformedMessages, isLoading: false });
@@ -215,27 +219,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // Ensure we have a session
       const session = get().currentSession || await get().createOrGetSession(venueId);
 
+      // Insert message (no venue_id needed in chat_messages)
       const { data: newMessage, error } = await supabase
         .from('chat_messages')
         .insert({
           session_id: session.id,
-          venue_id: venueId,
           content: content.trim(),
         })
-        .select(`
-          *,
-          chat_sessions!inner(anonymous_name)
-        `)
+        .select()
         .single();
 
       if (error) {
         throw error;
       }
 
-      // Transform message to include anonymous_name
+      // Transform message to include anonymous_name and venue_id
       const transformedMessage = {
         ...newMessage,
-        anonymous_name: newMessage.chat_sessions?.anonymous_name || session.anonymous_name,
+        anonymous_name: session.anonymous_name,
+        venue_id: session.venue_id,
       };
 
       // Add the new message to current messages
@@ -258,10 +260,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw new Error('Message ID is required');
       }
 
-      // First get the current likes count
+      // First get the current likes count through session join
       const { data: currentMessage, error: fetchError } = await supabase
         .from('chat_messages')
-        .select('likes, venue_id')
+        .select(`
+          likes,
+          chat_sessions!inner(venue_id)
+        `)
         .eq('id', messageId)
         .single();
 
@@ -274,7 +279,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         .from('chat_messages')
         .update({ likes: (currentMessage.likes || 0) + 1 })
         .eq('id', messageId)
-        .select()
+        .select('id, likes')
         .single();
 
       if (error) {
@@ -315,20 +320,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
             event: 'INSERT',
             schema: 'public',
             table: 'chat_messages',
-            filter: `venue_id=eq.${venueId}`,
           },
           async (payload) => {
             try {
-              // Get the session info for the new message
+              // Get the session info for the new message to check venue and get anonymous name
               const { data: sessionData } = await supabase
                 .from('chat_sessions')
-                .select('anonymous_name')
+                .select('anonymous_name, venue_id')
                 .eq('id', payload.new.session_id)
                 .single();
+
+              // Only process messages for the current venue
+              if (sessionData?.venue_id !== venueId) {
+                return;
+              }
 
               const newMessage = {
                 ...payload.new,
                 anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
+                venue_id: sessionData?.venue_id || venueId,
               } as ChatMessage;
 
               const currentMessages = get().messages;
@@ -347,10 +357,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
             event: 'UPDATE',
             schema: 'public',
             table: 'chat_messages',
-            filter: `venue_id=eq.${venueId}`,
           },
-          (payload) => {
+          async (payload) => {
             try {
+              // Get the session info to check venue
+              const { data: sessionData } = await supabase
+                .from('chat_sessions')
+                .select('venue_id')
+                .eq('id', payload.new.session_id)
+                .single();
+
+              // Only process updates for the current venue
+              if (sessionData?.venue_id !== venueId) {
+                return;
+              }
+
               const updatedMessage = payload.new as ChatMessage;
               const currentMessages = get().messages;
               const updatedMessages = currentMessages.map(msg =>

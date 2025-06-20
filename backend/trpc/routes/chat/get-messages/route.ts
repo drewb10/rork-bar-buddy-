@@ -16,14 +16,17 @@ export const getMessagesProcedure = publicProcedure
         throw new Error('Venue ID is required');
       }
 
-      // Get messages with session info for anonymous names, filtered by venue
+      // Get messages with session info for anonymous names, filtered by venue through join
       const { data: messages, error } = await supabase
         .from('chat_messages')
         .select(`
           *,
-          chat_sessions!inner(anonymous_name)
+          chat_sessions!inner(
+            anonymous_name,
+            venue_id
+          )
         `)
-        .eq('venue_id', venueId)
+        .eq('chat_sessions.venue_id', venueId)
         .order('timestamp', { ascending: true })
         .limit(limit);
 
@@ -31,10 +34,11 @@ export const getMessagesProcedure = publicProcedure
         throw new Error(`Failed to fetch messages: ${error.message}`);
       }
 
-      // Transform messages to include anonymous_name
+      // Transform messages to include anonymous_name and venue_id
       const transformedMessages = messages?.map(msg => ({
         ...msg,
         anonymous_name: msg.chat_sessions?.anonymous_name || 'Anonymous Buddy',
+        venue_id: msg.chat_sessions?.venue_id || venueId,
       })) || [];
 
       return { 

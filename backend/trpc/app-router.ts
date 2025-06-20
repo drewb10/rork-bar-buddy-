@@ -6,12 +6,12 @@ import { trackDrunkScaleProcedure } from './routes/analytics/track-drunk-scale/r
 import { createProfileProcedure } from './routes/user/create-profile/route';
 import { searchUserProcedure } from './routes/user/search-user/route';
 import { addFriendProcedure } from './routes/user/add-friend/route';
+import { completeTaskProcedure } from './routes/bingo/complete-task/route';
+import { completeBingoProcedure } from './routes/bingo/complete-bingo/route';
 import { sendFriendRequestProcedure } from './routes/user/send-friend-request/route';
 import { acceptFriendRequestProcedure } from './routes/user/accept-friend-request/route';
 import { declineFriendRequestProcedure } from './routes/user/decline-friend-request/route';
 import { getFriendRequestsProcedure } from './routes/user/get-friend-requests/route';
-import { completeTaskProcedure } from './routes/bingo/complete-task/route';
-import { completeBingoProcedure } from './routes/bingo/complete-bingo/route';
 import { createSessionProcedure } from './routes/chat/create-session/route';
 import { getMessagesProcedure } from './routes/chat/get-messages/route';
 import { sendMessageProcedure } from './routes/chat/send-message/route';

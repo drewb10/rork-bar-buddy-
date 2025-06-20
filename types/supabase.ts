@@ -216,7 +216,6 @@ export interface Database {
         Row: {
           id: string
           session_id: string
-          venue_id: string
           content: string
           likes: number
           timestamp: string
@@ -226,7 +225,6 @@ export interface Database {
         Insert: {
           id?: string
           session_id: string
-          venue_id: string
           content: string
           likes?: number
           timestamp?: string
@@ -236,7 +234,6 @@ export interface Database {
         Update: {
           id?: string
           session_id?: string
-          venue_id?: string
           content?: string
           likes?: number
           timestamp?: string

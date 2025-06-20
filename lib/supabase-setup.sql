@@ -67,61 +67,39 @@ CREATE TABLE bingo_card_completions (
   session_id TEXT
 );
 
--- Create chat_sessions table
+-- Create chat_sessions table with venue_id and anonymous_name
 CREATE TABLE IF NOT EXISTS chat_sessions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id TEXT NOT NULL,
+  venue_id TEXT NOT NULL,
+  anonymous_name TEXT NOT NULL DEFAULT 'Anonymous Buddy',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  last_active TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  last_active TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, venue_id)
 );
 
--- Add venue_id column if it doesn't exist (for existing databases)
-DO $$ 
-BEGIN 
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'chat_sessions' 
-    AND column_name = 'venue_id'
-  ) THEN
-    ALTER TABLE chat_sessions ADD COLUMN venue_id TEXT NOT NULL DEFAULT '';
-  END IF;
-END $$;
-
--- Add anonymous_name column if it doesn't exist (for existing databases)
-DO $$ 
-BEGIN 
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'chat_sessions' 
-    AND column_name = 'anonymous_name'
-  ) THEN
-    ALTER TABLE chat_sessions ADD COLUMN anonymous_name TEXT NOT NULL DEFAULT 'Anonymous Buddy';
-  END IF;
-END $$;
-
--- Add unique constraint if it doesn't exist
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.table_constraints 
-    WHERE table_name = 'chat_sessions' 
-    AND constraint_name = 'chat_sessions_user_id_venue_id_key'
-  ) THEN
-    ALTER TABLE chat_sessions ADD CONSTRAINT chat_sessions_user_id_venue_id_key UNIQUE(user_id, venue_id);
-  END IF;
-END $$;
-
--- Create chat_messages table
+-- Create chat_messages table (venue_id removed, accessed through session join)
 CREATE TABLE IF NOT EXISTS chat_messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   session_id UUID NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
-  venue_id TEXT NOT NULL,
   content TEXT NOT NULL,
   likes INTEGER DEFAULT 0,
   timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   is_flagged BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Remove venue_id column from chat_messages if it exists
+DO $$ 
+BEGIN 
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'chat_messages' 
+    AND column_name = 'venue_id'
+  ) THEN
+    ALTER TABLE chat_messages DROP COLUMN venue_id;
+  END IF;
+END $$;
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);
@@ -136,8 +114,8 @@ CREATE INDEX IF NOT EXISTS idx_venue_interactions_venue_id ON venue_interactions
 CREATE INDEX IF NOT EXISTS idx_bingo_card_completions_user_id ON bingo_card_completions(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_id ON chat_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_sessions_venue_id ON chat_sessions(venue_id);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_venue ON chat_sessions(user_id, venue_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_session_id ON chat_messages(session_id);
-CREATE INDEX IF NOT EXISTS idx_chat_messages_venue_id ON chat_messages(venue_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_timestamp ON chat_messages(timestamp);
 
 -- Enable Row Level Security

@@ -16,14 +16,18 @@ export const likeMessageProcedure = publicProcedure
         throw new Error('Message ID is required');
       }
 
-      // Get current message with venue verification if provided
-      const query = supabase
+      // Get current message with venue verification through session join
+      let query = supabase
         .from('chat_messages')
-        .select('id, likes, venue_id')
+        .select(`
+          id, 
+          likes,
+          chat_sessions!inner(venue_id)
+        `)
         .eq('id', messageId);
 
       if (venueId) {
-        query.eq('venue_id', venueId);
+        query = query.eq('chat_sessions.venue_id', venueId);
       }
 
       const { data: currentMessage, error: fetchError } = await query.single();
@@ -37,7 +41,11 @@ export const likeMessageProcedure = publicProcedure
         .from('chat_messages')
         .update({ likes: (currentMessage.likes || 0) + 1 })
         .eq('id', messageId)
-        .select('id, likes, venue_id')
+        .select(`
+          id, 
+          likes,
+          chat_sessions!inner(venue_id)
+        `)
         .single();
 
       if (updateError) {
@@ -46,7 +54,11 @@ export const likeMessageProcedure = publicProcedure
 
       return { 
         success: true, 
-        message: updatedMessage,
+        message: {
+          id: updatedMessage.id,
+          likes: updatedMessage.likes,
+          venue_id: updatedMessage.chat_sessions?.venue_id,
+        },
         newLikeCount: updatedMessage.likes 
       };
     } catch (error) {
