@@ -38,7 +38,7 @@ export default function HomeScreen() {
     
     // Get the 3 specific venues for top picks
     const topPickVenueIds = ['2', '5', '6']; // The Library, Late Nite, JBA
-    const topPicks = topPickVenueIds
+    const topPicks: TopPickItem[] = topPickVenueIds
       .map(venueId => {
         const venue = venues.find(v => v.id === venueId);
         if (!venue) return null;

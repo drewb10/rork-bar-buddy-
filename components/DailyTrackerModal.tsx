@@ -12,8 +12,10 @@ interface DailyTrackerModalProps {
   onClose: () => void;
 }
 
+type StatKey = 'shots' | 'scoopAndScores' | 'beers' | 'beerTowers' | 'funnels' | 'shotguns';
+
 interface StatItem {
-  key: keyof Omit<typeof useDailyTrackerStore.getState.dailyStats, 'date'>;
+  key: StatKey;
   label: string;
   emoji: string;
 }
@@ -38,7 +40,7 @@ export default function DailyTrackerModal({ visible, onClose }: DailyTrackerModa
     }
   }, [visible]);
 
-  const handleStatUpdate = (stat: StatItem['key'], increment: number) => {
+  const handleStatUpdate = (stat: StatKey, increment: number) => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
