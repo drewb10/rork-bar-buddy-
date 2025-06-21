@@ -14,13 +14,8 @@ import TopPickCard from '@/components/TopPickCard';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import DailyTrackerModal from '@/components/DailyTrackerModal';
 import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
-import { Venue, Special } from '@/types/venue';
+import { Venue, Special, TopPickItem } from '@/types/venue';
 import * as Haptics from 'expo-haptics';
-
-interface TopPickItem {
-  venue: Venue;
-  todaySpecial?: Special;
-}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -38,7 +33,9 @@ export default function HomeScreen() {
     
     // Get the 3 specific venues for top picks
     const topPickVenueIds = ['2', '5', '6']; // The Library, Late Nite, JBA
-    const rawTopPicks = topPickVenueIds
+    
+    // Map venues to TopPickItem objects, filtering out any null results
+    const topPicks: TopPickItem[] = topPickVenueIds
       .map(venueId => {
         const venue = venues.find(v => v.id === venueId);
         if (!venue) return null;
@@ -47,10 +44,8 @@ export default function HomeScreen() {
         const todaySpecial = allSpecials.find(({ venue: v }) => v.id === venueId)?.special;
         
         return { venue, todaySpecial };
-      });
-    
-    // Filter out null values with proper type predicate
-    const topPicks: TopPickItem[] = rawTopPicks.filter((item): item is TopPickItem => item !== null);
+      })
+      .filter((item): item is TopPickItem => item !== null);
     
     setTopPickVenues(topPicks);
     resetInteractionsIfNeeded();

@@ -56,5 +56,5 @@ export interface Venue {
 
 export interface TopPickItem {
   venue: Venue;
-  todaySpecial: Special | undefined;
+  todaySpecial?: Special;
 }

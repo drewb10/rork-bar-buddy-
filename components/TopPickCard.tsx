@@ -10,7 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 interface TopPickCardProps {
   venue: Venue;
-  todaySpecial: Special | undefined;
+  todaySpecial?: Special;
 }
 
 export default function TopPickCard({ venue, todaySpecial }: TopPickCardProps) {
