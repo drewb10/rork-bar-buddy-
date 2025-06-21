@@ -134,7 +134,7 @@ export default function DailyTrackerModal({ visible, onClose }: DailyTrackerModa
             ))}
           </ScrollView>
 
-          {/* Drunk Scale Section */}
+          {/* Drunk Scale Section - Moved to bottom */}
           <View style={[styles.drunkScaleSection, { borderTopColor: themeColors.border }]}>
             <Text style={[styles.drunkScaleTitle, { color: themeColors.text }]}>
               How lit did you get last night?

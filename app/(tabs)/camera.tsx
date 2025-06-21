@@ -228,12 +228,12 @@ export default function CameraScreen() {
         {showInstructions && (
           <View style={styles.instructionsContainer}>
             <Text style={[styles.instructionText, { color: 'white' }]}>
-              📸 Take photos at bars, earn XP, and capture memories!
+              📸 Take photos at bars, earn 10 XP, and capture memories!
             </Text>
           </View>
         )}
 
-        {/* Top Controls */}
+        {/* Top Controls - Moved camera roll up to align with flip camera */}
         <View style={styles.topControls}>
           {/* Flip Camera Button */}
           <Pressable 
@@ -243,7 +243,7 @@ export default function CameraScreen() {
             <RotateCcw size={24} color="white" />
           </Pressable>
 
-          {/* Camera Roll Button */}
+          {/* Camera Roll Button - Moved up and fixed */}
           <Pressable 
             style={[styles.controlButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
             onPress={openCameraRoll}

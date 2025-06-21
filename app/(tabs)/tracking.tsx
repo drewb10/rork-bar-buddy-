@@ -214,7 +214,7 @@ export default function TrackingScreen() {
           </Text>
         </View>
 
-        {/* Daily Tracker Totals */}
+        {/* Daily Tracker Totals - New Section */}
         <View style={[styles.dailyTrackerCard, { backgroundColor: themeColors.card }]}>
           <View style={styles.dailyTrackerHeader}>
             <BarChart3 size={20} color={themeColors.primary} />

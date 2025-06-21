@@ -116,12 +116,12 @@ const XP_VALUES = {
   featured_drink: 20,
   bar_game: 35,
   photo_taken: 10, // Updated from 25 to 10
-  shots: 5, // New
-  scoop_and_scores: 4, // New
-  beers: 2, // New
-  beer_towers: 5, // New
-  funnels: 3, // New
-  shotguns: 3, // New
+  shots: 5, // Updated XP values
+  scoop_and_scores: 4,
+  beers: 2,
+  beer_towers: 5,
+  funnels: 3,
+  shotguns: 3,
 };
 
 const RANK_STRUCTURE: RankInfo[] = [

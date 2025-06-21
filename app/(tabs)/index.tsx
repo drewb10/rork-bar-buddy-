@@ -34,20 +34,29 @@ export default function HomeScreen() {
     // Get the 3 specific venues for top picks
     const topPickVenueIds = ['2', '5', '6']; // The Library, Late Nite, JBA
     
-    // Map venues to TopPickItem objects, filtering out any null results
-    const topPicks: TopPickItem[] = topPickVenueIds
-      .map(venueId => {
-        const venue = venues.find(v => v.id === venueId);
-        if (!venue) return null;
-        
-        // Find today's special for this venue
-        const todaySpecial = allSpecials.find(({ venue: v }) => v.id === venueId)?.special;
-        
-        return { venue, todaySpecial };
-      })
-      .filter((item): item is TopPickItem => item !== null);
+    // Create intermediate type for mapping
+    type TopPickCandidate = {
+      venue: Venue;
+      todaySpecial?: Special;
+    } | null;
     
-    setTopPickVenues(topPicks);
+    // Map venues to TopPickCandidate objects first
+    const topPickCandidates: TopPickCandidate[] = topPickVenueIds.map(venueId => {
+      const venue = venues.find(v => v.id === venueId);
+      if (!venue) return null;
+      
+      // Find today's special for this venue
+      const todaySpecial = allSpecials.find(({ venue: v }) => v.id === venueId)?.special;
+      
+      return { venue, todaySpecial };
+    });
+    
+    // Filter out null values and ensure type safety
+    const validTopPicks: TopPickItem[] = topPickCandidates.filter(
+      (item): item is TopPickItem => item !== null
+    );
+    
+    setTopPickVenues(validTopPicks);
     resetInteractionsIfNeeded();
     resetDailyStatsIfNeeded();
   }, []);
