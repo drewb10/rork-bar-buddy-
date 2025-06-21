@@ -53,3 +53,8 @@ export interface Venue {
     longitude: number;
   };
 }
+
+export interface TopPickItem {
+  venue: Venue;
+  todaySpecial: Special | undefined;
+}
