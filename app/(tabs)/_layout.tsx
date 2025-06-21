@@ -1,6 +1,6 @@
 import React from "react";
 import { Tabs } from "expo-router";
-import { Home, TrendingUp, User } from "lucide-react-native";
+import { Home, TrendingUp, User, Trophy, Camera } from "lucide-react-native";
 import { Platform } from "react-native";
 
 export default function TabLayout() {
@@ -45,6 +45,26 @@ export default function TabLayout() {
           headerShown: false,
           tabBarIcon: ({ color }) => (
             <TrendingUp size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="camera"
+        options={{
+          title: "Camera",
+          headerShown: false,
+          tabBarIcon: ({ color }) => (
+            <Camera size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="trophies"
+        options={{
+          title: "Trophies",
+          headerShown: false,
+          tabBarIcon: ({ color }) => (
+            <Trophy size={22} color={color} />
           ),
         }}
       />

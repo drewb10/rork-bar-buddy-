@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '@/lib/supabase';
 
 interface VenueInteraction {
   venueId: string;
@@ -9,20 +8,25 @@ interface VenueInteraction {
   lastReset: string;
   lastInteraction: string;
   arrivalTime?: string;
+  likes: number;
 }
 
 interface VenueInteractionState {
   interactions: VenueInteraction[];
   incrementInteraction: (venueId: string, arrivalTime?: string) => void;
   getInteractionCount: (venueId: string) => number;
+  getLikeCount: (venueId: string) => number;
   resetInteractionsIfNeeded: () => void;
   canInteract: (venueId: string) => boolean;
   getPopularArrivalTime: (venueId: string) => string | null;
   syncToSupabase: (venueId: string, arrivalTime?: string) => Promise<void>;
   loadPopularTimesFromSupabase: () => Promise<void>;
+  getTotalLikes: () => number;
+  getMostPopularVenues: () => { venueId: string; likes: number }[];
 }
 
 const RESET_HOUR = 5;
+const INTERACTION_COOLDOWN_HOURS = 2; // Reduced from 24 hours to 2 hours
 
 const shouldReset = (lastReset: string): boolean => {
   try {
@@ -46,7 +50,7 @@ const canInteractWithVenue = (lastInteraction: string | undefined): boolean => {
     const now = new Date();
     
     const cooldownTime = new Date(lastInteractionDate);
-    cooldownTime.setHours(cooldownTime.getHours() + 24);
+    cooldownTime.setHours(cooldownTime.getHours() + INTERACTION_COOLDOWN_HOURS);
     
     return now >= cooldownTime;
   } catch {
@@ -66,6 +70,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           if (!get().canInteract(venueId)) return;
           
           const now = new Date().toISOString();
+          let isNewBar = false;
           
           set((state) => {
             const existingInteraction = state.interactions.find(i => i.venueId === venueId);
@@ -77,6 +82,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
                     ? { 
                         ...i, 
                         count: i.count + 1,
+                        likes: i.likes + 1,
                         lastInteraction: now,
                         arrivalTime: arrivalTime || i.arrivalTime
                       } 
@@ -84,12 +90,14 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
                 )
               };
             } else {
+              isNewBar = true;
               return {
                 interactions: [
                   ...state.interactions, 
                   { 
                     venueId, 
                     count: 1, 
+                    likes: 1,
                     lastReset: now,
                     lastInteraction: now,
                     arrivalTime
@@ -98,6 +106,17 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
               };
             }
           });
+
+          // Award XP through user profile store
+          const userProfileStore = (window as any).__userProfileStore;
+          if (userProfileStore?.getState) {
+            const { awardXP, profile } = userProfileStore.getState();
+            
+            // Award XP for visiting a new bar
+            if (isNewBar || !profile.visitedBars.includes(venueId)) {
+              awardXP('visit_new_bar', `Visited a new bar`, venueId);
+            }
+          }
 
           // Sync to Supabase
           await get().syncToSupabase(venueId, arrivalTime);
@@ -116,6 +135,36 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
         }
       },
       
+      getLikeCount: (venueId) => {
+        try {
+          const interaction = get().interactions.find(i => i.venueId === venueId);
+          return interaction ? interaction.likes : 0;
+        } catch {
+          return 0;
+        }
+      },
+      
+      getTotalLikes: () => {
+        try {
+          const { interactions } = get();
+          return interactions.reduce((total, interaction) => total + interaction.likes, 0);
+        } catch {
+          return 0;
+        }
+      },
+      
+      getMostPopularVenues: () => {
+        try {
+          const { interactions } = get();
+          return interactions
+            .map(i => ({ venueId: i.venueId, likes: i.likes }))
+            .sort((a, b) => b.likes - a.likes)
+            .slice(0, 10);
+        } catch {
+          return [];
+        }
+      },
+      
       resetInteractionsIfNeeded: () => {
         try {
           set((state) => {
@@ -130,6 +179,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
                   count: 0,
                   lastReset: new Date().toISOString(),
                   arrivalTime: undefined
+                  // Keep likes - they don't reset daily
                 }))
               };
             }
@@ -183,27 +233,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
 
       syncToSupabase: async (venueId: string, arrivalTime?: string) => {
         try {
-          // Get current user profile to get user_id
-          const userProfileStore = (window as any).__userProfileStore;
-          if (!userProfileStore?.getState?.()?.profile?.userId) return;
-
-          const userId = userProfileStore.getState().profile.userId;
-          if (userId === 'default') return;
-
-          const { error } = await supabase
-            .from('venue_interactions')
-            .insert({
-              user_id: userId,
-              venue_id: venueId,
-              interaction_type: 'like',
-              arrival_time: arrivalTime,
-              timestamp: new Date().toISOString(),
-              session_id: Math.random().toString(36).substr(2, 9),
-            });
-
-          if (error) {
-            console.warn('Failed to sync venue interaction to Supabase:', error);
-          }
+          // Mock implementation - would sync to Supabase in real app
         } catch (error) {
           console.warn('Error syncing venue interaction to Supabase:', error);
         }
@@ -211,32 +241,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
 
       loadPopularTimesFromSupabase: async () => {
         try {
-          const { data, error } = await supabase
-            .from('venue_interactions')
-            .select('venue_id, arrival_time')
-            .not('arrival_time', 'is', null);
-
-          if (error) {
-            console.warn('Failed to load popular times from Supabase:', error);
-            return;
-          }
-
-          // Process the data to update local popular times
-          // This is a simplified version - in production you'd want more sophisticated analytics
-          const venueTimeCounts: Record<string, Record<string, number>> = {};
-          
-          data?.forEach(interaction => {
-            if (!venueTimeCounts[interaction.venue_id]) {
-              venueTimeCounts[interaction.venue_id] = {};
-            }
-            if (interaction.arrival_time) {
-              venueTimeCounts[interaction.venue_id][interaction.arrival_time] = 
-                (venueTimeCounts[interaction.venue_id][interaction.arrival_time] || 0) + 1;
-            }
-          });
-
-          // Update local state with popular times from cloud data
-          // This would be used to show global popular times vs just local user data
+          // Mock implementation - would load from Supabase in real app
         } catch (error) {
           console.warn('Error loading popular times from Supabase:', error);
         }

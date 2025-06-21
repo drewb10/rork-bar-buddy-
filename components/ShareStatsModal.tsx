@@ -14,10 +14,13 @@ interface ShareStatsModalProps {
     nightsOut: number;
     barsHit: number;
     profilePicture?: string;
+    xp: number;
   };
   rankInfo: {
-    rank: number;
+    tier: number;
+    subRank: number;
     title: string;
+    subTitle: string;
     color: string;
   };
   onClose: () => void;
@@ -98,14 +101,17 @@ export default function ShareStatsModal({ profile, rankInfo, onClose }: ShareSta
             </View>
           </View>
 
-          {/* Rank Badge - Updated for 5-tier system */}
+          {/* Rank Badge */}
           <View style={[styles.rankBadge, { backgroundColor: themeColors.background }]}>
             <Award size={20} color={rankInfo.color} />
             <Text style={[styles.rankTitle, { color: rankInfo.color }]}>
               {rankInfo.title}
             </Text>
-            <Text style={[styles.rankSubtext, { color: themeColors.subtext }]}>
-              Rank {rankInfo.rank}/5
+            <Text style={[styles.rankSubtext, { color: themeColors.text }]}>
+              {rankInfo.subTitle}
+            </Text>
+            <Text style={[styles.xpText, { color: themeColors.subtext }]}>
+              {profile.xp} XP
             </Text>
           </View>
 
@@ -235,6 +241,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   rankSubtext: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  xpText: {
     fontSize: 12,
     fontWeight: '500',
     textAlign: 'center',

@@ -20,6 +20,14 @@ export const createProfileProcedure = publicProcedure
           last_name: input.lastName,
           profile_pic: input.profilePicture,
           has_completed_onboarding: true,
+          xp: 0,
+          xp_activities: [],
+          visited_bars: [],
+          events_attended: 0,
+          friends_referred: 0,
+          live_events_attended: 0,
+          featured_drinks_tried: 0,
+          bar_games_played: 0,
         })
         .select()
         .single();

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, Pressable } from 'react-native';
-import { X, Zap } from 'lucide-react-native';
+import { StyleSheet, View, Text, Pressable, Modal } from 'react-native';
+import { X, Zap, Check, Sparkles } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import Slider from '@react-native-community/slider';
+import * as Haptics from 'expo-haptics';
+import { Platform } from 'react-native';
 
 interface DrunkScaleSliderProps {
   onSubmit: (rating: number) => void;
@@ -14,6 +16,7 @@ export default function DrunkScaleSlider({ onSubmit, onCancel }: DrunkScaleSlide
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const [rating, setRating] = useState(5);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const getRatingLabel = (value: number) => {
     if (value <= 1) return 'Stone Cold Sober';
@@ -36,6 +39,66 @@ export default function DrunkScaleSlider({ onSubmit, onCancel }: DrunkScaleSlide
     return '#9C27B0'; // Purple
   };
 
+  const getRatingEmoji = (value: number) => {
+    if (value <= 2) return '😊';
+    if (value <= 4) return '🙂';
+    if (value <= 6) return '😵‍💫';
+    if (value <= 8) return '🤢';
+    return '💀';
+  };
+
+  const handleSubmit = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    
+    setShowSuccessModal(true);
+    
+    // Auto-submit after showing success animation
+    setTimeout(() => {
+      setShowSuccessModal(false);
+      onSubmit(rating);
+    }, 2000);
+  };
+
+  const handleSliderChange = (value: number) => {
+    setRating(value);
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  };
+
+  if (showSuccessModal) {
+    return (
+      <View style={styles.overlay}>
+        <View style={[styles.successContainer, { backgroundColor: themeColors.card }]}>
+          <View style={[styles.successIcon, { backgroundColor: getRatingColor(rating) }]}>
+            <Check size={40} color="white" />
+          </View>
+          
+          <Text style={[styles.successTitle, { color: themeColors.text }]}>
+            Rating Submitted! {getRatingEmoji(rating)}
+          </Text>
+          
+          <Text style={[styles.successSubtitle, { color: themeColors.subtext }]}>
+            You rated last night as {rating}/10
+          </Text>
+          
+          <Text style={[styles.successLabel, { color: getRatingColor(rating) }]}>
+            "{getRatingLabel(rating)}"
+          </Text>
+          
+          <View style={[styles.xpBadge, { backgroundColor: themeColors.primary + '20' }]}>
+            <Sparkles size={16} color={themeColors.primary} />
+            <Text style={[styles.xpText, { color: themeColors.primary }]}>
+              Thanks for sharing!
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.overlay}>
       <View style={[styles.container, { backgroundColor: themeColors.card }]}>
@@ -50,15 +113,16 @@ export default function DrunkScaleSlider({ onSubmit, onCancel }: DrunkScaleSlide
 
         <View style={styles.content}>
           <View style={styles.ratingDisplay}>
-            <Zap size={40} color={getRatingColor(rating)} />
-            <Text style={[styles.ratingNumber, { color: getRatingColor(rating) }]}>
-              {rating}/10
-            </Text>
+            <Text style={styles.ratingEmoji}>{getRatingEmoji(rating)}</Text>
+            <View style={styles.ratingInfo}>
+              <Text style={[styles.ratingNumber, { color: getRatingColor(rating) }]}>
+                {rating}/10
+              </Text>
+              <Text style={[styles.ratingLabel, { color: themeColors.text }]}>
+                {getRatingLabel(rating)}
+              </Text>
+            </View>
           </View>
-
-          <Text style={[styles.ratingLabel, { color: themeColors.text }]}>
-            {getRatingLabel(rating)}
-          </Text>
 
           <View style={styles.sliderContainer}>
             <Slider
@@ -67,20 +131,29 @@ export default function DrunkScaleSlider({ onSubmit, onCancel }: DrunkScaleSlide
               maximumValue={10}
               step={1}
               value={rating}
-              onValueChange={setRating}
+              onValueChange={handleSliderChange}
               minimumTrackTintColor={getRatingColor(rating)}
               maximumTrackTintColor={themeColors.border}
               thumbTintColor={getRatingColor(rating)}
             />
             <View style={styles.sliderLabels}>
-              <Text style={[styles.sliderLabel, { color: themeColors.subtext }]}>1</Text>
-              <Text style={[styles.sliderLabel, { color: themeColors.subtext }]}>10</Text>
+              <View style={styles.sliderLabelContainer}>
+                <Text style={[styles.sliderLabel, { color: themeColors.subtext }]}>1</Text>
+                <Text style={[styles.sliderSubLabel, { color: themeColors.subtext }]}>Sober</Text>
+              </View>
+              <View style={styles.sliderLabelContainer}>
+                <Text style={[styles.sliderLabel, { color: themeColors.subtext }]}>10</Text>
+                <Text style={[styles.sliderSubLabel, { color: themeColors.subtext }]}>Legendary</Text>
+              </View>
             </View>
           </View>
 
-          <Text style={[styles.description, { color: themeColors.subtext }]}>
-            Rate your level of intoxication from last night. This helps track your party patterns!
-          </Text>
+          <View style={[styles.infoCard, { backgroundColor: themeColors.background }]}>
+            <Zap size={16} color={themeColors.primary} />
+            <Text style={[styles.description, { color: themeColors.subtext }]}>
+              Rate your level of intoxication from last night. This helps track your party patterns and builds your Bar Buddy profile!
+            </Text>
+          </View>
         </View>
 
         <View style={styles.actions}>
@@ -90,7 +163,7 @@ export default function DrunkScaleSlider({ onSubmit, onCancel }: DrunkScaleSlide
           
           <Pressable 
             style={[styles.submitButton, { backgroundColor: getRatingColor(rating) }]} 
-            onPress={() => onSubmit(rating)}
+            onPress={handleSubmit}
           >
             <Text style={styles.submitButtonText}>Submit Rating</Text>
           </Pressable>
@@ -139,18 +212,27 @@ const styles = StyleSheet.create({
   ratingDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,106,0,0.1)',
+  },
+  ratingEmoji: {
+    fontSize: 48,
+    marginRight: 16,
+  },
+  ratingInfo: {
+    flex: 1,
   },
   ratingNumber: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: '800',
-    marginLeft: 12,
+    marginBottom: 4,
   },
   ratingLabel: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    marginBottom: 24,
-    textAlign: 'center',
   },
   sliderContainer: {
     width: '100%',
@@ -165,14 +247,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 8,
   },
+  sliderLabelContainer: {
+    alignItems: 'center',
+  },
   sliderLabel: {
     fontSize: 14,
+    fontWeight: '600',
+  },
+  sliderSubLabel: {
+    fontSize: 10,
     fontWeight: '500',
+    marginTop: 2,
+  },
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 16,
+    borderRadius: 12,
+    width: '100%',
   },
   description: {
     fontSize: 14,
-    textAlign: 'center',
     lineHeight: 20,
+    marginLeft: 8,
+    flex: 1,
   },
   actions: {
     flexDirection: 'row',
@@ -201,5 +299,56 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '600',
     fontSize: 16,
+  },
+  // Success modal styles
+  successContainer: {
+    width: '90%',
+    maxWidth: 350,
+    borderRadius: 20,
+    padding: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  successIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  successSubtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  successLabel: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 20,
+    fontStyle: 'italic',
+  },
+  xpBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  xpText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

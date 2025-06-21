@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, TextInput, Image } from 'react-native';
-import { User, TrendingUp, MapPin, Zap, Edit3, X, Award, Camera, Share2, Users, RotateCcw } from 'lucide-react-native';
+import { User, TrendingUp, MapPin, Zap, Edit3, X, Award, Camera, Share2, Users, RotateCcw, Info, BarChart3 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
+import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
+import { venues } from '@/mocks/venues';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import DrunkScaleSlider from '@/components/DrunkScaleSlider';
 import ShareStatsModal from '@/components/ShareStatsModal';
@@ -20,21 +22,50 @@ export default function TrackingScreen() {
     addDrunkScaleRating,
     canSubmitDrunkScale,
     getRank,
+    getAllRanks,
+    getXPForNextRank,
+    getProgressToNextRank,
     setProfilePicture,
     setUserName,
     resetStats
   } = useUserProfileStore();
   
+  const { interactions } = useVenueInteractionStore();
+  
   const [nameEditModalVisible, setNameEditModalVisible] = useState(false);
   const [drunkScaleModalVisible, setDrunkScaleModalVisible] = useState(false);
   const [shareStatsModalVisible, setShareStatsModalVisible] = useState(false);
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
+  const [rankDetailsModalVisible, setRankDetailsModalVisible] = useState(false);
+  const [barVisitsModalVisible, setBarVisitsModalVisible] = useState(false);
   const [editFirstName, setEditFirstName] = useState(profile.firstName);
   const [editLastName, setEditLastName] = useState(profile.lastName);
   
   const averageDrunkScale = getAverageDrunkScale();
   const canSubmitToday = canSubmitDrunkScale();
   const rankInfo = getRank();
+  const allRanks = getAllRanks();
+  const nextRankXP = getXPForNextRank();
+  const progressToNext = getProgressToNextRank();
+
+  // Get bar visit data
+  const getBarVisits = () => {
+    return interactions
+      .filter(interaction => interaction.count > 0)
+      .map(interaction => {
+        const venue = venues.find(v => v.id === interaction.venueId);
+        return {
+          venueId: interaction.venueId,
+          venueName: venue?.name || 'Unknown Bar',
+          visits: interaction.count,
+          likes: interaction.likes
+        };
+      })
+      .sort((a, b) => b.visits - a.visits);
+  };
+
+  const barVisits = getBarVisits();
+  const totalVisits = barVisits.reduce((sum, bar) => sum + bar.visits, 0);
 
   const formatJoinDate = (dateString: string) => {
     try {
@@ -60,13 +91,12 @@ export default function TrackingScreen() {
   const handleDrunkScaleSubmit = (rating: number) => {
     addDrunkScaleRating(rating);
     setDrunkScaleModalVisible(false);
-    Alert.alert('Rating Submitted', `You rated last night as ${rating}/10 on the drunk scale!`);
   };
 
   const handleResetStats = () => {
     Alert.alert(
       'Reset My Stats',
-      'Are you sure you want to reset all your stats? This will set your nights out, bars hit, and drunk scale ratings back to zero. This action cannot be undone.',
+      'Are you sure you want to reset all your stats? This will set your nights out, bars hit, XP, and drunk scale ratings back to zero. This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
@@ -199,6 +229,67 @@ export default function TrackingScreen() {
           )}
         </View>
 
+        {/* XP and Ranking Card */}
+        <View style={[styles.xpCard, { backgroundColor: themeColors.card }]}>
+          <View style={styles.xpHeader}>
+            <Award size={24} color={rankInfo.color} />
+            <View style={styles.xpInfo}>
+              <Text style={[styles.xpAmount, { color: themeColors.text }]}>
+                {profile.xp} XP
+              </Text>
+              <Text style={[styles.xpToNext, { color: themeColors.subtext }]}>
+                {nextRankXP - profile.xp} XP to next rank
+              </Text>
+            </View>
+          </View>
+          
+          <View style={[styles.progressBar, { backgroundColor: themeColors.background }]}>
+            <View 
+              style={[
+                styles.progressFill, 
+                { 
+                  backgroundColor: rankInfo.color,
+                  width: `${progressToNext}%`
+                }
+              ]} 
+            />
+          </View>
+          
+          <Pressable 
+            style={styles.rankContainer}
+            onPress={() => setRankDetailsModalVisible(true)}
+          >
+            <Text style={[styles.rankTitle, { color: rankInfo.color }]}>
+              {rankInfo.title}
+            </Text>
+            <Text style={[styles.rankSubtitle, { color: themeColors.text }]}>
+              {rankInfo.subTitle}
+            </Text>
+            <Info size={16} color={themeColors.subtext} style={styles.infoIcon} />
+          </Pressable>
+        </View>
+
+        {/* Bar Visits Tracker */}
+        {barVisits.length > 0 && (
+          <Pressable 
+            style={[styles.barVisitsCard, { backgroundColor: themeColors.card }]}
+            onPress={() => setBarVisitsModalVisible(true)}
+          >
+            <View style={styles.barVisitsHeader}>
+              <BarChart3 size={20} color={themeColors.primary} />
+              <Text style={[styles.barVisitsTitle, { color: themeColors.text }]}>
+                Bar Visit Tracker
+              </Text>
+              <Text style={[styles.totalVisits, { color: themeColors.primary }]}>
+                {totalVisits} total visits
+              </Text>
+            </View>
+            <Text style={[styles.barVisitsSubtitle, { color: themeColors.subtext }]}>
+              You've visited {barVisits.length} different bars • Tap to see details
+            </Text>
+          </Pressable>
+        )}
+
         {/* Friends Button */}
         <Pressable 
           style={[styles.friendsButton, { backgroundColor: themeColors.card }]}
@@ -283,19 +374,6 @@ export default function TrackingScreen() {
               How lit did you get last night?
             </Text>
           </Pressable>
-
-          {/* Ranking Card - Updated with new 5-tier system */}
-          <View style={styles.rankingContainer}>
-            <View style={[styles.rankingCard, { backgroundColor: themeColors.card }]}>
-              <Award size={24} color={rankInfo.color} />
-              <Text style={[styles.rankingTitle, { color: rankInfo.color }]}>
-                {rankInfo.title}
-              </Text>
-              <Text style={[styles.rankingSubtext, { color: themeColors.subtext }]}>
-                Rank {rankInfo.rank}/5
-              </Text>
-            </View>
-          </View>
 
           {/* Action Buttons Row */}
           <View style={styles.actionButtonsRow}>
@@ -399,6 +477,125 @@ export default function TrackingScreen() {
                 <Text style={styles.saveButtonText}>Save</Text>
               </Pressable>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Bar Visits Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={barVisitsModalVisible}
+        onRequestClose={() => setBarVisitsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
+                Bar Visit History
+              </Text>
+              <Pressable 
+                style={styles.closeButton}
+                onPress={() => setBarVisitsModalVisible(false)}
+              >
+                <X size={24} color={themeColors.subtext} />
+              </Pressable>
+            </View>
+            
+            <ScrollView style={styles.barVisitsList} showsVerticalScrollIndicator={false}>
+              {barVisits.map((bar, index) => (
+                <View 
+                  key={bar.venueId}
+                  style={[
+                    styles.barVisitItem,
+                    { 
+                      backgroundColor: themeColors.background,
+                      borderLeftColor: index < 3 ? themeColors.primary : themeColors.border
+                    }
+                  ]}
+                >
+                  <View style={styles.barVisitInfo}>
+                    <Text style={[styles.barVisitName, { color: themeColors.text }]}>
+                      {bar.venueName}
+                    </Text>
+                    <Text style={[styles.barVisitStats, { color: themeColors.subtext }]}>
+                      {bar.visits} {bar.visits === 1 ? 'visit' : 'visits'} • {bar.likes} {bar.likes === 1 ? 'like' : 'likes'}
+                    </Text>
+                  </View>
+                  <View style={[styles.visitBadge, { backgroundColor: themeColors.primary }]}>
+                    <Text style={styles.visitBadgeText}>{bar.visits}</Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+            
+            <View style={[styles.barVisitsSummary, { backgroundColor: themeColors.background }]}>
+              <Text style={[styles.summaryText, { color: themeColors.subtext }]}>
+                Total: {totalVisits} visits across {barVisits.length} bars
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Rank Details Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={rankDetailsModalVisible}
+        onRequestClose={() => setRankDetailsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
+                Ranking System
+              </Text>
+              <Pressable 
+                style={styles.closeButton}
+                onPress={() => setRankDetailsModalVisible(false)}
+              >
+                <X size={24} color={themeColors.subtext} />
+              </Pressable>
+            </View>
+            
+            <ScrollView style={styles.rankList} showsVerticalScrollIndicator={false}>
+              {allRanks.map((rank, index) => (
+                <View 
+                  key={`${rank.tier}-${rank.subRank}`}
+                  style={[
+                    styles.rankItem,
+                    { 
+                      backgroundColor: rank.tier === rankInfo.tier && rank.subRank === rankInfo.subRank 
+                        ? rank.color + '20' 
+                        : 'transparent',
+                      borderColor: rank.tier === rankInfo.tier && rank.subRank === rankInfo.subRank 
+                        ? rank.color 
+                        : 'transparent',
+                      borderWidth: 1,
+                    }
+                  ]}
+                >
+                  <Award size={20} color={rank.color} />
+                  <View style={styles.rankItemInfo}>
+                    <Text style={[styles.rankItemTitle, { color: rank.color }]}>
+                      {rank.title}
+                    </Text>
+                    <Text style={[styles.rankItemSubtitle, { color: themeColors.text }]}>
+                      {rank.subTitle}
+                    </Text>
+                    <Text style={[styles.rankItemXP, { color: themeColors.subtext }]}>
+                      {rank.minXP} - {rank.maxXP} XP
+                    </Text>
+                  </View>
+                  {rank.tier === rankInfo.tier && rank.subRank === rankInfo.subRank && (
+                    <Text style={[styles.currentRankBadge, { color: rank.color }]}>
+                      Current
+                    </Text>
+                  )}
+                </View>
+              ))}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -532,6 +729,92 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  xpCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  xpHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  xpInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  xpAmount: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  xpToNext: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  progressBar: {
+    height: 8,
+    borderRadius: 4,
+    marginBottom: 12,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  rankContainer: {
+    alignItems: 'center',
+    position: 'relative',
+  },
+  rankTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  rankSubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  infoIcon: {
+    position: 'absolute',
+    right: -20,
+    top: 8,
+  },
+  barVisitsCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  barVisitsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  barVisitsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+    flex: 1,
+  },
+  totalVisits: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  barVisitsSubtitle: {
+    fontSize: 14,
+    lineHeight: 18,
+  },
   friendsButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -624,33 +907,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  rankingContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  rankingCard: {
-    alignItems: 'center',
-    borderRadius: 12,
-    padding: 16,
-    width: '60%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  rankingTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginTop: 8,
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  rankingSubtext: {
-    fontSize: 12,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
   actionButtonsRow: {
     flexDirection: 'row',
     gap: 12,
@@ -699,6 +955,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '90%',
+    maxHeight: '80%',
     borderRadius: 16,
     padding: 20,
   },
@@ -754,5 +1011,79 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: 'white',
     fontWeight: '600',
+  },
+  // Bar visits modal styles
+  barVisitsList: {
+    maxHeight: 400,
+  },
+  barVisitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderLeftWidth: 4,
+  },
+  barVisitInfo: {
+    flex: 1,
+  },
+  barVisitName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  barVisitStats: {
+    fontSize: 14,
+  },
+  visitBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  visitBadgeText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  barVisitsSummary: {
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  // Rank details modal styles
+  rankList: {
+    maxHeight: 400,
+  },
+  rankItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  rankItemInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  rankItemTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  rankItemSubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  rankItemXP: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  currentRankBadge: {
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

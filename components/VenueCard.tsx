@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, Pressable, Image, Dimensions, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MapPin, Clock, Star, Flame, MessageCircle } from 'lucide-react-native';
+import { MapPin, Clock, Star, Flame, MessageCircle, Heart } from 'lucide-react-native';
 import { Venue } from '@/types/venue';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
@@ -21,21 +21,26 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const router = useRouter();
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { incrementInteraction, getInteractionCount, canInteract, getPopularArrivalTime } = useVenueInteractionStore();
+  const { incrementInteraction, getInteractionCount, getLikeCount, canInteract, getPopularArrivalTime } = useVenueInteractionStore();
   const { incrementNightsOut, incrementBarsHit, canIncrementNightsOut } = useUserProfileStore();
   const interactionCount = getInteractionCount(venue.id);
+  const likeCount = getLikeCount(venue.id);
   const popularTime = getPopularArrivalTime(venue.id);
   const [rsvpModalVisible, setRsvpModalVisible] = useState(false);
   const [chatModalVisible, setChatModalVisible] = useState(false);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [isInteracting, setIsInteracting] = useState(false);
   const canInteractWithVenue = canInteract(venue.id);
 
   const handlePress = () => {
+    if (isInteracting) return; // Prevent multiple clicks
     router.push(`/venue/${venue.id}`);
   };
 
   const handleInteraction = () => {
-    if (!canInteractWithVenue) return;
+    if (!canInteractWithVenue || isInteracting) return;
+    
+    setIsInteracting(true);
     
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -66,7 +71,14 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
       
       setRsvpModalVisible(false);
       setSelectedTime(null);
+      setIsInteracting(false);
     }
+  };
+
+  const handleRsvpCancel = () => {
+    setRsvpModalVisible(false);
+    setSelectedTime(null);
+    setIsInteracting(false);
   };
 
   const renderPriceLevel = () => {
@@ -118,12 +130,22 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
       <Pressable 
         style={[styles.compactCard, { backgroundColor: themeColors.card }]} 
         onPress={handlePress}
+        disabled={isInteracting}
       >
         <Image source={{ uri: venue.featuredImage }} style={styles.compactImage} />
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.7)']}
           style={styles.compactGradient}
         />
+        
+        {/* Like count badge for compact cards */}
+        {likeCount > 0 && (
+          <View style={[styles.compactLikeBadge, { backgroundColor: themeColors.primary }]}>
+            <Heart size={10} color="white" fill="white" />
+            <Text style={styles.compactLikeText}>{likeCount}</Text>
+          </View>
+        )}
+        
         <View style={styles.compactContent}>
           <Text style={[styles.compactName, { color: themeColors.text }]} numberOfLines={1}>
             {venue.name}
@@ -146,6 +168,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     <Pressable 
       style={[styles.card, { backgroundColor: themeColors.card }]} 
       onPress={handlePress}
+      disabled={isInteracting}
     >
       <Image source={{ uri: venue.featuredImage }} style={styles.image} />
       <LinearGradient
@@ -158,11 +181,11 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           styles.interactionButton, 
           { 
             backgroundColor: interactionCount > 0 ? themeColors.primary : themeColors.card,
-            opacity: canInteractWithVenue ? 1 : 0.5
+            opacity: canInteractWithVenue && !isInteracting ? 1 : 0.5
           }
         ]}
         onPress={handleInteraction}
-        disabled={!canInteractWithVenue}
+        disabled={!canInteractWithVenue || isInteracting}
       >
         <Flame 
           size={18} 
@@ -173,7 +196,15 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         )}
       </Pressable>
 
-      {/* Chat Button - Removed "Buddy" text, kept only icon */}
+      {/* Like count badge */}
+      {likeCount > 0 && (
+        <View style={[styles.likeBadge, { backgroundColor: themeColors.primary }]}>
+          <Heart size={14} color="white" fill="white" />
+          <Text style={styles.likeText}>{likeCount}</Text>
+        </View>
+      )}
+
+      {/* Chat Button */}
       <Pressable 
         style={[
           styles.chatButton, 
@@ -209,7 +240,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           </Text>
         </View>
 
-        {/* Hot Time Badge - Updated to show only most popular time(s) */}
+        {/* Hot Time Badge */}
         {popularTime && (
           <View style={[styles.hotTimeBadge, { backgroundColor: themeColors.primary + '20' }]}>
             <Flame size={14} color={themeColors.primary} />
@@ -257,7 +288,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         animationType="slide"
         transparent={true}
         visible={rsvpModalVisible}
-        onRequestClose={() => setRsvpModalVisible(false)}
+        onRequestClose={handleRsvpCancel}
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
@@ -295,10 +326,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
             <View style={styles.modalActions}>
               <Pressable 
                 style={[styles.modalButton, styles.cancelButton]} 
-                onPress={() => {
-                  setRsvpModalVisible(false);
-                  setSelectedTime(null);
-                }}
+                onPress={handleRsvpCancel}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </Pressable>
@@ -387,6 +415,27 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
+  likeBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  likeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
   chatButton: {
     position: 'absolute',
     bottom: 16,
@@ -418,7 +467,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 90, // Extra padding to account for chat button
+    paddingBottom: 90,
   },
   header: {
     flexDirection: 'row',
@@ -509,6 +558,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+    position: 'relative',
   },
   compactImage: {
     width: '100%',
@@ -520,6 +570,22 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 100,
+  },
+  compactLikeBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  compactLikeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '600',
+    marginLeft: 3,
   },
   compactContent: {
     padding: 10,
