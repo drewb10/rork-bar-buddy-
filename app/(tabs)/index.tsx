@@ -34,27 +34,24 @@ export default function HomeScreen() {
     // Get the 3 specific venues for top picks
     const topPickVenueIds = ['2', '5', '6']; // The Library, Late Nite, JBA
     
-    // Create intermediate type for mapping
-    type TopPickCandidate = {
-      venue: Venue;
-      todaySpecial?: Special;
-    } | null;
-    
-    // Map venues to TopPickCandidate objects first
-    const topPickCandidates: TopPickCandidate[] = topPickVenueIds.map(venueId => {
-      const venue = venues.find(v => v.id === venueId);
-      if (!venue) return null;
-      
-      // Find today's special for this venue
-      const todaySpecial = allSpecials.find(({ venue: v }) => v.id === venueId)?.special;
-      
-      return { venue, todaySpecial };
-    });
-    
-    // Filter out null values and ensure type safety
-    const validTopPicks: TopPickItem[] = topPickCandidates.filter(
-      (item): item is TopPickItem => item !== null
-    );
+    // Create TopPickItem objects, filtering out venues that don't exist
+    const validTopPicks: TopPickItem[] = topPickVenueIds
+      .map(venueId => {
+        const venue = venues.find(v => v.id === venueId);
+        if (!venue) return null;
+        
+        // Find today's special for this venue
+        const todaySpecial = allSpecials.find(({ venue: v }) => v.id === venueId)?.special;
+        
+        // Return TopPickItem object (todaySpecial is optional, so we can omit it if undefined)
+        const topPickItem: TopPickItem = { venue };
+        if (todaySpecial) {
+          topPickItem.todaySpecial = todaySpecial;
+        }
+        
+        return topPickItem;
+      })
+      .filter((item): item is TopPickItem => item !== null);
     
     setTopPickVenues(validTopPicks);
     resetInteractionsIfNeeded();
@@ -112,11 +109,11 @@ export default function HomeScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.horizontalList}
             >
-              {topPickVenues.map(({ venue, todaySpecial }) => (
+              {topPickVenues.map((topPickItem) => (
                 <TopPickCard 
-                  key={venue.id} 
-                  venue={venue}
-                  todaySpecial={todaySpecial}
+                  key={topPickItem.venue.id} 
+                  venue={topPickItem.venue}
+                  todaySpecial={topPickItem.todaySpecial}
                 />
               ))}
             </ScrollView>
