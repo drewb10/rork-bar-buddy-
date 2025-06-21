@@ -108,7 +108,7 @@ const XP_VALUES = {
   live_music: 40,
   featured_drink: 20,
   bar_game: 35,
-  photo_taken: 75,
+  photo_taken: 25, // Reduced from 75 to 25
 };
 
 const RANK_STRUCTURE: RankInfo[] = [

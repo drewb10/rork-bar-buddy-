@@ -176,6 +176,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         style={styles.imageGradient}
       />
       
+      {/* Flame Button - No counter, just functional */}
       <Pressable 
         style={[
           styles.interactionButton, 
@@ -191,9 +192,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           size={18} 
           color={interactionCount > 0 ? 'white' : themeColors.primary} 
         />
-        {interactionCount > 0 && (
-          <Text style={styles.interactionCount}>{interactionCount}</Text>
-        )}
       </Pressable>
 
       {/* Like count badge */}
@@ -450,20 +448,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
-  },
-  interactionCount: {
-    position: 'absolute',
-    top: -5,
-    right: -5,
-    backgroundColor: '#FF4500',
-    color: 'white',
-    fontSize: 10,
-    fontWeight: 'bold',
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    textAlign: 'center',
-    lineHeight: 16,
   },
   content: {
     padding: 16,

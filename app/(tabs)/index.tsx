@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable, Dimensions, StatusBar, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MapPin, Heart, TrendingUp } from 'lucide-react-native';
+import { MapPin, Heart, TrendingUp, BarChart3 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { venues, getSpecialsByDay } from '@/mocks/venues';
@@ -12,7 +12,10 @@ import FilterBar from '@/components/FilterBar';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import TopPickCard from '@/components/TopPickCard';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
+import DailyTrackerModal from '@/components/DailyTrackerModal';
+import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
 import { Venue, Special } from '@/types/venue';
+import * as Haptics from 'expo-haptics';
 
 interface TopPickItem {
   venue: Venue;
@@ -25,7 +28,9 @@ export default function HomeScreen() {
   const themeColors = colors[theme];
   const [venueFilters, setVenueFilters] = useState<string[]>([]);
   const [topPickVenues, setTopPickVenues] = useState<TopPickItem[]>([]);
+  const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
   const { interactions, resetInteractionsIfNeeded } = useVenueInteractionStore();
+  const { getDailyTotal, resetDailyStatsIfNeeded } = useDailyTrackerStore();
 
   useEffect(() => {
     const day = getCurrentDay();
@@ -43,10 +48,11 @@ export default function HomeScreen() {
         
         return { venue, todaySpecial };
       })
-      .filter((pick): pick is NonNullable<typeof pick> => pick !== null) as TopPickItem[];
+      .filter((pick): pick is TopPickItem => pick !== null);
     
     setTopPickVenues(topPicks);
     resetInteractionsIfNeeded();
+    resetDailyStatsIfNeeded();
   }, []);
 
   const filteredVenues = venueFilters.length > 0
@@ -59,6 +65,15 @@ export default function HomeScreen() {
     const bCount = interactions.find(i => i.venueId === b.id)?.count || 0;
     return bCount - aCount;
   });
+
+  const handleDailyTrackerPress = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setDailyTrackerVisible(true);
+  };
+
+  const dailyTotal = getDailyTotal();
 
   return (
     <View style={[styles.container, { backgroundColor: '#121212' }]}>
@@ -102,6 +117,24 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* Daily Tracker Icon */}
+        <View style={styles.dailyTrackerSection}>
+          <Pressable 
+            style={[styles.dailyTrackerButton, { backgroundColor: themeColors.card }]}
+            onPress={handleDailyTrackerPress}
+          >
+            <BarChart3 size={20} color={themeColors.primary} />
+            <Text style={[styles.dailyTrackerText, { color: themeColors.text }]}>
+              Daily Tracker
+            </Text>
+            {dailyTotal > 0 && (
+              <View style={[styles.dailyTrackerBadge, { backgroundColor: themeColors.primary }]}>
+                <Text style={styles.dailyTrackerBadgeText}>{dailyTotal}</Text>
+              </View>
+            )}
+          </Pressable>
+        </View>
+
         <View style={styles.section}>
           <SectionHeader 
             title="Popular Venues" 
@@ -116,6 +149,12 @@ export default function HomeScreen() {
 
         <View style={styles.footer} />
       </ScrollView>
+
+      {/* Daily Tracker Modal */}
+      <DailyTrackerModal
+        visible={dailyTrackerVisible}
+        onClose={() => setDailyTrackerVisible(false)}
+      />
     </View>
   );
 }
@@ -149,6 +188,44 @@ const styles = StyleSheet.create({
   },
   venueList: {
     paddingHorizontal: 16,
+  },
+  dailyTrackerSection: {
+    marginTop: 24,
+    paddingHorizontal: 16,
+  },
+  dailyTrackerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    position: 'relative',
+  },
+  dailyTrackerText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  dailyTrackerBadge: {
+    position: 'absolute',
+    top: -4,
+    right: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dailyTrackerBadgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '700',
   },
   footer: {
     height: 24,

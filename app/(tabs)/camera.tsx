@@ -1,13 +1,14 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, Pressable, StatusBar, Platform, Alert, Image } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { Camera, RotateCcw, Zap, X, Check } from 'lucide-react-native';
+import { Camera, RotateCcw, Zap, X, Check, Image as ImageIcon } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
 
 export default function CameraScreen() {
   const { theme } = useThemeStore();
@@ -18,7 +19,17 @@ export default function CameraScreen() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(true);
   const cameraRef = useRef<CameraView>(null);
+
+  // Hide instructions after 10 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowInstructions(false);
+    }, 10000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   if (!permission) {
     return (
@@ -91,8 +102,8 @@ export default function CameraScreen() {
 
         setCapturedPhoto(localUri);
         
-        // Award XP for taking a photo
-        awardXP('special_achievement', 'Captured a nightlife moment!');
+        // Award XP for taking a photo (reduced to 25 XP)
+        awardXP('photo_taken', 'Captured a nightlife moment!');
         
         setShowSuccessModal(true);
         
@@ -115,6 +126,28 @@ export default function CameraScreen() {
     setShowSuccessModal(false);
   };
 
+  const openCameraRoll = async () => {
+    try {
+      if (Platform.OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        
+        // Request media library permissions
+        const { status } = await MediaLibrary.requestPermissionsAsync();
+        if (status === 'granted') {
+          // In a real app, you would open the camera roll here
+          // For now, we'll just show an alert
+          Alert.alert('Camera Roll', 'Camera roll feature coming soon!');
+        } else {
+          Alert.alert('Permission Required', 'Please grant media library access to view your photos.');
+        }
+      } else {
+        Alert.alert('Camera Roll', 'Camera roll not available on web.');
+      }
+    } catch (error) {
+      console.warn('Error opening camera roll:', error);
+    }
+  };
+
   if (capturedPhoto && showSuccessModal) {
     return (
       <View style={[styles.container, { backgroundColor: '#121212' }]}>
@@ -132,12 +165,12 @@ export default function CameraScreen() {
               Great Shot! 📸
             </Text>
             <Text style={[styles.successSubtitle, { color: themeColors.subtext }]}>
-              +75 XP earned for capturing the moment!
+              +25 XP earned for capturing the moment!
             </Text>
             <View style={styles.xpBadge}>
               <Zap size={16} color={themeColors.primary} />
               <Text style={[styles.xpText, { color: themeColors.primary }]}>
-                +75 XP
+                +25 XP
               </Text>
             </View>
           </View>
@@ -166,13 +199,22 @@ export default function CameraScreen() {
         style={styles.camera} 
         facing={facing}
       >
-        {/* Header */}
+        {/* Header - No background bar, just logo and text */}
         <View style={styles.header}>
           <BarBuddyLogo size="small" />
           <Text style={[styles.headerTitle, { color: 'white' }]}>
             Capture Your Night
           </Text>
         </View>
+
+        {/* Temporary Instructions */}
+        {showInstructions && (
+          <View style={styles.instructionsContainer}>
+            <Text style={[styles.instructionText, { color: 'white' }]}>
+              📸 Take photos at bars, earn XP, and capture memories!
+            </Text>
+          </View>
+        )}
 
         {/* Camera Controls */}
         <View style={styles.controls}>
@@ -199,20 +241,26 @@ export default function CameraScreen() {
             <Camera size={32} color="white" />
           </Pressable>
 
-          {/* XP Info */}
+          {/* Empty space for symmetry */}
+          <View style={styles.controlButton} />
+        </View>
+
+        {/* XP Info and Camera Roll */}
+        <View style={styles.bottomInfo}>
           <View style={[styles.xpInfo, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
             <Zap size={16} color={themeColors.primary} />
             <Text style={[styles.xpInfoText, { color: 'white' }]}>
-              +75 XP
+              +25 XP
             </Text>
           </View>
-        </View>
-
-        {/* Instructions */}
-        <View style={styles.instructions}>
-          <Text style={[styles.instructionText, { color: 'white' }]}>
-            📸 Take photos at bars to earn XP and capture memories!
-          </Text>
+          
+          {/* Camera Roll Button */}
+          <Pressable 
+            style={[styles.cameraRollButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
+            onPress={openCameraRoll}
+          >
+            <ImageIcon size={20} color="white" />
+          </Pressable>
         </View>
       </CameraView>
     </View>
@@ -277,7 +325,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: 'rgba(0,0,0,0.3)',
   },
   headerTitle: {
     fontSize: 18,
@@ -287,9 +334,27 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
+  instructionsContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 140 : 120,
+    left: 20,
+    right: 20,
+    alignItems: 'center',
+  },
+  instructionText: {
+    fontSize: 14,
+    textAlign: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
   controls: {
     position: 'absolute',
-    bottom: 40,
+    bottom: 120,
     left: 0,
     right: 0,
     flexDirection: 'row',
@@ -316,6 +381,16 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
+  bottomInfo: {
+    position: 'absolute',
+    bottom: 40,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
   xpInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -328,23 +403,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  instructions: {
-    position: 'absolute',
-    bottom: 140,
-    left: 20,
-    right: 20,
+  cameraRollButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
     alignItems: 'center',
-  },
-  instructionText: {
-    fontSize: 14,
-    textAlign: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   previewImage: {
     flex: 1,
