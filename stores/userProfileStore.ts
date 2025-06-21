@@ -24,7 +24,7 @@ interface FriendRequest {
 
 interface XPActivity {
   id: string;
-  type: 'visit_new_bar' | 'participate_event' | 'bring_friend' | 'complete_night_out' | 'special_achievement' | 'live_music' | 'featured_drink' | 'bar_game' | 'photo_taken';
+  type: 'visit_new_bar' | 'participate_event' | 'bring_friend' | 'complete_night_out' | 'special_achievement' | 'live_music' | 'featured_drink' | 'bar_game' | 'photo_taken' | 'shots' | 'scoop_and_scores' | 'beers' | 'beer_towers' | 'funnels' | 'shotguns';
   xpAwarded: number;
   timestamp: string;
   description: string;
@@ -55,6 +55,12 @@ interface UserProfile {
   featuredDrinksTried: number;
   barGamesPlayed: number;
   photosTaken: number;
+  totalShots: number;
+  totalScoopAndScores: number;
+  totalBeers: number;
+  totalBeerTowers: number;
+  totalFunnels: number;
+  totalShotguns: number;
 }
 
 interface RankInfo {
@@ -97,6 +103,7 @@ interface UserProfileState {
   getAllRanks: () => RankInfo[];
   getXPForNextRank: () => number;
   getProgressToNextRank: () => number;
+  updateDailyTrackerTotals: (stats: { shots: number; scoopAndScores: number; beers: number; beerTowers: number; funnels: number; shotguns: number; }) => void;
 }
 
 const XP_VALUES = {
@@ -108,7 +115,13 @@ const XP_VALUES = {
   live_music: 40,
   featured_drink: 20,
   bar_game: 35,
-  photo_taken: 25, // Reduced from 75 to 25
+  photo_taken: 10, // Updated from 25 to 10
+  shots: 5, // New
+  scoop_and_scores: 4, // New
+  beers: 2, // New
+  beer_towers: 5, // New
+  funnels: 3, // New
+  shotguns: 3, // New
 };
 
 const RANK_STRUCTURE: RankInfo[] = [
@@ -165,6 +178,12 @@ const defaultProfile: UserProfile = {
   featuredDrinksTried: 0,
   barGamesPlayed: 0,
   photosTaken: 0,
+  totalShots: 0,
+  totalScoopAndScores: 0,
+  totalBeers: 0,
+  totalBeerTowers: 0,
+  totalFunnels: 0,
+  totalShotguns: 0,
 };
 
 const getRankByXP = (xp: number): RankInfo => {
@@ -358,6 +377,21 @@ export const useUserProfileStore = create<UserProfileState>()(
         get().syncToSupabase();
       },
       
+      updateDailyTrackerTotals: (stats) => {
+        set((state) => ({
+          profile: {
+            ...state.profile,
+            totalShots: state.profile.totalShots + stats.shots,
+            totalScoopAndScores: state.profile.totalScoopAndScores + stats.scoopAndScores,
+            totalBeers: state.profile.totalBeers + stats.beers,
+            totalBeerTowers: state.profile.totalBeerTowers + stats.beerTowers,
+            totalFunnels: state.profile.totalFunnels + stats.funnels,
+            totalShotguns: state.profile.totalShotguns + stats.shotguns,
+          }
+        }));
+        get().syncToSupabase();
+      },
+      
       canIncrementNightsOut: () => {
         try {
           const today = new Date().toISOString();
@@ -539,6 +573,12 @@ export const useUserProfileStore = create<UserProfileState>()(
               featuredDrinksTried: 0,
               barGamesPlayed: 0,
               photosTaken: 0,
+              totalShots: 0,
+              totalScoopAndScores: 0,
+              totalBeers: 0,
+              totalBeerTowers: 0,
+              totalFunnels: 0,
+              totalShotguns: 0,
             }
           }));
           await get().syncToSupabase();

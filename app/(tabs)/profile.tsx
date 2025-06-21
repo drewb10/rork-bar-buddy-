@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, TextInput, Image } from 'react-native';
-import { User, TrendingUp, MapPin, Zap, Edit3, X, Award, Camera, Share2, Users, RotateCcw, Info, BarChart3 } from 'lucide-react-native';
+import { User, TrendingUp, MapPin, Edit3, X, Award, Camera, Share2, Users, RotateCcw, Info, BarChart3 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import { venues } from '@/mocks/venues';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
-import DrunkScaleSlider from '@/components/DrunkScaleSlider';
 import ShareStatsModal from '@/components/ShareStatsModal';
 import FriendsModal from '@/components/FriendsModal';
 import * as ImagePicker from 'expo-image-picker';
@@ -19,8 +18,6 @@ export default function TrackingScreen() {
     profile, 
     updateProfile, 
     getAverageDrunkScale, 
-    addDrunkScaleRating,
-    canSubmitDrunkScale,
     getRank,
     getAllRanks,
     getXPForNextRank,
@@ -33,7 +30,6 @@ export default function TrackingScreen() {
   const { interactions } = useVenueInteractionStore();
   
   const [nameEditModalVisible, setNameEditModalVisible] = useState(false);
-  const [drunkScaleModalVisible, setDrunkScaleModalVisible] = useState(false);
   const [shareStatsModalVisible, setShareStatsModalVisible] = useState(false);
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
   const [rankDetailsModalVisible, setRankDetailsModalVisible] = useState(false);
@@ -42,7 +38,6 @@ export default function TrackingScreen() {
   const [editLastName, setEditLastName] = useState(profile.lastName);
   
   const averageDrunkScale = getAverageDrunkScale();
-  const canSubmitToday = canSubmitDrunkScale();
   const rankInfo = getRank();
   const allRanks = getAllRanks();
   const nextRankXP = getXPForNextRank();
@@ -86,11 +81,6 @@ export default function TrackingScreen() {
     } else {
       Alert.alert('Error', 'Please enter both first and last name.');
     }
-  };
-
-  const handleDrunkScaleSubmit = (rating: number) => {
-    addDrunkScaleRating(rating);
-    setDrunkScaleModalVisible(false);
   };
 
   const handleResetStats = () => {
@@ -338,9 +328,8 @@ export default function TrackingScreen() {
             </View>
           </View>
 
-          {/* Drunk Scale */}
+          {/* Drunk Scale Average - Display Only */}
           <View style={[styles.statCard, styles.fullWidthCard, { backgroundColor: themeColors.card }]}>
-            <Zap size={28} color={themeColors.primary} />
             <Text style={[styles.statNumber, { color: themeColors.text }]}>
               {averageDrunkScale > 0 ? averageDrunkScale.toFixed(1) : '0.0'}
             </Text>
@@ -348,32 +337,6 @@ export default function TrackingScreen() {
               Drunk Scale Average
             </Text>
           </View>
-
-          {/* Drunk Scale Rating Button */}
-          <Pressable 
-            style={[
-              styles.drunkScaleButton, 
-              { 
-                backgroundColor: canSubmitToday ? themeColors.primary : themeColors.card,
-                opacity: canSubmitToday ? 1 : 0.6
-              }
-            ]}
-            onPress={() => {
-              if (canSubmitToday) {
-                setDrunkScaleModalVisible(true);
-              } else {
-                Alert.alert('Already Rated', 'You can only rate once per day. Come back tomorrow!');
-              }
-            }}
-            disabled={!canSubmitToday}
-          >
-            <Text style={[
-              styles.drunkScaleButtonText, 
-              { color: canSubmitToday ? 'white' : themeColors.subtext }
-            ]}>
-              How lit did you get last night?
-            </Text>
-          </Pressable>
 
           {/* Action Buttons Row */}
           <View style={styles.actionButtonsRow}>
@@ -598,19 +561,6 @@ export default function TrackingScreen() {
             </ScrollView>
           </View>
         </View>
-      </Modal>
-
-      {/* Drunk Scale Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={drunkScaleModalVisible}
-        onRequestClose={() => setDrunkScaleModalVisible(false)}
-      >
-        <DrunkScaleSlider
-          onSubmit={handleDrunkScaleSubmit}
-          onCancel={() => setDrunkScaleModalVisible(false)}
-        />
       </Modal>
 
       {/* Share Stats Modal */}
@@ -890,21 +840,6 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 14,
     textAlign: 'center',
-    fontWeight: '600',
-  },
-  drunkScaleButton: {
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  drunkScaleButtonText: {
-    fontSize: 16,
     fontWeight: '600',
   },
   actionButtonsRow: {

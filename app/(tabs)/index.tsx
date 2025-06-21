@@ -14,8 +14,13 @@ import TopPickCard from '@/components/TopPickCard';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import DailyTrackerModal from '@/components/DailyTrackerModal';
 import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
-import { Venue, Special, TopPickItem } from '@/types/venue';
+import { Venue, Special } from '@/types/venue';
 import * as Haptics from 'expo-haptics';
+
+interface TopPickItem {
+  venue: Venue;
+  todaySpecial?: Special;
+}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -114,7 +119,7 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Daily Tracker Icon */}
+        {/* Daily Tracker Icon - Removed like counter */}
         <View style={styles.dailyTrackerSection}>
           <Pressable 
             style={[styles.dailyTrackerButton, { backgroundColor: themeColors.card }]}
@@ -124,11 +129,6 @@ export default function HomeScreen() {
             <Text style={[styles.dailyTrackerText, { color: themeColors.text }]}>
               Daily Tracker
             </Text>
-            {dailyTotal > 0 && (
-              <View style={[styles.dailyTrackerBadge, { backgroundColor: themeColors.primary }]}>
-                <Text style={styles.dailyTrackerBadgeText}>{dailyTotal}</Text>
-              </View>
-            )}
           </Pressable>
         </View>
 
@@ -202,27 +202,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    position: 'relative',
   },
   dailyTrackerText: {
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
-  },
-  dailyTrackerBadge: {
-    position: 'absolute',
-    top: -4,
-    right: 12,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dailyTrackerBadgeText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '700',
   },
   footer: {
     height: 24,

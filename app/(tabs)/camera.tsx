@@ -1,19 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, Pressable, StatusBar, Platform, Alert, Image } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { Camera, RotateCcw, Zap, X, Check, Image as ImageIcon } from 'lucide-react-native';
+import { Camera, RotateCcw, X, Check, Image as ImageIcon } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
+import { useAchievementStore } from '@/stores/achievementStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function CameraScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { awardXP } = useUserProfileStore();
+  const { awardXP, profile } = useUserProfileStore();
+  const { updateAchievementProgress } = useAchievementStore();
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [isCapturing, setIsCapturing] = useState(false);
@@ -102,8 +105,13 @@ export default function CameraScreen() {
 
         setCapturedPhoto(localUri);
         
-        // Award XP for taking a photo (reduced to 25 XP)
+        // Award XP for taking a photo (10 XP)
         awardXP('photo_taken', 'Captured a nightlife moment!');
+        
+        // Update photo achievements
+        const newPhotoCount = profile.photosTaken + 1;
+        updateAchievementProgress('photo-enthusiast', newPhotoCount);
+        updateAchievementProgress('photo-master', newPhotoCount);
         
         setShowSuccessModal(true);
         
@@ -132,11 +140,25 @@ export default function CameraScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         
         // Request media library permissions
-        const { status } = await MediaLibrary.requestPermissionsAsync();
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status === 'granted') {
-          // In a real app, you would open the camera roll here
-          // For now, we'll just show an alert
-          Alert.alert('Camera Roll', 'Camera roll feature coming soon!');
+          const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: false,
+            quality: 1,
+          });
+
+          if (!result.canceled && result.assets[0]) {
+            // Show the selected image
+            setCapturedPhoto(result.assets[0].uri);
+            setShowSuccessModal(true);
+            
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+              setShowSuccessModal(false);
+              setCapturedPhoto(null);
+            }, 3000);
+          }
         } else {
           Alert.alert('Permission Required', 'Please grant media library access to view your photos.');
         }
@@ -145,6 +167,7 @@ export default function CameraScreen() {
       }
     } catch (error) {
       console.warn('Error opening camera roll:', error);
+      Alert.alert('Error', 'Failed to open camera roll. Please try again.');
     }
   };
 
@@ -165,14 +188,8 @@ export default function CameraScreen() {
               Great Shot! 📸
             </Text>
             <Text style={[styles.successSubtitle, { color: themeColors.subtext }]}>
-              +25 XP earned for capturing the moment!
+              Photo captured successfully!
             </Text>
-            <View style={styles.xpBadge}>
-              <Zap size={16} color={themeColors.primary} />
-              <Text style={[styles.xpText, { color: themeColors.primary }]}>
-                +25 XP
-              </Text>
-            </View>
           </View>
         </View>
 
@@ -216,8 +233,8 @@ export default function CameraScreen() {
           </View>
         )}
 
-        {/* Camera Controls */}
-        <View style={styles.controls}>
+        {/* Top Controls */}
+        <View style={styles.topControls}>
           {/* Flip Camera Button */}
           <Pressable 
             style={[styles.controlButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
@@ -226,7 +243,17 @@ export default function CameraScreen() {
             <RotateCcw size={24} color="white" />
           </Pressable>
 
-          {/* Capture Button */}
+          {/* Camera Roll Button */}
+          <Pressable 
+            style={[styles.controlButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
+            onPress={openCameraRoll}
+          >
+            <ImageIcon size={24} color="white" />
+          </Pressable>
+        </View>
+
+        {/* Capture Button */}
+        <View style={styles.captureContainer}>
           <Pressable 
             style={[
               styles.captureButton, 
@@ -239,27 +266,6 @@ export default function CameraScreen() {
             disabled={isCapturing}
           >
             <Camera size={32} color="white" />
-          </Pressable>
-
-          {/* Empty space for symmetry */}
-          <View style={styles.controlButton} />
-        </View>
-
-        {/* XP Info and Camera Roll */}
-        <View style={styles.bottomInfo}>
-          <View style={[styles.xpInfo, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
-            <Zap size={16} color={themeColors.primary} />
-            <Text style={[styles.xpInfoText, { color: 'white' }]}>
-              +25 XP
-            </Text>
-          </View>
-          
-          {/* Camera Roll Button */}
-          <Pressable 
-            style={[styles.cameraRollButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
-            onPress={openCameraRoll}
-          >
-            <ImageIcon size={20} color="white" />
           </Pressable>
         </View>
       </CameraView>
@@ -352,14 +358,13 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  controls: {
+  topControls: {
     position: 'absolute',
-    bottom: 120,
+    top: Platform.OS === 'ios' ? 200 : 180,
     left: 0,
     right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: 40,
   },
   controlButton: {
@@ -367,6 +372,13 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  captureContainer: {
+    position: 'absolute',
+    bottom: 80,
+    left: 0,
+    right: 0,
     alignItems: 'center',
   },
   captureButton: {
@@ -380,35 +392,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
-  },
-  bottomInfo: {
-    position: 'absolute',
-    bottom: 40,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  xpInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 4,
-  },
-  xpInfoText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  cameraRollButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   previewImage: {
     flex: 1,
@@ -453,21 +436,7 @@ const styles = StyleSheet.create({
   successSubtitle: {
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 16,
     lineHeight: 22,
-  },
-  xpBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,106,0,0.2)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 6,
-  },
-  xpText: {
-    fontSize: 16,
-    fontWeight: '700',
   },
   retakeButton: {
     position: 'absolute',

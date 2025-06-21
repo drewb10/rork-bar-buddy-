@@ -119,6 +119,30 @@ const defaultAchievements: Achievement[] = [
     icon: '💃',
     order: 5,
   },
+  {
+    id: 'photo-enthusiast',
+    title: 'Photo Enthusiast',
+    description: 'Took 10 photos',
+    detailedDescription: 'Capture your nightlife memories! Take 10 photos during your nights out to earn this achievement.',
+    category: 'activities',
+    completed: false,
+    icon: '📸',
+    progress: 0,
+    maxProgress: 10,
+    order: 6,
+  },
+  {
+    id: 'photo-master',
+    title: 'Photo Master',
+    description: 'Took 50 photos',
+    detailedDescription: 'You are a true photo master! Take 50 photos to document all your amazing nightlife adventures.',
+    category: 'activities',
+    completed: false,
+    icon: '📷',
+    progress: 0,
+    maxProgress: 50,
+    order: 7,
+  },
   
   // Social achievements (ordered by interaction level)
   {
@@ -208,7 +232,10 @@ export const useAchievementStore = create<AchievementState>()(
               ? { 
                   ...achievement, 
                   progress,
-                  completed: achievement.maxProgress ? progress >= achievement.maxProgress : achievement.completed
+                  completed: achievement.maxProgress ? progress >= achievement.maxProgress : achievement.completed,
+                  completedAt: achievement.maxProgress && progress >= achievement.maxProgress && !achievement.completed 
+                    ? new Date().toISOString() 
+                    : achievement.completedAt
                 }
               : achievement
           )
@@ -249,3 +276,8 @@ export const useAchievementStore = create<AchievementState>()(
     }
   )
 );
+
+// Update photo achievements when photos are taken
+if (typeof window !== 'undefined') {
+  (window as any).__achievementStore = useAchievementStore;
+}

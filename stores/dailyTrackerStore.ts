@@ -9,6 +9,7 @@ interface DailyStats {
   beerTowers: number;
   funnels: number;
   shotguns: number;
+  drunkScale?: number;
   date: string;
 }
 
@@ -25,14 +26,27 @@ interface DailyTrackerState {
   dailyStats: DailyStats;
   totalStats: TotalStats;
   lastResetDate: string;
-  updateDailyStat: (stat: keyof Omit<DailyStats, 'date'>, increment: number) => void;
+  lastDrunkScaleDate?: string;
+  updateDailyStat: (stat: keyof Omit<DailyStats, 'date' | 'drunkScale'>, increment: number) => void;
+  setDrunkScale: (rating: number) => void;
+  canSubmitDrunkScale: () => boolean;
   resetDailyStatsIfNeeded: () => void;
   getDailyTotal: () => number;
   getTotalCount: () => number;
   resetAllStats: () => void;
+  awardXPForStats: () => void;
 }
 
 const RESET_HOUR = 5; // 5 AM
+
+const XP_VALUES = {
+  shots: 5,
+  scoopAndScores: 4,
+  beers: 2,
+  beerTowers: 5,
+  funnels: 3,
+  shotguns: 3,
+};
 
 const shouldResetDaily = (lastResetDate: string): boolean => {
   try {
@@ -46,6 +60,18 @@ const shouldResetDaily = (lastResetDate: string): boolean => {
     return now >= resetTime && lastReset < resetTime;
   } catch {
     return true;
+  }
+};
+
+const isSameDay = (date1: string, date2: string): boolean => {
+  try {
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    return d1.getFullYear() === d2.getFullYear() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getDate() === d2.getDate();
+  } catch {
+    return false;
   }
 };
 
@@ -78,6 +104,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
       dailyStats: defaultDailyStats,
       totalStats: defaultTotalStats,
       lastResetDate: new Date().toISOString(),
+      lastDrunkScaleDate: undefined,
       
       updateDailyStat: (stat, increment) => {
         get().resetDailyStatsIfNeeded();
@@ -85,6 +112,18 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
         set((state) => {
           const newDailyValue = Math.max(0, state.dailyStats[stat] + increment);
           const totalIncrement = newDailyValue - state.dailyStats[stat];
+          
+          // Award XP for the increment
+          if (totalIncrement > 0) {
+            const xpPerItem = XP_VALUES[stat];
+            const totalXP = xpPerItem * totalIncrement;
+            
+            // Get user profile store and award XP
+            if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
+              const userStore = (window as any).__userProfileStore.getState();
+              userStore.awardXP(stat, `${totalIncrement} ${stat} tracked`, undefined);
+            }
+          }
           
           return {
             dailyStats: {
@@ -97,6 +136,30 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
             },
           };
         });
+      },
+      
+      setDrunkScale: (rating) => {
+        const today = new Date().toISOString();
+        
+        set((state) => ({
+          dailyStats: {
+            ...state.dailyStats,
+            drunkScale: rating,
+          },
+          lastDrunkScaleDate: today,
+        }));
+        
+        // Award to user profile store as well
+        if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
+          const userStore = (window as any).__userProfileStore.getState();
+          userStore.addDrunkScaleRating(rating);
+        }
+      },
+      
+      canSubmitDrunkScale: () => {
+        const { lastDrunkScaleDate } = get();
+        const today = new Date().toISOString();
+        return !lastDrunkScaleDate || !isSameDay(lastDrunkScaleDate, today);
       },
       
       resetDailyStatsIfNeeded: () => {
@@ -125,6 +188,11 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
         return Object.values(totalStats).reduce((sum, value) => sum + value, 0);
       },
       
+      awardXPForStats: () => {
+        // This method can be used to award XP for daily stats
+        // Implementation depends on how you want to integrate with user profile
+      },
+      
       resetAllStats: () => {
         set({
           dailyStats: {
@@ -133,6 +201,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
           },
           totalStats: defaultTotalStats,
           lastResetDate: new Date().toISOString(),
+          lastDrunkScaleDate: undefined,
         });
       },
     }),

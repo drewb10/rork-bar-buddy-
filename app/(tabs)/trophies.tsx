@@ -95,19 +95,21 @@ export default function TrophiesScreen() {
           </View>
         </View>
 
-        {/* Current Rank */}
+        {/* Current Rank - Centered */}
         <View style={[styles.rankCard, { backgroundColor: themeColors.card }]}>
-          <Award size={28} color={rankInfo.color} />
-          <View style={styles.rankInfo}>
-            <Text style={[styles.rankTitle, { color: rankInfo.color }]}>
-              {rankInfo.title}
-            </Text>
-            <Text style={[styles.rankSubtitle, { color: themeColors.text }]}>
-              {rankInfo.subTitle}
-            </Text>
-            <Text style={[styles.rankXP, { color: themeColors.subtext }]}>
-              {profile.xp} XP
-            </Text>
+          <View style={styles.rankContent}>
+            <Award size={28} color={rankInfo.color} />
+            <View style={styles.rankInfo}>
+              <Text style={[styles.rankTitle, { color: rankInfo.color }]}>
+                {rankInfo.title}
+              </Text>
+              <Text style={[styles.rankSubtitle, { color: themeColors.text }]}>
+                {rankInfo.subTitle}
+              </Text>
+              <Text style={[styles.rankXP, { color: themeColors.subtext }]}>
+                {profile.xp} XP
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -336,31 +338,37 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     borderRadius: 16,
     padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
   },
+  rankContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   rankInfo: {
     marginLeft: 16,
-    flex: 1,
+    alignItems: 'center',
   },
   rankTitle: {
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 2,
+    textAlign: 'center',
   },
   rankSubtitle: {
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 4,
+    textAlign: 'center',
   },
   rankXP: {
     fontSize: 12,
     fontWeight: '500',
+    textAlign: 'center',
   },
   categorySection: {
     marginHorizontal: 16,

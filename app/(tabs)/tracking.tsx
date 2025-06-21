@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal, Alert } from 'react-native';
-import { Trophy, Target, Users, Star, RotateCcw, X, Info } from 'lucide-react-native';
+import { Trophy, Target, Users, Star, RotateCcw, X, Info, BarChart3, Camera } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAchievementStore, Achievement } from '@/stores/achievementStore';
+import { useUserProfileStore } from '@/stores/userProfileStore';
+import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
 import AchievementPopup from '@/components/AchievementPopup';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 
@@ -18,6 +20,9 @@ export default function TrackingScreen() {
     getAchievementsByCategory,
     resetAchievements 
   } = useAchievementStore();
+  
+  const { profile } = useUserProfileStore();
+  const { totalStats } = useDailyTrackerStore();
   
   const [showPopup, setShowPopup] = useState(false);
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
@@ -209,6 +214,79 @@ export default function TrackingScreen() {
           </Text>
         </View>
 
+        {/* Daily Tracker Totals */}
+        <View style={[styles.dailyTrackerCard, { backgroundColor: themeColors.card }]}>
+          <View style={styles.dailyTrackerHeader}>
+            <BarChart3 size={20} color={themeColors.primary} />
+            <Text style={[styles.dailyTrackerTitle, { color: themeColors.text }]}>
+              Total Tracker Stats
+            </Text>
+          </View>
+          
+          <View style={styles.trackerStatsGrid}>
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {totalStats.shots}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                🥃 Shots
+              </Text>
+            </View>
+            
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {totalStats.scoopAndScores}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                🍺 Scoop & Scores
+              </Text>
+            </View>
+            
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {totalStats.beers}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                🍻 Beers
+              </Text>
+            </View>
+            
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {totalStats.beerTowers}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                🗼 Beer Towers
+              </Text>
+            </View>
+            
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {totalStats.funnels}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                🌪️ Funnels
+              </Text>
+            </View>
+            
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {totalStats.shotguns}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                💥 Shotguns
+              </Text>
+            </View>
+          </View>
+          
+          <View style={styles.photoStatContainer}>
+            <Camera size={16} color={themeColors.primary} />
+            <Text style={[styles.photoStatText, { color: themeColors.text }]}>
+              📸 Photos Taken: {profile.photosTaken}
+            </Text>
+          </View>
+        </View>
+
         {/* Achievement Categories */}
         <View style={styles.categoriesContainer}>
           {(['bars', 'activities', 'social', 'milestones'] as const).map(renderAchievementCategory)}
@@ -328,7 +406,7 @@ const styles = StyleSheet.create({
   },
   progressCard: {
     marginHorizontal: 16,
-    marginBottom: 24,
+    marginBottom: 16,
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
@@ -363,6 +441,61 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 14,
     textAlign: 'center',
+  },
+  dailyTrackerCard: {
+    marginHorizontal: 16,
+    marginBottom: 24,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  dailyTrackerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  dailyTrackerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  trackerStatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  trackerStatItem: {
+    width: '48%',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  trackerStatNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  trackerStatLabel: {
+    fontSize: 12,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  photoStatContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  photoStatText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   categoriesContainer: {
     paddingHorizontal: 16,
