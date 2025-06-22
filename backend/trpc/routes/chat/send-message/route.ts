@@ -63,7 +63,6 @@ export const sendMessageProcedure = publicProcedure
           session_id,
           content,
           timestamp,
-          is_flagged,
           created_at
         `)
         .single();

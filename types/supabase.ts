@@ -242,7 +242,6 @@ export interface Database {
           session_id: string
           content: string
           timestamp: string
-          is_flagged: boolean
           created_at: string
         }
         Insert: {
@@ -250,7 +249,6 @@ export interface Database {
           session_id: string
           content: string
           timestamp?: string
-          is_flagged?: boolean
           created_at?: string
         }
         Update: {
@@ -258,7 +256,6 @@ export interface Database {
           session_id?: string
           content?: string
           timestamp?: string
-          is_flagged?: boolean
           created_at?: string
         }
       }

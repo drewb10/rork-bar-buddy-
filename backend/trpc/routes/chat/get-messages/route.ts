@@ -2,35 +2,28 @@ import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
 import { supabase } from "@/lib/supabase";
 
-// Type for raw message response from Supabase (chat_sessions can be array or single object)
-interface RawMessageWithJoinedSession {
+// Type for raw message response from Supabase
+interface RawMessageFromSupabase {
   id: string;
   session_id: string;
   content: string;
   timestamp: string;
-  is_flagged: boolean;
   created_at: string;
   chat_sessions: {
     anonymous_name: string;
     venue_id: string;
-  }[] | {
-    anonymous_name: string;
-    venue_id: string;
-  } | null;
+  }[];
 }
 
-// Type for transformed message (chat_sessions is always a single object)
-interface MessageWithJoinedSession {
+// Type for transformed message
+interface TransformedMessage {
   id: string;
   session_id: string;
   content: string;
   timestamp: string;
-  is_flagged: boolean;
   created_at: string;
-  chat_sessions: {
-    anonymous_name: string;
-    venue_id: string;
-  } | null;
+  anonymous_name: string;
+  venue_id: string;
 }
 
 export const getMessagesProcedure = publicProcedure
@@ -47,7 +40,7 @@ export const getMessagesProcedure = publicProcedure
         throw new Error('Venue ID is required and cannot be empty');
       }
 
-      // Get messages for this venue with proper inner join to ensure single object
+      // Get messages for this venue with proper inner join
       const { data: messagesWithSessions, error } = await supabase
         .from('chat_messages')
         .select(`
@@ -55,7 +48,6 @@ export const getMessagesProcedure = publicProcedure
           session_id,
           content,
           timestamp,
-          is_flagged,
           created_at,
           chat_sessions!inner(
             anonymous_name,
@@ -70,28 +62,22 @@ export const getMessagesProcedure = publicProcedure
         throw new Error(`Failed to fetch messages: ${error.message}`);
       }
 
-      // Transform messages to include anonymous_name and venue_id
-      const transformedMessages = (messagesWithSessions as RawMessageWithJoinedSession[])?.map(msg => {
-        // Handle case where chat_sessions might still be an array (fallback)
-        const sessionData = Array.isArray(msg.chat_sessions) 
-          ? msg.chat_sessions[0] 
-          : msg.chat_sessions;
-
-        const transformedMessage: MessageWithJoinedSession = {
-          ...msg,
-          chat_sessions: sessionData,
-        };
+      // Transform messages to include anonymous_name and venue_id at top level
+      const transformedMessages: TransformedMessage[] = (messagesWithSessions as unknown as RawMessageFromSupabase[])?.map(msg => {
+        // Handle chat_sessions as array and get first element
+        const sessionData = Array.isArray(msg.chat_sessions) ? msg.chat_sessions[0] : msg.chat_sessions;
 
         return {
-          ...transformedMessage,
+          id: msg.id,
+          session_id: msg.session_id,
+          content: msg.content,
+          timestamp: msg.timestamp,
+          created_at: msg.created_at,
           anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
           venue_id: sessionData?.venue_id || venueId,
         };
       }).filter(msg => {
-        const sessionData = Array.isArray(msg.chat_sessions) 
-          ? msg.chat_sessions[0] 
-          : msg.chat_sessions;
-        return sessionData !== null;
+        return msg.venue_id === venueId;
       }) || [];
 
       return { 

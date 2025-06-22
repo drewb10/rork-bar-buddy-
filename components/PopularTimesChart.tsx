@@ -60,6 +60,17 @@ export default function PopularTimesChart({ venueId, expanded = false }: Popular
       
       // Process time slot data with proper null checks
       const processedData: TimeSlotData[] = TIME_SLOTS.map(timeSlot => {
+        if (!timeSlot) {
+          return {
+            time: '',
+            count: 0,
+            likes: 0,
+            isCurrentHour: false,
+            isLive: false,
+            isPeak: false
+          };
+        }
+
         // Count interactions for this time slot
         const slotInteractions = allInteractions.filter(interaction => 
           interaction && interaction.arrivalTime === timeSlot
@@ -83,14 +94,16 @@ export default function PopularTimesChart({ venueId, expanded = false }: Popular
       });
 
       // Mark peak times (top 3 busiest slots)
-      const sortedByActivity = [...processedData].sort((a, b) => 
-        viewMode === 'likes' ? b.likes - a.likes : b.count - a.count
-      );
+      const sortedByActivity = [...processedData]
+        .filter(slot => slot && slot.time) // Filter out invalid slots
+        .sort((a, b) => 
+          viewMode === 'likes' ? b.likes - a.likes : b.count - a.count
+        );
       
       sortedByActivity.slice(0, 3).forEach(slot => {
         if (slot && slot.time) {
           const index = processedData.findIndex(s => s && s.time === slot.time);
-          if (index !== -1) {
+          if (index !== -1 && processedData[index]) {
             processedData[index].isPeak = true;
           }
         }
@@ -129,6 +142,8 @@ export default function PopularTimesChart({ venueId, expanded = false }: Popular
   };
 
   const handleTimeSlotPress = (timeSlot: string) => {
+    if (!timeSlot) return;
+    
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -155,13 +170,13 @@ export default function PopularTimesChart({ venueId, expanded = false }: Popular
   const getMaxValue = () => {
     if (!timeSlotData || timeSlotData.length === 0) return 1;
     const values = timeSlotData
-      .filter(slot => slot != null)
+      .filter(slot => slot && slot.time)
       .map(slot => viewMode === 'likes' ? slot.likes : slot.count);
     return Math.max(...values, 1);
   };
 
   const getBarHeight = (slot: TimeSlotData) => {
-    if (!slot) return 8;
+    if (!slot || !slot.time) return 8;
     const maxHeight = expanded ? 140 : 120;
     const maxValue = getMaxValue();
     const value = viewMode === 'likes' ? slot.likes : slot.count;
@@ -169,7 +184,7 @@ export default function PopularTimesChart({ venueId, expanded = false }: Popular
   };
 
   const getBarColor = (slot: TimeSlotData) => {
-    if (!slot) return themeColors.primary + '40';
+    if (!slot || !slot.time) return themeColors.primary + '40';
     if (slot.isCurrentHour) return themeColors.primary;
     if (slot.isPeak) return themeColors.primary + 'CC';
     if (slot.isLive) return themeColors.primary + '80';
@@ -185,10 +200,11 @@ export default function PopularTimesChart({ venueId, expanded = false }: Popular
       };
     }
 
-    const validSlots = timeSlotData.filter(slot => slot != null);
-    const totalVisits = validSlots.reduce((sum, slot) => sum + slot.count, 0);
-    const totalLikes = validSlots.reduce((sum, slot) => sum + slot.likes, 0);
+    const validSlots = timeSlotData.filter(slot => slot && slot.time);
+    const totalVisits = validSlots.reduce((sum, slot) => sum + (slot?.count || 0), 0);
+    const totalLikes = validSlots.reduce((sum, slot) => sum + (slot?.likes || 0), 0);
     const peakTime = validSlots.reduce((peak, slot) => {
+      if (!peak || !slot) return peak || { time: '20:00', count: 0, likes: 0 };
       const peakValue = viewMode === 'likes' ? peak.likes : peak.count;
       const slotValue = viewMode === 'likes' ? slot.likes : slot.count;
       return slotValue > peakValue ? slot : peak;
@@ -241,7 +257,9 @@ export default function PopularTimesChart({ venueId, expanded = false }: Popular
           
           <View style={[styles.statCard, { backgroundColor: themeColors.background }]}>
             <Flame size={16} color={themeColors.primary} />
-            <Text style={[styles.statNumber, { color: themeColors.text }]}>{formatTime(stats.peakTime.time)}</Text>
+            <Text style={[styles.statNumber, { color: themeColors.text }]}>
+              {stats.peakTime?.time ? formatTime(stats.peakTime.time) : 'N/A'}
+            </Text>
             <Text style={[styles.statLabel, { color: themeColors.subtext }]}>Peak Time</Text>
           </View>
         </View>
@@ -327,7 +345,7 @@ export default function PopularTimesChart({ venueId, expanded = false }: Popular
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chartContent}
         >
-          {timeSlotData.filter(slot => slot != null).map((slot, index) => (
+          {timeSlotData.filter(slot => slot && slot.time).map((slot, index) => (
             <Pressable
               key={slot.time || index}
               style={styles.barContainer}
@@ -376,7 +394,7 @@ export default function PopularTimesChart({ venueId, expanded = false }: Popular
           contentContainerStyle={styles.timeLabelsContent}
         >
           {TIME_SLOTS.map((time, index) => (
-            index % 2 === 0 && (
+            index % 2 === 0 && time && (
               <View key={time} style={styles.timeLabelContainer}>
                 <Text style={[styles.timeLabel, { color: themeColors.subtext }]}>
                   {formatTime(time)}
@@ -437,7 +455,7 @@ export default function PopularTimesChart({ venueId, expanded = false }: Popular
         </View>
       )}
 
-      {(!timeSlotData || timeSlotData.length === 0 || timeSlotData.every(slot => !slot || (slot.count === 0 && slot.likes === 0))) && (
+      {(!timeSlotData || timeSlotData.length === 0 || timeSlotData.every(slot => !slot || !slot.time || (slot.count === 0 && slot.likes === 0))) && (
         <View style={styles.emptyState}>
           <TrendingUp size={24} color={themeColors.subtext} />
           <Text style={[styles.emptyText, { color: themeColors.subtext }]}>

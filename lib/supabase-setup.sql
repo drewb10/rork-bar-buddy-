@@ -77,14 +77,12 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
   UNIQUE(user_id, venue_id)
 );
 
--- Create chat_messages table with content column and timestamp column
+-- Create chat_messages table with content column and timestamp column (removed is_flagged)
 CREATE TABLE IF NOT EXISTS chat_messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   session_id UUID NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
-  likes INTEGER DEFAULT 0,
   timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  is_flagged BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

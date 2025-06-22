@@ -60,6 +60,18 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
   const initializeChat = async () => {
     try {
       clearError();
+      
+      // Validate venue ID
+      if (!venue?.id || venue.id.trim() === '') {
+        console.error('Invalid venue ID:', venue?.id);
+        Alert.alert(
+          'Connection Error',
+          'Invalid venue information. Please try again.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
       await createOrGetSession(venue.id);
       await loadMessages(venue.id);
       subscribeToMessages(venue.id);
@@ -100,6 +112,16 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
       Alert.alert(
         'Message Blocked',
         'Your message contains inappropriate content. Please keep the chat friendly and respectful.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    // Validate venue ID before sending
+    if (!venue?.id || venue.id.trim() === '') {
+      Alert.alert(
+        'Error',
+        'Invalid venue information. Please close and reopen the chat.',
         [{ text: 'OK' }]
       );
       return;
@@ -306,14 +328,25 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               </Text>
               <ScrollView style={styles.termsScroll}>
                 <Text style={[styles.termsText, { color: themeColors.text }]}>
-                  Welcome to BarBuddy anonymous chat! To keep our community safe and fun:{'\n\n'}
-                  • Be respectful and kind to others{'\n'}
-                  • No inappropriate language or content{'\n'}
-                  • No sharing of personal information{'\n'}
-                  • No harassment or bullying{'\n'}
-                  • No spam or promotional content{'\n'}
-                  • Keep conversations venue-related and fun{'\n\n'}
-                  Messages are automatically filtered for inappropriate content. Violations may result in temporary chat restrictions.{'\n\n'}
+                  Welcome to BarBuddy anonymous chat! To keep our community safe and fun:{'
+
+'}
+                  • Be respectful and kind to others{'
+'}
+                  • No inappropriate language or content{'
+'}
+                  • No sharing of personal information{'
+'}
+                  • No harassment or bullying{'
+'}
+                  • No spam or promotional content{'
+'}
+                  • Keep conversations venue-related and fun{'
+
+'}
+                  Messages are automatically filtered for inappropriate content. Violations may result in temporary chat restrictions.{'
+
+'}
                   Have fun and stay safe! 🍻
                 </Text>
               </ScrollView>
