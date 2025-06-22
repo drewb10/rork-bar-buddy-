@@ -33,7 +33,7 @@ interface MessageWithJoinedSession {
   chat_sessions: {
     anonymous_name: string;
     venue_id: string;
-  };
+  } | null;
 }
 
 interface ChatState {
@@ -183,7 +183,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw new Error('Venue ID is required and cannot be empty');
       }
 
-      // Get messages for this venue with proper join using single() relationship
+      // Get messages for this venue with proper inner join to ensure single object
       const { data: messagesData, error } = await supabase
         .from('chat_messages')
         .select(`
@@ -193,7 +193,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           timestamp,
           is_flagged,
           created_at,
-          chat_sessions!chat_messages_session_id_fkey(
+          chat_sessions!inner(
             anonymous_name,
             venue_id
           )
@@ -207,11 +207,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       // Transform messages to include anonymous_name and venue_id
-      const transformedMessages = (messagesData as MessageWithJoinedSession[])?.map(msg => ({
-        ...msg,
-        anonymous_name: msg.chat_sessions?.anonymous_name || 'Anonymous Buddy',
-        venue_id: msg.chat_sessions?.venue_id || venueId,
-      })).filter(msg => msg.chat_sessions !== null) || [];
+      const transformedMessages = (messagesData as MessageWithJoinedSession[])?.map(msg => {
+        // Handle case where chat_sessions might still be an array (fallback)
+        const sessionData = Array.isArray(msg.chat_sessions) 
+          ? msg.chat_sessions[0] 
+          : msg.chat_sessions;
+
+        return {
+          ...msg,
+          anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
+          venue_id: sessionData?.venue_id || venueId,
+        };
+      }).filter(msg => {
+        const sessionData = Array.isArray(msg.chat_sessions) 
+          ? msg.chat_sessions[0] 
+          : msg.chat_sessions;
+        return sessionData !== null;
+      }) || [];
 
       set({ messages: transformedMessages, isLoading: false });
     } catch (error) {
