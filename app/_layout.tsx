@@ -2,7 +2,7 @@ import { Stack } from "expo-router";
 import { View, ImageBackground } from "react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/lib/trpc";
-import { getBackgroundImageUrl } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { useAgeVerificationStore } from "@/stores/ageVerificationStore";
@@ -26,6 +26,28 @@ export default function RootLayout() {
   const { loadPopularTimesFromSupabase } = useVenueInteractionStore();
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Load background image from Supabase
+    const loadBackgroundImage = async () => {
+      try {
+        const { data } = supabase
+          .storage
+          .from('background-barbuddy')
+          .getPublicUrl('barbuddy-bg.png');
+        
+        const imageUrl = data.publicUrl;
+        console.log('Background URL:', imageUrl);
+        setBackgroundUrl(imageUrl);
+      } catch (error) {
+        console.error('Error loading background image:', error);
+        setBackgroundUrl(null);
+      }
+    };
+
+    loadBackgroundImage();
+  }, []);
 
   useEffect(() => {
     // Initialize stores and load data
@@ -72,12 +94,56 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <StatusBar style="light" />
         
-        <ImageBackground
-          source={{ uri: getBackgroundImageUrl() }}
-          style={{ flex: 1 }}
-          resizeMode="cover"
-        >
-          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.1)' }}>
+        {backgroundUrl ? (
+          <ImageBackground
+            source={{ uri: backgroundUrl }}
+            style={{ flex: 1 }}
+            resizeMode="cover"
+          >
+            <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.1)' }}>
+              <Stack
+                screenOptions={{
+                  headerStyle: {
+                    backgroundColor: 'transparent',
+                  },
+                  headerTintColor: '#FFFFFF',
+                  headerShadowVisible: false,
+                  contentStyle: {
+                    backgroundColor: 'transparent',
+                  },
+                  headerShown: false,
+                }}
+              >
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen 
+                  name="venue/[id]" 
+                  options={{
+                    headerShown: true,
+                    presentation: 'card',
+                    headerBackTitle: 'Home',
+                    headerTitle: '',
+                    headerStyle: {
+                      backgroundColor: 'rgba(18, 18, 18, 0.9)',
+                    },
+                    headerTintColor: '#FFFFFF',
+                  }}
+                />
+                <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+              </Stack>
+
+              <AgeVerificationModal
+                visible={showAgeVerification}
+                onVerify={handleAgeVerification}
+              />
+
+              <OnboardingModal
+                visible={showOnboarding}
+                onComplete={handleOnboardingComplete}
+              />
+            </View>
+          </ImageBackground>
+        ) : (
+          <View style={{ flex: 1, backgroundColor: '#121212' }}>
             <Stack
               screenOptions={{
                 headerStyle: {
@@ -118,7 +184,7 @@ export default function RootLayout() {
               onComplete={handleOnboardingComplete}
             />
           </View>
-        </ImageBackground>
+        )}
       </QueryClientProvider>
     </trpc.Provider>
   );
