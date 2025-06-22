@@ -66,26 +66,6 @@ CREATE TABLE bingo_card_completions (
   session_id TEXT
 );
 
--- Create chat_sessions table
-CREATE TABLE IF NOT EXISTS chat_sessions (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  venue_id TEXT NOT NULL,
-  anonymous_name TEXT NOT NULL DEFAULT 'Anonymous Buddy',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  last_active TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id, venue_id)
-);
-
--- Create chat_messages table
-CREATE TABLE IF NOT EXISTS chat_messages (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  session_id UUID NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_friends_user_id ON friends(user_id);
@@ -97,11 +77,6 @@ CREATE INDEX IF NOT EXISTS idx_bingo_completions_user_id ON bingo_completions(us
 CREATE INDEX IF NOT EXISTS idx_venue_interactions_user_id ON venue_interactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_venue_interactions_venue_id ON venue_interactions(venue_id);
 CREATE INDEX IF NOT EXISTS idx_bingo_card_completions_user_id ON bingo_card_completions(user_id);
-CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_id ON chat_sessions(user_id);
-CREATE INDEX IF NOT EXISTS idx_chat_sessions_venue_id ON chat_sessions(venue_id);
-CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_venue ON chat_sessions(user_id, venue_id);
-CREATE INDEX IF NOT EXISTS idx_chat_messages_session_id ON chat_messages(session_id);
-CREATE INDEX IF NOT EXISTS idx_chat_messages_timestamp ON chat_messages(timestamp);
 
 -- Enable Row Level Security
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
@@ -110,8 +85,6 @@ ALTER TABLE friend_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bingo_completions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE venue_interactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bingo_card_completions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE chat_sessions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for user_profiles
 CREATE POLICY "Users can view all profiles" ON user_profiles FOR SELECT USING (true);
@@ -140,16 +113,6 @@ CREATE POLICY "Users can insert venue interactions" ON venue_interactions FOR IN
 CREATE POLICY "Users can view all bingo card completions" ON bingo_card_completions FOR SELECT USING (true);
 CREATE POLICY "Users can insert bingo card completions" ON bingo_card_completions FOR INSERT WITH CHECK (true);
 
--- Create policies for chat_sessions
-CREATE POLICY "Users can view all chat sessions" ON chat_sessions FOR SELECT USING (true);
-CREATE POLICY "Users can insert chat sessions" ON chat_sessions FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can update their own chat sessions" ON chat_sessions FOR UPDATE USING (true);
-
--- Create policies for chat_messages
-CREATE POLICY "Users can view all chat messages" ON chat_messages FOR SELECT USING (true);
-CREATE POLICY "Users can insert chat messages" ON chat_messages FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can update chat messages" ON chat_messages FOR UPDATE USING (true);
-
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -174,29 +137,3 @@ END;
 $$ language 'plpgsql';
 
 CREATE TRIGGER update_friend_requests_responded_at BEFORE UPDATE ON friend_requests FOR EACH ROW EXECUTE FUNCTION update_friend_request_responded_at();
-
--- Create function to update last_active on chat_sessions
-CREATE OR REPLACE FUNCTION update_chat_session_last_active()
-RETURNS TRIGGER AS $$
-BEGIN
-    UPDATE chat_sessions 
-    SET last_active = NOW() 
-    WHERE id = NEW.session_id;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
-CREATE TRIGGER update_chat_session_activity AFTER INSERT ON chat_messages FOR EACH ROW EXECUTE FUNCTION update_chat_session_last_active();
-
--- Create function to automatically clean up old chat messages (older than 24 hours)
-CREATE OR REPLACE FUNCTION cleanup_old_chat_messages()
-RETURNS void AS $$
-BEGIN
-    DELETE FROM chat_messages 
-    WHERE timestamp < NOW() - INTERVAL '24 hours';
-END;
-$$ language 'plpgsql';
-
--- Enable realtime for chat_messages and chat_sessions
-ALTER PUBLICATION supabase_realtime ADD TABLE chat_messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE chat_sessions;

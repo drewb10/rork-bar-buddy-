@@ -10,9 +10,6 @@ import { sendFriendRequestProcedure } from './routes/user/send-friend-request/ro
 import { acceptFriendRequestProcedure } from './routes/user/accept-friend-request/route';
 import { declineFriendRequestProcedure } from './routes/user/decline-friend-request/route';
 import { getFriendRequestsProcedure } from './routes/user/get-friend-requests/route';
-import { sendMessageProcedure } from './routes/chat/send-message/route';
-import { getMessagesProcedure } from './routes/chat/get-messages/route';
-import { createSessionProcedure } from './routes/chat/create-session/route';
 import { awardXPProcedure } from './routes/user/award-xp/route';
 import { trackInteractionProcedure } from './routes/analytics/track-interaction/route';
 import { getInteractionsProcedure } from './routes/analytics/get-interactions/route';
@@ -41,11 +38,6 @@ export const appRouter = router({
   bingo: router({
     completeTask: completeTaskProcedure,
     completeBingo: completeBingoProcedure,
-  }),
-  chat: router({
-    sendMessage: sendMessageProcedure,
-    getMessages: getMessagesProcedure,
-    createSession: createSessionProcedure,
   }),
 });
 
