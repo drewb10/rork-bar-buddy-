@@ -2,6 +2,15 @@ import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
 import { supabase } from "@/lib/supabase";
 
+interface LocalSessionData {
+  id: string;
+  user_id: string;
+  venue_id: string;
+  anonymous_name: string;
+  created_at: string;
+  last_active: string;
+}
+
 export const createSessionProcedure = publicProcedure
   .input(z.object({
     userId: z.string().min(1, "User ID is required"),
@@ -45,10 +54,10 @@ export const createSessionProcedure = publicProcedure
         
         if (updateError) {
           console.warn('Failed to update session timestamp:', updateError);
-          return { success: true, session: existingSession };
+          return { success: true, session: existingSession as LocalSessionData };
         }
         
-        return { success: true, session: updatedSession };
+        return { success: true, session: updatedSession as LocalSessionData };
       }
 
       const { data: newSession, error: createError } = await supabase
@@ -65,7 +74,7 @@ export const createSessionProcedure = publicProcedure
         throw new Error(`Failed to create session: ${createError.message}`);
       }
 
-      return { success: true, session: newSession };
+      return { success: true, session: newSession as LocalSessionData };
     } catch (error) {
       console.error('Create session error:', error);
       throw new Error(`Failed to create session: ${error instanceof Error ? error.message : 'Unknown error'}`);

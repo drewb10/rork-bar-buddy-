@@ -2,7 +2,7 @@ import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
 import { supabase } from "@/lib/supabase";
 
-interface ChatSession {
+interface LocalSessionInfo {
   id: string;
   venue_id: string;
   anonymous_name: string;
@@ -46,7 +46,7 @@ export const sendMessageProcedure = publicProcedure
         throw new Error('Invalid session or session does not belong to this venue');
       }
 
-      const typedSession = session as ChatSession;
+      const typedSession = session as LocalSessionInfo;
 
       const { data: newMessage, error: insertError } = await supabase
         .from('chat_messages')

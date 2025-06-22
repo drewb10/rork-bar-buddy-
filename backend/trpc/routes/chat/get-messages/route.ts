@@ -2,22 +2,22 @@ import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
 import { supabase } from "@/lib/supabase";
 
-interface ChatSession {
+interface LocalSessionInfo {
   id: string;
   anonymous_name: string;
   venue_id: string;
 }
 
-interface RawMessageFromSupabase {
+interface LocalRawMessageFromSupabase {
   id: string;
   session_id: string;
   content: string;
   timestamp: string;
   created_at: string;
-  chat_sessions: ChatSession | null;
+  chat_sessions: LocalSessionInfo | null;
 }
 
-interface TransformedMessage {
+interface LocalTransformedMessage {
   id: string;
   session_id: string;
   content: string;
@@ -62,7 +62,7 @@ export const getMessagesProcedure = publicProcedure
         throw new Error(`Failed to fetch messages: ${error.message}`);
       }
 
-      const transformedMessages: TransformedMessage[] = (messagesWithSessions as unknown as RawMessageFromSupabase[])?.map(msg => {
+      const transformedMessages: LocalTransformedMessage[] = (messagesWithSessions as unknown as LocalRawMessageFromSupabase[])?.map(msg => {
         const sessionData = msg.chat_sessions;
 
         return {
