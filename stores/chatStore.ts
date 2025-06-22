@@ -22,7 +22,24 @@ export interface ChatSession {
   last_active: string;
 }
 
-// Type for message with joined session data (as returned by Supabase)
+// Type for raw message response from Supabase (chat_sessions can be array or single object)
+interface RawMessageWithJoinedSession {
+  id: string;
+  session_id: string;
+  content: string;
+  timestamp: string;
+  is_flagged: boolean;
+  created_at: string;
+  chat_sessions: {
+    anonymous_name: string;
+    venue_id: string;
+  }[] | {
+    anonymous_name: string;
+    venue_id: string;
+  } | null;
+}
+
+// Type for transformed message (chat_sessions is always a single object)
 interface MessageWithJoinedSession {
   id: string;
   session_id: string;
@@ -207,14 +224,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       // Transform messages to include anonymous_name and venue_id
-      const transformedMessages = (messagesData as MessageWithJoinedSession[])?.map(msg => {
+      const transformedMessages = (messagesData as RawMessageWithJoinedSession[])?.map(msg => {
         // Handle case where chat_sessions might still be an array (fallback)
         const sessionData = Array.isArray(msg.chat_sessions) 
           ? msg.chat_sessions[0] 
           : msg.chat_sessions;
 
-        return {
+        const transformedMessage: MessageWithJoinedSession = {
           ...msg,
+          chat_sessions: sessionData,
+        };
+
+        return {
+          ...transformedMessage,
           anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
           venue_id: sessionData?.venue_id || venueId,
         };
