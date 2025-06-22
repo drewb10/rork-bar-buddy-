@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, Image, Pressable, Linking, Platform, Dimensions, StatusBar } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { MapPin, Phone, Globe, Clock, Heart, Instagram, Share2 } from 'lucide-react-native';
+import { MapPin, Phone, Globe, Clock, Heart, Instagram, Share2, BarChart3 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { getVenueById } from '@/mocks/venues';
 import SpecialCard from '@/components/SpecialCard';
+import PopularTimesChart from '@/components/PopularTimesChart';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -17,8 +18,16 @@ export default function VenueDetailScreen() {
   const [venue, setVenue] = useState(getVenueById(id));
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [showPopularTimes, setShowPopularTimes] = useState(false);
 
   if (!venue) return null;
+
+  const handlePopularTimesToggle = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setShowPopularTimes(!showPopularTimes);
+  };
 
   return (
     <>
@@ -68,6 +77,22 @@ export default function VenueDetailScreen() {
             <Text style={[styles.description, { color: themeColors.text }]}>
               {venue.description}
             </Text>
+
+            {/* Popular Times Toggle Button */}
+            <Pressable 
+              style={[styles.popularTimesButton, { backgroundColor: themeColors.card }]}
+              onPress={handlePopularTimesToggle}
+            >
+              <BarChart3 size={20} color={themeColors.primary} />
+              <Text style={[styles.popularTimesButtonText, { color: themeColors.text }]}>
+                {showPopularTimes ? 'Hide Popular Times' : 'Show Popular Times'}
+              </Text>
+            </Pressable>
+
+            {/* Popular Times Chart */}
+            {showPopularTimes && (
+              <PopularTimesChart venueId={venue.id} />
+            )}
 
             <View style={styles.infoContainer}>
               <Pressable 
@@ -181,6 +206,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     marginBottom: 24,
+  },
+  popularTimesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  popularTimesButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   infoContainer: {
     marginBottom: 24,

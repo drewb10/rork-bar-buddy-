@@ -23,6 +23,8 @@ interface VenueInteractionState {
   loadPopularTimesFromSupabase: () => Promise<void>;
   getTotalLikes: () => number;
   getMostPopularVenues: () => { venueId: string; likes: number }[];
+  getTimeSlotData: (venueId: string) => { time: string; count: number }[];
+  getAllInteractionsForVenue: (venueId: string) => VenueInteraction[];
 }
 
 const RESET_HOUR = 5;
@@ -160,6 +162,39 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
             .map(i => ({ venueId: i.venueId, likes: i.likes }))
             .sort((a, b) => b.likes - a.likes)
             .slice(0, 10);
+        } catch {
+          return [];
+        }
+      },
+      
+      getTimeSlotData: (venueId) => {
+        try {
+          const { interactions } = get();
+          const venueInteractions = interactions.filter(i => i.venueId === venueId);
+          
+          // Create time slot counts
+          const timeSlotCounts: Record<string, number> = {};
+          
+          venueInteractions.forEach(interaction => {
+            if (interaction.arrivalTime) {
+              timeSlotCounts[interaction.arrivalTime] = (timeSlotCounts[interaction.arrivalTime] || 0) + interaction.count;
+            }
+          });
+          
+          // Convert to array format
+          return Object.entries(timeSlotCounts).map(([time, count]) => ({
+            time,
+            count
+          }));
+        } catch {
+          return [];
+        }
+      },
+      
+      getAllInteractionsForVenue: (venueId) => {
+        try {
+          const { interactions } = get();
+          return interactions.filter(i => i.venueId === venueId);
         } catch {
           return [];
         }
