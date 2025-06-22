@@ -10,6 +10,7 @@ import { useUserProfileStore } from "@/stores/userProfileStore";
 import { useVenueInteractionStore } from "@/stores/venueInteractionStore";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
 import OnboardingModal from "@/components/OnboardingModal";
+import { LinearGradient } from "expo-linear-gradient";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,21 +28,32 @@ export default function RootLayout() {
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
+  const [imageLoadError, setImageLoadError] = useState(false);
 
   useEffect(() => {
     // Load background image from Supabase
     const loadBackgroundImage = async () => {
       try {
+        console.log('Loading background image from Supabase...');
+        
         const { data } = supabase
           .storage
           .from('background-barbuddy')
           .getPublicUrl('barbuddy-bg.png');
         
         const imageUrl = data.publicUrl;
-        console.log('Background URL:', imageUrl);
-        setBackgroundUrl(imageUrl);
+        console.log('Background URL resolved:', imageUrl);
+        
+        if (imageUrl && imageUrl !== '') {
+          setBackgroundUrl(imageUrl);
+          setImageLoadError(false);
+        } else {
+          console.warn('Background URL is empty or invalid');
+          setImageLoadError(true);
+        }
       } catch (error) {
         console.error('Error loading background image:', error);
+        setImageLoadError(true);
         setBackgroundUrl(null);
       }
     };
@@ -89,102 +101,92 @@ export default function RootLayout() {
     setShowOnboarding(false);
   };
 
+  const handleImageError = () => {
+    console.warn('Background image failed to load, using fallback');
+    setImageLoadError(true);
+  };
+
+  const renderBackground = () => {
+    // If we have a valid background URL and no load error, use ImageBackground
+    if (backgroundUrl && !imageLoadError) {
+      return (
+        <ImageBackground
+          source={{ uri: backgroundUrl }}
+          style={{ flex: 1 }}
+          resizeMode="cover"
+          onError={handleImageError}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.1)' }}>
+            {renderContent()}
+          </View>
+        </ImageBackground>
+      );
+    }
+
+    // Fallback to gradient background
+    return (
+      <LinearGradient
+        colors={['#FF6B35', '#F7931E', '#FFD23F']}
+        style={{ flex: 1 }}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.1)' }}>
+          {renderContent()}
+        </View>
+      </LinearGradient>
+    );
+  };
+
+  const renderContent = () => (
+    <>
+      <Stack
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: 'transparent',
+          },
+          headerTintColor: '#FFFFFF',
+          headerShadowVisible: false,
+          contentStyle: {
+            backgroundColor: 'transparent',
+          },
+          headerShown: false,
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen 
+          name="venue/[id]" 
+          options={{
+            headerShown: true,
+            presentation: 'card',
+            headerBackTitle: 'Home',
+            headerTitle: '',
+            headerStyle: {
+              backgroundColor: 'rgba(18, 18, 18, 0.9)',
+            },
+            headerTintColor: '#FFFFFF',
+          }}
+        />
+        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+      </Stack>
+
+      <AgeVerificationModal
+        visible={showAgeVerification}
+        onVerify={handleAgeVerification}
+      />
+
+      <OnboardingModal
+        visible={showOnboarding}
+        onComplete={handleOnboardingComplete}
+      />
+    </>
+  );
+
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <StatusBar style="light" />
-        
-        {backgroundUrl ? (
-          <ImageBackground
-            source={{ uri: backgroundUrl }}
-            style={{ flex: 1 }}
-            resizeMode="cover"
-          >
-            <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.1)' }}>
-              <Stack
-                screenOptions={{
-                  headerStyle: {
-                    backgroundColor: 'transparent',
-                  },
-                  headerTintColor: '#FFFFFF',
-                  headerShadowVisible: false,
-                  contentStyle: {
-                    backgroundColor: 'transparent',
-                  },
-                  headerShown: false,
-                }}
-              >
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen 
-                  name="venue/[id]" 
-                  options={{
-                    headerShown: true,
-                    presentation: 'card',
-                    headerBackTitle: 'Home',
-                    headerTitle: '',
-                    headerStyle: {
-                      backgroundColor: 'rgba(18, 18, 18, 0.9)',
-                    },
-                    headerTintColor: '#FFFFFF',
-                  }}
-                />
-                <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-              </Stack>
-
-              <AgeVerificationModal
-                visible={showAgeVerification}
-                onVerify={handleAgeVerification}
-              />
-
-              <OnboardingModal
-                visible={showOnboarding}
-                onComplete={handleOnboardingComplete}
-              />
-            </View>
-          </ImageBackground>
-        ) : (
-          <View style={{ flex: 1, backgroundColor: '#121212' }}>
-            <Stack
-              screenOptions={{
-                headerStyle: {
-                  backgroundColor: 'transparent',
-                },
-                headerTintColor: '#FFFFFF',
-                headerShadowVisible: false,
-                contentStyle: {
-                  backgroundColor: 'transparent',
-                },
-                headerShown: false,
-              }}
-            >
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen 
-                name="venue/[id]" 
-                options={{
-                  headerShown: true,
-                  presentation: 'card',
-                  headerBackTitle: 'Home',
-                  headerTitle: '',
-                  headerStyle: {
-                    backgroundColor: 'rgba(18, 18, 18, 0.9)',
-                  },
-                  headerTintColor: '#FFFFFF',
-                }}
-              />
-              <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-            </Stack>
-
-            <AgeVerificationModal
-              visible={showAgeVerification}
-              onVerify={handleAgeVerification}
-            />
-
-            <OnboardingModal
-              visible={showOnboarding}
-              onComplete={handleOnboardingComplete}
-            />
-          </View>
-        )}
+        {renderBackground()}
       </QueryClientProvider>
     </trpc.Provider>
   );
