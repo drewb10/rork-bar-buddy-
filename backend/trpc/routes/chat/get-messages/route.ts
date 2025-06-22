@@ -13,7 +13,7 @@ interface MessageWithJoinedSession {
   chat_sessions: {
     anonymous_name: string;
     venue_id: string;
-  };
+  } | null;
 }
 
 export const getMessagesProcedure = publicProcedure
@@ -30,8 +30,28 @@ export const getMessagesProcedure = publicProcedure
         throw new Error('Venue ID is required and cannot be empty');
       }
 
-      // Get messages with session info for anonymous names, filtered by venue through join
-      // Using explicit field selection to ensure we get content field
+      // First, get all sessions for this venue to get session IDs
+      const { data: venueSessions, error: sessionsError } = await supabase
+        .from('chat_sessions')
+        .select('id')
+        .eq('venue_id', venueId);
+
+      if (sessionsError) {
+        throw new Error(`Failed to fetch venue sessions: ${sessionsError.message}`);
+      }
+
+      if (!venueSessions || venueSessions.length === 0) {
+        // No sessions for this venue yet
+        return { 
+          success: true, 
+          messages: [],
+          count: 0 
+        };
+      }
+
+      const sessionIds = venueSessions.map(session => session.id);
+
+      // Get messages for these sessions with proper join
       const { data: messagesWithSessions, error } = await supabase
         .from('chat_messages')
         .select(`
@@ -41,12 +61,12 @@ export const getMessagesProcedure = publicProcedure
           timestamp,
           is_flagged,
           created_at,
-          chat_sessions:session_id(
+          chat_sessions!inner(
             anonymous_name,
             venue_id
           )
         `)
-        .eq('chat_sessions.venue_id', venueId)
+        .in('session_id', sessionIds)
         .order('timestamp', { ascending: true })
         .limit(limit);
 
@@ -59,7 +79,7 @@ export const getMessagesProcedure = publicProcedure
         ...msg,
         anonymous_name: msg.chat_sessions?.anonymous_name || 'Anonymous Buddy',
         venue_id: msg.chat_sessions?.venue_id || venueId,
-      })) || [];
+      })).filter(msg => msg.chat_sessions !== null) || [];
 
       return { 
         success: true, 

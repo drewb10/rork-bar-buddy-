@@ -33,7 +33,7 @@ interface MessageWithJoinedSession {
   chat_sessions: {
     anonymous_name: string;
     venue_id: string;
-  };
+  } | null;
 }
 
 interface ChatState {
@@ -183,7 +183,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw new Error('Venue ID is required and cannot be empty');
       }
 
-      // Get messages with session info for anonymous names, filtered by venue through join
+      // First, get all sessions for this venue to get session IDs
+      const { data: venueSessions, error: sessionsError } = await supabase
+        .from('chat_sessions')
+        .select('id')
+        .eq('venue_id', venueId);
+
+      if (sessionsError) {
+        throw sessionsError;
+      }
+
+      if (!venueSessions || venueSessions.length === 0) {
+        // No sessions for this venue yet
+        set({ messages: [], isLoading: false });
+        return;
+      }
+
+      const sessionIds = venueSessions.map(session => session.id);
+
+      // Get messages for these sessions with proper join
       const { data: messagesData, error } = await supabase
         .from('chat_messages')
         .select(`
@@ -193,12 +211,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
           timestamp,
           is_flagged,
           created_at,
-          chat_sessions:session_id(
+          chat_sessions!inner(
             anonymous_name,
             venue_id
           )
         `)
-        .eq('chat_sessions.venue_id', venueId)
+        .in('session_id', sessionIds)
         .order('timestamp', { ascending: true })
         .limit(100);
 
@@ -211,7 +229,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         ...msg,
         anonymous_name: msg.chat_sessions?.anonymous_name || 'Anonymous Buddy',
         venue_id: msg.chat_sessions?.venue_id || venueId,
-      })) || [];
+      })).filter(msg => msg.chat_sessions !== null) || [];
 
       set({ messages: transformedMessages, isLoading: false });
     } catch (error) {
@@ -305,11 +323,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
           async (payload) => {
             try {
               // Get the session info for the new message to check venue and get anonymous name
-              const { data: sessionData } = await supabase
+              const { data: sessionData, error: sessionError } = await supabase
                 .from('chat_sessions')
                 .select('anonymous_name, venue_id')
                 .eq('id', payload.new.session_id)
                 .single();
+
+              if (sessionError) {
+                console.error('Failed to get session data for new message:', sessionError);
+                return;
+              }
 
               // Only process messages for the current venue
               if (sessionData?.venue_id !== venueId) {
