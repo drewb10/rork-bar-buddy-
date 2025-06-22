@@ -22,16 +22,19 @@ export interface ChatSession {
   last_active: string;
 }
 
+interface ChatSession {
+  id: string;
+  anonymous_name: string;
+  venue_id: string;
+}
+
 interface RawMessageFromSupabase {
   id: string;
   session_id: string;
   content: string;
   timestamp: string;
   created_at: string;
-  chat_sessions: {
-    anonymous_name: string;
-    venue_id: string;
-  } | null;
+  chat_sessions: ChatSession | null;
 }
 
 interface ChatState {
@@ -180,6 +183,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           timestamp,
           created_at,
           chat_sessions!inner(
+            id,
             anonymous_name,
             venue_id
           )
@@ -295,7 +299,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             try {
               const { data: sessionData, error: sessionError } = await supabase
                 .from('chat_sessions')
-                .select('anonymous_name, venue_id')
+                .select('id, anonymous_name, venue_id')
                 .eq('id', payload.new.session_id)
                 .single();
 

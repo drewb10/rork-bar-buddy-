@@ -2,16 +2,19 @@ import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
 import { supabase } from "@/lib/supabase";
 
+interface ChatSession {
+  id: string;
+  anonymous_name: string;
+  venue_id: string;
+}
+
 interface RawMessageFromSupabase {
   id: string;
   session_id: string;
   content: string;
   timestamp: string;
   created_at: string;
-  chat_sessions: {
-    anonymous_name: string;
-    venue_id: string;
-  } | null;
+  chat_sessions: ChatSession | null;
 }
 
 interface TransformedMessage {
@@ -46,6 +49,7 @@ export const getMessagesProcedure = publicProcedure
           timestamp,
           created_at,
           chat_sessions!inner(
+            id,
             anonymous_name,
             venue_id
           )
