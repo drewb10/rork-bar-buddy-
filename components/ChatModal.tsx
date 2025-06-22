@@ -105,15 +105,6 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
       return;
     }
 
-    if (containsInappropriateContent(trimmedContent)) {
-      Alert.alert(
-        'Message Blocked',
-        'Your message contains inappropriate content. Please keep the chat friendly and respectful.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
     if (!venue?.id || venue.id.trim() === '') {
       Alert.alert(
         'Error',
@@ -143,19 +134,6 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
     } finally {
       setIsSending(false);
     }
-  };
-
-  const containsInappropriateContent = (text: string): boolean => {
-    const inappropriateWords = [
-      'fuck', 'shit', 'damn', 'bitch', 'ass', 'hell',
-      'sex', 'porn', 'nude', 'naked', 'drug', 'drugs',
-      'weed', 'cocaine', 'heroin', 'meth', 'ecstasy',
-      'kill', 'die', 'death', 'suicide', 'murder',
-      'hate', 'racist', 'nazi', 'terrorist'
-    ];
-
-    const lowerText = text.toLowerCase();
-    return inappropriateWords.some(word => lowerText.includes(word));
   };
 
   const formatTime = (timestamp: string) => {
@@ -323,22 +301,14 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               </Text>
               <ScrollView style={styles.termsScroll}>
                 <Text style={[styles.termsText, { color: themeColors.text }]}>
-                  Welcome to BarBuddy anonymous chat! To keep our community safe and fun:
-                  {"\n\n"}
-                  • Be respectful and kind to others
-                  {"\n"}
-                  • No inappropriate language or content
-                  {"\n"}
-                  • No sharing of personal information
-                  {"\n"}
-                  • No harassment or bullying
-                  {"\n"}
-                  • No spam or promotional content
-                  {"\n"}
-                  • Keep conversations venue-related and fun
-                  {"\n\n"}
-                  Messages are automatically filtered for inappropriate content. Violations may result in temporary chat restrictions.
-                  {"\n\n"}
+                  Welcome to BarBuddy anonymous chat! To keep our community safe and fun:{"\n\n"}
+                  • Be respectful and kind to others{"\n"}
+                  • No inappropriate language or content{"\n"}
+                  • No sharing of personal information{"\n"}
+                  • No harassment or bullying{"\n"}
+                  • No spam or promotional content{"\n"}
+                  • Keep conversations venue-related and fun{"\n\n"}
+                  Messages are automatically filtered for inappropriate content. Violations may result in temporary chat restrictions.{"\n\n"}
                   Have fun and stay safe! 🍻
                 </Text>
               </ScrollView>
