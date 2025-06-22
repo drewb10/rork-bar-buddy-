@@ -18,7 +18,6 @@ export const sendMessageProcedure = publicProcedure
     const { sessionId, venueId, content } = input;
 
     try {
-      // Validate inputs
       if (!sessionId || sessionId.trim() === '') {
         throw new Error('Session ID is required and cannot be empty');
       }
@@ -36,7 +35,6 @@ export const sendMessageProcedure = publicProcedure
         throw new Error('Message content cannot be empty after trimming');
       }
 
-      // Verify session exists and belongs to the venue
       const { data: session, error: sessionError } = await supabase
         .from('chat_sessions')
         .select('id, venue_id, anonymous_name')
@@ -48,10 +46,8 @@ export const sendMessageProcedure = publicProcedure
         throw new Error('Invalid session or session does not belong to this venue');
       }
 
-      // Type assertion to ensure proper typing
       const typedSession = session as ChatSession;
 
-      // Insert the message using the content field - ensure content is not null
       const { data: newMessage, error: insertError } = await supabase
         .from('chat_messages')
         .insert({
@@ -71,7 +67,6 @@ export const sendMessageProcedure = publicProcedure
         throw new Error(`Failed to insert message: ${insertError.message}`);
       }
 
-      // Return message with anonymous name and venue_id from session
       const messageWithDetails = {
         ...newMessage,
         anonymous_name: typedSession.anonymous_name,

@@ -12,7 +12,6 @@ export const createSessionProcedure = publicProcedure
     const { userId, venueId, anonymousName } = input;
 
     try {
-      // Validate inputs
       if (!userId || userId.trim() === '') {
         throw new Error('User ID is required and cannot be empty');
       }
@@ -25,7 +24,6 @@ export const createSessionProcedure = publicProcedure
         throw new Error('Anonymous name is required and cannot be empty');
       }
 
-      // Check if session already exists for this user and venue
       const { data: existingSession, error: fetchError } = await supabase
         .from('chat_sessions')
         .select('*')
@@ -38,7 +36,6 @@ export const createSessionProcedure = publicProcedure
       }
 
       if (existingSession) {
-        // Update last_active timestamp
         const { data: updatedSession, error: updateError } = await supabase
           .from('chat_sessions')
           .update({ last_active: new Date().toISOString() })
@@ -48,14 +45,12 @@ export const createSessionProcedure = publicProcedure
         
         if (updateError) {
           console.warn('Failed to update session timestamp:', updateError);
-          // Return existing session even if timestamp update fails
           return { success: true, session: existingSession };
         }
         
         return { success: true, session: updatedSession };
       }
 
-      // Create new session with venue_id
       const { data: newSession, error: createError } = await supabase
         .from('chat_sessions')
         .insert({

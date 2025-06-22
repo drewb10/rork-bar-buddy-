@@ -22,7 +22,6 @@ export interface ChatSession {
   last_active: string;
 }
 
-// Type for raw message response from Supabase
 interface RawMessageFromSupabase {
   id: string;
   session_id: string;
@@ -50,19 +49,16 @@ interface ChatState {
   clearError: () => void;
 }
 
-// Generate a persistent user ID for anonymous chat
 const getUserId = async (): Promise<string> => {
   let userId = '';
   
   if (Platform.OS === 'web') {
-    // For web, use localStorage for persistence
     userId = localStorage.getItem('barbuddy-anonymous-user-id') || '';
     if (!userId) {
       userId = 'user_' + Math.random().toString(36).substr(2, 12) + Date.now().toString(36);
       localStorage.setItem('barbuddy-anonymous-user-id', userId);
     }
   } else {
-    // For mobile, use AsyncStorage
     try {
       userId = await AsyncStorage.getItem('barbuddy-anonymous-user-id') || '';
       if (!userId) {
@@ -71,7 +67,6 @@ const getUserId = async (): Promise<string> => {
       }
     } catch (error) {
       console.error('Failed to get/set user ID:', error);
-      // Fallback to session-based ID
       userId = 'user_' + Math.random().toString(36).substr(2, 12) + Date.now().toString(36);
     }
   }
@@ -79,7 +74,6 @@ const getUserId = async (): Promise<string> => {
   return userId;
 };
 
-// Generate fun anonymous names
 const generateAnonymousName = (userId: string): string => {
   const adjectives = [
     'Cool', 'Happy', 'Chill', 'Fun', 'Wild', 'Smooth', 'Fresh', 'Bold',
@@ -90,7 +84,6 @@ const generateAnonymousName = (userId: string): string => {
     'Ninja', 'Wizard', 'Phoenix', 'Tiger', 'Eagle', 'Wolf', 'Bear', 'Fox'
   ];
   
-  // Use userId to generate consistent but random-looking name
   const adjIndex = userId.charCodeAt(0) % adjectives.length;
   const nounIndex = userId.charCodeAt(userId.length - 1) % nouns.length;
   const number = (userId.charCodeAt(Math.floor(userId.length / 2)) % 99) + 1;
@@ -117,7 +110,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       const userId = await getUserId();
       
-      // Check if session already exists for this user and venue
       const { data: existingSession, error: fetchError } = await supabase
         .from('chat_sessions')
         .select('*')
@@ -130,7 +122,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       if (existingSession) {
-        // Update last_active timestamp
         const { data: updatedSession, error: updateError } = await supabase
           .from('chat_sessions')
           .update({ last_active: new Date().toISOString() })
@@ -140,7 +131,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
         
         if (updateError) {
           console.warn('Failed to update session timestamp:', updateError);
-          // Continue with existing session even if timestamp update fails
         }
         
         const session = updatedSession || existingSession;
@@ -148,7 +138,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
         return session;
       }
 
-      // Create new session with venue_id
       const anonymousName = generateAnonymousName(userId);
       const { data: newSession, error: createError } = await supabase
         .from('chat_sessions')
@@ -182,7 +171,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw new Error('Venue ID is required and cannot be empty');
       }
 
-      // Get messages for this venue with proper inner join
       const { data: messagesData, error } = await supabase
         .from('chat_messages')
         .select(`
@@ -204,9 +192,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw error;
       }
 
-      // Transform messages to include anonymous_name and venue_id at top level
       const transformedMessages: ChatMessage[] = (messagesData as unknown as RawMessageFromSupabase[])?.map(msg => {
-        // Handle chat_sessions properly
         const sessionData = msg.chat_sessions;
 
         return {
@@ -247,10 +233,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw new Error('Message content cannot be empty after trimming');
       }
 
-      // Ensure we have a session
       const session = get().currentSession || await get().createOrGetSession(venueId);
 
-      // Insert message with content field - ensure content is not null or empty
       const { data: newMessage, error } = await supabase
         .from('chat_messages')
         .insert({
@@ -270,14 +254,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw error;
       }
 
-      // Transform message to include anonymous_name and venue_id from session
       const transformedMessage: ChatMessage = {
         ...newMessage,
         anonymous_name: session.anonymous_name,
         venue_id: session.venue_id,
       };
 
-      // Add the new message to current messages
       const currentMessages = get().messages;
       set({ 
         messages: [...currentMessages, transformedMessage],
@@ -298,7 +280,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
         return;
       }
 
-      // Unsubscribe from any existing subscription
       get().unsubscribeFromMessages();
 
       const subscription = supabase
@@ -312,7 +293,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
           },
           async (payload) => {
             try {
-              // Get the session info for the new message to check venue and get anonymous name
               const { data: sessionData, error: sessionError } = await supabase
                 .from('chat_sessions')
                 .select('anonymous_name, venue_id')
@@ -324,7 +304,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 return;
               }
 
-              // Only process messages for the current venue
               if (sessionData?.venue_id !== venueId) {
                 return;
               }
@@ -336,7 +315,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
               } as ChatMessage;
 
               const currentMessages = get().messages;
-              // Only add if not already in messages (avoid duplicates)
               if (!currentMessages.find(msg => msg.id === newMessage.id)) {
                 set({ messages: [...currentMessages, newMessage] });
               }

@@ -26,14 +26,6 @@ export interface Database {
           last_night_out_date: string | null
           last_drunk_scale_date: string | null
           has_completed_onboarding: boolean
-          xp: number
-          xp_activities: Json[]
-          visited_bars: string[]
-          events_attended: number
-          friends_referred: number
-          live_events_attended: number
-          featured_drinks_tried: number
-          bar_games_played: number
           created_at: string
           updated_at: string
         }
@@ -53,14 +45,6 @@ export interface Database {
           last_night_out_date?: string | null
           last_drunk_scale_date?: string | null
           has_completed_onboarding?: boolean
-          xp?: number
-          xp_activities?: Json[]
-          visited_bars?: string[]
-          events_attended?: number
-          friends_referred?: number
-          live_events_attended?: number
-          featured_drinks_tried?: number
-          bar_games_played?: number
           created_at?: string
           updated_at?: string
         }
@@ -80,14 +64,6 @@ export interface Database {
           last_night_out_date?: string | null
           last_drunk_scale_date?: string | null
           has_completed_onboarding?: boolean
-          xp?: number
-          xp_activities?: Json[]
-          visited_bars?: string[]
-          events_attended?: number
-          friends_referred?: number
-          live_events_attended?: number
-          featured_drinks_tried?: number
-          bar_games_played?: number
           created_at?: string
           updated_at?: string
         }

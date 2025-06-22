@@ -2,7 +2,6 @@ import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
 import { supabase } from "@/lib/supabase";
 
-// Type for raw message response from Supabase
 interface RawMessageFromSupabase {
   id: string;
   session_id: string;
@@ -15,7 +14,6 @@ interface RawMessageFromSupabase {
   } | null;
 }
 
-// Type for transformed message
 interface TransformedMessage {
   id: string;
   session_id: string;
@@ -35,12 +33,10 @@ export const getMessagesProcedure = publicProcedure
     const { venueId, limit } = input;
 
     try {
-      // Validate venue ID
       if (!venueId || venueId.trim() === '') {
         throw new Error('Venue ID is required and cannot be empty');
       }
 
-      // Get messages for this venue with proper inner join
       const { data: messagesWithSessions, error } = await supabase
         .from('chat_messages')
         .select(`
@@ -62,9 +58,7 @@ export const getMessagesProcedure = publicProcedure
         throw new Error(`Failed to fetch messages: ${error.message}`);
       }
 
-      // Transform messages to include anonymous_name and venue_id at top level
       const transformedMessages: TransformedMessage[] = (messagesWithSessions as unknown as RawMessageFromSupabase[])?.map(msg => {
-        // Handle chat_sessions properly
         const sessionData = msg.chat_sessions;
 
         return {

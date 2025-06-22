@@ -66,7 +66,7 @@ CREATE TABLE bingo_card_completions (
   session_id TEXT
 );
 
--- Create chat_sessions table with venue_id and anonymous_name
+-- Create chat_sessions table
 CREATE TABLE IF NOT EXISTS chat_sessions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id TEXT NOT NULL,
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
   UNIQUE(user_id, venue_id)
 );
 
--- Create chat_messages table with content column and timestamp column (removed is_flagged)
+-- Create chat_messages table (simplified - removed is_flagged column)
 CREATE TABLE IF NOT EXISTS chat_messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   session_id UUID NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,

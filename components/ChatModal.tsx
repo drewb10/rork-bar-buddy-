@@ -61,7 +61,6 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
     try {
       clearError();
       
-      // Validate venue ID
       if (!venue?.id || venue.id.trim() === '') {
         console.error('Invalid venue ID:', venue?.id);
         Alert.alert(
@@ -86,7 +85,6 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
   };
 
   useEffect(() => {
-    // Auto-scroll to bottom when new messages arrive
     if (messages.length > 0) {
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -107,7 +105,6 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
       return;
     }
 
-    // Check for inappropriate content
     if (containsInappropriateContent(trimmedContent)) {
       Alert.alert(
         'Message Blocked',
@@ -117,7 +114,6 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
       return;
     }
 
-    // Validate venue ID before sending
     if (!venue?.id || venue.id.trim() === '') {
       Alert.alert(
         'Error',
@@ -133,12 +129,11 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
 
     setIsSending(true);
     const messageToSend = trimmedContent;
-    setInputText(''); // Clear input immediately for better UX
+    setInputText('');
 
     try {
       await sendMessage(venue.id, messageToSend);
     } catch (error) {
-      // Restore message if sending failed
       setInputText(messageToSend);
       Alert.alert(
         'Failed to Send',
@@ -328,7 +323,23 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               </Text>
               <ScrollView style={styles.termsScroll}>
                 <Text style={[styles.termsText, { color: themeColors.text }]}>
-                  {"Welcome to BarBuddy anonymous chat! To keep our community safe and fun:\n\n• Be respectful and kind to others\n• No inappropriate language or content\n• No sharing of personal information\n• No harassment or bullying\n• No spam or promotional content\n• Keep conversations venue-related and fun\n\nMessages are automatically filtered for inappropriate content. Violations may result in temporary chat restrictions.\n\nHave fun and stay safe! 🍻"}
+                  Welcome to BarBuddy anonymous chat! To keep our community safe and fun:
+                  {"\n\n"}
+                  • Be respectful and kind to others
+                  {"\n"}
+                  • No inappropriate language or content
+                  {"\n"}
+                  • No sharing of personal information
+                  {"\n"}
+                  • No harassment or bullying
+                  {"\n"}
+                  • No spam or promotional content
+                  {"\n"}
+                  • Keep conversations venue-related and fun
+                  {"\n\n"}
+                  Messages are automatically filtered for inappropriate content. Violations may result in temporary chat restrictions.
+                  {"\n\n"}
+                  Have fun and stay safe! 🍻
                 </Text>
               </ScrollView>
               <Pressable
@@ -479,7 +490,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // Terms modal styles
   termsOverlay: {
     flex: 1,
     justifyContent: 'center',
