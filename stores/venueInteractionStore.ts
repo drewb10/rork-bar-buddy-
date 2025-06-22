@@ -69,6 +69,8 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
       
       incrementInteraction: async (venueId, arrivalTime) => {
         try {
+          if (!venueId) return;
+          
           get().resetInteractionsIfNeeded();
           
           if (!get().canInteract(venueId)) return;
@@ -133,6 +135,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
       
       getInteractionCount: (venueId) => {
         try {
+          if (!venueId) return 0;
           get().resetInteractionsIfNeeded();
           const interaction = get().interactions.find(i => i.venueId === venueId);
           return interaction ? interaction.count : 0;
@@ -143,6 +146,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
       
       getLikeCount: (venueId) => {
         try {
+          if (!venueId) return 0;
           const interaction = get().interactions.find(i => i.venueId === venueId);
           return interaction ? interaction.likes : 0;
         } catch {
@@ -153,7 +157,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
       getTotalLikes: () => {
         try {
           const { interactions } = get();
-          return interactions.reduce((total, interaction) => total + interaction.likes, 0);
+          return interactions.reduce((total, interaction) => total + (interaction?.likes || 0), 0);
         } catch {
           return 0;
         }
@@ -163,7 +167,8 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
         try {
           const { interactions } = get();
           return interactions
-            .map(i => ({ venueId: i.venueId, likes: i.likes }))
+            .filter(i => i && i.venueId)
+            .map(i => ({ venueId: i.venueId, likes: i.likes || 0 }))
             .sort((a, b) => b.likes - a.likes)
             .slice(0, 10);
         } catch {
@@ -173,27 +178,29 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
       
       getTimeSlotData: (venueId) => {
         try {
+          if (!venueId) return [];
+          
           const { interactions } = get();
-          const venueInteractions = interactions.filter(i => i.venueId === venueId);
+          const venueInteractions = interactions.filter(i => i && i.venueId === venueId);
           
           // Create time slot counts
           const timeSlotCounts: Record<string, { count: number; likes: number }> = {};
           
           venueInteractions.forEach(interaction => {
-            if (interaction.arrivalTime) {
+            if (interaction && interaction.arrivalTime) {
               if (!timeSlotCounts[interaction.arrivalTime]) {
                 timeSlotCounts[interaction.arrivalTime] = { count: 0, likes: 0 };
               }
-              timeSlotCounts[interaction.arrivalTime].count += interaction.count;
-              timeSlotCounts[interaction.arrivalTime].likes += interaction.likes;
+              timeSlotCounts[interaction.arrivalTime].count += interaction.count || 0;
+              timeSlotCounts[interaction.arrivalTime].likes += interaction.likes || 0;
             }
           });
           
           // Convert to array format
           return Object.entries(timeSlotCounts).map(([time, data]) => ({
-            time,
-            count: data.count,
-            likes: data.likes
+            time: time || '',
+            count: data?.count || 0,
+            likes: data?.likes || 0
           }));
         } catch {
           return [];
@@ -202,8 +209,9 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
       
       getAllInteractionsForVenue: (venueId) => {
         try {
+          if (!venueId) return [];
           const { interactions } = get();
-          return interactions.filter(i => i.venueId === venueId);
+          return interactions.filter(i => i && i.venueId === venueId) || [];
         } catch {
           return [];
         }
@@ -211,8 +219,10 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
 
       getDetailedTimeSlotData: (venueId) => {
         try {
+          if (!venueId) return [];
+          
           const { interactions } = get();
-          const venueInteractions = interactions.filter(i => i.venueId === venueId);
+          const venueInteractions = interactions.filter(i => i && i.venueId === venueId);
           
           const TIME_SLOTS = [
             '19:00', '19:30', '20:00', '20:30', '21:00', '21:30', 
@@ -228,9 +238,9 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
 
           // Process each time slot
           const timeSlotData = TIME_SLOTS.map(timeSlot => {
-            const slotInteractions = venueInteractions.filter(i => i.arrivalTime === timeSlot);
-            const visits = slotInteractions.reduce((sum, i) => sum + i.count, 0);
-            const likes = slotInteractions.reduce((sum, i) => sum + i.likes, 0);
+            const slotInteractions = venueInteractions.filter(i => i && i.arrivalTime === timeSlot);
+            const visits = slotInteractions.reduce((sum, i) => sum + (i?.count || 0), 0);
+            const likes = slotInteractions.reduce((sum, i) => sum + (i?.likes || 0), 0);
             
             return {
               time: timeSlot,
@@ -246,7 +256,9 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           const topSlots = sortedByVisits.slice(0, 3);
           
           timeSlotData.forEach(slot => {
-            slot.isPeak = topSlots.some(top => top.time === slot.time && top.visits > 0);
+            if (slot && slot.time) {
+              slot.isPeak = topSlots.some(top => top && top.time === slot.time && top.visits > 0);
+            }
           });
 
           return timeSlotData;
@@ -259,18 +271,18 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
         try {
           set((state) => {
             const needsReset = state.interactions.some(
-              i => shouldReset(i.lastReset)
+              i => i && shouldReset(i.lastReset)
             );
             
             if (needsReset) {
               return {
-                interactions: state.interactions.map(i => ({
+                interactions: state.interactions.map(i => i ? ({
                   ...i,
                   count: 0,
                   lastReset: new Date().toISOString(),
                   arrivalTime: undefined
                   // Keep likes - they don't reset daily
-                }))
+                }) : i)
               };
             }
             
@@ -283,8 +295,9 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
       
       canInteract: (venueId) => {
         try {
+          if (!venueId) return false;
           get().resetInteractionsIfNeeded();
-          const interaction = get().interactions.find(i => i.venueId === venueId);
+          const interaction = get().interactions.find(i => i && i.venueId === venueId);
           return canInteractWithVenue(interaction?.lastInteraction);
         } catch {
           return true;
@@ -293,16 +306,18 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
       
       getPopularArrivalTime: (venueId) => {
         try {
+          if (!venueId) return null;
+          
           const allInteractions = get().interactions.filter(i => 
-            i.venueId === venueId && i.arrivalTime && i.count > 0
+            i && i.venueId === venueId && i.arrivalTime && i.count > 0
           );
           
           if (allInteractions.length === 0) return null;
           
           const timeCounts: Record<string, number> = {};
           allInteractions.forEach(interaction => {
-            if (interaction.arrivalTime) {
-              timeCounts[interaction.arrivalTime] = (timeCounts[interaction.arrivalTime] || 0) + interaction.count;
+            if (interaction && interaction.arrivalTime) {
+              timeCounts[interaction.arrivalTime] = (timeCounts[interaction.arrivalTime] || 0) + (interaction.count || 0);
             }
           });
           

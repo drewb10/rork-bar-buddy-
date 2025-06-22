@@ -39,62 +39,78 @@ export default function PopularTimesChart({ venueId, expanded = false }: Popular
   const [viewMode, setViewMode] = useState<'visits' | 'likes'>('visits');
 
   useEffect(() => {
-    updateChartData();
-    const interval = setInterval(updateChartData, 60000); // Update every minute
-    return () => clearInterval(interval);
+    if (venueId) {
+      updateChartData();
+      const interval = setInterval(updateChartData, 60000); // Update every minute
+      return () => clearInterval(interval);
+    }
   }, [venueId, selectedDay, viewMode]);
 
   const updateChartData = () => {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinutes = now.getMinutes();
-    const currentTimeSlot = `${currentHour.toString().padStart(2, '0')}:${currentMinutes >= 30 ? '30' : '00'}`;
-    
-    // Get all interactions for this venue
-    const allInteractions = getAllInteractionsForVenue(venueId);
-    const totalLikes = getLikeCount(venueId);
-    
-    // Process time slot data
-    const processedData: TimeSlotData[] = TIME_SLOTS.map(timeSlot => {
-      // Count interactions for this time slot
-      const slotInteractions = allInteractions.filter(interaction => 
-        interaction.arrivalTime === timeSlot
+    try {
+      if (!venueId) return;
+
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinutes = now.getMinutes();
+      const currentTimeSlot = `${currentHour.toString().padStart(2, '0')}:${currentMinutes >= 30 ? '30' : '00'}`;
+      
+      // Get all interactions for this venue
+      const allInteractions = getAllInteractionsForVenue(venueId) || [];
+      
+      // Process time slot data with proper null checks
+      const processedData: TimeSlotData[] = TIME_SLOTS.map(timeSlot => {
+        // Count interactions for this time slot
+        const slotInteractions = allInteractions.filter(interaction => 
+          interaction && interaction.arrivalTime === timeSlot
+        );
+        
+        const count = slotInteractions.length;
+        const likes = slotInteractions.reduce((sum, interaction) => {
+          return sum + (interaction?.likes || 0);
+        }, 0);
+        
+        const isCurrentHour = timeSlot === currentTimeSlot && isCurrentlyOpen();
+        
+        return {
+          time: timeSlot,
+          count,
+          likes,
+          isCurrentHour,
+          isLive: isCurrentHour && count > getAverageCount(allInteractions),
+          isPeak: false // Will be set below
+        };
+      });
+
+      // Mark peak times (top 3 busiest slots)
+      const sortedByActivity = [...processedData].sort((a, b) => 
+        viewMode === 'likes' ? b.likes - a.likes : b.count - a.count
       );
       
-      const count = slotInteractions.length;
-      const likes = slotInteractions.reduce((sum, interaction) => sum + (interaction.likes || 0), 0);
-      
-      const isCurrentHour = timeSlot === currentTimeSlot && isCurrentlyOpen();
-      
-      return {
-        time: timeSlot,
-        count,
-        likes,
-        isCurrentHour,
-        isLive: isCurrentHour && count > getAverageCount(allInteractions),
-        isPeak: false // Will be set below
-      };
-    });
+      sortedByActivity.slice(0, 3).forEach(slot => {
+        if (slot && slot.time) {
+          const index = processedData.findIndex(s => s && s.time === slot.time);
+          if (index !== -1) {
+            processedData[index].isPeak = true;
+          }
+        }
+      });
 
-    // Mark peak times (top 3 busiest slots)
-    const sortedByActivity = [...processedData].sort((a, b) => 
-      viewMode === 'likes' ? b.likes - a.likes : b.count - a.count
-    );
-    
-    sortedByActivity.slice(0, 3).forEach(slot => {
-      const index = processedData.findIndex(s => s.time === slot.time);
-      if (index !== -1) {
-        processedData[index].isPeak = true;
-      }
-    });
-
-    setTimeSlotData(processedData);
-    setIsLive(processedData.some(slot => slot.isLive));
+      setTimeSlotData(processedData);
+      setIsLive(processedData.some(slot => slot && slot.isLive));
+    } catch (error) {
+      console.warn('Error updating chart data:', error);
+      // Set empty data on error
+      setTimeSlotData([]);
+      setIsLive(false);
+    }
   };
 
   const getAverageCount = (interactions: any[]) => {
-    if (interactions.length === 0) return 0;
-    const totalCount = interactions.reduce((sum, interaction) => sum + (interaction.count || 1), 0);
+    if (!interactions || interactions.length === 0) return 0;
+    const totalCount = interactions.reduce((sum, interaction) => {
+      return sum + (interaction?.count || 1);
+    }, 0);
     return totalCount / TIME_SLOTS.length;
   };
 
@@ -127,6 +143,7 @@ export default function PopularTimesChart({ venueId, expanded = false }: Popular
   };
 
   const formatTime = (time: string) => {
+    if (!time) return '';
     const [hours, minutes] = time.split(':');
     const hour = parseInt(hours);
     if (hour === 0) return '12a';
@@ -136,11 +153,15 @@ export default function PopularTimesChart({ venueId, expanded = false }: Popular
   };
 
   const getMaxValue = () => {
-    const values = timeSlotData.map(slot => viewMode === 'likes' ? slot.likes : slot.count);
+    if (!timeSlotData || timeSlotData.length === 0) return 1;
+    const values = timeSlotData
+      .filter(slot => slot != null)
+      .map(slot => viewMode === 'likes' ? slot.likes : slot.count);
     return Math.max(...values, 1);
   };
 
   const getBarHeight = (slot: TimeSlotData) => {
+    if (!slot) return 8;
     const maxHeight = expanded ? 140 : 120;
     const maxValue = getMaxValue();
     const value = viewMode === 'likes' ? slot.likes : slot.count;
@@ -148,6 +169,7 @@ export default function PopularTimesChart({ venueId, expanded = false }: Popular
   };
 
   const getBarColor = (slot: TimeSlotData) => {
+    if (!slot) return themeColors.primary + '40';
     if (slot.isCurrentHour) return themeColors.primary;
     if (slot.isPeak) return themeColors.primary + 'CC';
     if (slot.isLive) return themeColors.primary + '80';
@@ -155,17 +177,32 @@ export default function PopularTimesChart({ venueId, expanded = false }: Popular
   };
 
   const getTotalStats = () => {
-    const totalVisits = timeSlotData.reduce((sum, slot) => sum + slot.count, 0);
-    const totalLikes = timeSlotData.reduce((sum, slot) => sum + slot.likes, 0);
-    const peakTime = timeSlotData.reduce((peak, slot) => 
-      (viewMode === 'likes' ? slot.likes : slot.count) > (viewMode === 'likes' ? peak.likes : peak.count) ? slot : peak,
-      timeSlotData[0]
-    );
+    if (!timeSlotData || timeSlotData.length === 0) {
+      return { 
+        totalVisits: 0, 
+        totalLikes: 0, 
+        peakTime: { time: '20:00', count: 0, likes: 0 } 
+      };
+    }
+
+    const validSlots = timeSlotData.filter(slot => slot != null);
+    const totalVisits = validSlots.reduce((sum, slot) => sum + slot.count, 0);
+    const totalLikes = validSlots.reduce((sum, slot) => sum + slot.likes, 0);
+    const peakTime = validSlots.reduce((peak, slot) => {
+      const peakValue = viewMode === 'likes' ? peak.likes : peak.count;
+      const slotValue = viewMode === 'likes' ? slot.likes : slot.count;
+      return slotValue > peakValue ? slot : peak;
+    }, validSlots[0] || { time: '20:00', count: 0, likes: 0 });
     
     return { totalVisits, totalLikes, peakTime };
   };
 
   const stats = getTotalStats();
+
+  // Don't render if no venue ID
+  if (!venueId) {
+    return null;
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.card }]}>
@@ -290,11 +327,11 @@ export default function PopularTimesChart({ venueId, expanded = false }: Popular
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chartContent}
         >
-          {timeSlotData.map((slot, index) => (
+          {timeSlotData.filter(slot => slot != null).map((slot, index) => (
             <Pressable
-              key={slot.time}
+              key={slot.time || index}
               style={styles.barContainer}
-              onPress={() => expanded && handleTimeSlotPress(slot.time)}
+              onPress={() => expanded && slot.time && handleTimeSlotPress(slot.time)}
             >
               <View
                 style={[
@@ -358,7 +395,7 @@ export default function PopularTimesChart({ venueId, expanded = false }: Popular
           </Text>
           
           {(() => {
-            const slot = timeSlotData.find(s => s.time === selectedTimeSlot);
+            const slot = timeSlotData.find(s => s && s.time === selectedTimeSlot);
             if (!slot) return null;
             
             return (
@@ -400,7 +437,7 @@ export default function PopularTimesChart({ venueId, expanded = false }: Popular
         </View>
       )}
 
-      {timeSlotData.every(slot => slot.count === 0 && slot.likes === 0) && (
+      {(!timeSlotData || timeSlotData.length === 0 || timeSlotData.every(slot => !slot || (slot.count === 0 && slot.likes === 0))) && (
         <View style={styles.emptyState}>
           <TrendingUp size={24} color={themeColors.subtext} />
           <Text style={[styles.emptyText, { color: themeColors.subtext }]}>

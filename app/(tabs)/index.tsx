@@ -64,8 +64,8 @@ export default function HomeScreen() {
 
   // Sort venues by interaction count (most interactions first)
   const sortedVenues = [...filteredVenues].sort((a, b) => {
-    const aCount = interactions.find(i => i.venueId === a.id)?.count || 0;
-    const bCount = interactions.find(i => i.venueId === b.id)?.count || 0;
+    const aCount = interactions.find(i => i && i.venueId === a.id)?.count || 0;
+    const bCount = interactions.find(i => i && i.venueId === b.id)?.count || 0;
     return bCount - aCount;
   });
 
