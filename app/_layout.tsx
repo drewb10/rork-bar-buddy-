@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { View, ImageBackground } from "react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/lib/trpc";
+import { getBackgroundImageUrl } from "@/lib/supabase";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { useAgeVerificationStore } from "@/stores/ageVerificationStore";
@@ -72,7 +73,7 @@ export default function RootLayout() {
         <StatusBar style="light" />
         
         <ImageBackground
-          source={{ uri: 'https://i.postimg.cc/50nTvgTZ/Chat-GPT-Image-Jun-22-2025-07-15-24-PM.png' }}
+          source={{ uri: getBackgroundImageUrl() }}
           style={{ flex: 1 }}
           resizeMode="cover"
         >
