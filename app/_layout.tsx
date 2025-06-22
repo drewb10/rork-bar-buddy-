@@ -70,21 +70,13 @@ export default function RootLayout() {
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <StatusBar style="light" />
-        {/* 
-          TO USE YOUR CUSTOM BACKGROUND:
-          1. Download your image
-          2. Save it to assets/images/background.png (or .jpg)
-          3. Uncomment the line below and comment out the current ImageBackground
-        */}
-        {/* <ImageBackground source={require('@/assets/images/background.png')} style={{ flex: 1 }} resizeMode="cover"> */}
         
-        {/* Current fallback background - replace with your local asset */}
         <ImageBackground
-          source={{ uri: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&h=1920&q=80' }}
+          source={{ uri: 'https://i.postimg.cc/50nTvgTZ/Chat-GPT-Image-Jun-22-2025-07-15-24-PM.png' }}
           style={{ flex: 1 }}
           resizeMode="cover"
         >
-          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.3)' }}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.1)' }}>
             <Stack
               screenOptions={{
                 headerStyle: {
