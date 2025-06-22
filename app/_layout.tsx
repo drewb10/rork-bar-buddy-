@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { View } from "react-native";
+import { View, ImageBackground } from "react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { StatusBar } from "expo-status-bar";
@@ -70,45 +70,53 @@ export default function RootLayout() {
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerStyle: {
-              backgroundColor: '#121212',
-            },
-            headerTintColor: '#FFFFFF',
-            headerShadowVisible: false,
-            contentStyle: {
-              backgroundColor: '#121212',
-            },
-            headerShown: false,
-          }}
+        <ImageBackground
+          source={{ uri: 'https://i.postimg.cc/rmH8n2fM/Screenshot-2025-06-22-at-6-35-03-PM.png' }}
+          style={{ flex: 1 }}
+          resizeMode="cover"
         >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen 
-            name="venue/[id]" 
-            options={{
-              headerShown: true,
-              presentation: 'card',
-              headerBackTitle: 'Home',
-              headerTitle: '',
-              headerStyle: {
-                backgroundColor: '#121212',
-              },
-              headerTintColor: '#FFFFFF',
-            }}
-          />
-          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-        </Stack>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.4)' }}>
+            <Stack
+              screenOptions={{
+                headerStyle: {
+                  backgroundColor: 'transparent',
+                },
+                headerTintColor: '#FFFFFF',
+                headerShadowVisible: false,
+                contentStyle: {
+                  backgroundColor: 'transparent',
+                },
+                headerShown: false,
+              }}
+            >
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen 
+                name="venue/[id]" 
+                options={{
+                  headerShown: true,
+                  presentation: 'card',
+                  headerBackTitle: 'Home',
+                  headerTitle: '',
+                  headerStyle: {
+                    backgroundColor: 'rgba(18, 18, 18, 0.9)',
+                  },
+                  headerTintColor: '#FFFFFF',
+                }}
+              />
+              <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+            </Stack>
 
-        <AgeVerificationModal
-          visible={showAgeVerification}
-          onVerify={handleAgeVerification}
-        />
+            <AgeVerificationModal
+              visible={showAgeVerification}
+              onVerify={handleAgeVerification}
+            />
 
-        <OnboardingModal
-          visible={showOnboarding}
-          onComplete={handleOnboardingComplete}
-        />
+            <OnboardingModal
+              visible={showOnboarding}
+              onComplete={handleOnboardingComplete}
+            />
+          </View>
+        </ImageBackground>
       </QueryClientProvider>
     </trpc.Provider>
   );

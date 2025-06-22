@@ -29,7 +29,7 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
 
   return (
     <View style={styles.overlay}>
-      <View style={[styles.container, { backgroundColor: themeColors.card }]}>
+      <View style={[styles.container, { backgroundColor: 'rgba(30, 30, 30, 0.95)' }]}>
         <View style={styles.logoContainer}>
           <BarBuddyLogo size="medium" />
         </View>
@@ -46,7 +46,7 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
           <Text style={[styles.inputLabel, { color: themeColors.text }]}>First Name</Text>
           <TextInput
             style={[styles.textInput, { 
-              backgroundColor: themeColors.background,
+              backgroundColor: 'rgba(18, 18, 18, 0.8)',
               color: themeColors.text,
               borderColor: themeColors.border
             }]}
@@ -63,7 +63,7 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
           <Text style={[styles.inputLabel, { color: themeColors.text }]}>Last Name</Text>
           <TextInput
             style={[styles.textInput, { 
-              backgroundColor: themeColors.background,
+              backgroundColor: 'rgba(18, 18, 18, 0.8)',
               color: themeColors.text,
               borderColor: themeColors.border
             }]}

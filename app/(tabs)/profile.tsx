@@ -161,7 +161,7 @@ export default function TrackingScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: '#121212' }]}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       <ScrollView 
@@ -178,7 +178,7 @@ export default function TrackingScreen() {
         </View>
 
         {/* Profile Card */}
-        <View style={[styles.profileCard, { backgroundColor: themeColors.card }]}>
+        <View style={[styles.profileCard, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}>
           <Pressable style={styles.avatarContainer} onPress={handleProfilePicturePress}>
             {profile.profilePicture ? (
               <Image source={{ uri: profile.profilePicture }} style={styles.avatarImage} />
@@ -220,7 +220,7 @@ export default function TrackingScreen() {
         </View>
 
         {/* XP and Ranking Card */}
-        <View style={[styles.xpCard, { backgroundColor: themeColors.card }]}>
+        <View style={[styles.xpCard, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}>
           <View style={styles.xpHeader}>
             <Award size={24} color={rankInfo.color} />
             <View style={styles.xpInfo}>
@@ -233,7 +233,7 @@ export default function TrackingScreen() {
             </View>
           </View>
           
-          <View style={[styles.progressBar, { backgroundColor: themeColors.background }]}>
+          <View style={[styles.progressBar, { backgroundColor: 'rgba(18, 18, 18, 0.8)' }]}>
             <View 
               style={[
                 styles.progressFill, 
@@ -262,7 +262,7 @@ export default function TrackingScreen() {
         {/* Bar Visits Tracker */}
         {barVisits.length > 0 && (
           <Pressable 
-            style={[styles.barVisitsCard, { backgroundColor: themeColors.card }]}
+            style={[styles.barVisitsCard, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}
             onPress={() => setBarVisitsModalVisible(true)}
           >
             <View style={styles.barVisitsHeader}>
@@ -282,7 +282,7 @@ export default function TrackingScreen() {
 
         {/* Friends Button */}
         <Pressable 
-          style={[styles.friendsButton, { backgroundColor: themeColors.card }]}
+          style={[styles.friendsButton, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}
           onPress={() => setFriendsModalVisible(true)}
         >
           <Users size={20} color={themeColors.primary} />
@@ -306,7 +306,7 @@ export default function TrackingScreen() {
           
           <View style={styles.statsGrid}>
             {/* Nights Out */}
-            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
+            <View style={[styles.statCard, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}>
               <TrendingUp size={28} color={themeColors.primary} />
               <Text style={[styles.statNumber, { color: themeColors.text }]}>
                 {profile.nightsOut}
@@ -317,7 +317,7 @@ export default function TrackingScreen() {
             </View>
 
             {/* Bars Hit */}
-            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
+            <View style={[styles.statCard, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}>
               <MapPin size={28} color={themeColors.primary} />
               <Text style={[styles.statNumber, { color: themeColors.text }]}>
                 {profile.barsHit}
@@ -329,7 +329,7 @@ export default function TrackingScreen() {
           </View>
 
           {/* Drunk Scale Average - Display Only */}
-          <View style={[styles.statCard, styles.fullWidthCard, { backgroundColor: themeColors.card }]}>
+          <View style={[styles.statCard, styles.fullWidthCard, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}>
             <Text style={[styles.statNumber, { color: themeColors.text }]}>
               {averageDrunkScale > 0 ? averageDrunkScale.toFixed(1) : '0.0'}
             </Text>
@@ -342,7 +342,7 @@ export default function TrackingScreen() {
           <View style={styles.actionButtonsRow}>
             {/* Share Stats Button */}
             <Pressable 
-              style={[styles.actionButton, { backgroundColor: themeColors.card }]}
+              style={[styles.actionButton, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}
               onPress={() => setShareStatsModalVisible(true)}
             >
               <Share2 size={18} color={themeColors.primary} />
@@ -353,7 +353,7 @@ export default function TrackingScreen() {
 
             {/* Reset Stats Button */}
             <Pressable 
-              style={[styles.actionButton, { backgroundColor: themeColors.card }]}
+              style={[styles.actionButton, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}
               onPress={handleResetStats}
             >
               <RotateCcw size={18} color="#FF4444" />
@@ -364,7 +364,7 @@ export default function TrackingScreen() {
           </View>
 
           {/* Activity Summary */}
-          <View style={[styles.summaryCard, { backgroundColor: themeColors.card }]}>
+          <View style={[styles.summaryCard, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}>
             <Text style={[styles.summaryText, { color: themeColors.subtext }]}>
               You have been out {profile.nightsOut} {profile.nightsOut === 1 ? 'night' : 'nights'} and visited {profile.barsHit} different {profile.barsHit === 1 ? 'bar' : 'bars'}.
             </Text>
@@ -382,7 +382,7 @@ export default function TrackingScreen() {
         onRequestClose={() => setNameEditModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
+          <View style={[styles.modalContent, { backgroundColor: 'rgba(30, 30, 30, 0.95)' }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: themeColors.text }]}>
                 Edit Name
@@ -399,7 +399,7 @@ export default function TrackingScreen() {
               <Text style={[styles.inputLabel, { color: themeColors.text }]}>First Name</Text>
               <TextInput
                 style={[styles.textInput, { 
-                  backgroundColor: themeColors.background,
+                  backgroundColor: 'rgba(18, 18, 18, 0.8)',
                   color: themeColors.text,
                   borderColor: themeColors.border
                 }]}
@@ -414,7 +414,7 @@ export default function TrackingScreen() {
               <Text style={[styles.inputLabel, { color: themeColors.text }]}>Last Name</Text>
               <TextInput
                 style={[styles.textInput, { 
-                  backgroundColor: themeColors.background,
+                  backgroundColor: 'rgba(18, 18, 18, 0.8)',
                   color: themeColors.text,
                   borderColor: themeColors.border
                 }]}
@@ -452,7 +452,7 @@ export default function TrackingScreen() {
         onRequestClose={() => setBarVisitsModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
+          <View style={[styles.modalContent, { backgroundColor: 'rgba(30, 30, 30, 0.95)' }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: themeColors.text }]}>
                 Bar Visit History
@@ -472,7 +472,7 @@ export default function TrackingScreen() {
                   style={[
                     styles.barVisitItem,
                     { 
-                      backgroundColor: themeColors.background,
+                      backgroundColor: 'rgba(18, 18, 18, 0.8)',
                       borderLeftColor: index < 3 ? themeColors.primary : themeColors.border
                     }
                   ]}
@@ -492,7 +492,7 @@ export default function TrackingScreen() {
               ))}
             </ScrollView>
             
-            <View style={[styles.barVisitsSummary, { backgroundColor: themeColors.background }]}>
+            <View style={[styles.barVisitsSummary, { backgroundColor: 'rgba(18, 18, 18, 0.8)' }]}>
               <Text style={[styles.summaryText, { color: themeColors.subtext }]}>
                 Total: {totalVisits} visits across {barVisits.length} bars
               </Text>
@@ -509,7 +509,7 @@ export default function TrackingScreen() {
         onRequestClose={() => setRankDetailsModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
+          <View style={[styles.modalContent, { backgroundColor: 'rgba(30, 30, 30, 0.95)' }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: themeColors.text }]}>
                 Ranking System
@@ -596,6 +596,7 @@ export default function TrackingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   scrollView: {
     flex: 1,
