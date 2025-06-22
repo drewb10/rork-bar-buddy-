@@ -3,19 +3,22 @@ import { StyleSheet, View, Text, Pressable, ScrollView, Dimensions } from 'react
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
-import { Clock, TrendingUp } from 'lucide-react-native';
+import { Clock, TrendingUp, Heart, Users, Flame } from 'lucide-react-native';
 import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 interface PopularTimesChartProps {
   venueId: string;
+  expanded?: boolean;
 }
 
 interface TimeSlotData {
   time: string;
   count: number;
+  likes: number;
   isCurrentHour: boolean;
   isLive: boolean;
+  isPeak: boolean;
 }
 
 const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
@@ -25,19 +28,21 @@ const TIME_SLOTS = [
   '01:00', '01:30', '02:00'
 ];
 
-export default function PopularTimesChart({ venueId }: PopularTimesChartProps) {
+export default function PopularTimesChart({ venueId, expanded = false }: PopularTimesChartProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { getTimeSlotData, getAllInteractionsForVenue } = useVenueInteractionStore();
+  const { getTimeSlotData, getAllInteractionsForVenue, getLikeCount } = useVenueInteractionStore();
   const [selectedDay, setSelectedDay] = useState(getCurrentDayIndex());
   const [timeSlotData, setTimeSlotData] = useState<TimeSlotData[]>([]);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(false);
+  const [viewMode, setViewMode] = useState<'visits' | 'likes'>('visits');
 
   useEffect(() => {
     updateChartData();
     const interval = setInterval(updateChartData, 60000); // Update every minute
     return () => clearInterval(interval);
-  }, [venueId, selectedDay]);
+  }, [venueId, selectedDay, viewMode]);
 
   const updateChartData = () => {
     const now = new Date();
@@ -47,22 +52,40 @@ export default function PopularTimesChart({ venueId }: PopularTimesChartProps) {
     
     // Get all interactions for this venue
     const allInteractions = getAllInteractionsForVenue(venueId);
+    const totalLikes = getLikeCount(venueId);
     
     // Process time slot data
     const processedData: TimeSlotData[] = TIME_SLOTS.map(timeSlot => {
       // Count interactions for this time slot
-      const count = allInteractions.filter(interaction => 
+      const slotInteractions = allInteractions.filter(interaction => 
         interaction.arrivalTime === timeSlot
-      ).length;
+      );
+      
+      const count = slotInteractions.length;
+      const likes = slotInteractions.reduce((sum, interaction) => sum + (interaction.likes || 0), 0);
       
       const isCurrentHour = timeSlot === currentTimeSlot && isCurrentlyOpen();
       
       return {
         time: timeSlot,
         count,
+        likes,
         isCurrentHour,
-        isLive: isCurrentHour && count > getAverageCount(allInteractions)
+        isLive: isCurrentHour && count > getAverageCount(allInteractions),
+        isPeak: false // Will be set below
       };
+    });
+
+    // Mark peak times (top 3 busiest slots)
+    const sortedByActivity = [...processedData].sort((a, b) => 
+      viewMode === 'likes' ? b.likes - a.likes : b.count - a.count
+    );
+    
+    sortedByActivity.slice(0, 3).forEach(slot => {
+      const index = processedData.findIndex(s => s.time === slot.time);
+      if (index !== -1) {
+        processedData[index].isPeak = true;
+      }
     });
 
     setTimeSlotData(processedData);
@@ -89,6 +112,20 @@ export default function PopularTimesChart({ venueId }: PopularTimesChartProps) {
     setSelectedDay(dayIndex);
   };
 
+  const handleTimeSlotPress = (timeSlot: string) => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setSelectedTimeSlot(selectedTimeSlot === timeSlot ? null : timeSlot);
+  };
+
+  const handleViewModeToggle = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setViewMode(viewMode === 'visits' ? 'likes' : 'visits');
+  };
+
   const formatTime = (time: string) => {
     const [hours, minutes] = time.split(':');
     const hour = parseInt(hours);
@@ -98,15 +135,37 @@ export default function PopularTimesChart({ venueId }: PopularTimesChartProps) {
     return `${hour - 12}p`;
   };
 
-  const getMaxCount = () => {
-    return Math.max(...timeSlotData.map(slot => slot.count), 1);
+  const getMaxValue = () => {
+    const values = timeSlotData.map(slot => viewMode === 'likes' ? slot.likes : slot.count);
+    return Math.max(...values, 1);
   };
 
-  const getBarHeight = (count: number) => {
-    const maxHeight = 120;
-    const maxCount = getMaxCount();
-    return Math.max((count / maxCount) * maxHeight, 8); // Minimum height of 8
+  const getBarHeight = (slot: TimeSlotData) => {
+    const maxHeight = expanded ? 140 : 120;
+    const maxValue = getMaxValue();
+    const value = viewMode === 'likes' ? slot.likes : slot.count;
+    return Math.max((value / maxValue) * maxHeight, 8); // Minimum height of 8
   };
+
+  const getBarColor = (slot: TimeSlotData) => {
+    if (slot.isCurrentHour) return themeColors.primary;
+    if (slot.isPeak) return themeColors.primary + 'CC';
+    if (slot.isLive) return themeColors.primary + '80';
+    return themeColors.primary + '40';
+  };
+
+  const getTotalStats = () => {
+    const totalVisits = timeSlotData.reduce((sum, slot) => sum + slot.count, 0);
+    const totalLikes = timeSlotData.reduce((sum, slot) => sum + slot.likes, 0);
+    const peakTime = timeSlotData.reduce((peak, slot) => 
+      (viewMode === 'likes' ? slot.likes : slot.count) > (viewMode === 'likes' ? peak.likes : peak.count) ? slot : peak,
+      timeSlotData[0]
+    );
+    
+    return { totalVisits, totalLikes, peakTime };
+  };
+
+  const stats = getTotalStats();
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.card }]}>
@@ -127,6 +186,68 @@ export default function PopularTimesChart({ venueId }: PopularTimesChartProps) {
           </View>
         )}
       </View>
+
+      {/* Stats Summary */}
+      {expanded && (
+        <View style={styles.statsContainer}>
+          <View style={[styles.statCard, { backgroundColor: themeColors.background }]}>
+            <Users size={16} color={themeColors.primary} />
+            <Text style={[styles.statNumber, { color: themeColors.text }]}>{stats.totalVisits}</Text>
+            <Text style={[styles.statLabel, { color: themeColors.subtext }]}>Total Visits</Text>
+          </View>
+          
+          <View style={[styles.statCard, { backgroundColor: themeColors.background }]}>
+            <Heart size={16} color={themeColors.primary} />
+            <Text style={[styles.statNumber, { color: themeColors.text }]}>{stats.totalLikes}</Text>
+            <Text style={[styles.statLabel, { color: themeColors.subtext }]}>Total Likes</Text>
+          </View>
+          
+          <View style={[styles.statCard, { backgroundColor: themeColors.background }]}>
+            <Flame size={16} color={themeColors.primary} />
+            <Text style={[styles.statNumber, { color: themeColors.text }]}>{formatTime(stats.peakTime.time)}</Text>
+            <Text style={[styles.statLabel, { color: themeColors.subtext }]}>Peak Time</Text>
+          </View>
+        </View>
+      )}
+
+      {/* View Mode Toggle */}
+      {expanded && (
+        <View style={styles.toggleContainer}>
+          <Pressable
+            style={[
+              styles.toggleButton,
+              viewMode === 'visits' && { backgroundColor: themeColors.primary },
+              { borderColor: themeColors.primary }
+            ]}
+            onPress={handleViewModeToggle}
+          >
+            <Users size={16} color={viewMode === 'visits' ? 'white' : themeColors.primary} />
+            <Text style={[
+              styles.toggleText,
+              { color: viewMode === 'visits' ? 'white' : themeColors.primary }
+            ]}>
+              Visits
+            </Text>
+          </Pressable>
+          
+          <Pressable
+            style={[
+              styles.toggleButton,
+              viewMode === 'likes' && { backgroundColor: themeColors.primary },
+              { borderColor: themeColors.primary }
+            ]}
+            onPress={handleViewModeToggle}
+          >
+            <Heart size={16} color={viewMode === 'likes' ? 'white' : themeColors.primary} />
+            <Text style={[
+              styles.toggleText,
+              { color: viewMode === 'likes' ? 'white' : themeColors.primary }
+            ]}>
+              Likes
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Day selector */}
       <ScrollView 
@@ -163,33 +284,51 @@ export default function PopularTimesChart({ venueId }: PopularTimesChartProps) {
       </ScrollView>
 
       {/* Chart */}
-      <View style={styles.chartContainer}>
+      <View style={[styles.chartContainer, expanded && styles.expandedChart]}>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chartContent}
         >
           {timeSlotData.map((slot, index) => (
-            <View key={slot.time} style={styles.barContainer}>
+            <Pressable
+              key={slot.time}
+              style={styles.barContainer}
+              onPress={() => expanded && handleTimeSlotPress(slot.time)}
+            >
               <View
                 style={[
                   styles.bar,
                   {
-                    height: getBarHeight(slot.count),
-                    backgroundColor: slot.isCurrentHour 
-                      ? themeColors.primary 
-                      : slot.isLive 
-                        ? themeColors.primary + '80'
-                        : themeColors.primary + '40'
+                    height: getBarHeight(slot),
+                    backgroundColor: getBarColor(slot)
+                  },
+                  selectedTimeSlot === slot.time && expanded && {
+                    borderWidth: 2,
+                    borderColor: themeColors.primary,
+                    shadowColor: themeColors.primary,
+                    shadowOffset: { width: 0, height: 0 },
+                    shadowOpacity: 0.5,
+                    shadowRadius: 4,
+                    elevation: 8,
                   }
                 ]}
               />
-              {slot.count > 0 && (
+              
+              {/* Peak indicator */}
+              {slot.isPeak && (
+                <View style={[styles.peakIndicator, { backgroundColor: themeColors.primary }]}>
+                  <Flame size={8} color="white" />
+                </View>
+              )}
+              
+              {/* Value display */}
+              {(viewMode === 'likes' ? slot.likes : slot.count) > 0 && (
                 <Text style={[styles.countText, { color: themeColors.subtext }]}>
-                  {slot.count}
+                  {viewMode === 'likes' ? slot.likes : slot.count}
                 </Text>
               )}
-            </View>
+            </Pressable>
           ))}
         </ScrollView>
         
@@ -211,7 +350,57 @@ export default function PopularTimesChart({ venueId }: PopularTimesChartProps) {
         </ScrollView>
       </View>
 
-      {timeSlotData.every(slot => slot.count === 0) && (
+      {/* Selected Time Slot Details */}
+      {selectedTimeSlot && expanded && (
+        <View style={[styles.detailsContainer, { backgroundColor: themeColors.background }]}>
+          <Text style={[styles.detailsTitle, { color: themeColors.text }]}>
+            {formatTime(selectedTimeSlot)} Details
+          </Text>
+          
+          {(() => {
+            const slot = timeSlotData.find(s => s.time === selectedTimeSlot);
+            if (!slot) return null;
+            
+            return (
+              <View style={styles.detailsContent}>
+                <View style={styles.detailRow}>
+                  <Users size={16} color={themeColors.primary} />
+                  <Text style={[styles.detailText, { color: themeColors.text }]}>
+                    {slot.count} visits
+                  </Text>
+                </View>
+                
+                <View style={styles.detailRow}>
+                  <Heart size={16} color={themeColors.primary} />
+                  <Text style={[styles.detailText, { color: themeColors.text }]}>
+                    {slot.likes} likes
+                  </Text>
+                </View>
+                
+                {slot.isPeak && (
+                  <View style={styles.detailRow}>
+                    <Flame size={16} color={themeColors.primary} />
+                    <Text style={[styles.detailText, { color: themeColors.primary }]}>
+                      Peak time
+                    </Text>
+                  </View>
+                )}
+                
+                {slot.isLive && (
+                  <View style={styles.detailRow}>
+                    <View style={[styles.liveDot, { backgroundColor: themeColors.primary }]} />
+                    <Text style={[styles.detailText, { color: themeColors.primary }]}>
+                      Currently busy
+                    </Text>
+                  </View>
+                )}
+              </View>
+            );
+          })()}
+        </View>
+      )}
+
+      {timeSlotData.every(slot => slot.count === 0 && slot.likes === 0) && (
         <View style={styles.emptyState}>
           <TrendingUp size={24} color={themeColors.subtext} />
           <Text style={[styles.emptyText, { color: themeColors.subtext }]}>
@@ -274,6 +463,47 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    marginHorizontal: 4,
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    alignSelf: 'center',
+  },
+  toggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginHorizontal: 4,
+  },
+  toggleText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 6,
+  },
   daySelector: {
     marginBottom: 20,
   },
@@ -292,6 +522,9 @@ const styles = StyleSheet.create({
   chartContainer: {
     height: 160,
   },
+  expandedChart: {
+    height: 200,
+  },
   chartContent: {
     alignItems: 'flex-end',
     paddingHorizontal: 4,
@@ -301,11 +534,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 3,
     minWidth: 16,
+    position: 'relative',
   },
   bar: {
     width: 16,
     borderRadius: 2,
     marginBottom: 4,
+  },
+  peakIndicator: {
+    position: 'absolute',
+    top: -12,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   countText: {
     fontSize: 10,
@@ -321,6 +564,27 @@ const styles = StyleSheet.create({
   timeLabel: {
     fontSize: 12,
     fontWeight: '400',
+  },
+  detailsContainer: {
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 12,
+  },
+  detailsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  detailsContent: {
+    gap: 8,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  detailText: {
+    fontSize: 14,
+    marginLeft: 8,
   },
   emptyState: {
     alignItems: 'center',

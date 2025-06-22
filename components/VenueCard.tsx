@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, Pressable, Image, Dimensions, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MapPin, Clock, Star, Flame, MessageCircle, Heart } from 'lucide-react-native';
+import { MapPin, Clock, Star, Flame, MessageCircle, Heart, TrendingUp } from 'lucide-react-native';
 import { Venue } from '@/types/venue';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
@@ -194,11 +194,18 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         />
       </Pressable>
 
-      {/* Like count badge */}
+      {/* Like count badge with enhanced styling */}
       {likeCount > 0 && (
         <View style={[styles.likeBadge, { backgroundColor: themeColors.primary }]}>
           <Heart size={14} color="white" fill="white" />
           <Text style={styles.likeText}>{likeCount}</Text>
+        </View>
+      )}
+
+      {/* Analytics indicator for venues with data */}
+      {likeCount > 5 && (
+        <View style={[styles.analyticsIndicator, { backgroundColor: themeColors.primary + '20' }]}>
+          <TrendingUp size={12} color={themeColors.primary} />
         </View>
       )}
 
@@ -238,7 +245,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           </Text>
         </View>
 
-        {/* Hot Time Badge */}
+        {/* Enhanced Hot Time Badge with likes info */}
         {popularTime && (
           <View style={[styles.hotTimeBadge, { backgroundColor: themeColors.primary + '20' }]}>
             <Flame size={14} color={themeColors.primary} />
@@ -248,6 +255,14 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
                 : formatTimeSlot(popularTime)
               }
             </Text>
+            {likeCount > 0 && (
+              <View style={styles.hotTimeLikes}>
+                <Heart size={10} color={themeColors.primary} fill={themeColors.primary} />
+                <Text style={[styles.hotTimeLikesText, { color: themeColors.primary }]}>
+                  {likeCount}
+                </Text>
+              </View>
+            )}
           </View>
         )}
         
@@ -434,6 +449,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 4,
   },
+  analyticsIndicator: {
+    position: 'absolute',
+    top: 56,
+    left: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   chatButton: {
     position: 'absolute',
     bottom: 16,
@@ -507,6 +532,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginLeft: 6,
+  },
+  hotTimeLikes: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  hotTimeLikesText: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginLeft: 2,
   },
   specialsContainer: {
     marginBottom: 12,

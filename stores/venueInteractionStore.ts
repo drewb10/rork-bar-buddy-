@@ -9,6 +9,7 @@ interface VenueInteraction {
   lastInteraction: string;
   arrivalTime?: string;
   likes: number;
+  timestamp: string;
 }
 
 interface VenueInteractionState {
@@ -23,8 +24,9 @@ interface VenueInteractionState {
   loadPopularTimesFromSupabase: () => Promise<void>;
   getTotalLikes: () => number;
   getMostPopularVenues: () => { venueId: string; likes: number }[];
-  getTimeSlotData: (venueId: string) => { time: string; count: number }[];
+  getTimeSlotData: (venueId: string) => { time: string; count: number; likes: number }[];
   getAllInteractionsForVenue: (venueId: string) => VenueInteraction[];
+  getDetailedTimeSlotData: (venueId: string) => { time: string; visits: number; likes: number; isCurrentHour: boolean; isPeak: boolean }[];
 }
 
 const RESET_HOUR = 5;
@@ -86,7 +88,8 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
                         count: i.count + 1,
                         likes: i.likes + 1,
                         lastInteraction: now,
-                        arrivalTime: arrivalTime || i.arrivalTime
+                        arrivalTime: arrivalTime || i.arrivalTime,
+                        timestamp: now
                       } 
                     : i
                 )
@@ -102,7 +105,8 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
                     likes: 1,
                     lastReset: now,
                     lastInteraction: now,
-                    arrivalTime
+                    arrivalTime,
+                    timestamp: now
                   }
                 ]
               };
@@ -173,18 +177,23 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           const venueInteractions = interactions.filter(i => i.venueId === venueId);
           
           // Create time slot counts
-          const timeSlotCounts: Record<string, number> = {};
+          const timeSlotCounts: Record<string, { count: number; likes: number }> = {};
           
           venueInteractions.forEach(interaction => {
             if (interaction.arrivalTime) {
-              timeSlotCounts[interaction.arrivalTime] = (timeSlotCounts[interaction.arrivalTime] || 0) + interaction.count;
+              if (!timeSlotCounts[interaction.arrivalTime]) {
+                timeSlotCounts[interaction.arrivalTime] = { count: 0, likes: 0 };
+              }
+              timeSlotCounts[interaction.arrivalTime].count += interaction.count;
+              timeSlotCounts[interaction.arrivalTime].likes += interaction.likes;
             }
           });
           
           // Convert to array format
-          return Object.entries(timeSlotCounts).map(([time, count]) => ({
+          return Object.entries(timeSlotCounts).map(([time, data]) => ({
             time,
-            count
+            count: data.count,
+            likes: data.likes
           }));
         } catch {
           return [];
@@ -195,6 +204,52 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
         try {
           const { interactions } = get();
           return interactions.filter(i => i.venueId === venueId);
+        } catch {
+          return [];
+        }
+      },
+
+      getDetailedTimeSlotData: (venueId) => {
+        try {
+          const { interactions } = get();
+          const venueInteractions = interactions.filter(i => i.venueId === venueId);
+          
+          const TIME_SLOTS = [
+            '19:00', '19:30', '20:00', '20:30', '21:00', '21:30', 
+            '22:00', '22:30', '23:00', '23:30', '00:00', '00:30', 
+            '01:00', '01:30', '02:00'
+          ];
+
+          // Get current time info
+          const now = new Date();
+          const currentHour = now.getHours();
+          const currentMinutes = now.getMinutes();
+          const currentTimeSlot = `${currentHour.toString().padStart(2, '0')}:${currentMinutes >= 30 ? '30' : '00'}`;
+
+          // Process each time slot
+          const timeSlotData = TIME_SLOTS.map(timeSlot => {
+            const slotInteractions = venueInteractions.filter(i => i.arrivalTime === timeSlot);
+            const visits = slotInteractions.reduce((sum, i) => sum + i.count, 0);
+            const likes = slotInteractions.reduce((sum, i) => sum + i.likes, 0);
+            
+            return {
+              time: timeSlot,
+              visits,
+              likes,
+              isCurrentHour: timeSlot === currentTimeSlot,
+              isPeak: false // Will be calculated below
+            };
+          });
+
+          // Mark peak times (top 3 by visits)
+          const sortedByVisits = [...timeSlotData].sort((a, b) => b.visits - a.visits);
+          const topSlots = sortedByVisits.slice(0, 3);
+          
+          timeSlotData.forEach(slot => {
+            slot.isPeak = topSlots.some(top => top.time === slot.time && top.visits > 0);
+          });
+
+          return timeSlotData;
         } catch {
           return [];
         }
