@@ -33,7 +33,7 @@ interface MessageWithJoinedSession {
   chat_sessions: {
     anonymous_name: string;
     venue_id: string;
-  } | null;
+  };
 }
 
 interface ChatState {
@@ -183,25 +183,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw new Error('Venue ID is required and cannot be empty');
       }
 
-      // First, get all sessions for this venue to get session IDs
-      const { data: venueSessions, error: sessionsError } = await supabase
-        .from('chat_sessions')
-        .select('id')
-        .eq('venue_id', venueId);
-
-      if (sessionsError) {
-        throw sessionsError;
-      }
-
-      if (!venueSessions || venueSessions.length === 0) {
-        // No sessions for this venue yet
-        set({ messages: [], isLoading: false });
-        return;
-      }
-
-      const sessionIds = venueSessions.map(session => session.id);
-
-      // Get messages for these sessions with proper join
+      // Get messages for this venue with proper join using single() relationship
       const { data: messagesData, error } = await supabase
         .from('chat_messages')
         .select(`
@@ -211,12 +193,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
           timestamp,
           is_flagged,
           created_at,
-          chat_sessions!inner(
+          chat_sessions!chat_messages_session_id_fkey(
             anonymous_name,
             venue_id
           )
         `)
-        .in('session_id', sessionIds)
+        .eq('chat_sessions.venue_id', venueId)
         .order('timestamp', { ascending: true })
         .limit(100);
 
