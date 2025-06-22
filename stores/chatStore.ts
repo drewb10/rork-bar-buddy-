@@ -32,7 +32,7 @@ interface RawMessageFromSupabase {
   chat_sessions: {
     anonymous_name: string;
     venue_id: string;
-  }[];
+  } | null;
 }
 
 interface ChatState {
@@ -206,8 +206,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       // Transform messages to include anonymous_name and venue_id at top level
       const transformedMessages: ChatMessage[] = (messagesData as unknown as RawMessageFromSupabase[])?.map(msg => {
-        // Handle chat_sessions as array and get first element
-        const sessionData = Array.isArray(msg.chat_sessions) ? msg.chat_sessions[0] : msg.chat_sessions;
+        // Handle chat_sessions properly
+        const sessionData = msg.chat_sessions;
 
         return {
           id: msg.id,
