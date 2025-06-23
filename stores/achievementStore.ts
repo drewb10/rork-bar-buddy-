@@ -285,8 +285,3 @@ export const useAchievementStore = create<AchievementState>()(
     }
   )
 );
-
-// Store reference for cross-store access
-if (typeof window !== 'undefined') {
-  (window as any).__achievementStore = useAchievementStore;
-}

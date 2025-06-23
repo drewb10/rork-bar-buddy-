@@ -12,7 +12,7 @@ interface AchievementPopupProps {
   onClose: () => void;
   title?: string;
   message?: string;
-  isLogTonightActivities?: boolean;
+  is3AMPopup?: boolean;
 }
 
 export default function AchievementPopup({ 
@@ -20,7 +20,7 @@ export default function AchievementPopup({
   onClose, 
   title = "Log Tonight's Activities",
   message = "Don't forget to track your night out activities!",
-  isLogTonightActivities = false
+  is3AMPopup = false
 }: AchievementPopupProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
@@ -42,7 +42,7 @@ export default function AchievementPopup({
   }, [visible]);
 
   const handleClose = () => {
-    if (isLogTonightActivities) {
+    if (is3AMPopup) {
       mark3AMPopupShown();
     }
     
@@ -93,7 +93,7 @@ export default function AchievementPopup({
             {message}
           </Text>
 
-          {isLogTonightActivities && (
+          {is3AMPopup && (
             <View style={styles.timeInfo}>
               <Text style={[styles.timeText, { color: themeColors.primary }]}>
                 🌙 3:00 AM Reminder
