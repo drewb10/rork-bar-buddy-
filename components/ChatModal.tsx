@@ -42,17 +42,22 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
   const [inputText, setInputText] = useState('');
   const [showTerms, setShowTerms] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
-    if (visible && venue?.id) {
+    if (visible && venue?.id && !isInitialized) {
       initializeChat();
-    } else {
+    } else if (!visible) {
+      // Clean up when modal closes
       cleanup();
+      setIsInitialized(false);
     }
 
     return () => {
-      cleanup();
+      if (!visible) {
+        cleanup();
+      }
     };
   }, [visible, venue?.id]);
 
@@ -70,16 +75,18 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
         return;
       }
 
+      setIsInitialized(true);
+      
+      // Initialize session and load messages
       await createOrGetSession(venue.id);
       await loadMessages(venue.id);
+      
+      // Subscribe to real-time updates
       subscribeToMessages(venue.id);
     } catch (error) {
       console.error('Failed to initialize chat:', error);
-      Alert.alert(
-        'Connection Error',
-        'Failed to connect to chat. Please try again.',
-        [{ text: 'OK' }]
-      );
+      // Don't show alert for initialization errors, just log them
+      setIsInitialized(false);
     }
   };
 
@@ -142,6 +149,8 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
 
   const handleClose = () => {
     clearError();
+    cleanup();
+    setIsInitialized(false);
     onClose();
   };
 
@@ -187,8 +196,8 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
           </View>
         </View>
 
-        {/* Error Banner */}
-        {error && (
+        {/* Error Banner - Only show critical errors */}
+        {error && error.includes('Failed to send') && (
           <View style={[styles.errorBanner, { backgroundColor: '#FF4444' }]}>
             <Text style={styles.errorText}>{error}</Text>
             <Pressable onPress={clearError}>

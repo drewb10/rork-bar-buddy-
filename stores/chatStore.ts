@@ -120,7 +120,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         .maybeSingle();
 
       if (fetchError && fetchError.code !== 'PGRST116') {
-        console.warn('Session fetch error:', fetchError);
+        console.warn('Session fetch error (non-critical):', fetchError);
         // Don't throw error, continue with creating new session
       }
 
@@ -134,7 +134,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           .single();
         
         if (updateError) {
-          console.warn('Failed to update session timestamp:', updateError);
+          console.warn('Failed to update session timestamp (non-critical):', updateError);
           // Use existing session if update fails
         }
         
@@ -197,7 +197,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         .limit(100);
 
       if (error) {
-        console.warn('Messages query error:', error);
+        console.warn('Messages query error (non-critical):', error);
         // Don't throw error, just set empty messages
         set({ messages: [], isLoading: false });
         return;
@@ -221,8 +221,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       set({ messages: transformedMessages, isLoading: false });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load messages';
-      console.warn('Failed to load messages:', error);
+      console.warn('Failed to load messages (non-critical):', error);
       set({ error: null, isLoading: false, messages: [] }); // Don't show error to user
     }
   },
@@ -294,11 +293,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
         return;
       }
 
-      // Clean up existing subscription first
+      // Clean up existing subscription first to prevent multiple subscriptions
       get().unsubscribeFromMessages();
 
+      // Create a unique channel name to avoid conflicts
+      const channelName = `chat_messages_${venueId}_${Date.now()}`;
+      
       const subscription = supabase
-        .channel(`chat_messages_${venueId}`)
+        .channel(channelName)
         .on(
           'postgres_changes',
           {
@@ -308,6 +310,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           },
           async (payload) => {
             try {
+              // Verify the message belongs to the current venue
               const { data: sessionData, error: sessionError } = await supabase
                 .from('chat_sessions')
                 .select('id, anonymous_name, venue_id')
@@ -315,10 +318,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 .single();
 
               if (sessionError) {
-                console.warn('Failed to get session data for new message:', sessionError);
+                console.warn('Failed to get session data for new message (non-critical):', sessionError);
                 return;
               }
 
+              // Only add message if it belongs to the current venue
               if (sessionData?.venue_id !== venueId) {
                 return;
               }
@@ -334,11 +338,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
               };
 
               const currentMessages = get().messages;
+              // Prevent duplicate messages
               if (!currentMessages.find(msg => msg.id === newMessage.id)) {
                 set({ messages: [...currentMessages, newMessage] });
               }
             } catch (error) {
-              console.warn('Failed to process new message:', error);
+              console.warn('Failed to process new message (non-critical):', error);
             }
           }
         )
@@ -346,14 +351,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
           if (status === 'SUBSCRIBED') {
             console.log(`Successfully subscribed to chat for venue ${venueId}`);
           } else if (status === 'CHANNEL_ERROR') {
-            console.warn(`Failed to subscribe to chat for venue ${venueId}`);
+            console.warn(`Failed to subscribe to chat for venue ${venueId} (non-critical)`);
             // Don't show error to user, just log it
+          } else if (status === 'CLOSED') {
+            console.log(`Chat subscription closed for venue ${venueId}`);
           }
         });
 
       set({ subscription });
     } catch (error) {
-      console.warn('Failed to subscribe to messages:', error);
+      console.warn('Failed to subscribe to messages (non-critical):', error);
       // Don't show error to user
     }
   },
@@ -367,17 +374,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
         console.log('Unsubscribed from chat messages');
       }
     } catch (error) {
-      console.warn('Failed to unsubscribe from messages:', error);
+      console.warn('Failed to unsubscribe from messages (non-critical):', error);
     }
   },
 
   cleanup: (): void => {
-    get().unsubscribeFromMessages();
-    set({ 
-      messages: [], 
-      currentSession: null, 
-      error: null,
-      isLoading: false 
-    });
+    try {
+      get().unsubscribeFromMessages();
+      set({ 
+        messages: [], 
+        currentSession: null, 
+        error: null,
+        isLoading: false 
+      });
+    } catch (error) {
+      console.warn('Error during cleanup (non-critical):', error);
+    }
   },
 }));
