@@ -24,28 +24,10 @@ interface FriendRequest {
 
 interface XPActivity {
   id: string;
-  type: 'visit_new_bar' | 'participate_event' | 'bring_friend' | 'complete_night_out' | 'special_achievement' | 'live_music' | 'featured_drink' | 'bar_game' | 'photo_taken' | 'shots' | 'scoop_and_scores' | 'beers' | 'beer_towers' | 'funnels' | 'shotguns' | 'pool_games_won' | 'dart_games_won';
+  type: 'visit_new_bar' | 'participate_event' | 'bring_friend' | 'complete_night_out' | 'special_achievement' | 'live_music' | 'featured_drink' | 'bar_game' | 'photo_taken' | 'shots' | 'scoop_and_scores' | 'beers' | 'beer_towers' | 'funnels' | 'shotguns' | 'pool_games' | 'dart_games';
   xpAwarded: number;
   timestamp: string;
   description: string;
-}
-
-interface DailyStats {
-  shots: number;
-  scoopAndScores: number;
-  beers: number;
-  beerTowers: number;
-  funnels: number;
-  shotguns: number;
-  poolGamesWon: number;
-  dartGamesWon: number;
-  lastReset: string;
-}
-
-interface VenueSpecificActivity {
-  venueId: string;
-  activityType: 'pool_win' | 'dart_win' | 'group_shot';
-  timestamp: string;
 }
 
 interface UserProfile {
@@ -79,10 +61,8 @@ interface UserProfile {
   totalBeerTowers: number;
   totalFunnels: number;
   totalShotguns: number;
-  totalPoolGamesWon: number;
-  totalDartGamesWon: number;
-  dailyStats: DailyStats;
-  venueSpecificActivities: VenueSpecificActivity[];
+  poolGamesWon: number;
+  dartGamesWon: number;
 }
 
 interface RankInfo {
@@ -109,7 +89,7 @@ interface UserProfileState {
   setProfilePicture: (uri: string) => void;
   setUserName: (firstName: string, lastName: string) => void;
   generateUserId: (firstName: string, lastName: string) => string;
-  completeOnboarding: (firstName: string, lastName: string) => Promise<void>;
+  completeOnboarding: (firstName: string, lastName: string) => void;
   addFriend: (friendUserId: string) => Promise<boolean>;
   removeFriend: (friendUserId: string) => void;
   searchUser: (userId: string) => Promise<Friend | null>;
@@ -125,11 +105,8 @@ interface UserProfileState {
   getAllRanks: () => RankInfo[];
   getXPForNextRank: () => number;
   getProgressToNextRank: () => number;
-  updateDailyTrackerTotals: (stats: { shots: number; scoopAndScores: number; beers: number; beerTowers: number; funnels: number; shotguns: number; poolGamesWon: number; dartGamesWon: number; }) => void;
-  getDailyStats: () => DailyStats;
-  resetDailyStats: () => void;
-  recordVenueSpecificActivity: (venueId: string, activityType: 'pool_win' | 'dart_win' | 'group_shot') => void;
-  checkTrifectaAchievement: () => boolean;
+  updateDailyTrackerTotals: (stats: { shots: number; scoopAndScores: number; beers: number; beerTowers: number; funnels: number; shotguns: number; }) => void;
+  updateAchievementProgress: () => void;
 }
 
 const XP_VALUES = {
@@ -148,69 +125,32 @@ const XP_VALUES = {
   beer_towers: 5,
   funnels: 3,
   shotguns: 3,
-  pool_games_won: 7,
-  dart_games_won: 7,
+  pool_games: 10,
+  dart_games: 10,
 };
 
 const RANK_STRUCTURE: RankInfo[] = [
-  // Sober Star (0-500)
   { tier: 1, subRank: 1, title: 'Sober Star', subTitle: 'Newcomer', color: '#4CAF50', minXP: 0, maxXP: 125 },
   { tier: 1, subRank: 2, title: 'Sober Star', subTitle: 'Explorer', color: '#4CAF50', minXP: 126, maxXP: 250 },
   { tier: 1, subRank: 3, title: 'Sober Star', subTitle: 'Enthusiast', color: '#4CAF50', minXP: 251, maxXP: 375 },
   { tier: 1, subRank: 4, title: 'Sober Star', subTitle: 'Rising Star', color: '#4CAF50', minXP: 376, maxXP: 500 },
-  
-  // Buzzed Beginner (501-1000)
   { tier: 2, subRank: 1, title: 'Buzzed Beginner', subTitle: 'Novice', color: '#FFC107', minXP: 501, maxXP: 625 },
   { tier: 2, subRank: 2, title: 'Buzzed Beginner', subTitle: 'Adventurer', color: '#FFC107', minXP: 626, maxXP: 750 },
   { tier: 2, subRank: 3, title: 'Buzzed Beginner', subTitle: 'Socializer', color: '#FFC107', minXP: 751, maxXP: 875 },
   { tier: 2, subRank: 4, title: 'Buzzed Beginner', subTitle: 'Party Starter', color: '#FFC107', minXP: 876, maxXP: 1000 },
-  
-  // Tipsy Talent (1001-1500)
   { tier: 3, subRank: 1, title: 'Tipsy Talent', subTitle: 'Local Hero', color: '#FF9800', minXP: 1001, maxXP: 1125 },
   { tier: 3, subRank: 2, title: 'Tipsy Talent', subTitle: 'Crowd Pleaser', color: '#FF9800', minXP: 1126, maxXP: 1250 },
   { tier: 3, subRank: 3, title: 'Tipsy Talent', subTitle: 'Nightlife Navigator', color: '#FF9800', minXP: 1251, maxXP: 1375 },
   { tier: 3, subRank: 4, title: 'Tipsy Talent', subTitle: 'Star of the Scene', color: '#FF9800', minXP: 1376, maxXP: 1500 },
-  
-  // Big Chocolate (1501-2000)
   { tier: 4, subRank: 1, title: 'Big Chocolate', subTitle: 'Legend', color: '#FF5722', minXP: 1501, maxXP: 1625 },
   { tier: 4, subRank: 2, title: 'Big Chocolate', subTitle: 'Icon', color: '#FF5722', minXP: 1626, maxXP: 1750 },
   { tier: 4, subRank: 3, title: 'Big Chocolate', subTitle: 'Elite', color: '#FF5722', minXP: 1751, maxXP: 1875 },
   { tier: 4, subRank: 4, title: 'Big Chocolate', subTitle: 'Master of the Night', color: '#FF5722', minXP: 1876, maxXP: 2000 },
-  
-  // Scoop & Score Champ (2001-2500)
   { tier: 5, subRank: 1, title: 'Scoop & Score Champ', subTitle: 'Champion', color: '#9C27B0', minXP: 2001, maxXP: 2125 },
   { tier: 5, subRank: 2, title: 'Scoop & Score Champ', subTitle: 'MVP', color: '#9C27B0', minXP: 2126, maxXP: 2250 },
   { tier: 5, subRank: 3, title: 'Scoop & Score Champ', subTitle: 'Hall of Famer', color: '#9C27B0', minXP: 2251, maxXP: 2375 },
   { tier: 5, subRank: 4, title: 'Scoop & Score Champ', subTitle: 'Ultimate Legend', color: '#9C27B0', minXP: 2376, maxXP: 2500 },
 ];
-
-const RESET_HOUR = 5;
-
-const shouldResetDaily = (lastReset: string): boolean => {
-  try {
-    const lastResetDate = new Date(lastReset);
-    const now = new Date();
-    
-    const resetTime = new Date(now);
-    resetTime.setHours(RESET_HOUR, 0, 0, 0);
-    
-    return now >= resetTime && lastResetDate < resetTime;
-  } catch {
-    return false;
-  }
-};
-
-const defaultDailyStats: DailyStats = {
-  shots: 0,
-  scoopAndScores: 0,
-  beers: 0,
-  beerTowers: 0,
-  funnels: 0,
-  shotguns: 0,
-  poolGamesWon: 0,
-  dartGamesWon: 0,
-  lastReset: new Date().toISOString(),
-};
 
 const defaultProfile: UserProfile = {
   firstName: 'Bar',
@@ -240,27 +180,17 @@ const defaultProfile: UserProfile = {
   totalBeerTowers: 0,
   totalFunnels: 0,
   totalShotguns: 0,
-  totalPoolGamesWon: 0,
-  totalDartGamesWon: 0,
-  dailyStats: defaultDailyStats,
-  venueSpecificActivities: [],
+  poolGamesWon: 0,
+  dartGamesWon: 0,
 };
 
 const getRankByXP = (xp: number): RankInfo => {
-  // Ensure xp is a valid number and prevent infinite loops
-  const validXP = (typeof xp === 'number' && !isNaN(xp) && isFinite(xp)) ? Math.max(0, xp) : 0;
-  
-  try {
-    for (let i = RANK_STRUCTURE.length - 1; i >= 0; i--) {
-      if (validXP >= RANK_STRUCTURE[i].minXP) {
-        return RANK_STRUCTURE[i];
-      }
+  for (let i = RANK_STRUCTURE.length - 1; i >= 0; i--) {
+    if (xp >= RANK_STRUCTURE[i].minXP) {
+      return RANK_STRUCTURE[i];
     }
-    return RANK_STRUCTURE[0];
-  } catch (error) {
-    console.warn('Error getting rank by XP:', error);
-    return RANK_STRUCTURE[0];
   }
+  return RANK_STRUCTURE[0];
 };
 
 const isSameDay = (date1: string, date2: string): boolean => {
@@ -282,19 +212,14 @@ export const useUserProfileStore = create<UserProfileState>()(
       isLoading: false,
       
       updateProfile: (updates) => {
-        try {
-          set((state) => ({
-            profile: { 
-              ...state.profile, 
-              ...updates,
-              hasCustomizedProfile: true
-            }
-          }));
-          // Don't await sync to prevent hanging
-          get().syncToSupabase().catch(err => console.warn('Sync error:', err));
-        } catch (error) {
-          console.warn('Error updating profile:', error);
-        }
+        set((state) => ({
+          profile: { 
+            ...state.profile, 
+            ...updates,
+            hasCustomizedProfile: true
+          }
+        }));
+        get().syncToSupabase();
       },
       
       incrementNightsOut: () => {
@@ -306,17 +231,17 @@ export const useUserProfileStore = create<UserProfileState>()(
             set((state) => ({
               profile: {
                 ...state.profile,
-                nightsOut: (state.profile.nightsOut || 0) + 1,
+                nightsOut: state.profile.nightsOut + 1,
                 lastNightOutDate: today
               }
             }));
             
-            // Check if this completes a night out (3+ bars)
-            if ((profile.barsHit || 0) >= 3) {
+            if (profile.barsHit >= 3) {
               get().awardXP('complete_night_out', 'Completed a night out with 3+ bars');
             }
             
-            get().syncToSupabase().catch(err => console.warn('Sync error:', err));
+            get().updateAchievementProgress();
+            get().syncToSupabase();
           }
         } catch (error) {
           console.warn('Error incrementing nights out:', error);
@@ -324,33 +249,28 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
       
       incrementBarsHit: () => {
-        try {
-          set((state) => ({
-            profile: {
-              ...state.profile,
-              barsHit: (state.profile.barsHit || 0) + 1
-            }
-          }));
-          get().syncToSupabase().catch(err => console.warn('Sync error:', err));
-        } catch (error) {
-          console.warn('Error incrementing bars hit:', error);
-        }
+        set((state) => ({
+          profile: {
+            ...state.profile,
+            barsHit: state.profile.barsHit + 1
+          }
+        }));
+        get().updateAchievementProgress();
+        get().syncToSupabase();
       },
       
       addDrunkScaleRating: (rating) => {
         try {
-          // Ensure rating is a valid number
-          const validRating = (typeof rating === 'number' && !isNaN(rating) && isFinite(rating)) ? Math.max(0, Math.min(10, rating)) : 0;
           const today = new Date().toISOString();
           
           set((state) => ({
             profile: {
               ...state.profile,
-              drunkScaleRatings: [...(state.profile.drunkScaleRatings || []), validRating],
+              drunkScaleRatings: [...state.profile.drunkScaleRatings, rating],
               lastDrunkScaleDate: today
             }
           }));
-          get().syncToSupabase().catch(err => console.warn('Sync error:', err));
+          get().syncToSupabase();
         } catch (error) {
           console.warn('Error adding drunk scale rating:', error);
         }
@@ -359,22 +279,10 @@ export const useUserProfileStore = create<UserProfileState>()(
       getAverageDrunkScale: () => {
         try {
           const { drunkScaleRatings } = get().profile;
-          if (!drunkScaleRatings || drunkScaleRatings.length === 0) return 0;
-          
-          // Filter out any invalid ratings
-          const validRatings = drunkScaleRatings.filter(rating => 
-            typeof rating === 'number' && !isNaN(rating) && isFinite(rating) && rating > 0
-          );
-          
-          if (validRatings.length === 0) return 0;
-          
-          const sum = validRatings.reduce((acc, rating) => acc + rating, 0);
-          const average = sum / validRatings.length;
-          
-          // Ensure the result is a valid number
-          return (typeof average === 'number' && !isNaN(average) && isFinite(average)) ? Math.round(average * 10) / 10 : 0;
-        } catch (error) {
-          console.warn('Error calculating average drunk scale:', error);
+          if (drunkScaleRatings.length === 0) return 0;
+          const sum = drunkScaleRatings.reduce((acc, rating) => acc + rating, 0);
+          return Math.round((sum / drunkScaleRatings.length) * 10) / 10;
+        } catch {
           return 0;
         }
       },
@@ -382,9 +290,8 @@ export const useUserProfileStore = create<UserProfileState>()(
       getRank: () => {
         try {
           const { xp } = get().profile;
-          return getRankByXP(xp || 0);
-        } catch (error) {
-          console.warn('Error getting rank:', error);
+          return getRankByXP(xp);
+        } catch {
           return RANK_STRUCTURE[0];
         }
       },
@@ -394,247 +301,117 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
       
       getXPForNextRank: () => {
-        try {
-          const currentRank = get().getRank();
-          const currentRankIndex = RANK_STRUCTURE.findIndex(rank => 
-            rank.tier === currentRank.tier && rank.subRank === currentRank.subRank
-          );
-          
-          if (currentRankIndex >= 0 && currentRankIndex < RANK_STRUCTURE.length - 1) {
-            return RANK_STRUCTURE[currentRankIndex + 1].minXP;
-          }
-          
-          return currentRank.maxXP;
-        } catch (error) {
-          console.warn('Error getting XP for next rank:', error);
-          return RANK_STRUCTURE[0].maxXP;
+        const currentRank = get().getRank();
+        const currentRankIndex = RANK_STRUCTURE.findIndex(rank => 
+          rank.tier === currentRank.tier && rank.subRank === currentRank.subRank
+        );
+        
+        if (currentRankIndex < RANK_STRUCTURE.length - 1) {
+          return RANK_STRUCTURE[currentRankIndex + 1].minXP;
         }
+        
+        return currentRank.maxXP;
       },
       
       getProgressToNextRank: () => {
-        try {
-          const { xp } = get().profile;
-          const validXP = (typeof xp === 'number' && !isNaN(xp) && isFinite(xp)) ? Math.max(0, xp) : 0;
-          const currentRank = get().getRank();
-          const nextRankXP = get().getXPForNextRank();
-          
-          if (nextRankXP === currentRank.maxXP) return 100; // Max rank
-          
-          const progress = ((validXP - currentRank.minXP) / (nextRankXP - currentRank.minXP)) * 100;
-          const validProgress = (typeof progress === 'number' && !isNaN(progress) && isFinite(progress)) ? progress : 0;
-          
-          return Math.min(Math.max(validProgress, 0), 100);
-        } catch (error) {
-          console.warn('Error calculating progress to next rank:', error);
-          return 0;
-        }
+        const { xp } = get().profile;
+        const currentRank = get().getRank();
+        const nextRankXP = get().getXPForNextRank();
+        
+        if (nextRankXP === currentRank.maxXP) return 100;
+        
+        const progress = ((xp - currentRank.minXP) / (nextRankXP - currentRank.minXP)) * 100;
+        return Math.min(Math.max(progress, 0), 100);
       },
       
       awardXP: (type, description, venueId) => {
-        try {
-          const xpAmount = XP_VALUES[type] || 0;
+        const xpAmount = XP_VALUES[type];
+        const activityId = Math.random().toString(36).substr(2, 9);
+        
+        set((state) => {
+          const newActivity: XPActivity = {
+            id: activityId,
+            type,
+            xpAwarded: xpAmount,
+            timestamp: new Date().toISOString(),
+            description,
+          };
           
-          // Ensure xpAmount is a valid number
-          if (typeof xpAmount !== 'number' || isNaN(xpAmount) || !isFinite(xpAmount)) {
-            console.warn('Invalid XP amount for type:', type);
-            return;
+          let updatedProfile = {
+            ...state.profile,
+            xp: state.profile.xp + xpAmount,
+            xpActivities: [...state.profile.xpActivities, newActivity],
+          };
+          
+          switch (type) {
+            case 'visit_new_bar':
+              if (venueId && !state.profile.visitedBars.includes(venueId)) {
+                updatedProfile.visitedBars = [...state.profile.visitedBars, venueId];
+              }
+              break;
+            case 'participate_event':
+              updatedProfile.eventsAttended = state.profile.eventsAttended + 1;
+              break;
+            case 'bring_friend':
+              updatedProfile.friendsReferred = state.profile.friendsReferred + 1;
+              break;
+            case 'live_music':
+              updatedProfile.liveEventsAttended = state.profile.liveEventsAttended + 1;
+              break;
+            case 'featured_drink':
+              updatedProfile.featuredDrinksTried = state.profile.featuredDrinksTried + 1;
+              break;
+            case 'bar_game':
+              updatedProfile.barGamesPlayed = state.profile.barGamesPlayed + 1;
+              break;
+            case 'photo_taken':
+              updatedProfile.photosTaken = state.profile.photosTaken + 1;
+              break;
+            case 'pool_games':
+              updatedProfile.poolGamesWon = state.profile.poolGamesWon + 1;
+              break;
+            case 'dart_games':
+              updatedProfile.dartGamesWon = state.profile.dartGamesWon + 1;
+              break;
           }
           
-          const activityId = Math.random().toString(36).substr(2, 9);
-          
-          set((state) => {
-            const currentXP = (typeof state.profile.xp === 'number' && !isNaN(state.profile.xp) && isFinite(state.profile.xp)) ? state.profile.xp : 0;
-            
-            const newActivity: XPActivity = {
-              id: activityId,
-              type,
-              xpAwarded: xpAmount,
-              timestamp: new Date().toISOString(),
-              description,
-            };
-            
-            let updatedProfile = {
-              ...state.profile,
-              xp: currentXP + xpAmount,
-              xpActivities: [...(state.profile.xpActivities || []), newActivity],
-            };
-            
-            // Update specific counters safely
-            switch (type) {
-              case 'visit_new_bar':
-                if (venueId && !(state.profile.visitedBars || []).includes(venueId)) {
-                  updatedProfile.visitedBars = [...(state.profile.visitedBars || []), venueId];
-                }
-                break;
-              case 'participate_event':
-                updatedProfile.eventsAttended = (state.profile.eventsAttended || 0) + 1;
-                break;
-              case 'bring_friend':
-                updatedProfile.friendsReferred = (state.profile.friendsReferred || 0) + 1;
-                break;
-              case 'live_music':
-                updatedProfile.liveEventsAttended = (state.profile.liveEventsAttended || 0) + 1;
-                break;
-              case 'featured_drink':
-                updatedProfile.featuredDrinksTried = (state.profile.featuredDrinksTried || 0) + 1;
-                break;
-              case 'bar_game':
-                updatedProfile.barGamesPlayed = (state.profile.barGamesPlayed || 0) + 1;
-                break;
-              case 'photo_taken':
-                updatedProfile.photosTaken = (state.profile.photosTaken || 0) + 1;
-                break;
-              case 'pool_games_won':
-                updatedProfile.barGamesPlayed = (state.profile.barGamesPlayed || 0) + 1;
-                break;
-              case 'dart_games_won':
-                updatedProfile.barGamesPlayed = (state.profile.barGamesPlayed || 0) + 1;
-                break;
-            }
-            
-            return { profile: updatedProfile };
-          });
-          
-          get().syncToSupabase().catch(err => console.warn('Sync error:', err));
-        } catch (error) {
-          console.warn('Error awarding XP:', error);
-        }
+          return { profile: updatedProfile };
+        });
+        
+        get().updateAchievementProgress();
+        get().syncToSupabase();
       },
       
       updateDailyTrackerTotals: (stats) => {
-        try {
-          set((state) => {
-            // Reset daily stats if needed
-            let dailyStats = state.profile.dailyStats;
-            if (shouldResetDaily(dailyStats.lastReset)) {
-              dailyStats = { ...defaultDailyStats, lastReset: new Date().toISOString() };
-            }
-
-            return {
-              profile: {
-                ...state.profile,
-                totalShots: (state.profile.totalShots || 0) + (stats.shots || 0),
-                totalScoopAndScores: (state.profile.totalScoopAndScores || 0) + (stats.scoopAndScores || 0),
-                totalBeers: (state.profile.totalBeers || 0) + (stats.beers || 0),
-                totalBeerTowers: (state.profile.totalBeerTowers || 0) + (stats.beerTowers || 0),
-                totalFunnels: (state.profile.totalFunnels || 0) + (stats.funnels || 0),
-                totalShotguns: (state.profile.totalShotguns || 0) + (stats.shotguns || 0),
-                totalPoolGamesWon: (state.profile.totalPoolGamesWon || 0) + (stats.poolGamesWon || 0),
-                totalDartGamesWon: (state.profile.totalDartGamesWon || 0) + (stats.dartGamesWon || 0),
-                dailyStats: {
-                  ...dailyStats,
-                  shots: stats.shots || 0,
-                  scoopAndScores: stats.scoopAndScores || 0,
-                  beers: stats.beers || 0,
-                  beerTowers: stats.beerTowers || 0,
-                  funnels: stats.funnels || 0,
-                  shotguns: stats.shotguns || 0,
-                  poolGamesWon: stats.poolGamesWon || 0,
-                  dartGamesWon: stats.dartGamesWon || 0,
-                }
-              }
-            };
-          });
-          get().syncToSupabase().catch(err => console.warn('Sync error:', err));
-        } catch (error) {
-          console.warn('Error updating daily tracker totals:', error);
-        }
-      },
-
-      getDailyStats: () => {
-        try {
-          const { profile } = get();
-          let dailyStats = profile.dailyStats || defaultDailyStats;
-          
-          // Reset if needed
-          if (shouldResetDaily(dailyStats.lastReset)) {
-            dailyStats = { ...defaultDailyStats, lastReset: new Date().toISOString() };
-            // Update the store with reset stats
-            set((state) => ({
-              profile: {
-                ...state.profile,
-                dailyStats
-              }
-            }));
+        set((state) => ({
+          profile: {
+            ...state.profile,
+            totalShots: state.profile.totalShots + stats.shots,
+            totalScoopAndScores: state.profile.totalScoopAndScores + stats.scoopAndScores,
+            totalBeers: state.profile.totalBeers + stats.beers,
+            totalBeerTowers: state.profile.totalBeerTowers + stats.beerTowers,
+            totalFunnels: state.profile.totalFunnels + stats.funnels,
+            totalShotguns: state.profile.totalShotguns + stats.shotguns,
           }
-          
-          return dailyStats;
-        } catch (error) {
-          console.warn('Error getting daily stats:', error);
-          return defaultDailyStats;
-        }
+        }));
+        get().updateAchievementProgress();
+        get().syncToSupabase();
       },
 
-      resetDailyStats: () => {
-        try {
-          set((state) => ({
-            profile: {
-              ...state.profile,
-              dailyStats: { ...defaultDailyStats, lastReset: new Date().toISOString() }
-            }
-          }));
-        } catch (error) {
-          console.warn('Error resetting daily stats:', error);
-        }
-      },
-
-      recordVenueSpecificActivity: (venueId: string, activityType: 'pool_win' | 'dart_win' | 'group_shot') => {
-        try {
-          const activity: VenueSpecificActivity = {
-            venueId,
-            activityType,
-            timestamp: new Date().toISOString(),
-          };
-
-          set((state) => ({
-            profile: {
-              ...state.profile,
-              venueSpecificActivities: [...(state.profile.venueSpecificActivities || []), activity]
-            }
-          }));
-
-          // Check for Trifecta achievement
-          if (get().checkTrifectaAchievement()) {
-            // Award Trifecta achievement through achievement store
-            const achievementStore = (window as any).__achievementStore;
-            if (achievementStore?.getState) {
-              const { completeAchievement } = achievementStore.getState();
-              completeAchievement('trifecta');
-            }
-            
-            // Award special XP
-            get().awardXP('special_achievement', 'Completed the Trifecta achievement!');
-          }
-
-          get().syncToSupabase().catch(err => console.warn('Sync error:', err));
-        } catch (error) {
-          console.warn('Error recording venue specific activity:', error);
-        }
-      },
-
-      checkTrifectaAchievement: () => {
-        try {
-          const { venueSpecificActivities } = get().profile;
+      updateAchievementProgress: () => {
+        const { profile } = get();
+        
+        if (typeof window !== 'undefined' && (window as any).__achievementStore) {
+          const achievementStore = (window as any).__achievementStore.getState();
           
-          // Check for pool win at JBA (venue ID '6')
-          const poolAtJBA = venueSpecificActivities.some(a => 
-            a.venueId === '6' && a.activityType === 'pool_win'
-          );
-          
-          // Check for dart win at The Bird (venue ID '4')
-          const dartAtBird = venueSpecificActivities.some(a => 
-            a.venueId === '4' && a.activityType === 'dart_win'
-          );
-          
-          // Check for group shot at Late Nite (venue ID '5')
-          const groupShotAtLateNite = venueSpecificActivities.some(a => 
-            a.venueId === '5' && a.activityType === 'group_shot'
-          );
-          
-          return poolAtJBA && dartAtBird && groupShotAtLateNite;
-        } catch (error) {
-          console.warn('Error checking Trifecta achievement:', error);
-          return false;
+          achievementStore.updateAchievementProgress('bars-visited', profile.visitedBars.length);
+          achievementStore.updateAchievementProgress('nights-out', profile.nightsOut);
+          achievementStore.updateAchievementProgress('scoop-and-scores', profile.totalScoopAndScores);
+          achievementStore.updateAchievementProgress('funnels', profile.totalFunnels);
+          achievementStore.updateAchievementProgress('shotguns', profile.totalShotguns);
+          achievementStore.updateAchievementProgress('pool-games', profile.poolGamesWon);
+          achievementStore.updateAchievementProgress('dart-games', profile.dartGamesWon);
+          achievementStore.updateAchievementProgress('photos-taken', profile.photosTaken);
         }
       },
       
@@ -659,70 +436,50 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       setProfilePicture: (uri: string) => {
-        try {
-          set((state) => ({
-            profile: {
-              ...state.profile,
-              profilePicture: uri,
-              hasCustomizedProfile: true
-            }
-          }));
-          get().syncToSupabase().catch(err => console.warn('Sync error:', err));
-        } catch (error) {
-          console.warn('Error setting profile picture:', error);
-        }
+        set((state) => ({
+          profile: {
+            ...state.profile,
+            profilePicture: uri,
+            hasCustomizedProfile: true
+          }
+        }));
+        get().syncToSupabase();
       },
 
       setUserName: (firstName: string, lastName: string) => {
-        try {
-          set((state) => ({
-            profile: {
-              ...state.profile,
-              firstName: firstName.trim(),
-              lastName: lastName.trim(),
-              hasCustomizedProfile: true
-            }
-          }));
-          get().syncToSupabase().catch(err => console.warn('Sync error:', err));
-        } catch (error) {
-          console.warn('Error setting user name:', error);
-        }
+        set((state) => ({
+          profile: {
+            ...state.profile,
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            hasCustomizedProfile: true
+          }
+        }));
+        get().syncToSupabase();
       },
 
       generateUserId: (firstName: string, lastName: string) => {
-        try {
-          const cleanName = `${firstName}${lastName}`.replace(/[^a-zA-Z0-9]/g, '');
-          const randomDigits = Math.floor(10000 + Math.random() * 90000).toString();
-          return `#${cleanName}${randomDigits}`;
-        } catch (error) {
-          console.warn('Error generating user ID:', error);
-          return '#DefaultUser12345';
-        }
+        const cleanName = `${firstName}${lastName}`.replace(/[^a-zA-Z0-9]/g, '');
+        const randomDigits = Math.floor(10000 + Math.random() * 90000).toString();
+        return `#${cleanName}${randomDigits}`;
       },
 
       completeOnboarding: async (firstName: string, lastName: string) => {
-        try {
-          const userId = get().generateUserId(firstName, lastName);
-          
-          set((state) => ({
-            profile: {
-              ...state.profile,
-              firstName: firstName.trim(),
-              lastName: lastName.trim(),
-              userId,
-              hasCompletedOnboarding: true,
-              hasCustomizedProfile: true
-            }
-          }));
+        const userId = get().generateUserId(firstName, lastName);
+        
+        set((state) => ({
+          profile: {
+            ...state.profile,
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            userId,
+            hasCompletedOnboarding: true,
+            hasCustomizedProfile: true
+          }
+        }));
 
-          // Award XP for joining
-          get().awardXP('special_achievement', 'Welcome to BarBuddy!');
-
-          await get().syncToSupabase();
-        } catch (error) {
-          console.warn('Error completing onboarding:', error);
-          throw error;
-        }
+        get().awardXP('special_achievement', 'Welcome to BarBuddy!');
+        await get().syncToSupabase();
       },
 
       addFriend: async (friendUserId: string) => {
@@ -731,38 +488,31 @@ export const useUserProfileStore = create<UserProfileState>()(
           if (!friend) return false;
 
           const { profile } = get();
-          if ((profile.friends || []).some(f => f.userId === friendUserId)) {
+          if (profile.friends.some(f => f.userId === friendUserId)) {
             return false;
           }
 
           set((state) => ({
             profile: {
               ...state.profile,
-              friends: [...(state.profile.friends || []), friend]
+              friends: [...state.profile.friends, friend]
             }
           }));
 
-          // Award XP for bringing a friend
           get().awardXP('bring_friend', `Added ${friend.name} as a friend`);
-
           return true;
-        } catch (error) {
-          console.warn('Error adding friend:', error);
+        } catch {
           return false;
         }
       },
 
       removeFriend: async (friendUserId: string) => {
-        try {
-          set((state) => ({
-            profile: {
-              ...state.profile,
-              friends: (state.profile.friends || []).filter(f => f.userId !== friendUserId)
-            }
-          }));
-        } catch (error) {
-          console.warn('Error removing friend:', error);
-        }
+        set((state) => ({
+          profile: {
+            ...state.profile,
+            friends: state.profile.friends.filter(f => f.userId !== friendUserId)
+          }
+        }));
       },
 
       searchUser: async (userId: string) => {
@@ -779,8 +529,7 @@ export const useUserProfileStore = create<UserProfileState>()(
             };
           }
           return null;
-        } catch (error) {
-          console.warn('Error searching user:', error);
+        } catch {
           return null;
         }
       },
@@ -788,8 +537,7 @@ export const useUserProfileStore = create<UserProfileState>()(
       sendFriendRequest: async (friendUserId: string) => {
         try {
           return true;
-        } catch (error) {
-          console.warn('Error sending friend request:', error);
+        } catch {
           return false;
         }
       },
@@ -797,8 +545,7 @@ export const useUserProfileStore = create<UserProfileState>()(
       acceptFriendRequest: async (requestId: string) => {
         try {
           return true;
-        } catch (error) {
-          console.warn('Error accepting friend request:', error);
+        } catch {
           return false;
         }
       },
@@ -806,8 +553,7 @@ export const useUserProfileStore = create<UserProfileState>()(
       declineFriendRequest: async (requestId: string) => {
         try {
           return true;
-        } catch (error) {
-          console.warn('Error declining friend request:', error);
+        } catch {
           return false;
         }
       },
@@ -821,13 +567,9 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       resetProfile: () => {
-        try {
-          const { profile } = get();
-          if (!profile.hasCustomizedProfile) {
-            set({ profile: defaultProfile });
-          }
-        } catch (error) {
-          console.warn('Error resetting profile:', error);
+        const { profile } = get();
+        if (!profile.hasCustomizedProfile) {
+          set({ profile: defaultProfile });
         }
       },
 
@@ -856,10 +598,8 @@ export const useUserProfileStore = create<UserProfileState>()(
               totalBeerTowers: 0,
               totalFunnels: 0,
               totalShotguns: 0,
-              totalPoolGamesWon: 0,
-              totalDartGamesWon: 0,
-              dailyStats: defaultDailyStats,
-              venueSpecificActivities: [],
+              poolGamesWon: 0,
+              dartGamesWon: 0,
             }
           }));
           await get().syncToSupabase();
@@ -868,25 +608,17 @@ export const useUserProfileStore = create<UserProfileState>()(
         }
       },
 
-      syncToSupabase: async (): Promise<void> => {
+      syncToSupabase: async () => {
         try {
-          // Mock implementation with timeout to prevent hanging
-          await Promise.race([
-            new Promise<void>(resolve => setTimeout(() => resolve(), 100)), // Mock sync
-            new Promise<void>((_, reject) => setTimeout(() => reject(new Error('Sync timeout')), 2000))
-          ]);
+          // Mock implementation
         } catch (error) {
           console.warn('Error syncing to Supabase:', error);
         }
       },
 
-      loadFromSupabase: async (): Promise<void> => {
+      loadFromSupabase: async () => {
         try {
-          // Mock implementation with timeout to prevent hanging
-          await Promise.race([
-            new Promise<void>(resolve => setTimeout(() => resolve(), 100)), // Mock load
-            new Promise<void>((_, reject) => setTimeout(() => reject(new Error('Load timeout')), 2000))
-          ]);
+          // Mock implementation
         } catch (error) {
           console.warn('Error loading from Supabase:', error);
         }
@@ -898,33 +630,10 @@ export const useUserProfileStore = create<UserProfileState>()(
       partialize: (state) => ({
         profile: state.profile,
       }),
-      onRehydrateStorage: () => (state) => {
-        // Ensure profile has all required fields after rehydration
-        if (state?.profile) {
-          state.profile = {
-            ...defaultProfile,
-            ...state.profile,
-            // Ensure numeric fields are valid numbers
-            xp: (typeof state.profile.xp === 'number' && !isNaN(state.profile.xp) && isFinite(state.profile.xp)) ? state.profile.xp : 0,
-            nightsOut: (typeof state.profile.nightsOut === 'number' && !isNaN(state.profile.nightsOut) && isFinite(state.profile.nightsOut)) ? state.profile.nightsOut : 0,
-            barsHit: (typeof state.profile.barsHit === 'number' && !isNaN(state.profile.barsHit) && isFinite(state.profile.barsHit)) ? state.profile.barsHit : 0,
-            // Ensure arrays are valid
-            drunkScaleRatings: Array.isArray(state.profile.drunkScaleRatings) ? state.profile.drunkScaleRatings.filter(r => typeof r === 'number' && !isNaN(r) && isFinite(r)) : [],
-            xpActivities: Array.isArray(state.profile.xpActivities) ? state.profile.xpActivities : [],
-            visitedBars: Array.isArray(state.profile.visitedBars) ? state.profile.visitedBars : [],
-            friends: Array.isArray(state.profile.friends) ? state.profile.friends : [],
-            friendRequests: Array.isArray(state.profile.friendRequests) ? state.profile.friendRequests : [],
-            venueSpecificActivities: Array.isArray(state.profile.venueSpecificActivities) ? state.profile.venueSpecificActivities : [],
-            // Ensure dailyStats exists
-            dailyStats: state.profile.dailyStats || defaultDailyStats,
-          };
-        }
-      },
     }
   )
 );
 
-// Store reference for cross-store access
 if (typeof window !== 'undefined') {
   (window as any).__userProfileStore = useUserProfileStore;
 }
