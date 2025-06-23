@@ -91,7 +91,7 @@ export default function HomeScreen() {
         {/* Daily Tracker Button - Reverted to simpler design */}
         <View style={styles.dailyTrackerContainer}>
           <Pressable
-            style={[styles.dailyTrackerButton, { backgroundColor: themeColors.surface }]}
+            style={[styles.dailyTrackerButton, { backgroundColor: themeColors.card }]}
             onPress={() => setShowDailyTracker(true)}
           >
             <BarChart3 size={24} color={themeColors.text} />
