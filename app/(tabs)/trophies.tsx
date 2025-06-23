@@ -39,7 +39,7 @@ export default function TrophiesScreen() {
             <View style={styles.statItem}>
               <Trophy size={24} color={themeColors.primary} />
               <Text style={[styles.statNumber, { color: themeColors.text }]}>
-                {profile.venuesVisited || 0}
+                {profile.visitedBars?.length || 0}
               </Text>
               <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
                 Venues Visited
