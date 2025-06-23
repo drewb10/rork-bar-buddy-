@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, View, Text, Pressable, Image } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View, Text, Pressable, Image, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Clock, Star, Heart } from 'lucide-react-native';
 import { Venue, Special } from '@/types/venue';
@@ -18,8 +18,27 @@ export default function TopPickCard({ venue, todaySpecial }: TopPickCardProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const { getLikeCount } = useVenueInteractionStore();
+  const [pressAnimation] = useState(new Animated.Value(1));
   
   const likeCount = getLikeCount(venue.id);
+
+  const handlePressIn = () => {
+    Animated.spring(pressAnimation, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(pressAnimation, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
 
   const handlePress = () => {
     router.push(`/venue/${venue.id}${todaySpecial ? `?specialId=${todaySpecial.id}` : ''}`);
@@ -32,73 +51,86 @@ export default function TopPickCard({ venue, todaySpecial }: TopPickCardProps) {
   };
 
   return (
-    <Pressable 
-      style={[styles.card, { backgroundColor: themeColors.card }]} 
-      onPress={handlePress}
-    >
-      <Image 
-        source={{ uri: venue.featuredImage }} 
-        style={styles.image} 
-      />
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.7)']}
-        style={styles.gradient}
-      />
-      
-      {/* Like count badge */}
-      {likeCount > 0 && (
-        <View style={[styles.likeBadge, { backgroundColor: themeColors.primary }]}>
-          <Heart size={10} color="white" fill="white" />
-          <Text style={styles.likeText}>{likeCount}</Text>
-        </View>
-      )}
-      
-      <View style={styles.content}>
-        <Text style={[styles.venueName, { color: themeColors.text }]} numberOfLines={1}>
-          {venue.name}
-        </Text>
+    <Animated.View style={{ transform: [{ scale: pressAnimation }] }}>
+      <Pressable 
+        style={[styles.card, { 
+          backgroundColor: themeColors.cardElevated,
+          shadowColor: themeColors.shadowSecondary,
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
+          elevation: 6,
+        }]} 
+        onPress={handlePress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+      >
+        <Image 
+          source={{ uri: venue.featuredImage }} 
+          style={styles.image} 
+        />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.7)']}
+          style={styles.gradient}
+        />
         
-        <View style={styles.ratingContainer}>
-          <Star size={12} color={themeColors.accent} fill={themeColors.accent} />
-          <Text style={[styles.rating, { color: themeColors.subtext }]}>{venue.rating}</Text>
-        </View>
-
-        {todaySpecial ? (
-          <View style={styles.specialContainer}>
-            <Text style={[styles.specialTitle, { color: themeColors.primary }]} numberOfLines={1}>
-              {todaySpecial.title}
-            </Text>
-            <Text style={[styles.specialDescription, { color: themeColors.subtext }]} numberOfLines={2}>
-              {todaySpecial.description}
-            </Text>
-            <View style={styles.timeContainer}>
-              <Clock size={10} color={themeColors.subtext} />
-              <Text style={[styles.timeText, { color: themeColors.subtext }]}>
-                {formatTime(todaySpecial.startTime)} - {formatTime(todaySpecial.endTime)}
-              </Text>
-            </View>
+        {/* Like count badge */}
+        {likeCount > 0 && (
+          <View style={[styles.likeBadge, { 
+            backgroundColor: themeColors.primary,
+            shadowColor: themeColors.shadowPrimary,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 4,
+          }]}>
+            <Heart size={10} color="white" fill="white" />
+            <Text style={styles.likeText}>{likeCount}</Text>
           </View>
-        ) : (
-          <Text style={[styles.noSpecial, { color: themeColors.subtext }]}>
-            No specials today
-          </Text>
         )}
-      </View>
-    </Pressable>
+        
+        <View style={styles.content}>
+          <Text style={[styles.venueName, { color: themeColors.text }]} numberOfLines={1}>
+            {venue.name}
+          </Text>
+          
+          <View style={styles.ratingContainer}>
+            <Star size={12} color={themeColors.accent} fill={themeColors.accent} />
+            <Text style={[styles.rating, { color: themeColors.subtext }]}>{venue.rating}</Text>
+          </View>
+
+          {todaySpecial ? (
+            <View style={styles.specialContainer}>
+              <Text style={[styles.specialTitle, { color: themeColors.primary }]} numberOfLines={1}>
+                {todaySpecial.title}
+              </Text>
+              <Text style={[styles.specialDescription, { color: themeColors.subtext }]} numberOfLines={2}>
+                {todaySpecial.description}
+              </Text>
+              <View style={styles.timeContainer}>
+                <Clock size={10} color={themeColors.subtext} />
+                <Text style={[styles.timeText, { color: themeColors.subtext }]}>
+                  {formatTime(todaySpecial.startTime)} - {formatTime(todaySpecial.endTime)}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <Text style={[styles.noSpecial, { color: themeColors.subtext }]}>
+              No specials today
+            </Text>
+          )}
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
     width: 160,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     marginRight: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
     position: 'relative',
   },
   image: {
@@ -118,14 +150,9 @@ const styles = StyleSheet.create({
     right: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   likeText: {
     color: 'white',
@@ -134,7 +161,7 @@ const styles = StyleSheet.create({
     marginLeft: 3,
   },
   content: {
-    padding: 10,
+    padding: 12,
   },
   venueName: {
     fontSize: 16,

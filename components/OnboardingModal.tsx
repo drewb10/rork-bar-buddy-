@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, Pressable, TextInput, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, Pressable, TextInput, Alert, Animated } from 'react-native';
 import { User } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
+import { BlurView } from 'expo-blur';
+import { Platform } from 'react-native';
 
 interface OnboardingModalProps {
   visible: boolean;
@@ -15,6 +17,20 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
   const themeColors = colors[theme];
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [scaleAnimation] = useState(new Animated.Value(0));
+
+  useEffect(() => {
+    if (visible) {
+      Animated.spring(scaleAnimation, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 8,
+      }).start();
+    } else {
+      scaleAnimation.setValue(0);
+    }
+  }, [visible]);
 
   const handleSubmit = () => {
     if (!firstName.trim() || !lastName.trim()) {
@@ -22,14 +38,40 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
       return;
     }
 
-    onComplete(firstName.trim(), lastName.trim());
+    Animated.spring(scaleAnimation, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 100,
+      friction: 8,
+    }).start(() => {
+      onComplete(firstName.trim(), lastName.trim());
+    });
   };
 
   if (!visible) return null;
 
   return (
     <View style={styles.overlay}>
-      <View style={[styles.container, { backgroundColor: themeColors.card }]}>
+      {Platform.OS !== 'web' ? (
+        <BlurView intensity={30} style={StyleSheet.absoluteFill} />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: themeColors.overlay }]} />
+      )}
+      
+      <Animated.View 
+        style={[
+          styles.container, 
+          { 
+            backgroundColor: themeColors.cardElevated,
+            transform: [{ scale: scaleAnimation }],
+            shadowColor: themeColors.shadowSecondary,
+            shadowOffset: { width: 0, height: 20 },
+            shadowOpacity: 0.4,
+            shadowRadius: 30,
+            elevation: 20,
+          }
+        ]}
+      >
         <View style={styles.logoContainer}>
           <BarBuddyLogo size="medium" />
         </View>
@@ -48,7 +90,12 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
             style={[styles.textInput, { 
               backgroundColor: themeColors.background,
               color: themeColors.text,
-              borderColor: themeColors.border
+              borderColor: themeColors.border,
+              shadowColor: themeColors.shadowSecondary,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 2,
             }]}
             value={firstName}
             onChangeText={setFirstName}
@@ -65,7 +112,12 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
             style={[styles.textInput, { 
               backgroundColor: themeColors.background,
               color: themeColors.text,
-              borderColor: themeColors.border
+              borderColor: themeColors.border,
+              shadowColor: themeColors.shadowSecondary,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 2,
             }]}
             value={lastName}
             onChangeText={setLastName}
@@ -81,12 +133,19 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
         </Text>
         
         <Pressable 
-          style={[styles.submitButton, { backgroundColor: themeColors.primary }]} 
+          style={[styles.submitButton, { 
+            backgroundColor: themeColors.primary,
+            shadowColor: themeColors.shadowPrimary,
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.4,
+            shadowRadius: 12,
+            elevation: 6,
+          }]} 
           onPress={handleSubmit}
         >
           <Text style={styles.submitButtonText}>Get Started</Text>
         </Pressable>
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -100,20 +159,14 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     zIndex: 1000,
   },
   container: {
     width: '90%',
     maxWidth: 400,
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 32,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
   },
   logoContainer: {
     marginBottom: 24,
@@ -141,7 +194,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     fontSize: 16,
     width: '100%',
@@ -155,7 +208,7 @@ const styles = StyleSheet.create({
   submitButton: {
     paddingVertical: 16,
     paddingHorizontal: 32,
-    borderRadius: 25,
+    borderRadius: 28,
     width: '100%',
     alignItems: 'center',
   },

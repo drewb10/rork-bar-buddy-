@@ -12,6 +12,11 @@ export const colors = {
     border: '#222222', // Darker border
     success: '#4CAF50',
     error: '#F44336',
+    // Enhanced depth colors for premium feel
+    cardElevated: '#1A1A1A', // Slightly lighter for elevated cards
+    overlay: 'rgba(0, 0, 0, 0.85)', // For glassmorphism overlays
+    shadowPrimary: 'rgba(255, 106, 0, 0.3)', // Primary color shadow
+    shadowSecondary: 'rgba(0, 0, 0, 0.8)', // Deep shadow
   },
   light: {
     background: '#F8F8F8',
@@ -25,6 +30,11 @@ export const colors = {
     border: '#EEEEEE',
     success: '#4CAF50',
     error: '#F44336',
+    // Enhanced depth colors for premium feel
+    cardElevated: '#FFFFFF', // Pure white for elevated cards
+    overlay: 'rgba(255, 255, 255, 0.95)', // For glassmorphism overlays
+    shadowPrimary: 'rgba(255, 106, 0, 0.2)', // Primary color shadow
+    shadowSecondary: 'rgba(0, 0, 0, 0.15)', // Subtle shadow
   }
 };
 
