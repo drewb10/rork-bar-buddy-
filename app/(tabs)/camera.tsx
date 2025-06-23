@@ -36,7 +36,7 @@ export default function CameraScreen() {
 
   if (!permission) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: '#121212' }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
           <Text style={[styles.loadingText, { color: themeColors.text }]}>
@@ -49,7 +49,7 @@ export default function CameraScreen() {
 
   if (!permission.granted) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: '#121212' }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.permissionContainer}>
           <BarBuddyLogo size="medium" />
@@ -173,14 +173,14 @@ export default function CameraScreen() {
 
   if (capturedPhoto && showSuccessModal) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: '#121212' }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         
         <Image source={{ uri: capturedPhoto }} style={styles.previewImage} />
         
         {/* Success Overlay */}
         <View style={styles.successOverlay}>
-          <View style={[styles.successModal, { backgroundColor: 'rgba(30, 30, 30, 0.95)' }]}>
+          <View style={[styles.successModal, { backgroundColor: themeColors.card }]}>
             <View style={[styles.successIcon, { backgroundColor: themeColors.primary }]}>
               <Check size={32} color="white" />
             </View>
@@ -195,7 +195,7 @@ export default function CameraScreen() {
 
         {/* Retake Button */}
         <Pressable 
-          style={[styles.retakeButton, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}
+          style={[styles.retakeButton, { backgroundColor: themeColors.card }]}
           onPress={retakePhoto}
         >
           <RotateCcw size={20} color={themeColors.text} />
@@ -208,7 +208,7 @@ export default function CameraScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: '#121212' }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       <CameraView 
@@ -276,7 +276,6 @@ export default function CameraScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
   },
   loadingContainer: {
     flex: 1,

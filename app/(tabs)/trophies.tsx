@@ -44,7 +44,7 @@ export default function TrophiesScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: '#121212' }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       <ScrollView 
@@ -61,7 +61,7 @@ export default function TrophiesScreen() {
         </View>
 
         {/* Stats Overview */}
-        <View style={[styles.statsCard, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}>
+        <View style={[styles.statsCard, { backgroundColor: themeColors.card }]}>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Trophy size={24} color={themeColors.primary} />
@@ -96,7 +96,7 @@ export default function TrophiesScreen() {
         </View>
 
         {/* Current Rank - Centered */}
-        <View style={[styles.rankCard, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}>
+        <View style={[styles.rankCard, { backgroundColor: themeColors.card }]}>
           <View style={styles.rankContent}>
             <Award size={28} color={rankInfo.color} />
             <View style={styles.rankInfo}>
@@ -139,7 +139,7 @@ export default function TrophiesScreen() {
                     style={[
                       styles.achievementCard,
                       { 
-                        backgroundColor: 'rgba(30, 30, 30, 0.9)',
+                        backgroundColor: themeColors.card,
                         opacity: achievement.completed ? 1 : 0.7,
                         borderColor: achievement.completed ? category.color : 'transparent',
                         borderWidth: achievement.completed ? 2 : 0,
@@ -162,7 +162,7 @@ export default function TrophiesScreen() {
                     
                     {achievement.maxProgress && (
                       <View style={styles.progressContainer}>
-                        <View style={[styles.progressBar, { backgroundColor: 'rgba(18, 18, 18, 0.8)' }]}>
+                        <View style={[styles.progressBar, { backgroundColor: themeColors.background }]}>
                           <View 
                             style={[
                               styles.progressFill, 
@@ -202,7 +202,7 @@ export default function TrophiesScreen() {
         onRequestClose={() => setSelectedAchievement(null)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: 'rgba(30, 30, 30, 0.95)' }]}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: themeColors.text }]}>
                 Achievement Details
@@ -234,7 +234,7 @@ export default function TrophiesScreen() {
                     <Text style={[styles.modalProgressLabel, { color: themeColors.text }]}>
                       Progress: {selectedAchievement.progress || 0}/{selectedAchievement.maxProgress}
                     </Text>
-                    <View style={[styles.modalProgressBar, { backgroundColor: 'rgba(18, 18, 18, 0.8)' }]}>
+                    <View style={[styles.modalProgressBar, { backgroundColor: themeColors.background }]}>
                       <View 
                         style={[
                           styles.modalProgressFill, 
@@ -288,7 +288,6 @@ export default function TrophiesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
   },
   scrollView: {
     flex: 1,

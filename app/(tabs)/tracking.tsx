@@ -74,7 +74,7 @@ export default function TrackingScreen() {
     
     return (
       <View style={styles.progressBarContainer}>
-        <View style={[styles.progressBarBackground, { backgroundColor: 'rgba(18, 18, 18, 0.8)' }]}>
+        <View style={[styles.progressBarBackground, { backgroundColor: themeColors.background }]}>
           <View 
             style={[
               styles.progressBarFill, 
@@ -102,7 +102,7 @@ export default function TrackingScreen() {
     const completedInCategory = categoryAchievements.filter(a => a.completed).length;
 
     return (
-      <View key={category} style={[styles.categorySection, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}>
+      <View key={category} style={[styles.categorySection, { backgroundColor: themeColors.card }]}>
         <View style={styles.categoryHeader}>
           {getCategoryIcon(category)}
           <Text style={[styles.categoryTitle, { color: themeColors.text }]}>
@@ -122,7 +122,7 @@ export default function TrackingScreen() {
                 { 
                   backgroundColor: achievement.completed 
                     ? themeColors.primary + '20' 
-                    : 'rgba(18, 18, 18, 0.8)',
+                    : themeColors.background,
                   borderColor: achievement.completed 
                     ? themeColors.primary 
                     : themeColors.border,
@@ -167,7 +167,7 @@ export default function TrackingScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: '#121212' }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       <ScrollView 
@@ -187,7 +187,7 @@ export default function TrackingScreen() {
         </View>
 
         {/* Progress Overview */}
-        <View style={[styles.progressCard, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}>
+        <View style={[styles.progressCard, { backgroundColor: themeColors.card }]}>
           <View style={styles.progressHeader}>
             <Text style={[styles.progressTitle, { color: themeColors.text }]}>
               Overall Progress
@@ -197,7 +197,7 @@ export default function TrackingScreen() {
             </Text>
           </View>
           
-          <View style={[styles.progressBar, { backgroundColor: 'rgba(18, 18, 18, 0.8)' }]}>
+          <View style={[styles.progressBar, { backgroundColor: themeColors.background }]}>
             <View 
               style={[
                 styles.progressFill, 
@@ -215,7 +215,7 @@ export default function TrackingScreen() {
         </View>
 
         {/* Daily Tracker Totals - New Section */}
-        <View style={[styles.dailyTrackerCard, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}>
+        <View style={[styles.dailyTrackerCard, { backgroundColor: themeColors.card }]}>
           <View style={styles.dailyTrackerHeader}>
             <BarChart3 size={20} color={themeColors.primary} />
             <Text style={[styles.dailyTrackerTitle, { color: themeColors.text }]}>
@@ -293,7 +293,7 @@ export default function TrackingScreen() {
         </View>
 
         {/* Info Card */}
-        <View style={[styles.infoCard, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}>
+        <View style={[styles.infoCard, { backgroundColor: themeColors.card }]}>
           <Text style={[styles.infoTitle, { color: themeColors.text }]}>
             💡 How it works
           </Text>
@@ -304,7 +304,7 @@ export default function TrackingScreen() {
 
         {/* Reset Button */}
         <Pressable 
-          style={[styles.resetButton, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}
+          style={[styles.resetButton, { backgroundColor: themeColors.card }]}
           onPress={() => {
             Alert.alert(
               'Reset Achievements',
@@ -339,7 +339,7 @@ export default function TrackingScreen() {
         onRequestClose={() => setSelectedAchievement(null)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: 'rgba(30, 30, 30, 0.95)' }]}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: themeColors.text }]}>
                 {selectedAchievement?.icon} {selectedAchievement?.title}
@@ -381,7 +381,6 @@ export default function TrackingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
   },
   scrollView: {
     flex: 1,

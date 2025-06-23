@@ -30,6 +30,7 @@ export default function RootLayout() {
     // Initialize stores and load data
     const initializeApp = async () => {
       try {
+        // Load data if user has completed onboarding
         if (profile.hasCompletedOnboarding && profile.userId !== 'default') {
           await loadFromSupabase();
           await loadPopularTimesFromSupabase();
@@ -39,11 +40,14 @@ export default function RootLayout() {
       }
     };
 
+    // Show age verification modal if not verified
     if (!isVerified) {
       setShowAgeVerification(true);
     } else if (!profile.hasCompletedOnboarding) {
+      // Show onboarding after age verification
       setShowOnboarding(true);
     } else {
+      // Initialize app if user is verified and onboarded
       initializeApp();
     }
   }, [isVerified, profile.hasCompletedOnboarding]);
@@ -51,7 +55,7 @@ export default function RootLayout() {
   const handleAgeVerification = (verified: boolean) => {
     setVerified(verified);
     setShowAgeVerification(false);
-
+    
     if (verified && !profile.hasCompletedOnboarding) {
       setShowOnboarding(true);
     }
@@ -66,48 +70,45 @@ export default function RootLayout() {
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <StatusBar style="light" />
-        
-        <View style={{ flex: 1, backgroundColor: '#1a1a1a' }}>
-          <Stack
-            screenOptions={{
+        <Stack
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: '#121212',
+            },
+            headerTintColor: '#FFFFFF',
+            headerShadowVisible: false,
+            contentStyle: {
+              backgroundColor: '#121212',
+            },
+            headerShown: false,
+          }}
+        >
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen 
+            name="venue/[id]" 
+            options={{
+              headerShown: true,
+              presentation: 'card',
+              headerBackTitle: 'Home',
+              headerTitle: '',
               headerStyle: {
-                backgroundColor: 'transparent',
+                backgroundColor: '#121212',
               },
               headerTintColor: '#FFFFFF',
-              headerShadowVisible: false,
-              contentStyle: {
-                backgroundColor: 'transparent',
-              },
-              headerShown: false,
             }}
-          >
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="venue/[id]"
-              options={{
-                headerShown: true,
-                presentation: 'card',
-                headerBackTitle: 'Home',
-                headerTitle: '',
-                headerStyle: {
-                  backgroundColor: 'rgba(18, 18, 18, 0.9)',
-                },
-                headerTintColor: '#FFFFFF',
-              }}
-            />
-            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-          </Stack>
-
-          <AgeVerificationModal
-            visible={showAgeVerification}
-            onVerify={handleAgeVerification}
           />
+          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        </Stack>
 
-          <OnboardingModal
-            visible={showOnboarding}
-            onComplete={handleOnboardingComplete}
-          />
-        </View>
+        <AgeVerificationModal
+          visible={showAgeVerification}
+          onVerify={handleAgeVerification}
+        />
+
+        <OnboardingModal
+          visible={showOnboarding}
+          onComplete={handleOnboardingComplete}
+        />
       </QueryClientProvider>
     </trpc.Provider>
   );

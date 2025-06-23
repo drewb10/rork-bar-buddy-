@@ -79,7 +79,7 @@ export default function HomeScreen() {
   const dailyTotal = getDailyTotal();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: '#121212' }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <ScrollView 
         style={styles.scrollView}
@@ -123,7 +123,7 @@ export default function HomeScreen() {
         {/* Daily Tracker Icon - Removed like counter */}
         <View style={styles.dailyTrackerSection}>
           <Pressable 
-            style={[styles.dailyTrackerButton, { backgroundColor: 'rgba(30, 30, 30, 0.9)' }]}
+            style={[styles.dailyTrackerButton, { backgroundColor: themeColors.card }]}
             onPress={handleDailyTrackerPress}
           >
             <BarChart3 size={20} color={themeColors.primary} />
@@ -165,7 +165,6 @@ function getCurrentDay(): string {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
   },
   scrollView: {
     flex: 1,

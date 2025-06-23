@@ -26,13 +26,3 @@ export const ensureAuth = async () => {
   }
   return user;
 };
-
-// Helper function to get background image URL from Supabase storage
-export const getBackgroundImageUrl = () => {
-  const { data } = supabase
-    .storage
-    .from('background-barbuddy')
-    .getPublicUrl('barbuddy-bg.png');
-  
-  return data.publicUrl;
-};

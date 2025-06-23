@@ -1,30 +1,30 @@
-// Color palette for the app - Clean grey theme with orange primary to match logo
+// Color palette for the app
 export const colors = {
   dark: {
-    background: '#1a1a1a', // Clean dark grey background
-    gradient: ['#1a1a1a', '#2a2a2a'], // Subtle grey gradient
-    card: '#2a2a2a', // Slightly lighter grey for cards
-    text: '#FFFFFF', // Pure white for contrast
-    subtext: '#B0B0B0', // Light grey for secondary text
-    primary: '#FF9500', // Orange to match BarBuddy logo
-    secondary: '#5856D6', // iOS purple secondary
-    accent: '#007AFF', // iOS blue accent
-    border: '#3a3a3a', // Medium grey border
+    background: '#121212', // Slightly lighter black for better visibility
+    gradient: ['#121212', '#000000'],
+    card: '#1E1E1E', // Lighter card background
+    text: '#FFFFFF', // Pure white for better contrast
+    subtext: '#B3B3B3', // Lighter gray for better visibility
+    primary: '#FF6A00', // flame orange
+    secondary: '#FF944D',
+    accent: '#FF6A00',
+    border: '#333333',
     success: '#4CAF50',
-    error: '#FF3B30', // iOS red error
+    error: '#F44336',
   },
   light: {
-    background: '#F2F2F7', // iOS light grey background
-    gradient: ['#F2F2F7', '#FFFFFF'], // Light gradient
+    background: '#F8F8F8',
+    gradient: ['#F8F8F8', '#EEEEEE'],
     card: '#FFFFFF',
-    text: '#1D1D1F', // Dark text
-    subtext: '#8E8E93', // iOS grey subtext
-    primary: '#FF9500', // Orange to match BarBuddy logo
-    secondary: '#5856D6', // iOS purple secondary
-    accent: '#007AFF', // iOS blue accent
-    border: '#E5E5EA', // Light grey border
+    text: '#121212',
+    subtext: '#666666',
+    primary: '#FF6A00', // flame orange
+    secondary: '#FF944D',
+    accent: '#FF6A00',
+    border: '#EEEEEE',
     success: '#4CAF50',
-    error: '#FF3B30',
+    error: '#F44336',
   }
 };
 
