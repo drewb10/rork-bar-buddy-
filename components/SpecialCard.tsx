@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, Pressable, Image } from 'react-native';
+import { StyleSheet, View, Text, Pressable, Image, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Calendar, Clock } from 'lucide-react-native';
 import { Special, Venue } from '@/types/venue';
@@ -18,7 +18,24 @@ export default function SpecialCard({ special, venue, compact = false }: Special
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
 
+  // Animation values for premium interactions
+  const scaleAnim = new Animated.Value(1);
+
   const handlePress = () => {
+    // Subtle press animation
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.98,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      })
+    ]).start();
+    
     router.push(`/venue/${venue.id}?specialId=${special.id}`);
   };
 
@@ -30,101 +47,109 @@ export default function SpecialCard({ special, venue, compact = false }: Special
 
   if (compact) {
     return (
-      <Pressable 
-        style={[styles.compactCard, { backgroundColor: themeColors.card }]} 
-        onPress={handlePress}
-      >
-        <Image 
-          source={{ uri: special.imageUrl || venue.featuredImage }} 
-          style={styles.compactImage} 
-        />
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.7)']}
-          style={styles.compactGradient}
-        />
-        <View style={styles.compactContent}>
-          <Text style={[styles.compactTitle, { color: themeColors.text }]} numberOfLines={1}>
-            {special.title}
-          </Text>
-          <Text style={[styles.compactVenue, { color: themeColors.subtext }]} numberOfLines={1}>
-            {venue.name}
-          </Text>
-          <View style={styles.compactTimeRow}>
-            <Calendar size={12} color={themeColors.primary} />
-            <Text style={[styles.compactTimeText, { color: themeColors.subtext }]}>
-              {special.day}
+      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+        <Pressable 
+          style={[styles.compactCard, { backgroundColor: themeColors.card }]} 
+          onPress={handlePress}
+        >
+          <Image 
+            source={{ uri: special.imageUrl || venue.featuredImage }} 
+            style={styles.compactImage} 
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.7)']}
+            style={styles.compactGradient}
+          />
+          <View style={styles.compactContent}>
+            <Text style={[styles.compactTitle, { color: themeColors.text }]} numberOfLines={1}>
+              {special.title}
             </Text>
+            <Text style={[styles.compactVenue, { color: themeColors.subtext }]} numberOfLines={1}>
+              {venue.name}
+            </Text>
+            <View style={styles.compactTimeRow}>
+              <Calendar size={12} color={themeColors.primary} />
+              <Text style={[styles.compactTimeText, { color: themeColors.subtext }]}>
+                {special.day}
+              </Text>
+            </View>
           </View>
-        </View>
-      </Pressable>
+        </Pressable>
+      </Animated.View>
     );
   }
 
   return (
-    <Pressable 
-      style={[styles.card, { backgroundColor: themeColors.card }]} 
-      onPress={handlePress}
-    >
-      <View style={styles.imageContainer}>
-        <Image 
-          source={{ uri: special.imageUrl || venue.featuredImage }} 
-          style={styles.image} 
-        />
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.7)']}
-          style={styles.imageGradient}
-        />
-        <View 
-          style={[styles.specialType, { backgroundColor: themeColors.primary }]}
-        >
-          <Text style={styles.specialTypeText}>
-            {special.type.replace('-', ' ')}
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <Pressable 
+        style={[styles.card, { backgroundColor: themeColors.card }]} 
+        onPress={handlePress}
+      >
+        <View style={styles.imageContainer}>
+          <Image 
+            source={{ uri: special.imageUrl || venue.featuredImage }} 
+            style={styles.image} 
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.7)']}
+            style={styles.imageGradient}
+          />
+          <View 
+            style={[styles.specialType, { backgroundColor: themeColors.primary }]}
+          >
+            <Text style={styles.specialTypeText}>
+              {special.type.replace('-', ' ')}
+            </Text>
+          </View>
+        </View>
+        
+        <View style={styles.content}>
+          <Text style={[styles.title, { color: themeColors.text }]}>
+            {special.title}
           </Text>
-        </View>
-      </View>
-      
-      <View style={styles.content}>
-        <Text style={[styles.title, { color: themeColors.text }]}>
-          {special.title}
-        </Text>
-        <Text style={[styles.venue, { color: themeColors.primary }]}>
-          {venue.name}
-        </Text>
-        
-        <Text style={[styles.description, { color: themeColors.subtext }]} numberOfLines={2}>
-          {special.description}
-        </Text>
-        
-        <View style={styles.footer}>
-          <View style={styles.timeRow}>
-            <Calendar size={14} color={themeColors.subtext} />
-            <Text style={[styles.timeText, { color: themeColors.subtext }]}>
-              {special.day}
-            </Text>
-          </View>
+          <Text style={[styles.venue, { color: themeColors.primary }]}>
+            {venue.name}
+          </Text>
           
-          <View style={styles.timeRow}>
-            <Clock size={14} color={themeColors.subtext} />
-            <Text style={[styles.timeText, { color: themeColors.subtext }]}>
-              {formatTime(special.startTime)} - {formatTime(special.endTime)}
-            </Text>
+          <Text style={[styles.description, { color: themeColors.subtext }]} numberOfLines={2}>
+            {special.description}
+          </Text>
+          
+          <View style={styles.footer}>
+            <View style={styles.timeRow}>
+              <Calendar size={14} color={themeColors.subtext} />
+              <Text style={[styles.timeText, { color: themeColors.subtext }]}>
+                {special.day}
+              </Text>
+            </View>
+            
+            <View style={styles.timeRow}>
+              <Clock size={14} color={themeColors.subtext} />
+              <Text style={[styles.timeText, { color: themeColors.subtext }]}>
+                {formatTime(special.startTime)} - {formatTime(special.endTime)}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
+    borderRadius: 20, // Increased for premium feel
     marginBottom: 16,
     overflow: 'hidden',
+    // Enhanced shadow system
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
+    // Subtle border
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   imageContainer: {
     position: 'relative',
@@ -144,56 +169,74 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     right: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 12, // More padding
+    paddingVertical: 6,
+    borderRadius: 16, // More rounded
+    // Enhanced shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   specialTypeText: {
     color: 'white',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700', // Bolder
     textTransform: 'capitalize',
+    letterSpacing: 0.3,
   },
   content: {
-    padding: 16,
+    padding: 20, // Increased padding
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontWeight: '700', // Bolder
+    marginBottom: 6, // More spacing
+    letterSpacing: 0.3,
   },
   venue: {
     fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 8,
+    fontWeight: '600', // Bolder
+    marginBottom: 12, // More spacing
+    letterSpacing: 0.2,
   },
   description: {
     fontSize: 14,
     lineHeight: 20,
-    marginBottom: 12,
+    marginBottom: 16, // More spacing
+    fontWeight: '500', // Slightly bolder
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 16, // Add gap for better spacing
   },
   timeRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   timeText: {
     marginLeft: 6,
     fontSize: 13,
+    fontWeight: '500', // Slightly bolder
   },
   compactCard: {
     width: 160,
-    borderRadius: 12,
+    borderRadius: 16, // More rounded
     overflow: 'hidden',
     marginRight: 12,
+    // Enhanced shadow
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   compactImage: {
     width: '100%',
@@ -207,16 +250,18 @@ const styles = StyleSheet.create({
     height: 100,
   },
   compactContent: {
-    padding: 10,
+    padding: 12, // More padding
   },
   compactTitle: {
     fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 2,
+    fontWeight: '700', // Bolder
+    marginBottom: 4, // More spacing
+    letterSpacing: 0.2,
   },
   compactVenue: {
     fontSize: 12,
-    marginBottom: 6,
+    marginBottom: 8, // More spacing
+    fontWeight: '500', // Slightly bolder
   },
   compactTimeRow: {
     flexDirection: 'row',
@@ -225,5 +270,6 @@ const styles = StyleSheet.create({
   compactTimeText: {
     marginLeft: 4,
     fontSize: 11,
+    fontWeight: '500', // Slightly bolder
   },
 });

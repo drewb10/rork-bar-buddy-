@@ -1,4 +1,4 @@
-// Color palette for the app
+// Color palette for the app with enhanced shadows and glassmorphism
 export const colors = {
   dark: {
     background: '#000000', // Pure black background
@@ -12,6 +12,19 @@ export const colors = {
     border: '#222222', // Darker border
     success: '#4CAF50',
     error: '#F44336',
+    // Enhanced shadow system for depth
+    shadow: {
+      light: 'rgba(255, 255, 255, 0.05)',
+      medium: 'rgba(0, 0, 0, 0.3)',
+      heavy: 'rgba(0, 0, 0, 0.6)',
+      colored: 'rgba(255, 106, 0, 0.2)',
+    },
+    // Glassmorphism colors
+    glass: {
+      background: 'rgba(17, 17, 17, 0.8)',
+      border: 'rgba(255, 255, 255, 0.1)',
+      overlay: 'rgba(0, 0, 0, 0.4)',
+    }
   },
   light: {
     background: '#F8F8F8',
@@ -25,6 +38,19 @@ export const colors = {
     border: '#EEEEEE',
     success: '#4CAF50',
     error: '#F44336',
+    // Enhanced shadow system for depth
+    shadow: {
+      light: 'rgba(0, 0, 0, 0.05)',
+      medium: 'rgba(0, 0, 0, 0.15)',
+      heavy: 'rgba(0, 0, 0, 0.25)',
+      colored: 'rgba(255, 106, 0, 0.15)',
+    },
+    // Glassmorphism colors
+    glass: {
+      background: 'rgba(255, 255, 255, 0.9)',
+      border: 'rgba(0, 0, 0, 0.1)',
+      overlay: 'rgba(0, 0, 0, 0.3)',
+    }
   }
 };
 

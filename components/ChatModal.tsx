@@ -11,6 +11,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { X, Send, TriangleAlert as AlertTriangle, MessageCircle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
@@ -44,6 +45,9 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
   const [isSending, setIsSending] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Animation values for premium interactions
+  const scaleAnim = new Animated.Value(1);
 
   useEffect(() => {
     if (visible && venue?.id && !isInitialized) {
@@ -120,6 +124,20 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
       return;
     }
 
+    // Subtle press animation
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      })
+    ]).start();
+
     setIsSending(true);
     const messageToSend = trimmedContent;
     setInputText('');
@@ -167,8 +185,11 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
         style={[styles.container, { backgroundColor: themeColors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
+        {/* Header with glassmorphism effect */}
+        <View style={[styles.header, { 
+          backgroundColor: themeColors.glass.background, 
+          borderBottomColor: themeColors.glass.border 
+        }]}>
           <View style={styles.headerContent}>
             <View style={styles.headerTitleRow}>
               <MessageCircle size={20} color={themeColors.primary} />
@@ -241,7 +262,10 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
                     {formatTime(message.timestamp)}
                   </Text>
                 </View>
-                <View style={[styles.messageBubble, { backgroundColor: themeColors.card }]}>
+                <View style={[styles.messageBubble, { 
+                  backgroundColor: themeColors.card,
+                  borderColor: themeColors.glass.border,
+                }]}>
                   <Text style={[styles.messageText, { color: themeColors.text }]}>
                     {message.content}
                   </Text>
@@ -251,8 +275,11 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
           )}
         </ScrollView>
 
-        {/* Input */}
-        <View style={[styles.inputContainer, { backgroundColor: themeColors.card, borderTopColor: themeColors.border }]}>
+        {/* Input with enhanced styling */}
+        <View style={[styles.inputContainer, { 
+          backgroundColor: themeColors.glass.background, 
+          borderTopColor: themeColors.glass.border 
+        }]}>
           <TextInput
             style={[
               styles.textInput,
@@ -272,26 +299,28 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
             onSubmitEditing={handleSendMessage}
             editable={!isSending}
           />
-          <Pressable
-            style={[
-              styles.sendButton,
-              {
-                backgroundColor: (inputText && inputText.trim() && !isSending) ? themeColors.primary : themeColors.border,
-                opacity: (inputText && inputText.trim() && !isSending) ? 1 : 0.5,
-              }
-            ]}
-            onPress={handleSendMessage}
-            disabled={!inputText || !inputText.trim() || isSending}
-          >
-            {isSending ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Send size={20} color="white" />
-            )}
-          </Pressable>
+          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <Pressable
+              style={[
+                styles.sendButton,
+                {
+                  backgroundColor: (inputText && inputText.trim() && !isSending) ? themeColors.primary : themeColors.border,
+                  opacity: (inputText && inputText.trim() && !isSending) ? 1 : 0.5,
+                }
+              ]}
+              onPress={handleSendMessage}
+              disabled={!inputText || !inputText.trim() || isSending}
+            >
+              {isSending ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Send size={20} color="white" />
+              )}
+            </Pressable>
+          </Animated.View>
         </View>
 
-        {/* Terms Modal */}
+        {/* Terms Modal with glassmorphism */}
         <Modal
           animationType="fade"
           transparent={true}
@@ -299,20 +328,34 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
           onRequestClose={() => setShowTerms(false)}
         >
           <View style={styles.termsOverlay}>
-            <View style={[styles.termsContent, { backgroundColor: themeColors.card }]}>
+            <View style={[styles.termsContent, { 
+              backgroundColor: themeColors.glass.background,
+              borderColor: themeColors.glass.border,
+            }]}>
               <Text style={[styles.termsTitle, { color: themeColors.text }]}>
                 Chat Guidelines
               </Text>
               <ScrollView style={styles.termsScroll}>
                 <Text style={[styles.termsText, { color: themeColors.text }]}>
-                  Welcome to BarBuddy anonymous chat! To keep our community safe and fun:{"\n\n"}
-                  • Be respectful and kind to others{"\n"}
-                  • No inappropriate language or content{"\n"}
-                  • No sharing of personal information{"\n"}
-                  • No harassment or bullying{"\n"}
-                  • No spam or promotional content{"\n"}
-                  • Keep conversations venue-related and fun{"\n\n"}
-                  Messages are automatically filtered for inappropriate content. Violations may result in temporary chat restrictions.{"\n\n"}
+                  Welcome to BarBuddy anonymous chat! To keep our community safe and fun:{"
+
+"}
+                  • Be respectful and kind to others{"
+"}
+                  • No inappropriate language or content{"
+"}
+                  • No sharing of personal information{"
+"}
+                  • No harassment or bullying{"
+"}
+                  • No spam or promotional content{"
+"}
+                  • Keep conversations venue-related and fun{"
+
+"}
+                  Messages are automatically filtered for inappropriate content. Violations may result in temporary chat restrictions.{"
+
+"}
                   Have fun and stay safe! 🍻
                 </Text>
               </ScrollView>
@@ -340,8 +383,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 16,
+    paddingBottom: 20, // More padding
     borderBottomWidth: 1,
+    // Enhanced shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
   },
   headerContent: {
     flex: 1,
@@ -352,23 +401,25 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700', // Bolder
     marginLeft: 8,
+    letterSpacing: 0.3,
   },
   headerSubtitle: {
     fontSize: 14,
-    marginTop: 2,
+    marginTop: 4, // More spacing
+    fontWeight: '500', // Slightly bolder
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   termsButton: {
-    padding: 8,
+    padding: 12, // More padding
     marginRight: 8,
   },
   closeButton: {
-    padding: 8,
+    padding: 12, // More padding
   },
   errorBanner: {
     flexDirection: 'row',
@@ -381,12 +432,13 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     flex: 1,
+    fontWeight: '500', // Slightly bolder
   },
   messagesContainer: {
     flex: 1,
   },
   messagesContent: {
-    padding: 16,
+    padding: 20, // More padding
     flexGrow: 1,
   },
   loadingState: {
@@ -398,6 +450,7 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     marginTop: 12,
+    fontWeight: '500', // Slightly bolder
   },
   emptyState: {
     flex: 1,
@@ -407,80 +460,114 @@ const styles = StyleSheet.create({
   },
   emptyStateTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700', // Bolder
     marginTop: 16,
     marginBottom: 8,
+    letterSpacing: 0.3,
   },
   emptyStateText: {
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 22,
+    fontWeight: '500', // Slightly bolder
   },
   messageContainer: {
-    marginBottom: 16,
+    marginBottom: 20, // More spacing
   },
   messageHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 6, // More spacing
   },
   messageSender: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700', // Bolder
+    letterSpacing: 0.2,
   },
   messageTime: {
     fontSize: 12,
+    fontWeight: '500', // Slightly bolder
   },
   messageBubble: {
-    padding: 12,
-    borderRadius: 12,
-    borderTopLeftRadius: 4,
+    padding: 16, // More padding
+    borderRadius: 16, // More rounded
+    borderTopLeftRadius: 6,
+    borderWidth: 0.5,
+    // Enhanced shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   messageText: {
     fontSize: 16,
     lineHeight: 20,
+    fontWeight: '500', // Slightly bolder
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    padding: 16,
+    padding: 20, // More padding
     borderTopWidth: 1,
+    // Enhanced shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
   },
   textInput: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginRight: 12,
+    borderWidth: 1.5, // Thicker border
+    borderRadius: 24, // More rounded
+    paddingHorizontal: 20, // More padding
+    paddingVertical: 14,
+    marginRight: 16, // More spacing
     maxHeight: 100,
     fontSize: 16,
+    fontWeight: '500', // Slightly bolder
   },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48, // Larger
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    // Enhanced shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
+  // Enhanced terms modal with glassmorphism
   termsOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)', // Darker overlay
   },
   termsContent: {
     width: '90%',
     maxHeight: '80%',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 24, // More rounded
+    padding: 28, // More padding
+    borderWidth: 1,
+    // Enhanced shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 20,
   },
   termsTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 16,
+    fontWeight: '800', // Bolder
+    marginBottom: 20, // More spacing
     textAlign: 'center',
+    letterSpacing: 0.3,
   },
   termsScroll: {
     maxHeight: 300,
@@ -488,17 +575,25 @@ const styles = StyleSheet.create({
   termsText: {
     fontSize: 16,
     lineHeight: 24,
+    fontWeight: '500', // Slightly bolder
   },
   termsCloseButton: {
-    marginTop: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 25,
+    marginTop: 24, // More spacing
+    paddingVertical: 16, // More padding
+    paddingHorizontal: 28,
+    borderRadius: 28, // More rounded
     alignItems: 'center',
+    // Enhanced shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   termsCloseText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700', // Bolder
+    letterSpacing: 0.3,
   },
 });

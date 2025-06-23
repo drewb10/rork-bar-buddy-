@@ -88,7 +88,7 @@ export default function HomeScreen() {
           filterType="venue"
         />
 
-        {/* Daily Tracker Button - Updated to black background */}
+        {/* Daily Tracker Button - PRESERVED AS-IS (DO NOT MODIFY) */}
         <View style={styles.dailyTrackerContainer}>
           <Pressable
             style={[styles.dailyTrackerButton, { backgroundColor: '#000000', borderColor: themeColors.border, borderWidth: 1 }]}
@@ -142,6 +142,7 @@ export default function HomeScreen() {
         <View style={styles.footer} />
       </ScrollView>
 
+      {/* Daily Tracker Modal - PRESERVED AS-IS (DO NOT MODIFY) */}
       <DailyTracker 
         visible={showDailyTracker}
         onClose={() => setShowDailyTracker(false)}
@@ -167,7 +168,7 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    paddingBottom: 10,
+    paddingBottom: 12, // Slightly more spacing
     paddingHorizontal: 16,
   },
   dailyTrackerContainer: {
@@ -212,7 +213,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   section: {
-    marginTop: 24,
+    marginTop: 28, // Increased spacing for better hierarchy
   },
   horizontalList: {
     paddingHorizontal: 16,
@@ -222,6 +223,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   footer: {
-    height: 24,
+    height: 32, // More spacing at bottom
   },
 });

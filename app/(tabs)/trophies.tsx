@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal, Animated } from 'react-native';
 import { Trophy, Award, Star, Target, Users, Calendar, X, MapPin, TrendingUp, ChartBar as BarChart3 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
@@ -17,6 +17,9 @@ export default function TrophiesScreen() {
   const rankInfo = getRank();
   const totalCompletedAchievements = completedAchievements.length;
   const averageDrunkScale = getAverageDrunkScale();
+
+  // Animation values for premium interactions
+  const scaleAnim = new Animated.Value(1);
   
   const categories = [
     { key: 'bars', title: 'Bar Hopping', icon: Trophy, color: '#FF6A00' },
@@ -36,6 +39,24 @@ export default function TrophiesScreen() {
     } catch {
       return 'Recently';
     }
+  };
+
+  const handleAchievementPress = (achievement: CompletedAchievement) => {
+    // Subtle press animation
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.98,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      })
+    ]).start();
+    
+    setSelectedAchievement(achievement);
   };
 
   return (
@@ -78,10 +99,10 @@ export default function TrophiesScreen() {
           </View>
         </View>
 
-        {/* Redesigned Current Rank */}
+        {/* Redesigned Current Rank with enhanced styling */}
         <View style={[styles.rankCard, { backgroundColor: themeColors.card }]}>
           <View style={styles.rankContent}>
-            <Award size={36} color={rankInfo.color} />
+            <Award size={40} color={rankInfo.color} />
             <View style={styles.rankInfo}>
               <Text style={[styles.rankTitle, { color: rankInfo.color }]}>
                 {rankInfo.title}
@@ -96,7 +117,7 @@ export default function TrophiesScreen() {
           </View>
         </View>
 
-        {/* Total Tracker Stats - Moved from Achievements page */}
+        {/* Total Tracker Stats - Enhanced styling */}
         <View style={[styles.trackerStatsCard, { backgroundColor: themeColors.card }]}>
           <View style={styles.trackerStatsHeader}>
             <BarChart3 size={20} color={themeColors.primary} />
@@ -180,7 +201,7 @@ export default function TrophiesScreen() {
           </View>
         </View>
 
-        {/* Lifetime Stats Section */}
+        {/* Lifetime Stats Section with enhanced styling */}
         <View style={[styles.lifetimeStatsCard, { backgroundColor: themeColors.card }]}>
           <Text style={[styles.lifetimeStatsTitle, { color: themeColors.text }]}>
             Lifetime Stats
@@ -250,38 +271,39 @@ export default function TrophiesScreen() {
                 
                 <View style={styles.achievementGrid}>
                   {categoryCompletedAchievements.map((achievement) => (
-                    <Pressable
-                      key={achievement.id}
-                      style={[
-                        styles.achievementCard,
-                        { 
-                          backgroundColor: themeColors.card,
-                          borderColor: category.color,
-                          borderWidth: 2,
-                        }
-                      ]}
-                      onPress={() => setSelectedAchievement(achievement)}
-                    >
-                      <Text style={styles.achievementIcon}>
-                        {achievement.icon}
-                      </Text>
-                      <Text 
-                        style={[styles.achievementTitle, { color: themeColors.text }]}
-                        numberOfLines={2}
+                    <Animated.View key={achievement.id} style={{ transform: [{ scale: scaleAnim }] }}>
+                      <Pressable
+                        style={[
+                          styles.achievementCard,
+                          { 
+                            backgroundColor: themeColors.card,
+                            borderColor: category.color,
+                            borderWidth: 2,
+                          }
+                        ]}
+                        onPress={() => handleAchievementPress(achievement)}
                       >
-                        {achievement.title}
-                      </Text>
-                      
-                      {achievement.level > 1 && (
-                        <View style={[styles.levelBadge, { backgroundColor: category.color }]}>
-                          <Text style={styles.levelBadgeText}>Lv.{achievement.level}</Text>
+                        <Text style={styles.achievementIcon}>
+                          {achievement.icon}
+                        </Text>
+                        <Text 
+                          style={[styles.achievementTitle, { color: themeColors.text }]}
+                          numberOfLines={2}
+                        >
+                          {achievement.title}
+                        </Text>
+                        
+                        {achievement.level > 1 && (
+                          <View style={[styles.levelBadge, { backgroundColor: category.color }]}>
+                            <Text style={styles.levelBadgeText}>Lv.{achievement.level}</Text>
+                          </View>
+                        )}
+                        
+                        <View style={[styles.completedBadge, { backgroundColor: category.color }]}>
+                          <Trophy size={12} color="white" />
                         </View>
-                      )}
-                      
-                      <View style={[styles.completedBadge, { backgroundColor: category.color }]}>
-                        <Trophy size={12} color="white" />
-                      </View>
-                    </Pressable>
+                      </Pressable>
+                    </Animated.View>
                   ))}
                 </View>
               </View>
@@ -292,6 +314,7 @@ export default function TrophiesScreen() {
         <View style={styles.footer} />
       </ScrollView>
 
+      {/* Enhanced Modal with glassmorphism */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -299,7 +322,10 @@ export default function TrophiesScreen() {
         onRequestClose={() => setSelectedAchievement(null)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
+          <View style={[styles.modalContent, { 
+            backgroundColor: themeColors.glass.background,
+            borderColor: themeColors.glass.border,
+          }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: themeColors.text }]}>
                 Trophy Details
@@ -367,24 +393,28 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingBottom: 20,
+    paddingBottom: 24, // More spacing
     paddingHorizontal: 16,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700', // Bolder
     marginTop: 8,
+    letterSpacing: 0.3,
   },
   statsCard: {
     marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 16,
-    padding: 20,
+    marginBottom: 20, // More spacing
+    borderRadius: 20, // More rounded
+    padding: 24, // More padding
+    // Enhanced shadow
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   statsRow: {
     flexDirection: 'row',
@@ -394,68 +424,80 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginTop: 8,
-    marginBottom: 4,
+    fontSize: 28, // Larger for impact
+    fontWeight: '800', // Bolder
+    marginTop: 12, // More spacing
+    marginBottom: 6,
+    letterSpacing: 0.5,
   },
   statLabel: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600', // Bolder
+    letterSpacing: 0.3,
   },
   rankCard: {
     marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 16,
-    padding: 20,
+    marginBottom: 20, // More spacing
+    borderRadius: 20, // More rounded
+    padding: 24, // More padding
+    // Enhanced shadow
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   rankContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   rankInfo: {
-    marginLeft: 16,
+    marginLeft: 20, // More spacing
     flex: 1,
   },
   rankTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 4,
+    fontSize: 22, // Larger
+    fontWeight: '800', // Bolder
+    marginBottom: 6, // More spacing
+    letterSpacing: 0.5,
   },
   rankSubtitle: {
     fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 4,
+    fontWeight: '600', // Bolder
+    marginBottom: 6, // More spacing
+    letterSpacing: 0.3,
   },
   rankXP: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600', // Bolder
+    letterSpacing: 0.2,
   },
   trackerStatsCard: {
     marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 16,
-    padding: 20,
+    marginBottom: 20, // More spacing
+    borderRadius: 20, // More rounded
+    padding: 24, // More padding
+    // Enhanced shadow
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   trackerStatsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20, // More spacing
   },
   trackerStatsTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700', // Bolder
     marginLeft: 8,
+    letterSpacing: 0.3,
   },
   trackerStatsGrid: {
     flexDirection: 'row',
@@ -465,34 +507,40 @@ const styles = StyleSheet.create({
   trackerStatItem: {
     width: '48%',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20, // More spacing
   },
   trackerStatNumber: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 4,
+    fontSize: 24, // Larger
+    fontWeight: '800', // Bolder
+    marginBottom: 6, // More spacing
+    letterSpacing: 0.5,
   },
   trackerStatLabel: {
     fontSize: 12,
     textAlign: 'center',
-    fontWeight: '500',
+    fontWeight: '600', // Bolder
+    letterSpacing: 0.2,
   },
   lifetimeStatsCard: {
     marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 16,
-    padding: 20,
+    marginBottom: 20, // More spacing
+    borderRadius: 20, // More rounded
+    padding: 24, // More padding
+    // Enhanced shadow
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   lifetimeStatsTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
+    fontWeight: '700', // Bolder
+    marginBottom: 20, // More spacing
     textAlign: 'center',
+    letterSpacing: 0.3,
   },
   lifetimeStatsGrid: {
     flexDirection: 'row',
@@ -502,46 +550,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   lifetimeStatNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginTop: 8,
-    marginBottom: 4,
+    fontSize: 28, // Larger
+    fontWeight: '800', // Bolder
+    marginTop: 12, // More spacing
+    marginBottom: 6,
+    letterSpacing: 0.5,
   },
   lifetimeStatLabel: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600', // Bolder
+    letterSpacing: 0.2,
   },
   emptyState: {
     marginHorizontal: 16,
-    borderRadius: 16,
-    padding: 32,
+    borderRadius: 20, // More rounded
+    padding: 40, // More padding
     alignItems: 'center',
+    // Enhanced shadow
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   emptyStateTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '700', // Bolder
     marginTop: 16,
     marginBottom: 8,
+    letterSpacing: 0.3,
   },
   emptyStateText: {
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 22,
+    fontWeight: '500', // Slightly bolder
   },
   categorySection: {
     marginHorizontal: 16,
-    marginBottom: 24,
+    marginBottom: 28, // More spacing
   },
   categoryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16, // More spacing
   },
   categoryTitleRow: {
     flexDirection: 'row',
@@ -549,142 +604,179 @@ const styles = StyleSheet.create({
   },
   categoryTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700', // Bolder
     marginLeft: 8,
+    letterSpacing: 0.3,
   },
   categoryProgress: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600', // Bolder
+    letterSpacing: 0.2,
   },
   achievementGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 16, // More spacing
   },
   achievementCard: {
-    width: '48%',
-    borderRadius: 12,
-    padding: 16,
+    width: '47%', // Slightly smaller for better spacing
+    borderRadius: 16, // More rounded
+    padding: 20, // More padding
     alignItems: 'center',
     position: 'relative',
+    // Enhanced shadow
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   achievementIcon: {
-    fontSize: 32,
-    marginBottom: 8,
+    fontSize: 36, // Larger
+    marginBottom: 12, // More spacing
   },
   achievementTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700', // Bolder
     textAlign: 'center',
     marginBottom: 8,
     minHeight: 36,
+    letterSpacing: 0.2,
   },
   levelBadge: {
     position: 'absolute',
     top: 8,
     left: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingHorizontal: 8, // More padding
+    paddingVertical: 4,
+    borderRadius: 10, // More rounded
   },
   levelBadgeText: {
     color: 'white',
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '700', // Bolder
+    letterSpacing: 0.2,
   },
   completedBadge: {
     position: 'absolute',
     top: 8,
     right: 8,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 24, // Larger
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    // Enhanced shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   footer: {
-    height: 24,
+    height: 32, // More spacing
   },
+  // Enhanced modal styles with glassmorphism
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)', // Darker overlay
   },
   modalContent: {
     width: '90%',
     maxHeight: '80%',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 24, // More rounded
+    padding: 28, // More padding
+    borderWidth: 1,
+    // Enhanced shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 20,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24, // More spacing
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '800', // Bolder
+    letterSpacing: 0.3,
   },
   closeButton: {
-    padding: 4,
+    padding: 8, // More padding
   },
   modalBody: {
     alignItems: 'center',
   },
   modalIcon: {
-    fontSize: 48,
-    marginBottom: 16,
+    fontSize: 56, // Larger
+    marginBottom: 20, // More spacing
   },
   modalAchievementTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 12,
+    fontSize: 24, // Larger
+    fontWeight: '800', // Bolder
+    marginBottom: 16, // More spacing
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
   modalDescription: {
     fontSize: 16,
     lineHeight: 22,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 24, // More spacing
+    fontWeight: '500', // Slightly bolder
   },
   modalLevelBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    marginBottom: 16,
+    paddingHorizontal: 16, // More padding
+    paddingVertical: 8,
+    borderRadius: 16, // More rounded
+    marginBottom: 20, // More spacing
+    // Enhanced shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   modalLevelText: {
     color: 'white',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800', // Bolder
+    letterSpacing: 0.3,
   },
   completedInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20, // More spacing
   },
   completedDate: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600', // Bolder
     marginLeft: 8,
+    letterSpacing: 0.2,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 8,
+    paddingHorizontal: 20, // More padding
+    paddingVertical: 12,
+    borderRadius: 24, // More rounded
+    gap: 10, // More spacing
+    // Enhanced shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   statusText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700', // Bolder
+    letterSpacing: 0.3,
   },
 });
