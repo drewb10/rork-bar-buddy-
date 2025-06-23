@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable } from 'react-native';
-import { Award, CheckCircle, Circle, Trophy, Star } from 'lucide-react-native';
+import { Award, CircleCheck as CheckCircle, Circle, Trophy, Star } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAchievementStore, Achievement } from '@/stores/achievementStore';
