@@ -12,7 +12,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { X, Send, TriangleAlert as AlertTriangle, MessageCircle } from 'lucide-react-native';
+import { X, Send, AlertTriangle, MessageCircle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useChatStore } from '@/stores/chatStore';

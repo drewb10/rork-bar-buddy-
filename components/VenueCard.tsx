@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, Pressable, Image, Dimensions, Modal } from 'react-native';
+import { StyleSheet, View, Text, Pressable, Image, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MapPin, Clock, Star, Flame, Heart, TrendingUp, MessageCircle } from 'lucide-react-native';
 import { Venue } from '@/types/venue';

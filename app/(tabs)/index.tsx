@@ -11,10 +11,7 @@ import FilterBar from '@/components/FilterBar';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import TopPickCard from '@/components/TopPickCard';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
-import DailyTrackerModal from '@/components/DailyTrackerModal';
-import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
 import { TopPickItem } from '@/types/venue';
-import * as Haptics from 'expo-haptics';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -22,9 +19,7 @@ export default function HomeScreen() {
   const themeColors = colors[theme];
   const [venueFilters, setVenueFilters] = useState<string[]>([]);
   const [topPickVenues, setTopPickVenues] = useState<TopPickItem[]>([]);
-  const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
   const { interactions, resetInteractionsIfNeeded } = useVenueInteractionStore();
-  const { getDailyTotal, resetDailyStatsIfNeeded } = useDailyTrackerStore();
 
   useEffect(() => {
     const day = getCurrentDay();
@@ -54,7 +49,6 @@ export default function HomeScreen() {
     
     setTopPickVenues(validTopPicks);
     resetInteractionsIfNeeded();
-    resetDailyStatsIfNeeded();
   }, []);
 
   const filteredVenues = venueFilters.length > 0
@@ -67,15 +61,6 @@ export default function HomeScreen() {
     const bCount = interactions.find(i => i && i.venueId === b.id)?.count || 0;
     return bCount - aCount;
   });
-
-  const handleDailyTrackerPress = () => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    setDailyTrackerVisible(true);
-  };
-
-  const dailyTotal = getDailyTotal();
 
   return (
     <View style={[styles.container, { backgroundColor: '#000000' }]}>
@@ -119,19 +104,6 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Daily Tracker Icon */}
-        <View style={styles.dailyTrackerSection}>
-          <Pressable 
-            style={[styles.dailyTrackerButton, { backgroundColor: themeColors.card }]}
-            onPress={handleDailyTrackerPress}
-          >
-            <BarChart3 size={20} color={themeColors.primary} />
-            <Text style={[styles.dailyTrackerText, { color: themeColors.text }]}>
-              Daily Tracker
-            </Text>
-          </Pressable>
-        </View>
-
         <View style={styles.section}>
           <SectionHeader 
             title="Popular Venues" 
@@ -146,12 +118,6 @@ export default function HomeScreen() {
 
         <View style={styles.footer} />
       </ScrollView>
-
-      {/* Daily Tracker Modal */}
-      <DailyTrackerModal
-        visible={dailyTrackerVisible}
-        onClose={() => setDailyTrackerVisible(false)}
-      />
     </View>
   );
 }
@@ -185,28 +151,6 @@ const styles = StyleSheet.create({
   },
   venueList: {
     paddingHorizontal: 16,
-  },
-  dailyTrackerSection: {
-    marginTop: 24,
-    paddingHorizontal: 16,
-  },
-  dailyTrackerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  dailyTrackerText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
   },
   footer: {
     height: 24,
