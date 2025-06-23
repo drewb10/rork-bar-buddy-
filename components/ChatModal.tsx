@@ -11,14 +11,12 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
-  Animated,
 } from 'react-native';
 import { X, Send, TriangleAlert as AlertTriangle, MessageCircle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useChatStore } from '@/stores/chatStore';
 import { Venue } from '@/types/venue';
-import { BlurView } from 'expo-blur';
 
 interface ChatModalProps {
   visible: boolean;
@@ -45,24 +43,15 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
   const [showTerms, setShowTerms] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [scaleAnimation] = useState(new Animated.Value(0));
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     if (visible && venue?.id && !isInitialized) {
       initializeChat();
-      // Animate in
-      Animated.spring(scaleAnimation, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 100,
-        friction: 8,
-      }).start();
     } else if (!visible) {
       // Clean up when modal closes
       cleanup();
       setIsInitialized(false);
-      scaleAnimation.setValue(0);
     }
 
     return () => {
@@ -162,191 +151,145 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
     clearError();
     cleanup();
     setIsInitialized(false);
-    
-    // Animate out
-    Animated.spring(scaleAnimation, {
-      toValue: 0,
-      useNativeDriver: true,
-      tension: 100,
-      friction: 8,
-    }).start(() => {
-      onClose();
-    });
+    onClose();
   };
 
   if (!venue) return null;
 
   return (
     <Modal
-      animationType="fade"
-      transparent={true}
+      animationType="slide"
+      transparent={false}
       visible={visible}
       onRequestClose={handleClose}
     >
-      <View style={styles.modalOverlay}>
-        {Platform.OS !== 'web' ? (
-          <BlurView intensity={20} style={StyleSheet.absoluteFill} />
-        ) : (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: themeColors.overlay }]} />
-        )}
-        
-        <Animated.View 
-          style={[
-            styles.container, 
-            { 
-              backgroundColor: themeColors.cardElevated,
-              transform: [{ scale: scaleAnimation }]
-            }
-          ]}
-        >
-          <KeyboardAvoidingView 
-            style={styles.keyboardView}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          >
-            {/* Header */}
-            <View style={[styles.header, { backgroundColor: themeColors.cardElevated, borderBottomColor: themeColors.border }]}>
-              <View style={styles.headerContent}>
-                <View style={styles.headerTitleRow}>
-                  <View style={[styles.iconContainer, { backgroundColor: themeColors.primary + '20' }]}>
-                    <MessageCircle size={20} color={themeColors.primary} />
-                  </View>
-                  <Text style={[styles.headerTitle, { color: themeColors.text }]}>
-                    {venue.name}
-                  </Text>
-                </View>
-                <Text style={[styles.headerSubtitle, { color: themeColors.subtext }]}>
-                  Anonymous Chat • {messages.length} messages
-                </Text>
-              </View>
-              <View style={styles.headerActions}>
-                <Pressable
-                  style={[styles.termsButton, { backgroundColor: themeColors.border }]}
-                  onPress={() => setShowTerms(true)}
-                >
-                  <AlertTriangle size={16} color={themeColors.subtext} />
-                </Pressable>
-                <Pressable
-                  style={[styles.closeButton, { backgroundColor: themeColors.border }]}
-                  onPress={handleClose}
-                >
-                  <X size={20} color={themeColors.text} />
-                </Pressable>
-              </View>
+      <KeyboardAvoidingView 
+        style={[styles.container, { backgroundColor: themeColors.background }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
+          <View style={styles.headerContent}>
+            <View style={styles.headerTitleRow}>
+              <MessageCircle size={20} color={themeColors.primary} />
+              <Text style={[styles.headerTitle, { color: themeColors.text }]}>
+                {venue.name}
+              </Text>
             </View>
-
-            {/* Error Banner - Only show critical errors */}
-            {error && error.includes('Failed to send') && (
-              <View style={[styles.errorBanner, { backgroundColor: '#FF4444' }]}>
-                <Text style={styles.errorText}>{error}</Text>
-                <Pressable onPress={clearError}>
-                  <X size={16} color="white" />
-                </Pressable>
-              </View>
-            )}
-
-            {/* Messages */}
-            <ScrollView
-              ref={scrollViewRef}
-              style={styles.messagesContainer}
-              contentContainerStyle={styles.messagesContent}
-              showsVerticalScrollIndicator={false}
+            <Text style={[styles.headerSubtitle, { color: themeColors.subtext }]}>
+              Anonymous Chat • {messages.length} messages
+            </Text>
+          </View>
+          <View style={styles.headerActions}>
+            <Pressable
+              style={styles.termsButton}
+              onPress={() => setShowTerms(true)}
             >
-              {isLoading && messages.length === 0 ? (
-                <View style={styles.loadingState}>
-                  <ActivityIndicator size="large" color={themeColors.primary} />
-                  <Text style={[styles.loadingText, { color: themeColors.subtext }]}>
-                    Loading chat...
-                  </Text>
-                </View>
-              ) : messages.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <MessageCircle size={48} color={themeColors.subtext} />
-                  <Text style={[styles.emptyStateTitle, { color: themeColors.text }]}>
-                    Start the conversation!
-                  </Text>
-                  <Text style={[styles.emptyStateText, { color: themeColors.subtext }]}>
-                    Be the first to say hello in {venue.name} chat
-                  </Text>
-                </View>
-              ) : (
-                messages.map((message) => (
-                  <View key={message.id} style={styles.messageContainer}>
-                    <View style={styles.messageHeader}>
-                      <Text style={[styles.messageSender, { color: themeColors.primary }]}>
-                        {message.anonymous_name}
-                      </Text>
-                      <Text style={[styles.messageTime, { color: themeColors.subtext }]}>
-                        {formatTime(message.timestamp)}
-                      </Text>
-                    </View>
-                    <View style={[styles.messageBubble, { 
-                      backgroundColor: themeColors.card,
-                      shadowColor: themeColors.shadowSecondary,
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.1,
-                      shadowRadius: 4,
-                      elevation: 2,
-                    }]}>
-                      <Text style={[styles.messageText, { color: themeColors.text }]}>
-                        {message.content}
-                      </Text>
-                    </View>
-                  </View>
-                ))
-              )}
-            </ScrollView>
+              <AlertTriangle size={20} color={themeColors.subtext} />
+            </Pressable>
+            <Pressable
+              style={styles.closeButton}
+              onPress={handleClose}
+            >
+              <X size={24} color={themeColors.text} />
+            </Pressable>
+          </View>
+        </View>
 
-            {/* Input */}
-            <View style={[styles.inputContainer, { backgroundColor: themeColors.cardElevated, borderTopColor: themeColors.border }]}>
-              <TextInput
-                style={[
-                  styles.textInput,
-                  {
-                    backgroundColor: themeColors.background,
-                    color: themeColors.text,
-                    borderColor: themeColors.border,
-                    shadowColor: themeColors.shadowSecondary,
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 4,
-                    elevation: 2,
-                  }
-                ]}
-                placeholder="Type a message..."
-                placeholderTextColor={themeColors.subtext}
-                value={inputText}
-                onChangeText={setInputText}
-                multiline
-                maxLength={500}
-                returnKeyType="send"
-                onSubmitEditing={handleSendMessage}
-                editable={!isSending}
-              />
-              <Pressable
-                style={[
-                  styles.sendButton,
-                  {
-                    backgroundColor: (inputText && inputText.trim() && !isSending) ? themeColors.primary : themeColors.border,
-                    opacity: (inputText && inputText.trim() && !isSending) ? 1 : 0.5,
-                    shadowColor: (inputText && inputText.trim() && !isSending) ? themeColors.shadowPrimary : 'transparent',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.3,
-                    shadowRadius: 8,
-                    elevation: (inputText && inputText.trim() && !isSending) ? 4 : 0,
-                  }
-                ]}
-                onPress={handleSendMessage}
-                disabled={!inputText || !inputText.trim() || isSending}
-              >
-                {isSending ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <Send size={20} color="white" />
-                )}
-              </Pressable>
+        {/* Error Banner - Only show critical errors */}
+        {error && error.includes('Failed to send') && (
+          <View style={[styles.errorBanner, { backgroundColor: '#FF4444' }]}>
+            <Text style={styles.errorText}>{error}</Text>
+            <Pressable onPress={clearError}>
+              <X size={16} color="white" />
+            </Pressable>
+          </View>
+        )}
+
+        {/* Messages */}
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.messagesContainer}
+          contentContainerStyle={styles.messagesContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {isLoading && messages.length === 0 ? (
+            <View style={styles.loadingState}>
+              <ActivityIndicator size="large" color={themeColors.primary} />
+              <Text style={[styles.loadingText, { color: themeColors.subtext }]}>
+                Loading chat...
+              </Text>
             </View>
-          </KeyboardAvoidingView>
-        </Animated.View>
+          ) : messages.length === 0 ? (
+            <View style={styles.emptyState}>
+              <MessageCircle size={48} color={themeColors.subtext} />
+              <Text style={[styles.emptyStateTitle, { color: themeColors.text }]}>
+                Start the conversation!
+              </Text>
+              <Text style={[styles.emptyStateText, { color: themeColors.subtext }]}>
+                Be the first to say hello in {venue.name} chat
+              </Text>
+            </View>
+          ) : (
+            messages.map((message) => (
+              <View key={message.id} style={styles.messageContainer}>
+                <View style={styles.messageHeader}>
+                  <Text style={[styles.messageSender, { color: themeColors.primary }]}>
+                    {message.anonymous_name}
+                  </Text>
+                  <Text style={[styles.messageTime, { color: themeColors.subtext }]}>
+                    {formatTime(message.timestamp)}
+                  </Text>
+                </View>
+                <View style={[styles.messageBubble, { backgroundColor: themeColors.card }]}>
+                  <Text style={[styles.messageText, { color: themeColors.text }]}>
+                    {message.content}
+                  </Text>
+                </View>
+              </View>
+            ))
+          )}
+        </ScrollView>
+
+        {/* Input */}
+        <View style={[styles.inputContainer, { backgroundColor: themeColors.card, borderTopColor: themeColors.border }]}>
+          <TextInput
+            style={[
+              styles.textInput,
+              {
+                backgroundColor: themeColors.background,
+                color: themeColors.text,
+                borderColor: themeColors.border,
+              }
+            ]}
+            placeholder="Type a message..."
+            placeholderTextColor={themeColors.subtext}
+            value={inputText}
+            onChangeText={setInputText}
+            multiline
+            maxLength={500}
+            returnKeyType="send"
+            onSubmitEditing={handleSendMessage}
+            editable={!isSending}
+          />
+          <Pressable
+            style={[
+              styles.sendButton,
+              {
+                backgroundColor: (inputText && inputText.trim() && !isSending) ? themeColors.primary : themeColors.border,
+                opacity: (inputText && inputText.trim() && !isSending) ? 1 : 0.5,
+              }
+            ]}
+            onPress={handleSendMessage}
+            disabled={!inputText || !inputText.trim() || isSending}
+          >
+            {isSending ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Send size={20} color="white" />
+            )}
+          </Pressable>
+        </View>
 
         {/* Terms Modal */}
         <Modal
@@ -356,14 +299,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
           onRequestClose={() => setShowTerms(false)}
         >
           <View style={styles.termsOverlay}>
-            <View style={[styles.termsContent, { 
-              backgroundColor: themeColors.cardElevated,
-              shadowColor: themeColors.shadowSecondary,
-              shadowOffset: { width: 0, height: 12 },
-              shadowOpacity: 0.3,
-              shadowRadius: 20,
-              elevation: 12,
-            }]}>
+            <View style={[styles.termsContent, { backgroundColor: themeColors.card }]}>
               <Text style={[styles.termsTitle, { color: themeColors.text }]}>
                 Chat Guidelines
               </Text>
@@ -381,14 +317,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
                 </Text>
               </ScrollView>
               <Pressable
-                style={[styles.termsCloseButton, { 
-                  backgroundColor: themeColors.primary,
-                  shadowColor: themeColors.shadowPrimary,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                  elevation: 4,
-                }]}
+                style={[styles.termsCloseButton, { backgroundColor: themeColors.primary }]}
                 onPress={() => setShowTerms(false)}
               >
                 <Text style={styles.termsCloseText}>Got it!</Text>
@@ -396,34 +325,22 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
             </View>
           </View>
         </Modal>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
   container: {
-    width: '100%',
-    maxWidth: 400,
-    height: '90%',
-    borderRadius: 24,
-    overflow: 'hidden',
-  },
-  keyboardView: {
     flex: 1,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 16,
     borderBottomWidth: 1,
   },
   headerContent: {
@@ -433,17 +350,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
+    marginLeft: 8,
   },
   headerSubtitle: {
     fontSize: 14,
@@ -452,21 +362,13 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   termsButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 8,
+    marginRight: 8,
   },
   closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 8,
   },
   errorBanner: {
     flexDirection: 'row',
@@ -484,7 +386,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messagesContent: {
-    padding: 20,
+    padding: 16,
     flexGrow: 1,
   },
   loadingState: {
@@ -531,9 +433,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   messageBubble: {
-    padding: 16,
-    borderRadius: 16,
-    borderTopLeftRadius: 6,
+    padding: 12,
+    borderRadius: 12,
+    borderTopLeftRadius: 4,
   },
   messageText: {
     fontSize: 16,
@@ -542,23 +444,23 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    padding: 20,
+    padding: 16,
     borderTopWidth: 1,
   },
   textInput: {
     flex: 1,
     borderWidth: 1,
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     marginRight: 12,
     maxHeight: 100,
     fontSize: 16,
   },
   sendButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -566,13 +468,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
   termsContent: {
     width: '90%',
     maxHeight: '80%',
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 16,
+    padding: 20,
   },
   termsTitle: {
     fontSize: 20,
@@ -589,9 +491,9 @@ const styles = StyleSheet.create({
   },
   termsCloseButton: {
     marginTop: 20,
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 28,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
     alignItems: 'center',
   },
   termsCloseText: {

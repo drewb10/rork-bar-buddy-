@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable, Animated } from 'react-native';
+import React from 'react';
+import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
 import { VenueType, SpecialType } from '@/types/venue';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
@@ -13,7 +13,6 @@ interface FilterBarProps {
 export default function FilterBar({ filters, onFilterChange, filterType }: FilterBarProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const [pressAnimations] = useState<Record<string, Animated.Value>>({});
 
   const venueTypes: { value: VenueType; label: string }[] = [
     { value: 'sports-bar', label: 'Sports Bar' },
@@ -35,33 +34,6 @@ export default function FilterBar({ filters, onFilterChange, filterType }: Filte
 
   const options = filterType === 'venue' ? venueTypes : specialTypes;
 
-  const getOrCreateAnimation = (value: string) => {
-    if (!pressAnimations[value]) {
-      pressAnimations[value] = new Animated.Value(1);
-    }
-    return pressAnimations[value];
-  };
-
-  const handlePressIn = (value: string) => {
-    const animation = getOrCreateAnimation(value);
-    Animated.spring(animation, {
-      toValue: 0.95,
-      useNativeDriver: true,
-      tension: 300,
-      friction: 10,
-    }).start();
-  };
-
-  const handlePressOut = (value: string) => {
-    const animation = getOrCreateAnimation(value);
-    Animated.spring(animation, {
-      toValue: 1,
-      useNativeDriver: true,
-      tension: 300,
-      friction: 10,
-    }).start();
-  };
-
   const toggleFilter = (value: string) => {
     if (filters.includes(value)) {
       onFilterChange(filters.filter(f => f !== value));
@@ -73,50 +45,34 @@ export default function FilterBar({ filters, onFilterChange, filterType }: Filte
   return (
     <View style={styles.container}>
       <View style={styles.centeredContent}>
-        {options.map((option) => {
-          const isSelected = filters.includes(option.value);
-          const animation = getOrCreateAnimation(option.value);
-          
-          return (
-            <Animated.View 
-              key={option.value}
-              style={{ transform: [{ scale: animation }] }}
+        {options.map((option) => (
+          <Pressable
+            key={option.value}
+            style={[
+              styles.filterButton,
+              {
+                backgroundColor: filters.includes(option.value)
+                  ? themeColors.primary
+                  : 'transparent',
+                borderColor: themeColors.primary,
+              },
+            ]}
+            onPress={() => toggleFilter(option.value)}
+          >
+            <Text
+              style={[
+                styles.filterText,
+                {
+                  color: filters.includes(option.value)
+                    ? 'white'
+                    : themeColors.primary,
+                },
+              ]}
             >
-              <Pressable
-                style={[
-                  styles.filterButton,
-                  {
-                    backgroundColor: isSelected
-                      ? themeColors.primary
-                      : 'transparent',
-                    borderColor: themeColors.primary,
-                    shadowColor: isSelected ? themeColors.shadowPrimary : 'transparent',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: isSelected ? 0.3 : 0,
-                    shadowRadius: 8,
-                    elevation: isSelected ? 4 : 0,
-                  },
-                ]}
-                onPress={() => toggleFilter(option.value)}
-                onPressIn={() => handlePressIn(option.value)}
-                onPressOut={() => handlePressOut(option.value)}
-              >
-                <Text
-                  style={[
-                    styles.filterText,
-                    {
-                      color: isSelected
-                        ? 'white'
-                        : themeColors.primary,
-                    },
-                  ]}
-                >
-                  {option.label}
-                </Text>
-              </Pressable>
-            </Animated.View>
-          );
-        })}
+              {option.label}
+            </Text>
+          </Pressable>
+        ))}
       </View>
     </View>
   );
@@ -135,9 +91,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   filterButton: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 1,
   },
   filterText: {

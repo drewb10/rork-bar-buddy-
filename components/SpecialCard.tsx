@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, Pressable, Image, Animated } from 'react-native';
+import React from 'react';
+import { StyleSheet, View, Text, Pressable, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Calendar, Clock } from 'lucide-react-native';
 import { Special, Venue } from '@/types/venue';
@@ -17,25 +17,6 @@ export default function SpecialCard({ special, venue, compact = false }: Special
   const router = useRouter();
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const [pressAnimation] = useState(new Animated.Value(1));
-
-  const handlePressIn = () => {
-    Animated.spring(pressAnimation, {
-      toValue: 0.96,
-      useNativeDriver: true,
-      tension: 300,
-      friction: 10,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(pressAnimation, {
-      toValue: 1,
-      useNativeDriver: true,
-      tension: 300,
-      friction: 10,
-    }).start();
-  };
 
   const handlePress = () => {
     router.push(`/venue/${venue.id}?specialId=${special.id}`);
@@ -49,125 +30,101 @@ export default function SpecialCard({ special, venue, compact = false }: Special
 
   if (compact) {
     return (
-      <Animated.View style={{ transform: [{ scale: pressAnimation }] }}>
-        <Pressable 
-          style={[styles.compactCard, { 
-            backgroundColor: themeColors.cardElevated,
-            shadowColor: themeColors.shadowSecondary,
-            shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: 0.15,
-            shadowRadius: 12,
-            elevation: 6,
-          }]} 
-          onPress={handlePress}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-        >
-          <Image 
-            source={{ uri: special.imageUrl || venue.featuredImage }} 
-            style={styles.compactImage} 
-          />
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.7)']}
-            style={styles.compactGradient}
-          />
-          <View style={styles.compactContent}>
-            <Text style={[styles.compactTitle, { color: themeColors.text }]} numberOfLines={1}>
-              {special.title}
+      <Pressable 
+        style={[styles.compactCard, { backgroundColor: themeColors.card }]} 
+        onPress={handlePress}
+      >
+        <Image 
+          source={{ uri: special.imageUrl || venue.featuredImage }} 
+          style={styles.compactImage} 
+        />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.7)']}
+          style={styles.compactGradient}
+        />
+        <View style={styles.compactContent}>
+          <Text style={[styles.compactTitle, { color: themeColors.text }]} numberOfLines={1}>
+            {special.title}
+          </Text>
+          <Text style={[styles.compactVenue, { color: themeColors.subtext }]} numberOfLines={1}>
+            {venue.name}
+          </Text>
+          <View style={styles.compactTimeRow}>
+            <Calendar size={12} color={themeColors.primary} />
+            <Text style={[styles.compactTimeText, { color: themeColors.subtext }]}>
+              {special.day}
             </Text>
-            <Text style={[styles.compactVenue, { color: themeColors.subtext }]} numberOfLines={1}>
-              {venue.name}
-            </Text>
-            <View style={styles.compactTimeRow}>
-              <Calendar size={12} color={themeColors.primary} />
-              <Text style={[styles.compactTimeText, { color: themeColors.subtext }]}>
-                {special.day}
-              </Text>
-            </View>
           </View>
-        </Pressable>
-      </Animated.View>
+        </View>
+      </Pressable>
     );
   }
 
   return (
-    <Animated.View style={{ transform: [{ scale: pressAnimation }] }}>
-      <Pressable 
-        style={[styles.card, { 
-          backgroundColor: themeColors.cardElevated,
-          shadowColor: themeColors.shadowSecondary,
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.2,
-          shadowRadius: 16,
-          elevation: 8,
-        }]} 
-        onPress={handlePress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-      >
-        <View style={styles.imageContainer}>
-          <Image 
-            source={{ uri: special.imageUrl || venue.featuredImage }} 
-            style={styles.image} 
-          />
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.7)']}
-            style={styles.imageGradient}
-          />
-          <View 
-            style={[styles.specialType, { 
-              backgroundColor: themeColors.primary,
-              shadowColor: themeColors.shadowPrimary,
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 8,
-              elevation: 4,
-            }]}
-          >
-            <Text style={styles.specialTypeText}>
-              {special.type.replace('-', ' ')}
+    <Pressable 
+      style={[styles.card, { backgroundColor: themeColors.card }]} 
+      onPress={handlePress}
+    >
+      <View style={styles.imageContainer}>
+        <Image 
+          source={{ uri: special.imageUrl || venue.featuredImage }} 
+          style={styles.image} 
+        />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.7)']}
+          style={styles.imageGradient}
+        />
+        <View 
+          style={[styles.specialType, { backgroundColor: themeColors.primary }]}
+        >
+          <Text style={styles.specialTypeText}>
+            {special.type.replace('-', ' ')}
+          </Text>
+        </View>
+      </View>
+      
+      <View style={styles.content}>
+        <Text style={[styles.title, { color: themeColors.text }]}>
+          {special.title}
+        </Text>
+        <Text style={[styles.venue, { color: themeColors.primary }]}>
+          {venue.name}
+        </Text>
+        
+        <Text style={[styles.description, { color: themeColors.subtext }]} numberOfLines={2}>
+          {special.description}
+        </Text>
+        
+        <View style={styles.footer}>
+          <View style={styles.timeRow}>
+            <Calendar size={14} color={themeColors.subtext} />
+            <Text style={[styles.timeText, { color: themeColors.subtext }]}>
+              {special.day}
+            </Text>
+          </View>
+          
+          <View style={styles.timeRow}>
+            <Clock size={14} color={themeColors.subtext} />
+            <Text style={[styles.timeText, { color: themeColors.subtext }]}>
+              {formatTime(special.startTime)} - {formatTime(special.endTime)}
             </Text>
           </View>
         </View>
-        
-        <View style={styles.content}>
-          <Text style={[styles.title, { color: themeColors.text }]}>
-            {special.title}
-          </Text>
-          <Text style={[styles.venue, { color: themeColors.primary }]}>
-            {venue.name}
-          </Text>
-          
-          <Text style={[styles.description, { color: themeColors.subtext }]} numberOfLines={2}>
-            {special.description}
-          </Text>
-          
-          <View style={styles.footer}>
-            <View style={styles.timeRow}>
-              <Calendar size={14} color={themeColors.subtext} />
-              <Text style={[styles.timeText, { color: themeColors.subtext }]}>
-                {special.day}
-              </Text>
-            </View>
-            
-            <View style={styles.timeRow}>
-              <Clock size={14} color={themeColors.subtext} />
-              <Text style={[styles.timeText, { color: themeColors.subtext }]}>
-                {formatTime(special.startTime)} - {formatTime(special.endTime)}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </Pressable>
-    </Animated.View>
+      </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 20,
+    borderRadius: 16,
     marginBottom: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   imageContainer: {
     position: 'relative',
@@ -185,11 +142,11 @@ const styles = StyleSheet.create({
   },
   specialType: {
     position: 'absolute',
-    top: 16,
-    right: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    top: 12,
+    right: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   specialTypeText: {
     color: 'white',
@@ -198,7 +155,7 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   content: {
-    padding: 20,
+    padding: 16,
   },
   title: {
     fontSize: 18,
@@ -229,9 +186,14 @@ const styles = StyleSheet.create({
   },
   compactCard: {
     width: 160,
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
     marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   compactImage: {
     width: '100%',
@@ -245,7 +207,7 @@ const styles = StyleSheet.create({
     height: 100,
   },
   compactContent: {
-    padding: 12,
+    padding: 10,
   },
   compactTitle: {
     fontSize: 14,

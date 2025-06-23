@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, Text, Pressable, Modal, ScrollView, Animated } from 'react-native';
+import { StyleSheet, View, Text, Pressable, Modal, ScrollView } from 'react-native';
 import { Plus, Minus, ChartBar as BarChart3, X } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { Platform } from 'react-native';
 import Slider from '@react-native-community/slider';
-import { BlurView } from 'expo-blur';
 
 interface DrinkItem {
   id: string;
@@ -40,7 +39,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [drunkScale, setDrunkScale] = useState(1);
   const [hasSubmittedDrunkScale, setHasSubmittedDrunkScale] = useState(false);
-  const [scaleAnimation] = useState(new Animated.Value(0));
 
   // Initialize counts when modal becomes visible
   useEffect(() => {
@@ -58,14 +56,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       });
       setIsInitialized(true);
       setHasSubmittedDrunkScale(!canSubmitDrunkScale());
-      
-      // Animate in
-      Animated.spring(scaleAnimation, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 100,
-        friction: 8,
-      }).start();
     }
   }, [visible, isInitialized, getDailyStats, canSubmitDrunkScale]);
 
@@ -73,7 +63,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   useEffect(() => {
     if (!visible) {
       setIsInitialized(false);
-      scaleAnimation.setValue(0);
     }
   }, [visible]);
 
@@ -131,15 +120,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       dartGamesWon: counts.dartGamesWon,
     });
 
-    // Animate out
-    Animated.spring(scaleAnimation, {
-      toValue: 0,
-      useNativeDriver: true,
-      tension: 100,
-      friction: 8,
-    }).start(() => {
-      onClose();
-    });
+    onClose();
   };
 
   const getDrunkScaleLabel = (value: number) => {
@@ -153,199 +134,127 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   return (
     <Modal
       visible={visible}
-      animationType="fade"
-      presentationStyle="overFullScreen"
-      transparent={true}
+      animationType="slide"
+      presentationStyle="pageSheet"
       onRequestClose={handleClose}
     >
-      <View style={styles.modalOverlay}>
-        {Platform.OS !== 'web' ? (
-          <BlurView intensity={20} style={StyleSheet.absoluteFill} />
-        ) : (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: themeColors.overlay }]} />
-        )}
-        
-        <Animated.View 
-          style={[
-            styles.container, 
-            { 
-              backgroundColor: themeColors.cardElevated,
-              transform: [{ scale: scaleAnimation }]
-            }
-          ]}
-        >
-          <View style={[styles.header, { borderBottomColor: themeColors.border }]}>
-            <View style={styles.headerLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: themeColors.primary + '20' }]}>
-                <BarChart3 size={24} color={themeColors.primary} />
-              </View>
-              <Text style={[styles.title, { color: themeColors.text }]}>
-                Daily Tracker
-              </Text>
-            </View>
-            <Pressable onPress={handleClose} style={[styles.closeButton, { backgroundColor: themeColors.border }]}>
-              <X size={20} color={themeColors.text} />
-            </Pressable>
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+        <View style={[styles.header, { borderBottomColor: themeColors.border }]}>
+          <View style={styles.headerLeft}>
+            <BarChart3 size={24} color={themeColors.primary} />
+            <Text style={[styles.title, { color: themeColors.text }]}>
+              Daily Tracker
+            </Text>
           </View>
-          
-          <ScrollView 
-            style={styles.scrollView}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-          >
-            {/* Drunk Scale Slider */}
-            <View style={[styles.drunkScaleContainer, { 
-              backgroundColor: themeColors.cardElevated,
-              shadowColor: themeColors.shadowSecondary,
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.3,
-              shadowRadius: 16,
-              elevation: 8,
-            }]}>
-              <Text style={[styles.drunkScaleTitle, { color: themeColors.text }]}>
-                How drunk are you? 🍻
-              </Text>
-              <Text style={[styles.drunkScaleValue, { color: themeColors.primary }]}>
-                {drunkScale}/10 - {getDrunkScaleLabel(drunkScale)}
-              </Text>
-              <Slider
-                style={styles.slider}
-                minimumValue={1}
-                maximumValue={10}
-                step={1}
-                value={drunkScale}
-                onValueChange={setDrunkScale}
-                minimumTrackTintColor={themeColors.primary}
-                maximumTrackTintColor={themeColors.border}
-                thumbTintColor={themeColors.primary}
-                disabled={hasSubmittedDrunkScale}
-              />
-              {!hasSubmittedDrunkScale ? (
-                <Pressable
-                  style={[styles.submitButton, { 
-                    backgroundColor: themeColors.primary,
-                    shadowColor: themeColors.shadowPrimary,
-                    shadowOffset: { width: 0, height: 6 },
-                    shadowOpacity: 0.4,
-                    shadowRadius: 12,
-                    elevation: 6,
-                  }]}
-                  onPress={handleDrunkScaleSubmit}
-                >
-                  <Text style={styles.submitButtonText}>Submit Level</Text>
-                </Pressable>
-              ) : (
-                <Text style={[styles.submittedText, { color: themeColors.subtext }]}>
-                  ✓ Level submitted for today
-                </Text>
-              )}
-            </View>
+          <Pressable onPress={handleClose} style={styles.closeButton}>
+            <X size={24} color={themeColors.text} />
+          </Pressable>
+        </View>
+        
+        <ScrollView 
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
+            Track your activities tonight
+          </Text>
 
-            <View style={styles.itemsGrid}>
-              {drinkItems.map((item) => (
-                <View key={item.id} style={[styles.itemCard, { 
-                  backgroundColor: themeColors.cardElevated,
-                  shadowColor: themeColors.shadowSecondary,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 12,
-                  elevation: 4,
-                }]}>
-                  <Text style={styles.itemIcon}>{item.icon}</Text>
-                  <Text style={[styles.itemName, { color: themeColors.text }]}>
-                    {item.name}
+          {/* Drunk Scale Slider */}
+          <View style={[styles.drunkScaleContainer, { backgroundColor: themeColors.card }]}>
+            <Text style={[styles.drunkScaleTitle, { color: themeColors.text }]}>
+              How drunk are you? 🍻
+            </Text>
+            <Text style={[styles.drunkScaleValue, { color: themeColors.primary }]}>
+              {drunkScale}/10 - {getDrunkScaleLabel(drunkScale)}
+            </Text>
+            <Slider
+              style={styles.slider}
+              minimumValue={1}
+              maximumValue={10}
+              step={1}
+              value={drunkScale}
+              onValueChange={setDrunkScale}
+              minimumTrackTintColor={themeColors.primary}
+              maximumTrackTintColor={themeColors.border}
+              thumbTintColor={themeColors.primary}
+              disabled={hasSubmittedDrunkScale}
+            />
+            {!hasSubmittedDrunkScale ? (
+              <Pressable
+                style={[styles.submitButton, { backgroundColor: themeColors.primary }]}
+                onPress={handleDrunkScaleSubmit}
+              >
+                <Text style={styles.submitButtonText}>Submit Level</Text>
+              </Pressable>
+            ) : (
+              <Text style={[styles.submittedText, { color: themeColors.subtext }]}>
+                ✓ Level submitted for today
+              </Text>
+            )}
+          </View>
+
+          <View style={styles.itemsGrid}>
+            {drinkItems.map((item) => (
+              <View key={item.id} style={[styles.itemCard, { backgroundColor: themeColors.card }]}>
+                <Text style={styles.itemIcon}>{item.icon}</Text>
+                <Text style={[styles.itemName, { color: themeColors.text }]}>
+                  {item.name}
+                </Text>
+                
+                <View style={styles.counter}>
+                  <Pressable
+                    style={[styles.counterButton, { backgroundColor: themeColors.border }]}
+                    onPress={() => updateCount(item.id, -1)}
+                    disabled={counts[item.id] === 0}
+                  >
+                    <Minus size={16} color={counts[item.id] === 0 ? themeColors.subtext : themeColors.text} />
+                  </Pressable>
+                  
+                  <Text style={[styles.count, { color: themeColors.text }]}>
+                    {counts[item.id] || 0}
                   </Text>
                   
-                  <View style={styles.counter}>
-                    <Pressable
-                      style={[styles.counterButton, { 
-                        backgroundColor: counts[item.id] === 0 ? themeColors.border : themeColors.background,
-                        borderColor: themeColors.border,
-                        borderWidth: 1,
-                        shadowColor: themeColors.shadowSecondary,
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.1,
-                        shadowRadius: 4,
-                        elevation: 2,
-                      }]}
-                      onPress={() => updateCount(item.id, -1)}
-                      disabled={counts[item.id] === 0}
-                    >
-                      <Minus size={16} color={counts[item.id] === 0 ? themeColors.subtext : themeColors.text} />
-                    </Pressable>
-                    
-                    <Text style={[styles.count, { color: themeColors.text }]}>
-                      {counts[item.id] || 0}
-                    </Text>
-                    
-                    <Pressable
-                      style={[styles.counterButton, { 
-                        backgroundColor: themeColors.primary,
-                        shadowColor: themeColors.shadowPrimary,
-                        shadowOffset: { width: 0, height: 4 },
-                        shadowOpacity: 0.4,
-                        shadowRadius: 8,
-                        elevation: 4,
-                      }]}
-                      onPress={() => updateCount(item.id, 1)}
-                    >
-                      <Plus size={16} color="white" />
-                    </Pressable>
-                  </View>
+                  <Pressable
+                    style={[styles.counterButton, { backgroundColor: themeColors.primary }]}
+                    onPress={() => updateCount(item.id, 1)}
+                  >
+                    <Plus size={16} color="white" />
+                  </Pressable>
                 </View>
-              ))}
-            </View>
-          </ScrollView>
-        </Animated.View>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
   container: {
-    width: '100%',
-    maxWidth: 400,
-    maxHeight: '90%',
-    borderRadius: 24,
-    overflow: 'hidden',
+    flex: 1,
+    paddingTop: 60,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
   title: {
     fontSize: 24,
     fontWeight: '700',
+    marginLeft: 12,
   },
   closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 8,
   },
   scrollView: {
     flex: 1,
@@ -354,11 +263,20 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
   },
+  subtitle: {
+    fontSize: 16,
+    marginBottom: 24,
+  },
   drunkScaleContainer: {
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 24,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   drunkScaleTitle: {
     fontSize: 18,
@@ -376,9 +294,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   submitButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
     alignItems: 'center',
   },
   submitButtonText: {
@@ -398,9 +316,14 @@ const styles = StyleSheet.create({
   },
   itemCard: {
     width: '47%',
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 16,
+    padding: 16,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   itemIcon: {
     fontSize: 32,
@@ -418,9 +341,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   counterButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },

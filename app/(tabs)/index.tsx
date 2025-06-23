@@ -88,14 +88,14 @@ export default function HomeScreen() {
           filterType="venue"
         />
 
-        {/* Daily Tracker Button - Reverted to simpler design */}
+        {/* Daily Tracker Button - Updated to black background */}
         <View style={styles.dailyTrackerContainer}>
           <Pressable
-            style={[styles.dailyTrackerButton, { backgroundColor: themeColors.card }]}
+            style={[styles.dailyTrackerButton, { backgroundColor: '#000000', borderColor: themeColors.border, borderWidth: 1 }]}
             onPress={() => setShowDailyTracker(true)}
           >
-            <BarChart3 size={24} color={themeColors.text} />
-            <Text style={[styles.dailyTrackerText, { color: themeColors.text }]}>Daily Tracker</Text>
+            <BarChart3 size={24} color="white" />
+            <Text style={styles.dailyTrackerText}>Daily Tracker</Text>
             {totalDailyActivities > 0 && (
               <View style={[styles.badge, { backgroundColor: themeColors.accent }]}>
                 <Text style={styles.badgeText}>{totalDailyActivities}</Text>
@@ -179,12 +179,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
     position: 'relative',
   },
   dailyTrackerText: {
+    color: 'white',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,

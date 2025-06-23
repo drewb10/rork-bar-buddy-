@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, Pressable, Image, Modal, Animated } from 'react-native';
+import { StyleSheet, View, Text, Pressable, Image, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MapPin, Clock, Star, Flame, Heart, TrendingUp, MessageCircle } from 'lucide-react-native';
 import { Venue } from '@/types/venue';
@@ -28,26 +28,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const [chatModalVisible, setChatModalVisible] = useState(false);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
-  const [pressAnimation] = useState(new Animated.Value(1));
   const canInteractWithVenue = canInteract(venue.id);
-
-  const handlePressIn = () => {
-    Animated.spring(pressAnimation, {
-      toValue: 0.96,
-      useNativeDriver: true,
-      tension: 300,
-      friction: 10,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(pressAnimation, {
-      toValue: 1,
-      useNativeDriver: true,
-      tension: 300,
-      friction: 10,
-    }).start();
-  };
 
   const handlePress = () => {
     if (isInteracting) return; // Prevent multiple clicks
@@ -138,354 +119,261 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
 
   if (compact) {
     return (
-      <Animated.View style={{ transform: [{ scale: pressAnimation }] }}>
-        <Pressable 
-          style={[styles.compactCard, { 
-            backgroundColor: themeColors.cardElevated,
-            shadowColor: themeColors.shadowSecondary,
-            shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: 0.15,
-            shadowRadius: 12,
-            elevation: 6,
-          }]} 
-          onPress={handlePress}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          disabled={isInteracting}
-        >
-          <Image source={{ uri: venue.featuredImage }} style={styles.compactImage} />
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.7)']}
-            style={styles.compactGradient}
-          />
-          
-          {/* Like count badge for compact cards */}
-          {likeCount > 0 && (
-            <View style={[styles.compactLikeBadge, { 
-              backgroundColor: themeColors.primary,
-              shadowColor: themeColors.shadowPrimary,
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 8,
-              elevation: 4,
-            }]}>
-              <Heart size={10} color="white" fill="white" />
-              <Text style={styles.compactLikeText}>{likeCount}</Text>
-            </View>
-          )}
-
-          {/* Chat Button for Compact Cards */}
-          <Pressable 
-            style={[styles.compactChatButton, { 
-              backgroundColor: themeColors.primary,
-              shadowColor: themeColors.shadowPrimary,
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 8,
-              elevation: 4,
-            }]}
-            onPress={handleChatPress}
-          >
-            <MessageCircle size={14} color="white" />
-          </Pressable>
-          
-          <View style={styles.compactContent}>
-            <Text style={[styles.compactName, { color: themeColors.text }]} numberOfLines={1}>
-              {venue.name}
-            </Text>
-            <View style={styles.compactDetails}>
-              <Text style={[styles.compactType, { color: themeColors.subtext }]} numberOfLines={1}>
-                {venue.types.map(t => t.replace('-', ' ')).join(' • ')}
-              </Text>
-              <View style={styles.ratingContainer}>
-                <Star size={12} color={themeColors.accent} fill={themeColors.accent} />
-                <Text style={[styles.rating, { color: themeColors.subtext }]}>{venue.rating}</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Chat Modal for Compact Cards */}
-          <ChatModal
-            visible={chatModalVisible}
-            onClose={() => setChatModalVisible(false)}
-            venue={venue}
-          />
-        </Pressable>
-      </Animated.View>
-    );
-  }
-
-  return (
-    <Animated.View style={{ transform: [{ scale: pressAnimation }] }}>
       <Pressable 
-        style={[styles.card, { 
-          backgroundColor: themeColors.cardElevated,
-          shadowColor: themeColors.shadowSecondary,
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.2,
-          shadowRadius: 16,
-          elevation: 8,
-        }]} 
+        style={[styles.compactCard, { backgroundColor: themeColors.card }]} 
         onPress={handlePress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
         disabled={isInteracting}
       >
-        <Image source={{ uri: venue.featuredImage }} style={styles.image} />
+        <Image source={{ uri: venue.featuredImage }} style={styles.compactImage} />
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.7)']}
-          style={styles.imageGradient}
+          style={styles.compactGradient}
         />
         
-        {/* Flame Button - No counter, just functional */}
-        <Pressable 
-          style={[
-            styles.interactionButton, 
-            { 
-              backgroundColor: interactionCount > 0 ? themeColors.primary : themeColors.cardElevated,
-              opacity: canInteractWithVenue && !isInteracting ? 1 : 0.5,
-              shadowColor: interactionCount > 0 ? themeColors.shadowPrimary : themeColors.shadowSecondary,
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 8,
-              elevation: 4,
-            }
-          ]}
-          onPress={handleInteraction}
-          disabled={!canInteractWithVenue || isInteracting}
-        >
-          <Flame 
-            size={18} 
-            color={interactionCount > 0 ? 'white' : themeColors.primary} 
-          />
-        </Pressable>
+        {/* Like count badge for compact cards */}
+        {likeCount > 0 && (
+          <View style={[styles.compactLikeBadge, { backgroundColor: themeColors.primary }]}>
+            <Heart size={10} color="white" fill="white" />
+            <Text style={styles.compactLikeText}>{likeCount}</Text>
+          </View>
+        )}
 
-        {/* Chat Button - New prominent position */}
+        {/* Chat Button for Compact Cards */}
         <Pressable 
-          style={[styles.chatButton, { 
-            backgroundColor: themeColors.primary,
-            shadowColor: themeColors.shadowPrimary,
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
-            elevation: 4,
-          }]}
+          style={[styles.compactChatButton, { backgroundColor: themeColors.primary }]}
           onPress={handleChatPress}
         >
-          <MessageCircle size={18} color="white" />
+          <MessageCircle size={14} color="white" />
         </Pressable>
-
-        {/* Like count badge with enhanced styling */}
-        {likeCount > 0 && (
-          <View style={[styles.likeBadge, { 
-            backgroundColor: themeColors.primary,
-            shadowColor: themeColors.shadowPrimary,
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
-            elevation: 4,
-          }]}>
-            <Heart size={14} color="white" fill="white" />
-            <Text style={styles.likeText}>{likeCount}</Text>
-          </View>
-        )}
-
-        {/* Analytics indicator for venues with data */}
-        {likeCount > 5 && (
-          <View style={[styles.analyticsIndicator, { backgroundColor: themeColors.primary + '20' }]}>
-            <TrendingUp size={12} color={themeColors.primary} />
-          </View>
-        )}
         
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <Text style={[styles.name, { color: themeColors.text }]}>{venue.name}</Text>
+        <View style={styles.compactContent}>
+          <Text style={[styles.compactName, { color: themeColors.text }]} numberOfLines={1}>
+            {venue.name}
+          </Text>
+          <View style={styles.compactDetails}>
+            <Text style={[styles.compactType, { color: themeColors.subtext }]} numberOfLines={1}>
+              {venue.types.map(t => t.replace('-', ' ')).join(' • ')}
+            </Text>
             <View style={styles.ratingContainer}>
-              <Star size={16} color={themeColors.accent} fill={themeColors.accent} />
-              <Text style={[styles.rating, { color: themeColors.text }]}>{venue.rating}</Text>
+              <Star size={12} color={themeColors.accent} fill={themeColors.accent} />
+              <Text style={[styles.rating, { color: themeColors.subtext }]}>{venue.rating}</Text>
             </View>
           </View>
-          
-          <View style={styles.typeContainer}>
-            {venue.types.map((type, index) => (
-              <View 
-                key={index} 
-                style={[styles.typeTag, { 
-                  backgroundColor: themeColors.primary + '20',
-                  shadowColor: themeColors.shadowPrimary,
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 2,
-                }]}
-              >
-                <Text style={[styles.typeText, { color: themeColors.primary }]}>
-                  {type.replace('-', ' ')}
-                </Text>
-              </View>
-            ))}
-            <Text style={[styles.price, { color: themeColors.subtext }]}>
-              {renderPriceLevel()}
-            </Text>
-          </View>
-
-          {/* Enhanced Hot Time Badge with likes info */}
-          {popularTime && (
-            <View style={[styles.hotTimeBadge, { 
-              backgroundColor: themeColors.primary + '20',
-              shadowColor: themeColors.shadowPrimary,
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 6,
-              elevation: 2,
-            }]}>
-              <Flame size={14} color={themeColors.primary} />
-              <Text style={[styles.hotTimeText, { color: themeColors.primary }]}>
-                Hot Time: {popularTime.includes('/') 
-                  ? popularTime.split('/').map(time => formatTimeSlot(time)).join('/')
-                  : formatTimeSlot(popularTime)
-                }
-              </Text>
-              {likeCount > 0 && (
-                <View style={styles.hotTimeLikes}>
-                  <Heart size={10} color={themeColors.primary} fill={themeColors.primary} />
-                  <Text style={[styles.hotTimeLikesText, { color: themeColors.primary }]}>
-                    {likeCount}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-          
-          {todaySpecials.length > 0 && (
-            <View style={[styles.specialsContainer, { 
-              backgroundColor: 'rgba(255,106,0,0.1)',
-              shadowColor: themeColors.shadowPrimary,
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 2,
-            }]}>
-              <Text style={[styles.specialsTitle, { color: themeColors.primary }]}>
-                Today's Specials:
-              </Text>
-              {todaySpecials.map((special, index) => (
-                <Text key={index} style={[styles.specialText, { color: themeColors.text }]}>
-                  • {special.title}: {special.description}
-                </Text>
-              ))}
-            </View>
-          )}
-          
-          <View style={styles.infoRow}>
-            <MapPin size={16} color={themeColors.subtext} />
-            <Text style={[styles.infoText, { color: themeColors.subtext }]} numberOfLines={1}>
-              {venue.address.split(',')[0]}
-            </Text>
-          </View>
-          
-          {venue.openHours.find(h => h.day === getCurrentDay() && !h.closed) && (
-            <View style={styles.infoRow}>
-              <Clock size={16} color={themeColors.subtext} />
-              <Text style={[styles.infoText, { color: themeColors.subtext }]}>
-                {formatOpenHours(venue.openHours.find(h => h.day === getCurrentDay()))}
-              </Text>
-            </View>
-          )}
         </View>
 
-        {/* RSVP Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={rsvpModalVisible}
-          onRequestClose={handleRsvpCancel}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { 
-              backgroundColor: themeColors.cardElevated,
-              shadowColor: themeColors.shadowSecondary,
-              shadowOffset: { width: 0, height: 12 },
-              shadowOpacity: 0.3,
-              shadowRadius: 20,
-              elevation: 12,
-            }]}>
-              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-                What time are you heading to {venue.name}?
-              </Text>
-              
-              <View style={styles.timeSlotContainer}>
-                {timeSlots.map((time, index) => (
-                  <Pressable
-                    key={index}
-                    style={[
-                      styles.timeSlot,
-                      { 
-                        backgroundColor: selectedTime === time 
-                          ? themeColors.primary 
-                          : 'transparent',
-                        borderColor: themeColors.primary,
-                        shadowColor: selectedTime === time ? themeColors.shadowPrimary : 'transparent',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.2,
-                        shadowRadius: 4,
-                        elevation: selectedTime === time ? 2 : 0,
-                      }
-                    ]}
-                    onPress={() => setSelectedTime(time)}
-                  >
-                    <Text 
-                      style={[
-                        styles.timeSlotText, 
-                        { color: selectedTime === time ? 'white' : themeColors.primary }
-                      ]}
-                    >
-                      {formatTimeSlot(time)}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-              
-              <View style={styles.modalActions}>
-                <Pressable 
-                  style={[styles.modalButton, styles.cancelButton]} 
-                  onPress={handleRsvpCancel}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </Pressable>
-                
-                <Pressable 
-                  style={[
-                    styles.modalButton, 
-                    styles.submitButton, 
-                    { 
-                      backgroundColor: selectedTime ? themeColors.primary : themeColors.card,
-                      opacity: selectedTime ? 1 : 0.5,
-                      shadowColor: selectedTime ? themeColors.shadowPrimary : 'transparent',
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.3,
-                      shadowRadius: 8,
-                      elevation: selectedTime ? 4 : 0,
-                    }
-                  ]} 
-                  onPress={handleRsvpSubmit}
-                  disabled={!selectedTime}
-                >
-                  <Text style={styles.submitButtonText}>Submit</Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-        {/* Chat Modal */}
+        {/* Chat Modal for Compact Cards */}
         <ChatModal
           visible={chatModalVisible}
           onClose={() => setChatModalVisible(false)}
           venue={venue}
         />
       </Pressable>
-    </Animated.View>
+    );
+  }
+
+  return (
+    <Pressable 
+      style={[styles.card, { backgroundColor: themeColors.card }]} 
+      onPress={handlePress}
+      disabled={isInteracting}
+    >
+      <Image source={{ uri: venue.featuredImage }} style={styles.image} />
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.7)']}
+        style={styles.imageGradient}
+      />
+      
+      {/* Flame Button - No counter, just functional */}
+      <Pressable 
+        style={[
+          styles.interactionButton, 
+          { 
+            backgroundColor: interactionCount > 0 ? themeColors.primary : themeColors.card,
+            opacity: canInteractWithVenue && !isInteracting ? 1 : 0.5
+          }
+        ]}
+        onPress={handleInteraction}
+        disabled={!canInteractWithVenue || isInteracting}
+      >
+        <Flame 
+          size={18} 
+          color={interactionCount > 0 ? 'white' : themeColors.primary} 
+        />
+      </Pressable>
+
+      {/* Chat Button - New prominent position */}
+      <Pressable 
+        style={[styles.chatButton, { backgroundColor: themeColors.primary }]}
+        onPress={handleChatPress}
+      >
+        <MessageCircle size={18} color="white" />
+      </Pressable>
+
+      {/* Like count badge with enhanced styling */}
+      {likeCount > 0 && (
+        <View style={[styles.likeBadge, { backgroundColor: themeColors.primary }]}>
+          <Heart size={14} color="white" fill="white" />
+          <Text style={styles.likeText}>{likeCount}</Text>
+        </View>
+      )}
+
+      {/* Analytics indicator for venues with data */}
+      {likeCount > 5 && (
+        <View style={[styles.analyticsIndicator, { backgroundColor: themeColors.primary + '20' }]}>
+          <TrendingUp size={12} color={themeColors.primary} />
+        </View>
+      )}
+      
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Text style={[styles.name, { color: themeColors.text }]}>{venue.name}</Text>
+          <View style={styles.ratingContainer}>
+            <Star size={16} color={themeColors.accent} fill={themeColors.accent} />
+            <Text style={[styles.rating, { color: themeColors.text }]}>{venue.rating}</Text>
+          </View>
+        </View>
+        
+        <View style={styles.typeContainer}>
+          {venue.types.map((type, index) => (
+            <View 
+              key={index} 
+              style={[styles.typeTag, { backgroundColor: themeColors.primary + '20' }]}
+            >
+              <Text style={[styles.typeText, { color: themeColors.primary }]}>
+                {type.replace('-', ' ')}
+              </Text>
+            </View>
+          ))}
+          <Text style={[styles.price, { color: themeColors.subtext }]}>
+            {renderPriceLevel()}
+          </Text>
+        </View>
+
+        {/* Enhanced Hot Time Badge with likes info */}
+        {popularTime && (
+          <View style={[styles.hotTimeBadge, { backgroundColor: themeColors.primary + '20' }]}>
+            <Flame size={14} color={themeColors.primary} />
+            <Text style={[styles.hotTimeText, { color: themeColors.primary }]}>
+              Hot Time: {popularTime.includes('/') 
+                ? popularTime.split('/').map(time => formatTimeSlot(time)).join('/')
+                : formatTimeSlot(popularTime)
+              }
+            </Text>
+            {likeCount > 0 && (
+              <View style={styles.hotTimeLikes}>
+                <Heart size={10} color={themeColors.primary} fill={themeColors.primary} />
+                <Text style={[styles.hotTimeLikesText, { color: themeColors.primary }]}>
+                  {likeCount}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+        
+        {todaySpecials.length > 0 && (
+          <View style={[styles.specialsContainer, { backgroundColor: 'rgba(255,106,0,0.1)' }]}>
+            <Text style={[styles.specialsTitle, { color: themeColors.primary }]}>
+              Today's Specials:
+            </Text>
+            {todaySpecials.map((special, index) => (
+              <Text key={index} style={[styles.specialText, { color: themeColors.text }]}>
+                • {special.title}: {special.description}
+              </Text>
+            ))}
+          </View>
+        )}
+        
+        <View style={styles.infoRow}>
+          <MapPin size={16} color={themeColors.subtext} />
+          <Text style={[styles.infoText, { color: themeColors.subtext }]} numberOfLines={1}>
+            {venue.address.split(',')[0]}
+          </Text>
+        </View>
+        
+        {venue.openHours.find(h => h.day === getCurrentDay() && !h.closed) && (
+          <View style={styles.infoRow}>
+            <Clock size={16} color={themeColors.subtext} />
+            <Text style={[styles.infoText, { color: themeColors.subtext }]}>
+              {formatOpenHours(venue.openHours.find(h => h.day === getCurrentDay()))}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* RSVP Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={rsvpModalVisible}
+        onRequestClose={handleRsvpCancel}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
+            <Text style={[styles.modalTitle, { color: themeColors.text }]}>
+              What time are you heading to {venue.name}?
+            </Text>
+            
+            <View style={styles.timeSlotContainer}>
+              {timeSlots.map((time, index) => (
+                <Pressable
+                  key={index}
+                  style={[
+                    styles.timeSlot,
+                    { 
+                      backgroundColor: selectedTime === time 
+                        ? themeColors.primary 
+                        : 'transparent',
+                      borderColor: themeColors.primary
+                    }
+                  ]}
+                  onPress={() => setSelectedTime(time)}
+                >
+                  <Text 
+                    style={[
+                      styles.timeSlotText, 
+                      { color: selectedTime === time ? 'white' : themeColors.primary }
+                    ]}
+                  >
+                    {formatTimeSlot(time)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            
+            <View style={styles.modalActions}>
+              <Pressable 
+                style={[styles.modalButton, styles.cancelButton]} 
+                onPress={handleRsvpCancel}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
+              
+              <Pressable 
+                style={[
+                  styles.modalButton, 
+                  styles.submitButton, 
+                  { 
+                    backgroundColor: selectedTime ? themeColors.primary : themeColors.card,
+                    opacity: selectedTime ? 1 : 0.5
+                  }
+                ]} 
+                onPress={handleRsvpSubmit}
+                disabled={!selectedTime}
+              >
+                <Text style={styles.submitButtonText}>Submit</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Chat Modal */}
+      <ChatModal
+        visible={chatModalVisible}
+        onClose={() => setChatModalVisible(false)}
+        venue={venue}
+      />
+    </Pressable>
   );
 }
 
@@ -508,9 +396,14 @@ function formatOpenHours(hours?: { open: string; close: string; closed?: boolean
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 20,
+    borderRadius: 16,
     marginBottom: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
     position: 'relative',
   },
   image: {
@@ -526,33 +419,48 @@ const styles = StyleSheet.create({
   },
   interactionButton: {
     position: 'absolute',
-    top: 16,
-    right: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    top: 12,
+    right: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   chatButton: {
     position: 'absolute',
-    top: 16,
-    right: 64, // Position next to the flame button
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    top: 12,
+    right: 56, // Position next to the flame button
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   likeBadge: {
     position: 'absolute',
-    top: 16,
-    left: 16,
+    top: 12,
+    left: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   likeText: {
     color: 'white',
@@ -562,16 +470,16 @@ const styles = StyleSheet.create({
   },
   analyticsIndicator: {
     position: 'absolute',
-    top: 64,
-    left: 16,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    top: 56,
+    left: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   content: {
-    padding: 20,
+    padding: 16,
   },
   header: {
     flexDirection: 'row',
@@ -599,9 +507,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   typeTag: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
     marginRight: 8,
     marginBottom: 4,
   },
@@ -617,9 +525,9 @@ const styles = StyleSheet.create({
   hotTimeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
     marginBottom: 12,
     alignSelf: 'flex-start',
   },
@@ -644,8 +552,8 @@ const styles = StyleSheet.create({
   },
   specialsContainer: {
     marginBottom: 12,
-    padding: 12,
-    borderRadius: 12,
+    padding: 10,
+    borderRadius: 8,
   },
   specialsTitle: {
     fontSize: 14,
@@ -668,9 +576,14 @@ const styles = StyleSheet.create({
   },
   compactCard: {
     width: 160,
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
     marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
     position: 'relative',
   },
   compactImage: {
@@ -690,9 +603,9 @@ const styles = StyleSheet.create({
     right: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
   compactLikeText: {
     color: 'white',
@@ -704,14 +617,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     left: 8,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   compactContent: {
-    padding: 12,
+    padding: 10,
   },
   compactName: {
     fontSize: 14,
@@ -733,13 +651,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
   modalContent: {
     width: '90%',
     maxHeight: '80%',
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: 16,
+    padding: 20,
     alignItems: 'center',
   },
   modalTitle: {
@@ -755,9 +673,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   timeSlot: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 24,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 1,
     margin: 5,
   },
@@ -771,9 +689,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   modalButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 28,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 25,
     minWidth: 120,
     alignItems: 'center',
   },

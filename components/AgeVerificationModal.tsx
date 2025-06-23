@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, Pressable, Modal, Alert, Animated } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View, Text, Pressable, Modal, Alert } from 'react-native';
 import { X } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
-import { BlurView } from 'expo-blur';
-import { Platform } from 'react-native';
 
 interface AgeVerificationModalProps {
   visible: boolean;
@@ -15,20 +13,6 @@ interface AgeVerificationModalProps {
 export default function AgeVerificationModal({ visible, onVerify }: AgeVerificationModalProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const [scaleAnimation] = useState(new Animated.Value(0));
-
-  useEffect(() => {
-    if (visible) {
-      Animated.spring(scaleAnimation, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 100,
-        friction: 8,
-      }).start();
-    } else {
-      scaleAnimation.setValue(0);
-    }
-  }, [visible]);
 
   const handleVerification = (isOfAge: boolean) => {
     if (!isOfAge) {
@@ -38,14 +22,7 @@ export default function AgeVerificationModal({ visible, onVerify }: AgeVerificat
         [{ text: 'OK', onPress: () => onVerify(false) }]
       );
     } else {
-      Animated.spring(scaleAnimation, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 100,
-        friction: 8,
-      }).start(() => {
-        onVerify(true);
-      });
+      onVerify(true);
     }
   };
 
@@ -57,26 +34,7 @@ export default function AgeVerificationModal({ visible, onVerify }: AgeVerificat
       onRequestClose={() => {}} // Prevent closing without verification
     >
       <View style={styles.overlay}>
-        {Platform.OS !== 'web' ? (
-          <BlurView intensity={30} style={StyleSheet.absoluteFill} />
-        ) : (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: themeColors.overlay }]} />
-        )}
-        
-        <Animated.View 
-          style={[
-            styles.container, 
-            { 
-              backgroundColor: themeColors.cardElevated,
-              transform: [{ scale: scaleAnimation }],
-              shadowColor: themeColors.shadowSecondary,
-              shadowOffset: { width: 0, height: 20 },
-              shadowOpacity: 0.4,
-              shadowRadius: 30,
-              elevation: 20,
-            }
-          ]}
-        >
+        <View style={[styles.container, { backgroundColor: themeColors.card }]}>
           <View style={styles.logoContainer}>
             <BarBuddyLogo size="medium" />
           </View>
@@ -91,14 +49,7 @@ export default function AgeVerificationModal({ visible, onVerify }: AgeVerificat
           
           <View style={styles.buttonContainer}>
             <Pressable 
-              style={[styles.button, styles.noButton, { 
-                borderColor: themeColors.error,
-                shadowColor: themeColors.error,
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.2,
-                shadowRadius: 4,
-                elevation: 2,
-              }]}
+              style={[styles.button, styles.noButton, { borderColor: themeColors.error }]}
               onPress={() => handleVerification(false)}
             >
               <Text style={[styles.buttonText, { color: themeColors.error }]}>
@@ -107,14 +58,7 @@ export default function AgeVerificationModal({ visible, onVerify }: AgeVerificat
             </Pressable>
             
             <Pressable 
-              style={[styles.button, styles.yesButton, { 
-                backgroundColor: themeColors.primary,
-                shadowColor: themeColors.shadowPrimary,
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.4,
-                shadowRadius: 12,
-                elevation: 6,
-              }]}
+              style={[styles.button, styles.yesButton, { backgroundColor: themeColors.primary }]}
               onPress={() => handleVerification(true)}
             >
               <Text style={[styles.buttonText, { color: 'white' }]}>
@@ -126,7 +70,7 @@ export default function AgeVerificationModal({ visible, onVerify }: AgeVerificat
           <Text style={[styles.disclaimer, { color: themeColors.subtext }]}>
             By continuing, you confirm that you are of legal drinking age in your jurisdiction.
           </Text>
-        </Animated.View>
+        </View>
       </View>
     </Modal>
   );
@@ -137,13 +81,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
   },
   container: {
     width: '90%',
     maxWidth: 400,
-    borderRadius: 24,
+    borderRadius: 20,
     padding: 32,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
   logoContainer: {
     marginBottom: 24,
@@ -169,7 +119,7 @@ const styles = StyleSheet.create({
   button: {
     paddingVertical: 16,
     paddingHorizontal: 20,
-    borderRadius: 16,
+    borderRadius: 12,
     alignItems: 'center',
     borderWidth: 2,
   },
