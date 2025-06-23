@@ -6,7 +6,6 @@ import { useThemeStore } from '@/stores/themeStore';
 import { useAchievementStore, Achievement } from '@/stores/achievementStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
-import * as Haptics from 'expo-haptics';
 
 export default function AchievementsScreen() {
   const { theme } = useThemeStore();
@@ -116,9 +115,6 @@ export default function AchievementsScreen() {
   const totalCount = achievements.length;
 
   const handleQuickComplete = (achievementId: string) => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
     completeAchievement(achievementId);
   };
 
