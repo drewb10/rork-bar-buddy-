@@ -16,6 +16,13 @@ export default function TrophiesScreen() {
   const rankInfo = getRank();
   const completedAchievements = achievements.filter(a => a.completed);
 
+  // Group multi-level achievements by type
+  const multiLevelGroups = {
+    beer: completedAchievements.filter(a => a.id.includes('beer') || a.id.includes('brew') || a.id.includes('lager') || a.id.includes('ale')),
+    shot: completedAchievements.filter(a => a.id.includes('shot')),
+    tower: completedAchievements.filter(a => a.id.includes('tower')),
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: '#000000' }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -86,6 +93,64 @@ export default function TrophiesScreen() {
           </View>
         </View>
 
+        {/* Multi-Level Achievement Progress */}
+        <View style={[styles.multiLevelCard, { backgroundColor: themeColors.card }]}>
+          <View style={styles.multiLevelHeader}>
+            <Trophy size={24} color={themeColors.primary} />
+            <Text style={[styles.multiLevelTitle, { color: themeColors.text }]}>
+              Achievement Progress
+            </Text>
+          </View>
+          
+          <View style={styles.progressSection}>
+            <Text style={[styles.progressSectionTitle, { color: themeColors.text }]}>
+              🍺 Beer Achievements
+            </Text>
+            <Text style={[styles.progressSectionSubtitle, { color: themeColors.subtext }]}>
+              {multiLevelGroups.beer.length}/5 levels completed • {profile.totalBeers || 0} total beers
+            </Text>
+            <View style={styles.levelBadges}>
+              {multiLevelGroups.beer.map((achievement) => (
+                <View key={achievement.id} style={[styles.levelBadge, { backgroundColor: themeColors.primary }]}>
+                  <Text style={styles.levelBadgeText}>LV {achievement.level}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.progressSection}>
+            <Text style={[styles.progressSectionTitle, { color: themeColors.text }]}>
+              🥃 Shot Achievements
+            </Text>
+            <Text style={[styles.progressSectionSubtitle, { color: themeColors.subtext }]}>
+              {multiLevelGroups.shot.length}/5 levels completed • {profile.totalShots || 0} total shots
+            </Text>
+            <View style={styles.levelBadges}>
+              {multiLevelGroups.shot.map((achievement) => (
+                <View key={achievement.id} style={[styles.levelBadge, { backgroundColor: themeColors.accent }]}>
+                  <Text style={styles.levelBadgeText}>LV {achievement.level}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.progressSection}>
+            <Text style={[styles.progressSectionTitle, { color: themeColors.text }]}>
+              🗼 Beer Tower Achievements
+            </Text>
+            <Text style={[styles.progressSectionSubtitle, { color: themeColors.subtext }]}>
+              {multiLevelGroups.tower.length}/5 levels completed • {profile.totalBeerTowers || 0} total towers
+            </Text>
+            <View style={styles.levelBadges}>
+              {multiLevelGroups.tower.map((achievement) => (
+                <View key={achievement.id} style={[styles.levelBadge, { backgroundColor: '#FF9800' }]}>
+                  <Text style={styles.levelBadgeText}>LV {achievement.level}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+
         {/* Earned Achievements */}
         {completedAchievements.length > 0 && (
           <View style={[styles.achievementsCard, { backgroundColor: themeColors.card }]}>
@@ -100,9 +165,16 @@ export default function TrophiesScreen() {
                 <View key={achievement.id} style={styles.achievementItem}>
                   <Text style={styles.achievementIcon}>{achievement.icon}</Text>
                   <View style={styles.achievementDetails}>
-                    <Text style={[styles.achievementName, { color: themeColors.text }]}>
-                      {achievement.title}
-                    </Text>
+                    <View style={styles.achievementTitleRow}>
+                      <Text style={[styles.achievementName, { color: themeColors.text }]}>
+                        {achievement.title}
+                      </Text>
+                      {achievement.level && (
+                        <View style={[styles.miniLevelBadge, { backgroundColor: themeColors.primary }]}>
+                          <Text style={styles.miniLevelText}>LV {achievement.level}</Text>
+                        </View>
+                      )}
+                    </View>
                     <Text style={[styles.achievementDesc, { color: themeColors.subtext }]}>
                       {achievement.description}
                     </Text>
@@ -298,6 +370,53 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
   },
+  multiLevelCard: {
+    marginHorizontal: 16,
+    marginBottom: 24,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  multiLevelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  multiLevelTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  progressSection: {
+    marginBottom: 20,
+  },
+  progressSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  progressSectionSubtitle: {
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  levelBadges: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  levelBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  levelBadgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   achievementsCard: {
     marginHorizontal: 16,
     marginBottom: 24,
@@ -334,10 +453,26 @@ const styles = StyleSheet.create({
   achievementDetails: {
     flex: 1,
   },
+  achievementTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
   achievementName: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 2,
+    flex: 1,
+  },
+  miniLevelBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+  miniLevelText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '700',
   },
   achievementDesc: {
     fontSize: 14,

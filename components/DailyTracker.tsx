@@ -4,6 +4,7 @@ import { Plus, Minus, BarChart3, X } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
+import { useAchievementStore } from '@/stores/achievementStore';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 
@@ -33,7 +34,8 @@ interface DailyTrackerProps {
 export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { awardXP, updateDailyTrackerTotals, getDailyStats, resetDailyStats } = useUserProfileStore();
+  const { awardXP, updateDailyTrackerTotals, getDailyStats } = useUserProfileStore();
+  const { checkAndUpdateMultiLevelAchievements } = useAchievementStore();
   const dailyStats = getDailyStats();
   
   const [counts, setCounts] = useState<Record<string, number>>({
@@ -89,6 +91,19 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       dartGamesWon: counts.dartGamesWon,
     });
 
+    // Trigger achievement check after updating totals
+    setTimeout(() => {
+      const userProfileStore = (window as any).__userProfileStore;
+      if (userProfileStore?.getState) {
+        const { profile } = userProfileStore.getState();
+        checkAndUpdateMultiLevelAchievements({
+          totalBeers: profile.totalBeers || 0,
+          totalShots: profile.totalShots || 0,
+          totalBeerTowers: profile.totalBeerTowers || 0,
+        });
+      }
+    }, 100);
+
     onClose();
   };
 
@@ -104,6 +119,20 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       poolGamesWon: counts.poolGamesWon,
       dartGamesWon: counts.dartGamesWon,
     });
+
+    // Trigger achievement check after updating totals
+    setTimeout(() => {
+      const userProfileStore = (window as any).__userProfileStore;
+      if (userProfileStore?.getState) {
+        const { profile } = userProfileStore.getState();
+        checkAndUpdateMultiLevelAchievements({
+          totalBeers: profile.totalBeers || 0,
+          totalShots: profile.totalShots || 0,
+          totalBeerTowers: profile.totalBeerTowers || 0,
+        });
+      }
+    }, 100);
+
     onClose();
   };
 

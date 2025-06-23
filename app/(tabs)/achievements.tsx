@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable } from 'react-native';
-import { Award, CheckCircle, Circle, Trophy } from 'lucide-react-native';
+import { Award, CheckCircle, Circle, Trophy, Star } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAchievementStore, Achievement } from '@/stores/achievementStore';
@@ -11,7 +11,7 @@ import * as Haptics from 'expo-haptics';
 export default function AchievementsScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { achievements, initializeAchievements, completeAchievement } = useAchievementStore();
+  const { achievements, initializeAchievements, completeAchievement, checkAndUpdateMultiLevelAchievements } = useAchievementStore();
   const { profile } = useUserProfileStore();
   const [selectedCategory, setSelectedCategory] = useState<Achievement['category'] | 'all'>('all');
 
@@ -19,9 +19,19 @@ export default function AchievementsScreen() {
     initializeAchievements();
   }, []);
 
+  useEffect(() => {
+    // Update multi-level achievements when profile stats change
+    checkAndUpdateMultiLevelAchievements({
+      totalBeers: profile.totalBeers || 0,
+      totalShots: profile.totalShots || 0,
+      totalBeerTowers: profile.totalBeerTowers || 0,
+    });
+  }, [profile.totalBeers, profile.totalShots, profile.totalBeerTowers]);
+
   const categories: { key: Achievement['category'] | 'all'; title: string; icon: string }[] = [
     { key: 'all', title: 'All', icon: '🎯' },
-    { key: 'bars', title: 'Bar Hopping', icon: '🍻' },
+    { key: 'consumption', title: 'Consumption', icon: '🍻' },
+    { key: 'bars', title: 'Bar Hopping', icon: '🏪' },
     { key: 'activities', title: 'Activities', icon: '🎮' },
     { key: 'social', title: 'Social', icon: '👥' },
     { key: 'milestones', title: 'Milestones', icon: '🏆' },
@@ -55,6 +65,29 @@ export default function AchievementsScreen() {
       return (achievement.progress / achievement.maxProgress) * 100;
     }
     return 0;
+  };
+
+  const getLevelBadge = (achievement: Achievement) => {
+    if (!achievement.isMultiLevel || !achievement.level) return null;
+    
+    return (
+      <View style={[styles.levelBadge, { backgroundColor: themeColors.primary }]}>
+        <Text style={styles.levelText}>LV {achievement.level}</Text>
+      </View>
+    );
+  };
+
+  const getNextLevelInfo = (achievement: Achievement) => {
+    if (!achievement.isMultiLevel || achievement.completed || !achievement.nextLevelId) return null;
+    
+    const nextLevel = achievements.find(a => a.id === achievement.nextLevelId);
+    if (!nextLevel) return null;
+    
+    return (
+      <Text style={[styles.nextLevelText, { color: themeColors.subtext }]}>
+        Next: {nextLevel.title} ({nextLevel.maxProgress} total)
+      </Text>
+    );
   };
 
   return (
@@ -155,24 +188,33 @@ export default function AchievementsScreen() {
               ]}
             >
               <View style={styles.achievementHeader}>
-                <Text style={styles.achievementIcon}>{achievement.icon}</Text>
+                <View style={styles.achievementIconContainer}>
+                  <Text style={styles.achievementIcon}>{achievement.icon}</Text>
+                  {getLevelBadge(achievement)}
+                </View>
                 <View style={styles.achievementInfo}>
-                  <Text style={[
-                    styles.achievementTitle, 
-                    { 
-                      color: achievement.completed ? themeColors.primary : themeColors.text 
-                    }
-                  ]}>
-                    {achievement.title}
-                  </Text>
+                  <View style={styles.achievementTitleRow}>
+                    <Text style={[
+                      styles.achievementTitle, 
+                      { 
+                        color: achievement.completed ? themeColors.primary : themeColors.text 
+                      }
+                    ]}>
+                      {achievement.title}
+                    </Text>
+                    {achievement.completed && (
+                      <Star size={16} color={themeColors.primary} style={styles.completedStar} />
+                    )}
+                  </View>
                   <Text style={[styles.achievementDescription, { color: themeColors.subtext }]}>
                     {achievement.description}
                   </Text>
+                  {getNextLevelInfo(achievement)}
                 </View>
                 <Pressable
                   style={styles.achievementAction}
-                  onPress={() => !achievement.completed && handleQuickComplete(achievement.id)}
-                  disabled={achievement.completed}
+                  onPress={() => !achievement.completed && !achievement.maxProgress && handleQuickComplete(achievement.id)}
+                  disabled={achievement.completed || !!achievement.maxProgress}
                 >
                   {achievement.completed ? (
                     <CheckCircle size={24} color={themeColors.primary} />
@@ -320,21 +362,52 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  achievementIconContainer: {
+    position: 'relative',
+    marginRight: 12,
+  },
   achievementIcon: {
     fontSize: 28,
-    marginRight: 12,
+  },
+  levelBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    minWidth: 24,
+  },
+  levelText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   achievementInfo: {
     flex: 1,
   },
+  achievementTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
   achievementTitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 2,
+    flex: 1,
+  },
+  completedStar: {
+    marginLeft: 4,
   },
   achievementDescription: {
     fontSize: 14,
     lineHeight: 18,
+    marginBottom: 2,
+  },
+  nextLevelText: {
+    fontSize: 12,
+    fontStyle: 'italic',
   },
   achievementAction: {
     padding: 4,
