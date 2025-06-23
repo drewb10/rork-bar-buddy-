@@ -37,13 +37,13 @@ export default function VenueDetailScreen() {
           headerBackTitle: 'Home',
           headerTitle: '',
           headerStyle: {
-            backgroundColor: themeColors.background,
+            backgroundColor: '#000000',
           },
           headerTintColor: themeColors.text,
         }} 
       />
       
-      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
         <ScrollView style={styles.scrollView}>
           <View style={styles.imageContainer}>
             <Image 

@@ -15,7 +15,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: themeColors.primary,
         tabBarInactiveTintColor: themeColors.subtext,
         tabBarStyle: {
-          backgroundColor: themeColors.card,
+          backgroundColor: '#000000', // Pure black tab bar
           borderTopColor: themeColors.border,
           paddingTop: Platform.OS === 'ios' ? 8 : 4,
           height: Platform.OS === 'ios' ? 88 : 64,

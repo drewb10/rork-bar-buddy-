@@ -36,7 +36,7 @@ export default function CameraScreen() {
 
   if (!permission) {
     return (
-      <View style={[styles.container, { backgroundColor: '#121212' }]}>
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
           <Text style={[styles.loadingText, { color: themeColors.text }]}>
@@ -49,7 +49,7 @@ export default function CameraScreen() {
 
   if (!permission.granted) {
     return (
-      <View style={[styles.container, { backgroundColor: '#121212' }]}>
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.permissionContainer}>
           <BarBuddyLogo size="medium" />
@@ -173,7 +173,7 @@ export default function CameraScreen() {
 
   if (capturedPhoto && showSuccessModal) {
     return (
-      <View style={[styles.container, { backgroundColor: '#121212' }]}>
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         
         <Image source={{ uri: capturedPhoto }} style={styles.previewImage} />
@@ -208,7 +208,7 @@ export default function CameraScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: '#121212' }]}>
+    <View style={[styles.container, { backgroundColor: '#000000' }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       <CameraView 
