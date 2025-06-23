@@ -111,6 +111,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       const userId = await getUserId();
       
+      // Check for existing session
       const { data: existingSession, error: fetchError } = await supabase
         .from('chat_sessions')
         .select('*')
@@ -119,10 +120,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
         .maybeSingle();
 
       if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Session fetch error:', fetchError);
         throw fetchError;
       }
 
       if (existingSession) {
+        // Update last_active timestamp
         const { data: updatedSession, error: updateError } = await supabase
           .from('chat_sessions')
           .update({ last_active: new Date().toISOString() })
@@ -139,6 +142,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         return session;
       }
 
+      // Create new session
       const anonymousName = generateAnonymousName(userId);
       const { data: newSession, error: createError } = await supabase
         .from('chat_sessions')
@@ -151,6 +155,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         .single();
 
       if (createError) {
+        console.error('Session creation error:', createError);
         throw createError;
       }
 
@@ -191,6 +196,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         .limit(100);
 
       if (error) {
+        console.error('Messages query error:', error);
         throw error;
       }
 

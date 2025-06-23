@@ -33,6 +33,7 @@ export const createSessionProcedure = publicProcedure
         throw new Error('Anonymous name is required and cannot be empty');
       }
 
+      // Check for existing session
       const { data: existingSession, error: fetchError } = await supabase
         .from('chat_sessions')
         .select('*')
@@ -41,10 +42,12 @@ export const createSessionProcedure = publicProcedure
         .maybeSingle();
 
       if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Session fetch error:', fetchError);
         throw new Error(`Failed to check existing session: ${fetchError.message}`);
       }
 
       if (existingSession) {
+        // Update last_active timestamp
         const { data: updatedSession, error: updateError } = await supabase
           .from('chat_sessions')
           .update({ last_active: new Date().toISOString() })
@@ -60,6 +63,7 @@ export const createSessionProcedure = publicProcedure
         return { success: true, session: updatedSession as LocalSessionData };
       }
 
+      // Create new session
       const { data: newSession, error: createError } = await supabase
         .from('chat_sessions')
         .insert({
@@ -71,6 +75,7 @@ export const createSessionProcedure = publicProcedure
         .single();
 
       if (createError) {
+        console.error('Session creation error:', createError);
         throw new Error(`Failed to create session: ${createError.message}`);
       }
 
