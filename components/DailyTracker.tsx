@@ -5,6 +5,7 @@ import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { Platform } from 'react-native';
+import Slider from '@react-native-community/slider';
 
 interface DrinkItem {
   id: string;
@@ -32,10 +33,12 @@ interface DailyTrackerProps {
 export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { awardXP, updateDailyTrackerTotals, getDailyStats } = useUserProfileStore();
+  const { awardXP, updateDailyTrackerTotals, getDailyStats, addDrunkScaleRating, canSubmitDrunkScale } = useUserProfileStore();
   
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [isInitialized, setIsInitialized] = useState(false);
+  const [drunkScale, setDrunkScale] = useState(1);
+  const [hasSubmittedDrunkScale, setHasSubmittedDrunkScale] = useState(false);
 
   // Initialize counts when modal becomes visible
   useEffect(() => {
@@ -52,8 +55,9 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         dartGamesWon: dailyStats.dartGamesWon || 0,
       });
       setIsInitialized(true);
+      setHasSubmittedDrunkScale(!canSubmitDrunkScale());
     }
-  }, [visible, isInitialized, getDailyStats]);
+  }, [visible, isInitialized, getDailyStats, canSubmitDrunkScale]);
 
   // Reset initialization when modal closes
   useEffect(() => {
@@ -92,28 +96,15 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     });
   };
 
-  const getTotalCount = () => {
-    return Object.values(counts).reduce((sum, count) => sum + count, 0);
-  };
-
-  const handleSaveProgress = () => {
-    if (Platform.OS !== 'web') {
-      // Haptics would go here for native platforms
+  const handleDrunkScaleSubmit = () => {
+    if (canSubmitDrunkScale() && !hasSubmittedDrunkScale) {
+      addDrunkScaleRating(drunkScale);
+      setHasSubmittedDrunkScale(true);
+      
+      if (Platform.OS !== 'web') {
+        // Haptics would go here for native platforms
+      }
     }
-
-    // Update totals in user profile
-    updateDailyTrackerTotals({
-      shots: counts.shots,
-      scoopAndScores: counts.scoopAndScores,
-      beers: counts.beers,
-      beerTowers: counts.beerTowers,
-      funnels: counts.funnels,
-      shotguns: counts.shotguns,
-      poolGamesWon: counts.poolGamesWon,
-      dartGamesWon: counts.dartGamesWon,
-    });
-
-    onClose();
   };
 
   const handleClose = () => {
@@ -130,6 +121,14 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     });
 
     onClose();
+  };
+
+  const getDrunkScaleLabel = (value: number) => {
+    const labels = [
+      '', 'Sober', 'Tipsy', 'Buzzed', 'Drunk', 'Very Drunk', 
+      'Wasted', 'Blackout', 'Gone', 'Dead', 'Legendary'
+    ];
+    return labels[value] || '';
   };
 
   return (
@@ -155,6 +154,40 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
           Track your activities tonight
         </Text>
+
+        {/* Drunk Scale Slider */}
+        <View style={[styles.drunkScaleContainer, { backgroundColor: themeColors.card }]}>
+          <Text style={[styles.drunkScaleTitle, { color: themeColors.text }]}>
+            How drunk are you? 🍻
+          </Text>
+          <Text style={[styles.drunkScaleValue, { color: themeColors.primary }]}>
+            {drunkScale}/10 - {getDrunkScaleLabel(drunkScale)}
+          </Text>
+          <Slider
+            style={styles.slider}
+            minimumValue={1}
+            maximumValue={10}
+            step={1}
+            value={drunkScale}
+            onValueChange={setDrunkScale}
+            minimumTrackTintColor={themeColors.primary}
+            maximumTrackTintColor={themeColors.border}
+            thumbStyle={{ backgroundColor: themeColors.primary }}
+            disabled={hasSubmittedDrunkScale}
+          />
+          {!hasSubmittedDrunkScale ? (
+            <Pressable
+              style={[styles.submitButton, { backgroundColor: themeColors.primary }]}
+              onPress={handleDrunkScaleSubmit}
+            >
+              <Text style={styles.submitButtonText}>Submit Level</Text>
+            </Pressable>
+          ) : (
+            <Text style={[styles.submittedText, { color: themeColors.subtext }]}>
+              ✓ Level submitted for today
+            </Text>
+          )}
+        </View>
 
         <View style={styles.itemsGrid}>
           {drinkItems.map((item) => (
@@ -187,17 +220,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
             </View>
           ))}
         </View>
-
-        {getTotalCount() > 0 && (
-          <Pressable
-            style={[styles.saveButton, { backgroundColor: themeColors.primary }]}
-            onPress={handleSaveProgress}
-          >
-            <Text style={styles.saveButtonText}>
-              Save Progress ({getTotalCount()} activities)
-            </Text>
-          </Pressable>
-        )}
       </View>
     </Modal>
   );
@@ -232,6 +254,47 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     marginBottom: 24,
+  },
+  drunkScaleContainer: {
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  drunkScaleTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  drunkScaleValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+    marginBottom: 16,
+  },
+  submitButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  submittedText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   itemsGrid: {
     flexDirection: 'row',
@@ -277,17 +340,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     minWidth: 24,
     textAlign: 'center',
-  },
-  saveButton: {
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 16,
-    alignItems: 'center',
-    marginTop: 'auto',
-  },
-  saveButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '700',
   },
 });
