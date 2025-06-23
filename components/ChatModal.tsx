@@ -17,7 +17,6 @@ import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useChatStore } from '@/stores/chatStore';
 import { Venue } from '@/types/venue';
-import * as Haptics from 'expo-haptics';
 
 interface ChatModalProps {
   visible: boolean;
@@ -112,10 +111,6 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
         [{ text: 'OK' }]
       );
       return;
-    }
-
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
 
     setIsSending(true);

@@ -14,6 +14,10 @@ import { awardXPProcedure } from './routes/user/award-xp/route';
 import { trackInteractionProcedure } from './routes/analytics/track-interaction/route';
 import { getInteractionsProcedure } from './routes/analytics/get-interactions/route';
 import { getPopularTimesProcedure } from './routes/analytics/get-popular-times/route';
+import { createSessionProcedure } from './routes/chat/create-session/route';
+import { sendMessageProcedure } from './routes/chat/send-message/route';
+import { getMessagesProcedure } from './routes/chat/get-messages/route';
+import { likeMessageProcedure } from './routes/chat/like-message/route';
 
 export const appRouter = router({
   example: router({
@@ -38,6 +42,12 @@ export const appRouter = router({
   bingo: router({
     completeTask: completeTaskProcedure,
     completeBingo: completeBingoProcedure,
+  }),
+  chat: router({
+    createSession: createSessionProcedure,
+    sendMessage: sendMessageProcedure,
+    getMessages: getMessagesProcedure,
+    likeMessage: likeMessageProcedure,
   }),
 });
 

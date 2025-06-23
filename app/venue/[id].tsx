@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, Image, Pressable, Linking, Platform, Dimensions, StatusBar } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { MapPin, Phone, Globe, Clock, Heart, Instagram, Share2, BarChart3, TrendingUp } from 'lucide-react-native';
+import { MapPin, Phone, Globe, Clock, Heart, Instagram, Share2, BarChart3, TrendingUp, MessageCircle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { getVenueById } from '@/mocks/venues';
 import SpecialCard from '@/components/SpecialCard';
 import PopularTimesChart from '@/components/PopularTimesChart';
-import * as Haptics from 'expo-haptics';
+import ChatModal from '@/components/ChatModal';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function VenueDetailScreen() {
@@ -19,14 +19,16 @@ export default function VenueDetailScreen() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showPopularTimes, setShowPopularTimes] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   if (!venue) return null;
 
   const handlePopularTimesToggle = () => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
     setShowPopularTimes(!showPopularTimes);
+  };
+
+  const handleChatPress = () => {
+    setShowChat(true);
   };
 
   return (
@@ -77,6 +79,20 @@ export default function VenueDetailScreen() {
             <Text style={[styles.description, { color: themeColors.text }]}>
               {venue.description}
             </Text>
+
+            {/* Chat Button */}
+            <Pressable 
+              style={[styles.chatButton, { backgroundColor: themeColors.primary }]}
+              onPress={handleChatPress}
+            >
+              <MessageCircle size={20} color="white" />
+              <Text style={styles.chatButtonText}>
+                💬 Live Chat at {venue.name}
+              </Text>
+              <Text style={styles.chatSubtext}>
+                (Anonymous. Please keep it respectful.)
+              </Text>
+            </Pressable>
 
             {/* Enhanced Popular Times Section */}
             <View style={[styles.popularTimesSection, { backgroundColor: themeColors.card }]}>
@@ -168,6 +184,13 @@ export default function VenueDetailScreen() {
             )}
           </View>
         </ScrollView>
+
+        {/* Chat Modal */}
+        <ChatModal
+          visible={showChat}
+          onClose={() => setShowChat(false)}
+          venue={venue}
+        />
       </View>
     </>
   );
@@ -218,6 +241,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     marginBottom: 24,
+  },
+  chatButton: {
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  chatButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: 8,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  chatSubtext: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   popularTimesSection: {
     borderRadius: 16,
