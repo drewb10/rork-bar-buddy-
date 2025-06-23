@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
-import { Home, BarChart3, Camera, Trophy, User } from 'lucide-react-native';
+import { Chrome as Home, ChartBar as BarChart3, Camera, Trophy, User } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 
