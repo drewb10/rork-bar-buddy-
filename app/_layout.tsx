@@ -1,14 +1,14 @@
-import { Stack } from "expo-router";
-import { View } from "react-native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { trpc, trpcClient } from "@/lib/trpc";
-import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
-import { useAgeVerificationStore } from "@/stores/ageVerificationStore";
-import { useUserProfileStore } from "@/stores/userProfileStore";
-import { useVenueInteractionStore } from "@/stores/venueInteractionStore";
-import AgeVerificationModal from "@/components/AgeVerificationModal";
-import OnboardingModal from "@/components/OnboardingModal";
+import { useEffect } from 'react';
+import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { View } from 'react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useFrameworkReady } from '@/hooks/useFrameworkReady';
+import { useAgeVerificationStore } from '@/stores/ageVerificationStore';
+import { useUserProfileStore } from '@/stores/userProfileStore';
+import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
+import AgeVerificationModal from '@/components/AgeVerificationModal';
+import OnboardingModal from '@/components/OnboardingModal';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,11 +20,13 @@ const queryClient = new QueryClient({
 });
 
 export default function RootLayout() {
+  useFrameworkReady();
+  
   const { isVerified, setVerified } = useAgeVerificationStore();
   const { profile, completeOnboarding, loadFromSupabase } = useUserProfileStore();
   const { loadPopularTimesFromSupabase } = useVenueInteractionStore();
-  const [showAgeVerification, setShowAgeVerification] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showAgeVerification, setShowAgeVerification] = React.useState(false);
+  const [showOnboarding, setShowOnboarding] = React.useState(false);
 
   useEffect(() => {
     // Initialize stores and load data
@@ -67,49 +69,47 @@ export default function RootLayout() {
   };
 
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <StatusBar style="light" />
-        <Stack
-          screenOptions={{
+    <QueryClientProvider client={queryClient}>
+      <StatusBar style="light" />
+      <Stack
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: '#000000',
+          },
+          headerTintColor: '#FFFFFF',
+          headerShadowVisible: false,
+          contentStyle: {
+            backgroundColor: '#000000',
+          },
+          headerShown: false,
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen 
+          name="venue/[id]" 
+          options={{
+            headerShown: true,
+            presentation: 'card',
+            headerBackTitle: 'Home',
+            headerTitle: '',
             headerStyle: {
               backgroundColor: '#000000',
             },
             headerTintColor: '#FFFFFF',
-            headerShadowVisible: false,
-            contentStyle: {
-              backgroundColor: '#000000',
-            },
-            headerShown: false,
           }}
-        >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen 
-            name="venue/[id]" 
-            options={{
-              headerShown: true,
-              presentation: 'card',
-              headerBackTitle: 'Home',
-              headerTitle: '',
-              headerStyle: {
-                backgroundColor: '#000000',
-              },
-              headerTintColor: '#FFFFFF',
-            }}
-          />
-          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-        </Stack>
-
-        <AgeVerificationModal
-          visible={showAgeVerification}
-          onVerify={handleAgeVerification}
         />
+        <Stack.Screen name="+not-found" />
+      </Stack>
 
-        <OnboardingModal
-          visible={showOnboarding}
-          onComplete={handleOnboardingComplete}
-        />
-      </QueryClientProvider>
-    </trpc.Provider>
+      <AgeVerificationModal
+        visible={showAgeVerification}
+        onVerify={handleAgeVerification}
+      />
+
+      <OnboardingModal
+        visible={showOnboarding}
+        onComplete={handleOnboardingComplete}
+      />
+    </QueryClientProvider>
   );
 }

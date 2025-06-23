@@ -7,11 +7,8 @@ import { useUserProfileStore } from '@/stores/userProfileStore';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import { venues } from '@/mocks/venues';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
-import ShareStatsModal from '@/components/ShareStatsModal';
-import FriendsModal from '@/components/FriendsModal';
-import * as ImagePicker from 'expo-image-picker';
 
-export default function TrackingScreen() {
+export default function ProfileScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const { 
@@ -22,7 +19,6 @@ export default function TrackingScreen() {
     getAllRanks,
     getXPForNextRank,
     getProgressToNextRank,
-    setProfilePicture,
     setUserName,
     resetStats
   } = useUserProfileStore();
@@ -30,8 +26,6 @@ export default function TrackingScreen() {
   const { interactions } = useVenueInteractionStore();
   
   const [nameEditModalVisible, setNameEditModalVisible] = useState(false);
-  const [shareStatsModalVisible, setShareStatsModalVisible] = useState(false);
-  const [friendsModalVisible, setFriendsModalVisible] = useState(false);
   const [rankDetailsModalVisible, setRankDetailsModalVisible] = useState(false);
   const [barVisitsModalVisible, setBarVisitsModalVisible] = useState(false);
   const [editFirstName, setEditFirstName] = useState(profile.firstName);
@@ -101,65 +95,6 @@ export default function TrackingScreen() {
     );
   };
 
-  const handleProfilePicturePress = () => {
-    Alert.alert(
-      'Change Profile Picture',
-      'Choose how you would like to update your profile picture',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Camera Roll', onPress: pickImageFromLibrary },
-        { text: 'Take Photo', onPress: takePhoto },
-      ]
-    );
-  };
-
-  const pickImageFromLibrary = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please grant camera roll permissions to change your profile picture.');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setProfilePicture(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.warn('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image. Please try again.');
-    }
-  };
-
-  const takePhoto = async () => {
-    try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please grant camera permissions to take a photo.');
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setProfilePicture(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.warn('Error taking photo:', error);
-      Alert.alert('Error', 'Failed to take photo. Please try again.');
-    }
-  };
-
   return (
     <View style={[styles.container, { backgroundColor: '#000000' }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -179,7 +114,7 @@ export default function TrackingScreen() {
 
         {/* Profile Card */}
         <View style={[styles.profileCard, { backgroundColor: themeColors.card }]}>
-          <Pressable style={styles.avatarContainer} onPress={handleProfilePicturePress}>
+          <View style={styles.avatarContainer}>
             {profile.profilePicture ? (
               <Image source={{ uri: profile.profilePicture }} style={styles.avatarImage} />
             ) : (
@@ -187,10 +122,7 @@ export default function TrackingScreen() {
                 <User size={32} color="white" />
               </View>
             )}
-            <View style={[styles.cameraIcon, { backgroundColor: themeColors.primary }]}>
-              <Camera size={16} color="white" />
-            </View>
-          </Pressable>
+          </View>
           
           <View style={styles.nameContainer}>
             <Text style={[styles.userName, { color: themeColors.text }]}>
@@ -280,24 +212,6 @@ export default function TrackingScreen() {
           </Pressable>
         )}
 
-        {/* Friends Button */}
-        <Pressable 
-          style={[styles.friendsButton, { backgroundColor: themeColors.card }]}
-          onPress={() => setFriendsModalVisible(true)}
-        >
-          <Users size={20} color={themeColors.primary} />
-          <Text style={[styles.friendsButtonText, { color: themeColors.primary }]}>
-            Friends ({profile.friends.length})
-          </Text>
-          {profile.friendRequests.length > 0 && (
-            <View style={[styles.notificationBadge, { backgroundColor: '#FF4444' }]}>
-              <Text style={styles.notificationText}>
-                {profile.friendRequests.length}
-              </Text>
-            </View>
-          )}
-        </Pressable>
-
         {/* Stats Section */}
         <View style={styles.statsSection}>
           <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
@@ -338,30 +252,16 @@ export default function TrackingScreen() {
             </Text>
           </View>
 
-          {/* Action Buttons Row */}
-          <View style={styles.actionButtonsRow}>
-            {/* Share Stats Button */}
-            <Pressable 
-              style={[styles.actionButton, { backgroundColor: themeColors.card }]}
-              onPress={() => setShareStatsModalVisible(true)}
-            >
-              <Share2 size={18} color={themeColors.primary} />
-              <Text style={[styles.actionButtonText, { color: themeColors.primary }]}>
-                Share Stats
-              </Text>
-            </Pressable>
-
-            {/* Reset Stats Button */}
-            <Pressable 
-              style={[styles.actionButton, { backgroundColor: themeColors.card }]}
-              onPress={handleResetStats}
-            >
-              <RotateCcw size={18} color="#FF4444" />
-              <Text style={[styles.actionButtonText, { color: "#FF4444" }]}>
-                Reset Stats
-              </Text>
-            </Pressable>
-          </View>
+          {/* Reset Stats Button */}
+          <Pressable 
+            style={[styles.resetButton, { backgroundColor: themeColors.card }]}
+            onPress={handleResetStats}
+          >
+            <RotateCcw size={18} color="#FF4444" />
+            <Text style={[styles.resetButtonText, { color: "#FF4444" }]}>
+              Reset All Stats
+            </Text>
+          </Pressable>
 
           {/* Activity Summary */}
           <View style={[styles.summaryCard, { backgroundColor: themeColors.card }]}>
@@ -443,152 +343,6 @@ export default function TrackingScreen() {
           </View>
         </View>
       </Modal>
-
-      {/* Bar Visits Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={barVisitsModalVisible}
-        onRequestClose={() => setBarVisitsModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-                Bar Visit History
-              </Text>
-              <Pressable 
-                style={styles.closeButton}
-                onPress={() => setBarVisitsModalVisible(false)}
-              >
-                <X size={24} color={themeColors.subtext} />
-              </Pressable>
-            </View>
-            
-            <ScrollView style={styles.barVisitsList} showsVerticalScrollIndicator={false}>
-              {barVisits.map((bar, index) => (
-                <View 
-                  key={bar.venueId}
-                  style={[
-                    styles.barVisitItem,
-                    { 
-                      backgroundColor: themeColors.background,
-                      borderLeftColor: index < 3 ? themeColors.primary : themeColors.border
-                    }
-                  ]}
-                >
-                  <View style={styles.barVisitInfo}>
-                    <Text style={[styles.barVisitName, { color: themeColors.text }]}>
-                      {bar.venueName}
-                    </Text>
-                    <Text style={[styles.barVisitStats, { color: themeColors.subtext }]}>
-                      {bar.visits} {bar.visits === 1 ? 'visit' : 'visits'} • {bar.likes} {bar.likes === 1 ? 'like' : 'likes'}
-                    </Text>
-                  </View>
-                  <View style={[styles.visitBadge, { backgroundColor: themeColors.primary }]}>
-                    <Text style={styles.visitBadgeText}>{bar.visits}</Text>
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
-            
-            <View style={[styles.barVisitsSummary, { backgroundColor: themeColors.background }]}>
-              <Text style={[styles.summaryText, { color: themeColors.subtext }]}>
-                Total: {totalVisits} visits across {barVisits.length} bars
-              </Text>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Rank Details Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={rankDetailsModalVisible}
-        onRequestClose={() => setRankDetailsModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-                Ranking System
-              </Text>
-              <Pressable 
-                style={styles.closeButton}
-                onPress={() => setRankDetailsModalVisible(false)}
-              >
-                <X size={24} color={themeColors.subtext} />
-              </Pressable>
-            </View>
-            
-            <ScrollView style={styles.rankList} showsVerticalScrollIndicator={false}>
-              {allRanks.map((rank, index) => (
-                <View 
-                  key={`${rank.tier}-${rank.subRank}`}
-                  style={[
-                    styles.rankItem,
-                    { 
-                      backgroundColor: rank.tier === rankInfo.tier && rank.subRank === rankInfo.subRank 
-                        ? rank.color + '20' 
-                        : 'transparent',
-                      borderColor: rank.tier === rankInfo.tier && rank.subRank === rankInfo.subRank 
-                        ? rank.color 
-                        : 'transparent',
-                      borderWidth: 1,
-                    }
-                  ]}
-                >
-                  <Award size={20} color={rank.color} />
-                  <View style={styles.rankItemInfo}>
-                    <Text style={[styles.rankItemTitle, { color: rank.color }]}>
-                      {rank.title}
-                    </Text>
-                    <Text style={[styles.rankItemSubtitle, { color: themeColors.text }]}>
-                      {rank.subTitle}
-                    </Text>
-                    <Text style={[styles.rankItemXP, { color: themeColors.subtext }]}>
-                      {rank.minXP} - {rank.maxXP} XP
-                    </Text>
-                  </View>
-                  {rank.tier === rankInfo.tier && rank.subRank === rankInfo.subRank && (
-                    <Text style={[styles.currentRankBadge, { color: rank.color }]}>
-                      Current
-                    </Text>
-                  )}
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Share Stats Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={shareStatsModalVisible}
-        onRequestClose={() => setShareStatsModalVisible(false)}
-      >
-        <ShareStatsModal
-          profile={profile}
-          rankInfo={rankInfo}
-          onClose={() => setShareStatsModalVisible(false)}
-        />
-      </Modal>
-
-      {/* Friends Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={friendsModalVisible}
-        onRequestClose={() => setFriendsModalVisible(false)}
-      >
-        <FriendsModal
-          visible={friendsModalVisible}
-          onClose={() => setFriendsModalVisible(false)}
-        />
-      </Modal>
     </View>
   );
 }
@@ -645,18 +399,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-  },
-  cameraIcon: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#000000',
   },
   nameContainer: {
     flexDirection: 'row',
@@ -765,41 +507,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
   },
-  friendsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 16,
-    marginBottom: 24,
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    position: 'relative',
-  },
-  friendsButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  notificationText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '700',
-  },
   statsSection: {
     paddingHorizontal: 16,
     marginBottom: 32,
@@ -842,13 +549,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
   },
-  actionButtonsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
-  },
-  actionButton: {
-    flex: 1,
+  resetButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -859,8 +560,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+    marginBottom: 20,
   },
-  actionButtonText: {
+  resetButtonText: {
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 6,
@@ -946,79 +648,5 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: 'white',
     fontWeight: '600',
-  },
-  // Bar visits modal styles
-  barVisitsList: {
-    maxHeight: 400,
-  },
-  barVisitItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-    borderLeftWidth: 4,
-  },
-  barVisitInfo: {
-    flex: 1,
-  },
-  barVisitName: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  barVisitStats: {
-    fontSize: 14,
-  },
-  visitBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  visitBadgeText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  barVisitsSummary: {
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  // Rank details modal styles
-  rankList: {
-    maxHeight: 400,
-  },
-  rankItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  rankItemInfo: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  rankItemTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  rankItemSubtitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 2,
-  },
-  rankItemXP: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  currentRankBadge: {
-    fontSize: 12,
-    fontWeight: '700',
   },
 });

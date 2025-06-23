@@ -214,113 +214,10 @@ export default function TrackingScreen() {
           </Text>
         </View>
 
-        {/* Daily Tracker Totals - New Section */}
-        <View style={[styles.dailyTrackerCard, { backgroundColor: themeColors.card }]}>
-          <View style={styles.dailyTrackerHeader}>
-            <BarChart3 size={20} color={themeColors.primary} />
-            <Text style={[styles.dailyTrackerTitle, { color: themeColors.text }]}>
-              Total Tracker Stats
-            </Text>
-          </View>
-          
-          <View style={styles.trackerStatsGrid}>
-            <View style={styles.trackerStatItem}>
-              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {totalStats.shots}
-              </Text>
-              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
-                🥃 Shots
-              </Text>
-            </View>
-            
-            <View style={styles.trackerStatItem}>
-              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {totalStats.scoopAndScores}
-              </Text>
-              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
-                🍺 Scoop & Scores
-              </Text>
-            </View>
-            
-            <View style={styles.trackerStatItem}>
-              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {totalStats.beers}
-              </Text>
-              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
-                🍻 Beers
-              </Text>
-            </View>
-            
-            <View style={styles.trackerStatItem}>
-              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {totalStats.beerTowers}
-              </Text>
-              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
-                🗼 Beer Towers
-              </Text>
-            </View>
-            
-            <View style={styles.trackerStatItem}>
-              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {totalStats.funnels}
-              </Text>
-              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
-                🌪️ Funnels
-              </Text>
-            </View>
-            
-            <View style={styles.trackerStatItem}>
-              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {totalStats.shotguns}
-              </Text>
-              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
-                💥 Shotguns
-              </Text>
-            </View>
-          </View>
-          
-          <View style={styles.photoStatContainer}>
-            <Camera size={16} color={themeColors.primary} />
-            <Text style={[styles.photoStatText, { color: themeColors.text }]}>
-              📸 Photos Taken: {profile.photosTaken}
-            </Text>
-          </View>
-        </View>
-
         {/* Achievement Categories */}
         <View style={styles.categoriesContainer}>
           {(['bars', 'activities', 'social', 'milestones'] as const).map(renderAchievementCategory)}
         </View>
-
-        {/* Info Card */}
-        <View style={[styles.infoCard, { backgroundColor: themeColors.card }]}>
-          <Text style={[styles.infoTitle, { color: themeColors.text }]}>
-            💡 How it works
-          </Text>
-          <Text style={[styles.infoText, { color: themeColors.subtext }]}>
-            Visit this tab at 3:00 AM to log your night's achievements! The popup will appear automatically when you're out and about. Tap on any achievement to learn how to complete it.
-          </Text>
-        </View>
-
-        {/* Reset Button */}
-        <Pressable 
-          style={[styles.resetButton, { backgroundColor: themeColors.card }]}
-          onPress={() => {
-            Alert.alert(
-              'Reset Achievements',
-              'Are you sure you want to reset all achievements? This cannot be undone.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Reset', style: 'destructive', onPress: resetAchievements }
-              ]
-            );
-          }}
-        >
-          <RotateCcw size={18} color="#FF4444" />
-          <Text style={[styles.resetButtonText, { color: "#FF4444" }]}>
-            Reset All Achievements
-          </Text>
-        </Pressable>
 
         <View style={styles.footer} />
       </ScrollView>
@@ -442,61 +339,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
   },
-  dailyTrackerCard: {
-    marginHorizontal: 16,
-    marginBottom: 24,
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  dailyTrackerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  dailyTrackerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  trackerStatsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  trackerStatItem: {
-    width: '48%',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  trackerStatNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  trackerStatLabel: {
-    fontSize: 12,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  photoStatContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.1)',
-  },
-  photoStatText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
   categoriesContainer: {
     paddingHorizontal: 16,
     gap: 20,
@@ -572,46 +414,6 @@ const styles = StyleSheet.create({
   progressBarFill: {
     height: '100%',
     borderRadius: 3,
-  },
-  infoCard: {
-    marginHorizontal: 16,
-    marginTop: 24,
-    marginBottom: 16,
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  infoText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  resetButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 12,
-    padding: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  resetButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 6,
   },
   footer: {
     height: 24,

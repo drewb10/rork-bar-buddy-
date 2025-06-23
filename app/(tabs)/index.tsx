@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable, Dimensions, StatusBar, Platform } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Pressable, StatusBar, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MapPin, Heart, TrendingUp, BarChart3 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { venues, getSpecialsByDay } from '@/mocks/venues';
 import VenueCard from '@/components/VenueCard';
-import SpecialCard from '@/components/SpecialCard';
 import SectionHeader from '@/components/SectionHeader';
 import FilterBar from '@/components/FilterBar';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
@@ -15,7 +14,6 @@ import BarBuddyLogo from '@/components/BarBuddyLogo';
 import DailyTrackerModal from '@/components/DailyTrackerModal';
 import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
 import { Venue, Special, TopPickItem } from '@/types/venue';
-import * as Haptics from 'expo-haptics';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -70,9 +68,6 @@ export default function HomeScreen() {
   });
 
   const handleDailyTrackerPress = () => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
     setDailyTrackerVisible(true);
   };
 
@@ -120,7 +115,7 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Daily Tracker Icon - Removed like counter */}
+        {/* Daily Tracker Icon */}
         <View style={styles.dailyTrackerSection}>
           <Pressable 
             style={[styles.dailyTrackerButton, { backgroundColor: themeColors.card }]}

@@ -7,10 +7,6 @@ import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { useAchievementStore } from '@/stores/achievementStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
-import * as Haptics from 'expo-haptics';
-import * as FileSystem from 'expo-file-system';
-import * as MediaLibrary from 'expo-media-library';
-import * as ImagePicker from 'expo-image-picker';
 
 export default function CameraScreen() {
   const { theme } = useThemeStore();
@@ -72,9 +68,6 @@ export default function CameraScreen() {
   }
 
   const toggleCameraFacing = () => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
     setFacing(current => (current === 'back' ? 'front' : 'back'));
   };
 
@@ -83,10 +76,6 @@ export default function CameraScreen() {
 
     try {
       setIsCapturing(true);
-      
-      if (Platform.OS !== 'web') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      }
 
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
@@ -94,16 +83,7 @@ export default function CameraScreen() {
       });
 
       if (photo?.uri) {
-        // Save photo locally
-        const fileName = `barbuddy_${Date.now()}.jpg`;
-        const localUri = `${FileSystem.documentDirectory}${fileName}`;
-        
-        await FileSystem.copyAsync({
-          from: photo.uri,
-          to: localUri,
-        });
-
-        setCapturedPhoto(localUri);
+        setCapturedPhoto(photo.uri);
         
         // Award XP for taking a photo (10 XP)
         awardXP('photo_taken', 'Captured a nightlife moment!');
@@ -132,43 +112,6 @@ export default function CameraScreen() {
   const retakePhoto = () => {
     setCapturedPhoto(null);
     setShowSuccessModal(false);
-  };
-
-  const openCameraRoll = async () => {
-    try {
-      if (Platform.OS !== 'web') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        
-        // Request media library permissions
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status === 'granted') {
-          const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: false,
-            quality: 1,
-          });
-
-          if (!result.canceled && result.assets[0]) {
-            // Show the selected image
-            setCapturedPhoto(result.assets[0].uri);
-            setShowSuccessModal(true);
-            
-            // Auto-hide after 3 seconds
-            setTimeout(() => {
-              setShowSuccessModal(false);
-              setCapturedPhoto(null);
-            }, 3000);
-          }
-        } else {
-          Alert.alert('Permission Required', 'Please grant media library access to view your photos.');
-        }
-      } else {
-        Alert.alert('Camera Roll', 'Camera roll not available on web.');
-      }
-    } catch (error) {
-      console.warn('Error opening camera roll:', error);
-      Alert.alert('Error', 'Failed to open camera roll. Please try again.');
-    }
   };
 
   if (capturedPhoto && showSuccessModal) {
@@ -216,7 +159,7 @@ export default function CameraScreen() {
         style={styles.camera} 
         facing={facing}
       >
-        {/* Header - No background bar, just logo and text */}
+        {/* Header */}
         <View style={styles.header}>
           <BarBuddyLogo size="small" />
           <Text style={[styles.headerTitle, { color: 'white' }]}>
@@ -233,7 +176,7 @@ export default function CameraScreen() {
           </View>
         )}
 
-        {/* Top Controls - Moved camera roll up to align with flip camera */}
+        {/* Top Controls */}
         <View style={styles.topControls}>
           {/* Flip Camera Button */}
           <Pressable 
@@ -241,14 +184,6 @@ export default function CameraScreen() {
             onPress={toggleCameraFacing}
           >
             <RotateCcw size={24} color="white" />
-          </Pressable>
-
-          {/* Camera Roll Button - Moved up and fixed */}
-          <Pressable 
-            style={[styles.controlButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
-            onPress={openCameraRoll}
-          >
-            <ImageIcon size={24} color="white" />
           </Pressable>
         </View>
 
