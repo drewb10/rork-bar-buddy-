@@ -111,7 +111,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       const userId = await getUserId();
       
-      // Check for existing session
+      // Check for existing session with better error handling
       const { data: existingSession, error: fetchError } = await supabase
         .from('chat_sessions')
         .select('*')
@@ -120,12 +120,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
         .maybeSingle();
 
       if (fetchError && fetchError.code !== 'PGRST116') {
-        console.error('Session fetch error:', fetchError);
-        throw fetchError;
+        console.warn('Session fetch error:', fetchError);
+        // Don't throw error, continue with creating new session
       }
 
       if (existingSession) {
-        // Update last_active timestamp
+        // Update last_active timestamp with error handling
         const { data: updatedSession, error: updateError } = await supabase
           .from('chat_sessions')
           .update({ last_active: new Date().toISOString() })
@@ -135,6 +135,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         
         if (updateError) {
           console.warn('Failed to update session timestamp:', updateError);
+          // Use existing session if update fails
         }
         
         const session = updatedSession || existingSession;
@@ -142,7 +143,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         return session;
       }
 
-      // Create new session
+      // Create new session with error handling
       const anonymousName = generateAnonymousName(userId);
       const { data: newSession, error: createError } = await supabase
         .from('chat_sessions')
@@ -155,8 +156,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         .single();
 
       if (createError) {
-        console.error('Session creation error:', createError);
-        throw createError;
+        console.warn('Session creation error:', createError);
+        throw new Error('Failed to create chat session. Please try again.');
       }
 
       set({ currentSession: newSession, isLoading: false });
@@ -196,8 +197,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
         .limit(100);
 
       if (error) {
-        console.error('Messages query error:', error);
-        throw error;
+        console.warn('Messages query error:', error);
+        // Don't throw error, just set empty messages
+        set({ messages: [], isLoading: false });
+        return;
       }
 
       const transformedMessages: ChatMessage[] = (messagesData as unknown as RawMessageFromSupabase[])?.map(msg => {
@@ -219,8 +222,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ messages: transformedMessages, isLoading: false });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to load messages';
-      console.error('Failed to load messages:', error);
-      set({ error: errorMessage, isLoading: false });
+      console.warn('Failed to load messages:', error);
+      set({ error: null, isLoading: false, messages: [] }); // Don't show error to user
     }
   },
 
@@ -260,8 +263,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         .single();
 
       if (error) {
-        console.error('Insert message error:', error);
-        throw error;
+        console.warn('Insert message error:', error);
+        throw new Error('Failed to send message. Please try again.');
       }
 
       const transformedMessage: ChatMessage = {
@@ -287,10 +290,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
   subscribeToMessages: (venueId: string): void => {
     try {
       if (!venueId || venueId.trim() === '') {
-        console.error('Cannot subscribe: Venue ID is required and cannot be empty');
+        console.warn('Cannot subscribe: Venue ID is required and cannot be empty');
         return;
       }
 
+      // Clean up existing subscription first
       get().unsubscribeFromMessages();
 
       const subscription = supabase
@@ -311,7 +315,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 .single();
 
               if (sessionError) {
-                console.error('Failed to get session data for new message:', sessionError);
+                console.warn('Failed to get session data for new message:', sessionError);
                 return;
               }
 
@@ -334,21 +338,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 set({ messages: [...currentMessages, newMessage] });
               }
             } catch (error) {
-              console.error('Failed to process new message:', error);
+              console.warn('Failed to process new message:', error);
             }
           }
         )
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
-            console.log(`Subscribed to chat for venue ${venueId}`);
+            console.log(`Successfully subscribed to chat for venue ${venueId}`);
           } else if (status === 'CHANNEL_ERROR') {
-            console.error(`Failed to subscribe to chat for venue ${venueId}`);
+            console.warn(`Failed to subscribe to chat for venue ${venueId}`);
+            // Don't show error to user, just log it
           }
         });
 
       set({ subscription });
     } catch (error) {
-      console.error('Failed to subscribe to messages:', error);
+      console.warn('Failed to subscribe to messages:', error);
+      // Don't show error to user
     }
   },
 
@@ -361,7 +367,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         console.log('Unsubscribed from chat messages');
       }
     } catch (error) {
-      console.error('Failed to unsubscribe from messages:', error);
+      console.warn('Failed to unsubscribe from messages:', error);
     }
   },
 
