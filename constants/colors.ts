@@ -1,4 +1,4 @@
-// Color palette for the app - Clean grey theme
+// Color palette for the app - Clean grey theme with orange primary to match logo
 export const colors = {
   dark: {
     background: '#1a1a1a', // Clean dark grey background
@@ -6,9 +6,9 @@ export const colors = {
     card: '#2a2a2a', // Slightly lighter grey for cards
     text: '#FFFFFF', // Pure white for contrast
     subtext: '#B0B0B0', // Light grey for secondary text
-    primary: '#007AFF', // iOS blue primary
+    primary: '#FF9500', // Orange to match BarBuddy logo
     secondary: '#5856D6', // iOS purple secondary
-    accent: '#FF9500', // iOS orange accent
+    accent: '#007AFF', // iOS blue accent
     border: '#3a3a3a', // Medium grey border
     success: '#4CAF50',
     error: '#FF3B30', // iOS red error
@@ -19,9 +19,9 @@ export const colors = {
     card: '#FFFFFF',
     text: '#1D1D1F', // Dark text
     subtext: '#8E8E93', // iOS grey subtext
-    primary: '#007AFF', // iOS blue primary
+    primary: '#FF9500', // Orange to match BarBuddy logo
     secondary: '#5856D6', // iOS purple secondary
-    accent: '#FF9500', // iOS orange accent
+    accent: '#007AFF', // iOS blue accent
     border: '#E5E5EA', // Light grey border
     success: '#4CAF50',
     error: '#FF3B30',
