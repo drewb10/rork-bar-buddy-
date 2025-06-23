@@ -115,48 +115,75 @@ const PROFANITY_PATTERNS = [
 // Rate limiting: 5 seconds between messages
 const RATE_LIMIT_MS = 5000;
 
-const moderateContent = (content: string): { isAllowed: boolean; reason?: string } => {
+// Check if we're in development mode
+const isDevelopment = __DEV__ || process.env.NODE_ENV === 'development';
+
+const moderateContent = (content: string): { isAllowed: boolean; reason?: string; userMessage?: string } => {
   const trimmedContent = content.trim().toLowerCase();
   
   // Check for hate speech
   for (const pattern of HATE_SPEECH_PATTERNS) {
     if (pattern.test(trimmedContent)) {
-      return { isAllowed: false, reason: 'Hate speech is not allowed' };
+      return { 
+        isAllowed: false, 
+        reason: 'Hate speech is not allowed', 
+        userMessage: 'Your message contains inappropriate content and cannot be sent.'
+      };
     }
   }
   
   // Check for violence/threats
   for (const pattern of VIOLENCE_THREAT_PATTERNS) {
     if (pattern.test(trimmedContent)) {
-      return { isAllowed: false, reason: 'Threats and violent content are not allowed' };
+      return { 
+        isAllowed: false, 
+        reason: 'Threats and violent content are not allowed', 
+        userMessage: 'Your message contains inappropriate content and cannot be sent.'
+      };
     }
   }
   
   // Check for bullying/harassment
   for (const pattern of BULLYING_HARASSMENT_PATTERNS) {
     if (pattern.test(trimmedContent)) {
-      return { isAllowed: false, reason: 'Bullying and harassment are not allowed' };
+      return { 
+        isAllowed: false, 
+        reason: 'Bullying and harassment are not allowed', 
+        userMessage: 'Your message contains inappropriate content and cannot be sent.'
+      };
     }
   }
   
   // Check for sexual harassment
   for (const pattern of SEXUAL_HARASSMENT_PATTERNS) {
     if (pattern.test(trimmedContent)) {
-      return { isAllowed: false, reason: 'Sexual harassment is not allowed' };
+      return { 
+        isAllowed: false, 
+        reason: 'Sexual harassment is not allowed', 
+        userMessage: 'Your message contains inappropriate content and cannot be sent.'
+      };
     }
   }
   
   // Check for PII
   for (const pattern of PII_PATTERNS) {
     if (pattern.test(content)) { // Use original content for PII to preserve case
-      return { isAllowed: false, reason: 'Personal information sharing is not allowed for your safety' };
+      return { 
+        isAllowed: false, 
+        reason: 'Personal information sharing is not allowed for your safety', 
+        userMessage: 'Please don\'t share personal information for your safety.'
+      };
     }
   }
   
   // Check for spam/advertising
   for (const pattern of SPAM_ADVERTISING_PATTERNS) {
     if (pattern.test(trimmedContent)) {
-      return { isAllowed: false, reason: 'Spam and advertising are not allowed' };
+      return { 
+        isAllowed: false, 
+        reason: 'Spam and advertising are not allowed', 
+        userMessage: 'Your message contains inappropriate content and cannot be sent.'
+      };
     }
   }
   
@@ -225,6 +252,41 @@ const shouldResetMessages = (messageTimestamp: string): boolean => {
   } catch {
     return false;
   }
+};
+
+// Create user-friendly error messages
+const createUserError = (originalError: Error): Error => {
+  const message = originalError.message;
+  
+  // Log the detailed error for development
+  if (isDevelopment) {
+    console.error('Chat Error (Dev):', originalError);
+  }
+  
+  // Rate limiting errors - show countdown
+  if (message.includes('Please wait') && message.includes('seconds')) {
+    return originalError; // Keep the countdown message as is
+  }
+  
+  // Content moderation errors - use user-friendly message
+  if (message.includes('Personal information sharing') ||
+      message.includes('Hate speech') ||
+      message.includes('Threats and violent content') ||
+      message.includes('Bullying and harassment') ||
+      message.includes('Sexual harassment') ||
+      message.includes('Spam and advertising')) {
+    return new Error('Your message cannot be sent. Please check our community guidelines.');
+  }
+  
+  // Network/connection errors
+  if (message.includes('Failed to create session') ||
+      message.includes('Failed to insert message') ||
+      message.includes('Failed to fetch messages')) {
+    return new Error('Connection issue. Please check your internet and try again.');
+  }
+  
+  // Generic fallback for any other errors
+  return new Error('Unable to send message. Please try again.');
 };
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -315,10 +377,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ currentSession: newSession, isLoading: false });
       return newSession;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create session';
-      console.error('Failed to create or get session:', error);
-      set({ error: errorMessage, isLoading: false });
-      throw error;
+      const userError = createUserError(error as Error);
+      set({ error: userError.message, isLoading: false });
+      throw userError;
     }
   },
 
@@ -417,7 +478,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // Content moderation
       const moderationResult = moderateContent(trimmedContent);
       if (!moderationResult.isAllowed) {
-        throw new Error(moderationResult.reason || 'Message content is not allowed');
+        // Log detailed reason for development
+        if (isDevelopment) {
+          console.warn('Message blocked:', moderationResult.reason);
+        }
+        
+        // Throw user-friendly error
+        throw new Error(moderationResult.userMessage || 'Your message cannot be sent. Please check our community guidelines.');
       }
 
       const session = get().currentSession || await get().createOrGetSession(venueId);
@@ -457,10 +524,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
         lastMessageTime: now // Update last message time for rate limiting
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
-      console.error('Failed to send message:', error);
-      set({ error: errorMessage, isLoading: false });
-      throw error;
+      const userError = createUserError(error as Error);
+      set({ error: userError.message, isLoading: false });
+      throw userError;
     }
   },
 

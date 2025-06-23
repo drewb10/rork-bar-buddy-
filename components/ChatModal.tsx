@@ -147,6 +147,8 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
     } catch (error) {
       setInputText(messageToSend);
       const errorMessage = error instanceof Error ? error.message : 'Could not send your message. Please try again.';
+      
+      // Show user-friendly error message
       Alert.alert(
         'Failed to Send',
         errorMessage,
