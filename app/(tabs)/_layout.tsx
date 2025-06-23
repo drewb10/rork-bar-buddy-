@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
-import { Chrome as Home, ChartBar as BarChart3, Camera, Trophy, User } from 'lucide-react-native';
+import { Home, MapPin, BarChart3, User, Camera, Trophy } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 
@@ -15,7 +15,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: themeColors.primary,
         tabBarInactiveTintColor: themeColors.subtext,
         tabBarStyle: {
-          backgroundColor: '#000000',
+          backgroundColor: '#000000', // Pure black tab bar
           borderTopColor: themeColors.border,
           paddingTop: Platform.OS === 'ios' ? 8 : 4,
           height: Platform.OS === 'ios' ? 88 : 64,

@@ -1,38 +1,41 @@
 import React from 'react';
-import { StyleSheet, View, Text } from 'react-native';
-import { colors } from '@/constants/colors';
-import { useThemeStore } from '@/stores/themeStore';
+import { StyleSheet, View, Image } from 'react-native';
 
 interface BarBuddyLogoProps {
   size?: 'small' | 'medium' | 'large';
 }
 
 export default function BarBuddyLogo({ size = 'medium' }: BarBuddyLogoProps) {
-  const { theme } = useThemeStore();
-  const themeColors = colors[theme];
-
   const dimensions = {
     small: {
-      fontSize: 24,
-      padding: 12,
+      width: 80,
+      height: 80,
     },
     medium: {
-      fontSize: 32,
-      padding: 16,
+      width: 120,
+      height: 120,
     },
     large: {
-      fontSize: 48,
-      padding: 24,
+      width: 160,
+      height: 160,
     },
   };
 
   const d = dimensions[size];
 
   return (
-    <View style={[styles.container, { padding: d.padding }]}>
-      <Text style={[styles.logo, { fontSize: d.fontSize, color: themeColors.primary }]}>
-        🍻 Bar Buddy
-      </Text>
+    <View style={styles.container}>
+      <Image
+        source={{ uri: 'https://i.postimg.cc/XqsP5XLf/dc3a8af4-19ed-4a3b-9b92-a738e62038d4-removalai-preview.png' }}
+        style={[
+          styles.logo,
+          {
+            width: d.width,
+            height: d.height,
+          }
+        ]}
+        resizeMode="contain"
+      />
     </View>
   );
 }
@@ -43,7 +46,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logo: {
-    fontWeight: '700',
-    textAlign: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });

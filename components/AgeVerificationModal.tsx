@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View, Text, Pressable, Modal, Alert } from 'react-native';
 import { X } from 'lucide-react-native';
 import { colors } from '@/constants/colors';

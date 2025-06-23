@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AgeVerificationState {
   isVerified: boolean;
@@ -22,7 +23,12 @@ export const useAgeVerificationStore = create<AgeVerificationState>()(
     }),
     {
       name: 'age-verification-storage',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => AsyncStorage),
+      // Ensure verification status persists across all sessions
+      partialize: (state) => ({
+        isVerified: state.isVerified,
+        verificationDate: state.verificationDate,
+      }),
     }
   )
 );

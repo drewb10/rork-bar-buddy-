@@ -1,22 +1,75 @@
-import React from 'react';
-import { StyleSheet, View, Text, Pressable, Image } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View, Text, Pressable, Image, Dimensions, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MapPin, Clock, Star } from 'lucide-react-native';
+import { MapPin, Clock, Star, Flame, Heart, TrendingUp } from 'lucide-react-native';
 import { Venue } from '@/types/venue';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
+import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
+import { useUserProfileStore } from '@/stores/userProfileStore';
+import * as Haptics from 'expo-haptics';
+import { Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface VenueCardProps {
   venue: Venue;
+  compact?: boolean;
 }
 
-export default function VenueCard({ venue }: VenueCardProps) {
+export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const router = useRouter();
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
+  const { incrementInteraction, getInteractionCount, getLikeCount, canInteract, getPopularArrivalTime } = useVenueInteractionStore();
+  const { incrementNightsOut, incrementBarsHit, canIncrementNightsOut } = useUserProfileStore();
+  const interactionCount = getInteractionCount(venue.id);
+  const likeCount = getLikeCount(venue.id);
+  const popularTime = getPopularArrivalTime(venue.id);
+  const [rsvpModalVisible, setRsvpModalVisible] = useState(false);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [isInteracting, setIsInteracting] = useState(false);
+  const canInteractWithVenue = canInteract(venue.id);
 
   const handlePress = () => {
+    if (isInteracting) return; // Prevent multiple clicks
     router.push(`/venue/${venue.id}`);
+  };
+
+  const handleInteraction = () => {
+    if (!canInteractWithVenue || isInteracting) return;
+    
+    setIsInteracting(true);
+    
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    
+    // Show RSVP modal
+    setRsvpModalVisible(true);
+  };
+
+  const handleRsvpSubmit = () => {
+    if (selectedTime) {
+      incrementInteraction(venue.id, selectedTime);
+      
+      // Increment bars hit (always increments)
+      incrementBarsHit();
+      
+      // Increment nights out (only once per day)
+      if (canIncrementNightsOut()) {
+        incrementNightsOut();
+      }
+      
+      setRsvpModalVisible(false);
+      setSelectedTime(null);
+      setIsInteracting(false);
+    }
+  };
+
+  const handleRsvpCancel = () => {
+    setRsvpModalVisible(false);
+    setSelectedTime(null);
+    setIsInteracting(false);
   };
 
   const renderPriceLevel = () => {
@@ -32,12 +85,120 @@ export default function VenueCard({ venue }: VenueCardProps) {
     special => special.day === getCurrentDay()
   );
 
+  // Generate time slots for RSVP
+  const generateTimeSlots = () => {
+    const slots = [];
+    const now = new Date();
+    const startHour = 19; // 7 PM
+    const endHour = 2; // 2 AM
+    
+    for (let hour = startHour; hour <= 23; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        slots.push(`${hour}:${minute === 0 ? '00' : minute}`);
+      }
+    }
+    
+    // Add early morning hours
+    for (let hour = 0; hour <= endHour; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        slots.push(`${hour}:${minute === 0 ? '00' : minute}`);
+      }
+    }
+    
+    return slots;
+  };
+
+  const formatTimeSlot = (timeSlot: string) => {
+    const [hours, minutes] = timeSlot.split(':');
+    const hour = parseInt(hours);
+    return `${hour % 12 || 12}:${minutes} ${hour >= 12 ? 'PM' : 'AM'}`;
+  };
+
+  const timeSlots = generateTimeSlots();
+
+  if (compact) {
+    return (
+      <Pressable 
+        style={[styles.compactCard, { backgroundColor: themeColors.card }]} 
+        onPress={handlePress}
+        disabled={isInteracting}
+      >
+        <Image source={{ uri: venue.featuredImage }} style={styles.compactImage} />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.7)']}
+          style={styles.compactGradient}
+        />
+        
+        {/* Like count badge for compact cards */}
+        {likeCount > 0 && (
+          <View style={[styles.compactLikeBadge, { backgroundColor: themeColors.primary }]}>
+            <Heart size={10} color="white" fill="white" />
+            <Text style={styles.compactLikeText}>{likeCount}</Text>
+          </View>
+        )}
+        
+        <View style={styles.compactContent}>
+          <Text style={[styles.compactName, { color: themeColors.text }]} numberOfLines={1}>
+            {venue.name}
+          </Text>
+          <View style={styles.compactDetails}>
+            <Text style={[styles.compactType, { color: themeColors.subtext }]} numberOfLines={1}>
+              {venue.types.map(t => t.replace('-', ' ')).join(' • ')}
+            </Text>
+            <View style={styles.ratingContainer}>
+              <Star size={12} color={themeColors.accent} fill={themeColors.accent} />
+              <Text style={[styles.rating, { color: themeColors.subtext }]}>{venue.rating}</Text>
+            </View>
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
+
   return (
     <Pressable 
       style={[styles.card, { backgroundColor: themeColors.card }]} 
       onPress={handlePress}
+      disabled={isInteracting}
     >
       <Image source={{ uri: venue.featuredImage }} style={styles.image} />
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.7)']}
+        style={styles.imageGradient}
+      />
+      
+      {/* Flame Button - No counter, just functional */}
+      <Pressable 
+        style={[
+          styles.interactionButton, 
+          { 
+            backgroundColor: interactionCount > 0 ? themeColors.primary : themeColors.card,
+            opacity: canInteractWithVenue && !isInteracting ? 1 : 0.5
+          }
+        ]}
+        onPress={handleInteraction}
+        disabled={!canInteractWithVenue || isInteracting}
+      >
+        <Flame 
+          size={18} 
+          color={interactionCount > 0 ? 'white' : themeColors.primary} 
+        />
+      </Pressable>
+
+      {/* Like count badge with enhanced styling */}
+      {likeCount > 0 && (
+        <View style={[styles.likeBadge, { backgroundColor: themeColors.primary }]}>
+          <Heart size={14} color="white" fill="white" />
+          <Text style={styles.likeText}>{likeCount}</Text>
+        </View>
+      )}
+
+      {/* Analytics indicator for venues with data */}
+      {likeCount > 5 && (
+        <View style={[styles.analyticsIndicator, { backgroundColor: themeColors.primary + '20' }]}>
+          <TrendingUp size={12} color={themeColors.primary} />
+        </View>
+      )}
       
       <View style={styles.content}>
         <View style={styles.header}>
@@ -63,6 +224,27 @@ export default function VenueCard({ venue }: VenueCardProps) {
             {renderPriceLevel()}
           </Text>
         </View>
+
+        {/* Enhanced Hot Time Badge with likes info */}
+        {popularTime && (
+          <View style={[styles.hotTimeBadge, { backgroundColor: themeColors.primary + '20' }]}>
+            <Flame size={14} color={themeColors.primary} />
+            <Text style={[styles.hotTimeText, { color: themeColors.primary }]}>
+              Hot Time: {popularTime.includes('/') 
+                ? popularTime.split('/').map(time => formatTimeSlot(time)).join('/')
+                : formatTimeSlot(popularTime)
+              }
+            </Text>
+            {likeCount > 0 && (
+              <View style={styles.hotTimeLikes}>
+                <Heart size={10} color={themeColors.primary} fill={themeColors.primary} />
+                <Text style={[styles.hotTimeLikesText, { color: themeColors.primary }]}>
+                  {likeCount}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
         
         {todaySpecials.length > 0 && (
           <View style={[styles.specialsContainer, { backgroundColor: 'rgba(255,106,0,0.1)' }]}>
@@ -93,6 +275,73 @@ export default function VenueCard({ venue }: VenueCardProps) {
           </View>
         )}
       </View>
+
+      {/* RSVP Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={rsvpModalVisible}
+        onRequestClose={handleRsvpCancel}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
+            <Text style={[styles.modalTitle, { color: themeColors.text }]}>
+              What time are you heading to {venue.name}?
+            </Text>
+            
+            <View style={styles.timeSlotContainer}>
+              {timeSlots.map((time, index) => (
+                <Pressable
+                  key={index}
+                  style={[
+                    styles.timeSlot,
+                    { 
+                      backgroundColor: selectedTime === time 
+                        ? themeColors.primary 
+                        : 'transparent',
+                      borderColor: themeColors.primary
+                    }
+                  ]}
+                  onPress={() => setSelectedTime(time)}
+                >
+                  <Text 
+                    style={[
+                      styles.timeSlotText, 
+                      { color: selectedTime === time ? 'white' : themeColors.primary }
+                    ]}
+                  >
+                    {formatTimeSlot(time)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            
+            <View style={styles.modalActions}>
+              <Pressable 
+                style={[styles.modalButton, styles.cancelButton]} 
+                onPress={handleRsvpCancel}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
+              
+              <Pressable 
+                style={[
+                  styles.modalButton, 
+                  styles.submitButton, 
+                  { 
+                    backgroundColor: selectedTime ? themeColors.primary : themeColors.card,
+                    opacity: selectedTime ? 1 : 0.5
+                  }
+                ]} 
+                onPress={handleRsvpSubmit}
+                disabled={!selectedTime}
+              >
+                <Text style={styles.submitButtonText}>Submit</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Pressable>
   );
 }
@@ -124,10 +373,64 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+    position: 'relative',
   },
   image: {
     width: '100%',
     height: 180,
+  },
+  imageGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 180,
+  },
+  interactionButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  likeBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  likeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  analyticsIndicator: {
+    position: 'absolute',
+    top: 56,
+    left: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
     padding: 16,
@@ -173,6 +476,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  hotTimeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+  },
+  hotTimeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  hotTimeLikes: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  hotTimeLikesText: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginLeft: 2,
+  },
   specialsContainer: {
     marginBottom: 12,
     padding: 10,
@@ -196,5 +527,125 @@ const styles = StyleSheet.create({
   infoText: {
     marginLeft: 8,
     fontSize: 14,
+  },
+  compactCard: {
+    width: 160,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    position: 'relative',
+  },
+  compactImage: {
+    width: '100%',
+    height: 100,
+  },
+  compactGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+  },
+  compactLikeBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  compactLikeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '600',
+    marginLeft: 3,
+  },
+  compactContent: {
+    padding: 10,
+  },
+  compactName: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  compactDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  compactType: {
+    fontSize: 12,
+    flex: 1,
+    textTransform: 'capitalize',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  timeSlotContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  timeSlot: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    margin: 5,
+  },
+  timeSlotText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: 'transparent',
+  },
+  cancelButtonText: {
+    color: '#999',
+    fontWeight: '500',
+  },
+  submitButton: {
+    backgroundColor: '#FF6A00',
+  },
+  submitButtonText: {
+    color: 'white',
+    fontWeight: '600',
   },
 });
