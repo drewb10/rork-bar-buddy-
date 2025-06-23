@@ -8,6 +8,7 @@ import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import { venues } from '@/mocks/venues';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import FriendsModal from '@/components/FriendsModal';
+import AvatarCustomizer from '@/components/AvatarCustomizer';
 import * as ImagePicker from 'expo-image-picker';
 
 export default function TrackingScreen() {
@@ -31,6 +32,7 @@ export default function TrackingScreen() {
   const [rankDetailsModalVisible, setRankDetailsModalVisible] = useState(false);
   const [editFirstName, setEditFirstName] = useState(profile.firstName);
   const [editLastName, setEditLastName] = useState(profile.lastName);
+  const [activeTab, setActiveTab] = useState<'profile' | 'avatar'>('profile');
   
   const rankInfo = getRank();
   const allRanks = getAllRanks();
@@ -121,121 +123,157 @@ export default function TrackingScreen() {
     <View style={[styles.container, { backgroundColor: '#000000' }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <BarBuddyLogo size="small" />
-          <Text style={[styles.headerTitle, { color: themeColors.text }]}>
-            Your Bar Buddy Profile
-          </Text>
-        </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <BarBuddyLogo size="small" />
+        <Text style={[styles.headerTitle, { color: themeColors.text }]}>
+          Your Bar Buddy Profile
+        </Text>
+      </View>
 
-        {/* Profile Card */}
-        <View style={[styles.profileCard, { backgroundColor: themeColors.card }]}>
-          <Pressable style={styles.avatarContainer} onPress={handleProfilePicturePress}>
-            {profile.profilePicture ? (
-              <Image source={{ uri: profile.profilePicture }} style={styles.avatarImage} />
-            ) : (
-              <View style={[styles.avatar, { backgroundColor: themeColors.primary }]}>
-                <User size={32} color="white" />
+      {/* Tab Navigation */}
+      <View style={styles.tabContainer}>
+        <Pressable 
+          style={[
+            styles.tab, 
+            activeTab === 'profile' && { borderBottomColor: themeColors.primary, borderBottomWidth: 2 }
+          ]}
+          onPress={() => setActiveTab('profile')}
+        >
+          <Text style={[
+            styles.tabText, 
+            { color: activeTab === 'profile' ? themeColors.primary : themeColors.subtext }
+          ]}>
+            Profile
+          </Text>
+        </Pressable>
+        <Pressable 
+          style={[
+            styles.tab, 
+            activeTab === 'avatar' && { borderBottomColor: themeColors.primary, borderBottomWidth: 2 }
+          ]}
+          onPress={() => setActiveTab('avatar')}
+        >
+          <Text style={[
+            styles.tabText, 
+            { color: activeTab === 'avatar' ? themeColors.primary : themeColors.subtext }
+          ]}>
+            Bar Buddy
+          </Text>
+        </Pressable>
+      </View>
+      
+      {activeTab === 'profile' ? (
+        <ScrollView 
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Profile Card */}
+          <View style={[styles.profileCard, { backgroundColor: themeColors.card }]}>
+            <Pressable style={styles.avatarContainer} onPress={handleProfilePicturePress}>
+              {profile.profilePicture ? (
+                <Image source={{ uri: profile.profilePicture }} style={styles.avatarImage} />
+              ) : (
+                <View style={[styles.avatar, { backgroundColor: themeColors.primary }]}>
+                  <User size={32} color="white" />
+                </View>
+              )}
+              <View style={[styles.cameraIcon, { backgroundColor: themeColors.primary }]}>
+                <Camera size={16} color="white" />
               </View>
-            )}
-            <View style={[styles.cameraIcon, { backgroundColor: themeColors.primary }]}>
-              <Camera size={16} color="white" />
+            </Pressable>
+            
+            <View style={styles.nameContainer}>
+              <Text style={[styles.userName, { color: themeColors.text }]}>
+                {profile.firstName} {profile.lastName}
+              </Text>
+              <Pressable 
+                style={styles.editButton}
+                onPress={() => {
+                  setEditFirstName(profile.firstName);
+                  setEditLastName(profile.lastName);
+                  setNameEditModalVisible(true);
+                }}
+              >
+                <Edit3 size={16} color={themeColors.primary} />
+              </Pressable>
             </View>
-          </Pressable>
-          
-          <View style={styles.nameContainer}>
-            <Text style={[styles.userName, { color: themeColors.text }]}>
-              {profile.firstName} {profile.lastName}
+            
+            <Text style={[styles.joinDate, { color: themeColors.subtext }]}>
+              Member since {formatJoinDate(profile.joinDate)}
             </Text>
+
+            {profile.userId && (
+              <Text style={[styles.userId, { color: themeColors.primary }]}>
+                {profile.userId}
+              </Text>
+            )}
+          </View>
+
+          {/* XP and Ranking Card */}
+          <View style={[styles.xpCard, { backgroundColor: themeColors.card }]}>
+            <View style={styles.xpHeader}>
+              <Award size={24} color={rankInfo.color} />
+              <View style={styles.xpInfo}>
+                <Text style={[styles.xpAmount, { color: themeColors.text }]}>
+                  {profile.xp} XP
+                </Text>
+                <Text style={[styles.xpToNext, { color: themeColors.subtext }]}>
+                  {nextRankXP - profile.xp} XP to next rank
+                </Text>
+              </View>
+            </View>
+            
+            <View style={[styles.progressBar, { backgroundColor: themeColors.background }]}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { 
+                    backgroundColor: rankInfo.color,
+                    width: `${progressToNext}%`
+                  }
+                ]} 
+              />
+            </View>
+            
             <Pressable 
-              style={styles.editButton}
-              onPress={() => {
-                setEditFirstName(profile.firstName);
-                setEditLastName(profile.lastName);
-                setNameEditModalVisible(true);
-              }}
+              style={styles.rankContainer}
+              onPress={() => setRankDetailsModalVisible(true)}
             >
-              <Edit3 size={16} color={themeColors.primary} />
+              <Text style={[styles.rankTitle, { color: rankInfo.color }]}>
+                {rankInfo.title}
+              </Text>
+              <Text style={[styles.rankSubtitle, { color: themeColors.text }]}>
+                {rankInfo.subTitle}
+              </Text>
+              <Info size={16} color={themeColors.subtext} style={styles.infoIcon} />
             </Pressable>
           </View>
-          
-          <Text style={[styles.joinDate, { color: themeColors.subtext }]}>
-            Member since {formatJoinDate(profile.joinDate)}
-          </Text>
 
-          {profile.userId && (
-            <Text style={[styles.userId, { color: themeColors.primary }]}>
-              {profile.userId}
-            </Text>
-          )}
-        </View>
-
-        {/* XP and Ranking Card */}
-        <View style={[styles.xpCard, { backgroundColor: themeColors.card }]}>
-          <View style={styles.xpHeader}>
-            <Award size={24} color={rankInfo.color} />
-            <View style={styles.xpInfo}>
-              <Text style={[styles.xpAmount, { color: themeColors.text }]}>
-                {profile.xp} XP
-              </Text>
-              <Text style={[styles.xpToNext, { color: themeColors.subtext }]}>
-                {nextRankXP - profile.xp} XP to next rank
-              </Text>
-            </View>
-          </View>
-          
-          <View style={[styles.progressBar, { backgroundColor: themeColors.background }]}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { 
-                  backgroundColor: rankInfo.color,
-                  width: `${progressToNext}%`
-                }
-              ]} 
-            />
-          </View>
-          
+          {/* Friends Button */}
           <Pressable 
-            style={styles.rankContainer}
-            onPress={() => setRankDetailsModalVisible(true)}
+            style={[styles.friendsButton, { backgroundColor: themeColors.card }]}
+            onPress={() => setFriendsModalVisible(true)}
           >
-            <Text style={[styles.rankTitle, { color: rankInfo.color }]}>
-              {rankInfo.title}
+            <Users size={20} color={themeColors.primary} />
+            <Text style={[styles.friendsButtonText, { color: themeColors.primary }]}>
+              Friends ({profile.friends.length})
             </Text>
-            <Text style={[styles.rankSubtitle, { color: themeColors.text }]}>
-              {rankInfo.subTitle}
-            </Text>
-            <Info size={16} color={themeColors.subtext} style={styles.infoIcon} />
+            {profile.friendRequests.length > 0 && (
+              <View style={[styles.notificationBadge, { backgroundColor: '#FF4444' }]}>
+                <Text style={styles.notificationText}>
+                  {profile.friendRequests.length}
+                </Text>
+              </View>
+            )}
           </Pressable>
-        </View>
 
-        {/* Friends Button */}
-        <Pressable 
-          style={[styles.friendsButton, { backgroundColor: themeColors.card }]}
-          onPress={() => setFriendsModalVisible(true)}
-        >
-          <Users size={20} color={themeColors.primary} />
-          <Text style={[styles.friendsButtonText, { color: themeColors.primary }]}>
-            Friends ({profile.friends.length})
-          </Text>
-          {profile.friendRequests.length > 0 && (
-            <View style={[styles.notificationBadge, { backgroundColor: '#FF4444' }]}>
-              <Text style={styles.notificationText}>
-                {profile.friendRequests.length}
-              </Text>
-            </View>
-          )}
-        </Pressable>
-
-        <View style={styles.footer} />
-      </ScrollView>
+          <View style={styles.footer} />
+        </ScrollView>
+      ) : (
+        <AvatarCustomizer />
+      )}
 
       {/* Name Edit Modal */}
       <Modal
@@ -393,17 +431,32 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 40,
   },
   header: {
     alignItems: 'center',
-    paddingBottom: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 16,
     paddingHorizontal: 16,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginTop: 8,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   profileCard: {
     marginHorizontal: 16,
