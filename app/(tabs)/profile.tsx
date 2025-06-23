@@ -17,7 +17,6 @@ export default function TrackingScreen() {
   const { 
     profile, 
     updateProfile, 
-    getAverageDrunkScale, 
     getRank,
     getAllRanks,
     getXPForNextRank,
@@ -36,7 +35,6 @@ export default function TrackingScreen() {
   const [editFirstName, setEditFirstName] = useState(profile.firstName);
   const [editLastName, setEditLastName] = useState(profile.lastName);
   
-  const averageDrunkScale = getAverageDrunkScale();
   const rankInfo = getRank();
   const allRanks = getAllRanks();
   const nextRankXP = getXPForNextRank();
@@ -263,16 +261,6 @@ export default function TrackingScreen() {
             Your Nightlife Stats
           </Text>
           
-          {/* Drunk Scale Average - Display Only */}
-          <View style={[styles.statCard, styles.fullWidthCard, { backgroundColor: themeColors.card }]}>
-            <Text style={[styles.statNumber, { color: themeColors.text }]}>
-              {averageDrunkScale > 0 ? averageDrunkScale.toFixed(1) : '0.0'}
-            </Text>
-            <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-              Drunk Scale Average
-            </Text>
-          </View>
-
           {/* Action Buttons Row */}
           <View style={styles.actionButtonsRow}>
             {/* Share Stats Button */}
@@ -657,33 +645,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 16,
     textAlign: 'center',
-  },
-  statCard: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  fullWidthCard: {
-    flex: 0,
-    width: '100%',
-    marginBottom: 12,
-  },
-  statNumber: {
-    fontSize: 32,
-    fontWeight: '800',
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 14,
-    textAlign: 'center',
-    fontWeight: '600',
   },
   actionButtonsRow: {
     flexDirection: 'row',
