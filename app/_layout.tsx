@@ -1,8 +1,7 @@
 import { Stack } from "expo-router";
-import { View, ImageBackground } from "react-native";
+import { View } from "react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/lib/trpc";
-import { supabase } from "@/lib/supabase";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { useAgeVerificationStore } from "@/stores/ageVerificationStore";
@@ -27,38 +26,6 @@ export default function RootLayout() {
   const { loadPopularTimesFromSupabase } = useVenueInteractionStore();
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
-  const [imageLoadError, setImageLoadError] = useState(false);
-
-  useEffect(() => {
-    // Load background image from Supabase
-    const loadBackground = () => {
-      try {
-        console.log('Loading background image from Supabase...');
-        
-        const { data } = supabase
-          .storage
-          .from('background-barbuddy')
-          .getPublicUrl('barbuddy-bg.png');
-
-        console.log('BG URL:', data.publicUrl);
-        
-        if (data.publicUrl) {
-          setBackgroundUrl(data.publicUrl);
-          setImageLoadError(false);
-        } else {
-          console.warn('Background URL is empty or invalid');
-          setImageLoadError(true);
-        }
-      } catch (error) {
-        console.error('Error loading background image:', error);
-        setImageLoadError(true);
-        setBackgroundUrl(null);
-      }
-    };
-
-    loadBackground();
-  }, []);
 
   useEffect(() => {
     // Initialize stores and load data
@@ -96,90 +63,69 @@ export default function RootLayout() {
     setShowOnboarding(false);
   };
 
-  const handleImageError = () => {
-    console.warn('Background image failed to load, using fallback');
-    setImageLoadError(true);
-  };
-
-  const renderBackground = () => {
-    if (backgroundUrl && !imageLoadError) {
-      return (
-        <ImageBackground
-          source={{ uri: backgroundUrl }}
-          style={{ flex: 1 }}
-          resizeMode="cover"
-          onError={handleImageError}
-        >
-          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.1)' }}>
-            {renderContent()}
-          </View>
-        </ImageBackground>
-      );
-    }
-
-    return (
-      <LinearGradient
-        colors={['#FF6B35', '#F7931E', '#FFD23F']}
-        style={{ flex: 1 }}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.1)' }}>
-          {renderContent()}
-        </View>
-      </LinearGradient>
-    );
-  };
-
-  const renderContent = () => (
-    <>
-      <Stack
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: 'transparent',
-          },
-          headerTintColor: '#FFFFFF',
-          headerShadowVisible: false,
-          contentStyle: {
-            backgroundColor: 'transparent',
-          },
-          headerShown: false,
-        }}
-      >
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="venue/[id]"
-          options={{
-            headerShown: true,
-            presentation: 'card',
-            headerBackTitle: 'Home',
-            headerTitle: '',
-            headerStyle: {
-              backgroundColor: 'rgba(18, 18, 18, 0.9)',
-            },
-            headerTintColor: '#FFFFFF',
-          }}
-        />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-
-      <AgeVerificationModal
-        visible={showAgeVerification}
-        onVerify={handleAgeVerification}
-      />
-
-      <OnboardingModal
-        visible={showOnboarding}
-        onComplete={handleOnboardingComplete}
-      />
-    </>
-  );
-
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <StatusBar style="light" />
-        {renderBackground()}
+        
+        <LinearGradient
+          colors={[
+            '#1a0000', // Deep dark red/black at top
+            '#2d0a00', // Dark brown-red
+            '#4a1500', // Darker orange-red
+            '#ff4500', // Bright orange-red center
+            '#ff6b35', // Warm orange
+            '#ff8c42', // Lighter orange
+            '#2d0a00', // Back to dark
+            '#1a0000', // Deep dark at bottom
+          ]}
+          locations={[0, 0.15, 0.3, 0.45, 0.55, 0.7, 0.85, 1]}
+          style={{ flex: 1 }}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.2)' }}>
+            <Stack
+              screenOptions={{
+                headerStyle: {
+                  backgroundColor: 'transparent',
+                },
+                headerTintColor: '#FFFFFF',
+                headerShadowVisible: false,
+                contentStyle: {
+                  backgroundColor: 'transparent',
+                },
+                headerShown: false,
+              }}
+            >
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="venue/[id]"
+                options={{
+                  headerShown: true,
+                  presentation: 'card',
+                  headerBackTitle: 'Home',
+                  headerTitle: '',
+                  headerStyle: {
+                    backgroundColor: 'rgba(18, 18, 18, 0.9)',
+                  },
+                  headerTintColor: '#FFFFFF',
+                }}
+              />
+              <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+            </Stack>
+
+            <AgeVerificationModal
+              visible={showAgeVerification}
+              onVerify={handleAgeVerification}
+            />
+
+            <OnboardingModal
+              visible={showOnboarding}
+              onComplete={handleOnboardingComplete}
+            />
+          </View>
+        </LinearGradient>
       </QueryClientProvider>
     </trpc.Provider>
   );

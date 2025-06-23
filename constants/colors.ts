@@ -1,30 +1,30 @@
-// Color palette for the app
+// Color palette for the app - Updated to match the warm gradient background
 export const colors = {
   dark: {
-    background: '#121212', // Slightly lighter black for better visibility
-    gradient: ['#121212', '#000000'],
-    card: '#1E1E1E', // Lighter card background
-    text: '#FFFFFF', // Pure white for better contrast
-    subtext: '#B3B3B3', // Lighter gray for better visibility
-    primary: '#FF6A00', // flame orange
-    secondary: '#FF944D',
-    accent: '#FF6A00',
-    border: '#333333',
+    background: '#1a0000', // Deep dark red/black to match gradient
+    gradient: ['#1a0000', '#ff4500', '#1a0000'], // Matches the app background
+    card: '#2d1a1a', // Warm dark card background
+    text: '#FFFFFF', // Pure white for contrast
+    subtext: '#E0B4B4', // Warm light gray with red tint
+    primary: '#ff4500', // Bright orange-red from gradient
+    secondary: '#ff6b35', // Warm orange
+    accent: '#ff8c42', // Lighter orange accent
+    border: '#4a2626', // Warm dark border
     success: '#4CAF50',
-    error: '#F44336',
+    error: '#FF6B6B', // Softer red error
   },
   light: {
-    background: '#F8F8F8',
-    gradient: ['#F8F8F8', '#EEEEEE'],
+    background: '#FFF8F5', // Warm white background
+    gradient: ['#FFF8F5', '#FFE8D6'], // Warm light gradient
     card: '#FFFFFF',
-    text: '#121212',
-    subtext: '#666666',
-    primary: '#FF6A00', // flame orange
-    secondary: '#FF944D',
-    accent: '#FF6A00',
-    border: '#EEEEEE',
+    text: '#2d0a00', // Dark brown text
+    subtext: '#8B4513', // Warm brown subtext
+    primary: '#ff4500', // Bright orange-red
+    secondary: '#ff6b35', // Warm orange
+    accent: '#ff8c42', // Lighter orange accent
+    border: '#FFE8D6', // Warm light border
     success: '#4CAF50',
-    error: '#F44336',
+    error: '#DC3545',
   }
 };
 
