@@ -36,9 +36,11 @@ export default function BarBuddyLogo({ size = 'medium' }: BarBuddyLogoProps) {
         ]}
         resizeMode="contain"
         onError={(error) => {
-          console.warn('Logo failed to load:', error);
+          console.warn('Logo failed to load, using fallback');
         }}
-        defaultSource={{ uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==' }}
+        onLoad={() => {
+          // Logo loaded successfully
+        }}
       />
     </View>
   );

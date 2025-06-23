@@ -87,7 +87,7 @@ interface UserProfileState {
   setProfilePicture: (uri: string) => void;
   setUserName: (firstName: string, lastName: string) => void;
   generateUserId: (firstName: string, lastName: string) => string;
-  completeOnboarding: (firstName: string, lastName: string) => void;
+  completeOnboarding: (firstName: string, lastName: string) => Promise<void>;
   addFriend: (friendUserId: string) => Promise<boolean>;
   removeFriend: (friendUserId: string) => void;
   searchUser: (userId: string) => Promise<Friend | null>;
@@ -187,15 +187,20 @@ const defaultProfile: UserProfile = {
 };
 
 const getRankByXP = (xp: number): RankInfo => {
-  // Ensure xp is a valid number
-  const validXP = typeof xp === 'number' && !isNaN(xp) ? xp : 0;
+  // Ensure xp is a valid number and prevent infinite loops
+  const validXP = (typeof xp === 'number' && !isNaN(xp) && isFinite(xp)) ? Math.max(0, xp) : 0;
   
-  for (let i = RANK_STRUCTURE.length - 1; i >= 0; i--) {
-    if (validXP >= RANK_STRUCTURE[i].minXP) {
-      return RANK_STRUCTURE[i];
+  try {
+    for (let i = RANK_STRUCTURE.length - 1; i >= 0; i--) {
+      if (validXP >= RANK_STRUCTURE[i].minXP) {
+        return RANK_STRUCTURE[i];
+      }
     }
+    return RANK_STRUCTURE[0];
+  } catch (error) {
+    console.warn('Error getting rank by XP:', error);
+    return RANK_STRUCTURE[0];
   }
-  return RANK_STRUCTURE[0];
 };
 
 const isSameDay = (date1: string, date2: string): boolean => {
@@ -217,14 +222,18 @@ export const useUserProfileStore = create<UserProfileState>()(
       isLoading: false,
       
       updateProfile: (updates) => {
-        set((state) => ({
-          profile: { 
-            ...state.profile, 
-            ...updates,
-            hasCustomizedProfile: true
-          }
-        }));
-        get().syncToSupabase();
+        try {
+          set((state) => ({
+            profile: { 
+              ...state.profile, 
+              ...updates,
+              hasCustomizedProfile: true
+            }
+          }));
+          get().syncToSupabase().catch(err => console.warn('Sync error:', err));
+        } catch (error) {
+          console.warn('Error updating profile:', error);
+        }
       },
       
       incrementNightsOut: () => {
@@ -236,17 +245,17 @@ export const useUserProfileStore = create<UserProfileState>()(
             set((state) => ({
               profile: {
                 ...state.profile,
-                nightsOut: state.profile.nightsOut + 1,
+                nightsOut: (state.profile.nightsOut || 0) + 1,
                 lastNightOutDate: today
               }
             }));
             
             // Check if this completes a night out (3+ bars)
-            if (profile.barsHit >= 3) {
+            if ((profile.barsHit || 0) >= 3) {
               get().awardXP('complete_night_out', 'Completed a night out with 3+ bars');
             }
             
-            get().syncToSupabase();
+            get().syncToSupabase().catch(err => console.warn('Sync error:', err));
           }
         } catch (error) {
           console.warn('Error incrementing nights out:', error);
@@ -254,29 +263,33 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
       
       incrementBarsHit: () => {
-        set((state) => ({
-          profile: {
-            ...state.profile,
-            barsHit: state.profile.barsHit + 1
-          }
-        }));
-        get().syncToSupabase();
+        try {
+          set((state) => ({
+            profile: {
+              ...state.profile,
+              barsHit: (state.profile.barsHit || 0) + 1
+            }
+          }));
+          get().syncToSupabase().catch(err => console.warn('Sync error:', err));
+        } catch (error) {
+          console.warn('Error incrementing bars hit:', error);
+        }
       },
       
       addDrunkScaleRating: (rating) => {
         try {
           // Ensure rating is a valid number
-          const validRating = typeof rating === 'number' && !isNaN(rating) ? rating : 0;
+          const validRating = (typeof rating === 'number' && !isNaN(rating) && isFinite(rating)) ? Math.max(0, Math.min(10, rating)) : 0;
           const today = new Date().toISOString();
           
           set((state) => ({
             profile: {
               ...state.profile,
-              drunkScaleRatings: [...state.profile.drunkScaleRatings, validRating],
+              drunkScaleRatings: [...(state.profile.drunkScaleRatings || []), validRating],
               lastDrunkScaleDate: today
             }
           }));
-          get().syncToSupabase();
+          get().syncToSupabase().catch(err => console.warn('Sync error:', err));
         } catch (error) {
           console.warn('Error adding drunk scale rating:', error);
         }
@@ -289,7 +302,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           
           // Filter out any invalid ratings
           const validRatings = drunkScaleRatings.filter(rating => 
-            typeof rating === 'number' && !isNaN(rating) && rating > 0
+            typeof rating === 'number' && !isNaN(rating) && isFinite(rating) && rating > 0
           );
           
           if (validRatings.length === 0) return 0;
@@ -298,8 +311,9 @@ export const useUserProfileStore = create<UserProfileState>()(
           const average = sum / validRatings.length;
           
           // Ensure the result is a valid number
-          return typeof average === 'number' && !isNaN(average) ? Math.round(average * 10) / 10 : 0;
-        } catch {
+          return (typeof average === 'number' && !isNaN(average) && isFinite(average)) ? Math.round(average * 10) / 10 : 0;
+        } catch (error) {
+          console.warn('Error calculating average drunk scale:', error);
           return 0;
         }
       },
@@ -307,8 +321,9 @@ export const useUserProfileStore = create<UserProfileState>()(
       getRank: () => {
         try {
           const { xp } = get().profile;
-          return getRankByXP(xp);
-        } catch {
+          return getRankByXP(xp || 0);
+        } catch (error) {
+          console.warn('Error getting rank:', error);
           return RANK_STRUCTURE[0];
         }
       },
@@ -324,12 +339,13 @@ export const useUserProfileStore = create<UserProfileState>()(
             rank.tier === currentRank.tier && rank.subRank === currentRank.subRank
           );
           
-          if (currentRankIndex < RANK_STRUCTURE.length - 1) {
+          if (currentRankIndex >= 0 && currentRankIndex < RANK_STRUCTURE.length - 1) {
             return RANK_STRUCTURE[currentRankIndex + 1].minXP;
           }
           
           return currentRank.maxXP;
-        } catch {
+        } catch (error) {
+          console.warn('Error getting XP for next rank:', error);
           return RANK_STRUCTURE[0].maxXP;
         }
       },
@@ -337,17 +353,18 @@ export const useUserProfileStore = create<UserProfileState>()(
       getProgressToNextRank: () => {
         try {
           const { xp } = get().profile;
-          const validXP = typeof xp === 'number' && !isNaN(xp) ? xp : 0;
+          const validXP = (typeof xp === 'number' && !isNaN(xp) && isFinite(xp)) ? Math.max(0, xp) : 0;
           const currentRank = get().getRank();
           const nextRankXP = get().getXPForNextRank();
           
           if (nextRankXP === currentRank.maxXP) return 100; // Max rank
           
           const progress = ((validXP - currentRank.minXP) / (nextRankXP - currentRank.minXP)) * 100;
-          const validProgress = typeof progress === 'number' && !isNaN(progress) ? progress : 0;
+          const validProgress = (typeof progress === 'number' && !isNaN(progress) && isFinite(progress)) ? progress : 0;
           
           return Math.min(Math.max(validProgress, 0), 100);
-        } catch {
+        } catch (error) {
+          console.warn('Error calculating progress to next rank:', error);
           return 0;
         }
       },
@@ -357,7 +374,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           const xpAmount = XP_VALUES[type] || 0;
           
           // Ensure xpAmount is a valid number
-          if (typeof xpAmount !== 'number' || isNaN(xpAmount)) {
+          if (typeof xpAmount !== 'number' || isNaN(xpAmount) || !isFinite(xpAmount)) {
             console.warn('Invalid XP amount for type:', type);
             return;
           }
@@ -365,7 +382,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           const activityId = Math.random().toString(36).substr(2, 9);
           
           set((state) => {
-            const currentXP = typeof state.profile.xp === 'number' && !isNaN(state.profile.xp) ? state.profile.xp : 0;
+            const currentXP = (typeof state.profile.xp === 'number' && !isNaN(state.profile.xp) && isFinite(state.profile.xp)) ? state.profile.xp : 0;
             
             const newActivity: XPActivity = {
               id: activityId,
@@ -381,11 +398,11 @@ export const useUserProfileStore = create<UserProfileState>()(
               xpActivities: [...(state.profile.xpActivities || []), newActivity],
             };
             
-            // Update specific counters
+            // Update specific counters safely
             switch (type) {
               case 'visit_new_bar':
-                if (venueId && !state.profile.visitedBars.includes(venueId)) {
-                  updatedProfile.visitedBars = [...state.profile.visitedBars, venueId];
+                if (venueId && !(state.profile.visitedBars || []).includes(venueId)) {
+                  updatedProfile.visitedBars = [...(state.profile.visitedBars || []), venueId];
                 }
                 break;
               case 'participate_event':
@@ -411,7 +428,7 @@ export const useUserProfileStore = create<UserProfileState>()(
             return { profile: updatedProfile };
           });
           
-          get().syncToSupabase();
+          get().syncToSupabase().catch(err => console.warn('Sync error:', err));
         } catch (error) {
           console.warn('Error awarding XP:', error);
         }
@@ -430,7 +447,7 @@ export const useUserProfileStore = create<UserProfileState>()(
               totalShotguns: (state.profile.totalShotguns || 0) + (stats.shotguns || 0),
             }
           }));
-          get().syncToSupabase();
+          get().syncToSupabase().catch(err => console.warn('Sync error:', err));
         } catch (error) {
           console.warn('Error updating daily tracker totals:', error);
         }
@@ -457,52 +474,70 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       setProfilePicture: (uri: string) => {
-        set((state) => ({
-          profile: {
-            ...state.profile,
-            profilePicture: uri,
-            hasCustomizedProfile: true
-          }
-        }));
-        get().syncToSupabase();
+        try {
+          set((state) => ({
+            profile: {
+              ...state.profile,
+              profilePicture: uri,
+              hasCustomizedProfile: true
+            }
+          }));
+          get().syncToSupabase().catch(err => console.warn('Sync error:', err));
+        } catch (error) {
+          console.warn('Error setting profile picture:', error);
+        }
       },
 
       setUserName: (firstName: string, lastName: string) => {
-        set((state) => ({
-          profile: {
-            ...state.profile,
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            hasCustomizedProfile: true
-          }
-        }));
-        get().syncToSupabase();
+        try {
+          set((state) => ({
+            profile: {
+              ...state.profile,
+              firstName: firstName.trim(),
+              lastName: lastName.trim(),
+              hasCustomizedProfile: true
+            }
+          }));
+          get().syncToSupabase().catch(err => console.warn('Sync error:', err));
+        } catch (error) {
+          console.warn('Error setting user name:', error);
+        }
       },
 
       generateUserId: (firstName: string, lastName: string) => {
-        const cleanName = `${firstName}${lastName}`.replace(/[^a-zA-Z0-9]/g, '');
-        const randomDigits = Math.floor(10000 + Math.random() * 90000).toString();
-        return `#${cleanName}${randomDigits}`;
+        try {
+          const cleanName = `${firstName}${lastName}`.replace(/[^a-zA-Z0-9]/g, '');
+          const randomDigits = Math.floor(10000 + Math.random() * 90000).toString();
+          return `#${cleanName}${randomDigits}`;
+        } catch (error) {
+          console.warn('Error generating user ID:', error);
+          return '#DefaultUser12345';
+        }
       },
 
       completeOnboarding: async (firstName: string, lastName: string) => {
-        const userId = get().generateUserId(firstName, lastName);
-        
-        set((state) => ({
-          profile: {
-            ...state.profile,
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            userId,
-            hasCompletedOnboarding: true,
-            hasCustomizedProfile: true
-          }
-        }));
+        try {
+          const userId = get().generateUserId(firstName, lastName);
+          
+          set((state) => ({
+            profile: {
+              ...state.profile,
+              firstName: firstName.trim(),
+              lastName: lastName.trim(),
+              userId,
+              hasCompletedOnboarding: true,
+              hasCustomizedProfile: true
+            }
+          }));
 
-        // Award XP for joining
-        get().awardXP('special_achievement', 'Welcome to BarBuddy!');
+          // Award XP for joining
+          get().awardXP('special_achievement', 'Welcome to BarBuddy!');
 
-        await get().syncToSupabase();
+          await get().syncToSupabase();
+        } catch (error) {
+          console.warn('Error completing onboarding:', error);
+          throw error;
+        }
       },
 
       addFriend: async (friendUserId: string) => {
@@ -511,14 +546,14 @@ export const useUserProfileStore = create<UserProfileState>()(
           if (!friend) return false;
 
           const { profile } = get();
-          if (profile.friends.some(f => f.userId === friendUserId)) {
+          if ((profile.friends || []).some(f => f.userId === friendUserId)) {
             return false;
           }
 
           set((state) => ({
             profile: {
               ...state.profile,
-              friends: [...state.profile.friends, friend]
+              friends: [...(state.profile.friends || []), friend]
             }
           }));
 
@@ -526,18 +561,23 @@ export const useUserProfileStore = create<UserProfileState>()(
           get().awardXP('bring_friend', `Added ${friend.name} as a friend`);
 
           return true;
-        } catch {
+        } catch (error) {
+          console.warn('Error adding friend:', error);
           return false;
         }
       },
 
       removeFriend: async (friendUserId: string) => {
-        set((state) => ({
-          profile: {
-            ...state.profile,
-            friends: state.profile.friends.filter(f => f.userId !== friendUserId)
-          }
-        }));
+        try {
+          set((state) => ({
+            profile: {
+              ...state.profile,
+              friends: (state.profile.friends || []).filter(f => f.userId !== friendUserId)
+            }
+          }));
+        } catch (error) {
+          console.warn('Error removing friend:', error);
+        }
       },
 
       searchUser: async (userId: string) => {
@@ -554,7 +594,8 @@ export const useUserProfileStore = create<UserProfileState>()(
             };
           }
           return null;
-        } catch {
+        } catch (error) {
+          console.warn('Error searching user:', error);
           return null;
         }
       },
@@ -562,7 +603,8 @@ export const useUserProfileStore = create<UserProfileState>()(
       sendFriendRequest: async (friendUserId: string) => {
         try {
           return true;
-        } catch {
+        } catch (error) {
+          console.warn('Error sending friend request:', error);
           return false;
         }
       },
@@ -570,7 +612,8 @@ export const useUserProfileStore = create<UserProfileState>()(
       acceptFriendRequest: async (requestId: string) => {
         try {
           return true;
-        } catch {
+        } catch (error) {
+          console.warn('Error accepting friend request:', error);
           return false;
         }
       },
@@ -578,7 +621,8 @@ export const useUserProfileStore = create<UserProfileState>()(
       declineFriendRequest: async (requestId: string) => {
         try {
           return true;
-        } catch {
+        } catch (error) {
+          console.warn('Error declining friend request:', error);
           return false;
         }
       },
@@ -592,9 +636,13 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       resetProfile: () => {
-        const { profile } = get();
-        if (!profile.hasCustomizedProfile) {
-          set({ profile: defaultProfile });
+        try {
+          const { profile } = get();
+          if (!profile.hasCustomizedProfile) {
+            set({ profile: defaultProfile });
+          }
+        } catch (error) {
+          console.warn('Error resetting profile:', error);
         }
       },
 
@@ -633,17 +681,21 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       syncToSupabase: async () => {
         try {
-          // Mock implementation
+          // Mock implementation - would sync to Supabase in real app
+          return Promise.resolve();
         } catch (error) {
           console.warn('Error syncing to Supabase:', error);
+          return Promise.resolve();
         }
       },
 
       loadFromSupabase: async () => {
         try {
-          // Mock implementation
+          // Mock implementation - would load from Supabase in real app
+          return Promise.resolve();
         } catch (error) {
           console.warn('Error loading from Supabase:', error);
+          return Promise.resolve();
         }
       }
     }),
@@ -653,6 +705,25 @@ export const useUserProfileStore = create<UserProfileState>()(
       partialize: (state) => ({
         profile: state.profile,
       }),
+      onRehydrateStorage: () => (state) => {
+        // Ensure profile has all required fields after rehydration
+        if (state?.profile) {
+          state.profile = {
+            ...defaultProfile,
+            ...state.profile,
+            // Ensure numeric fields are valid numbers
+            xp: (typeof state.profile.xp === 'number' && !isNaN(state.profile.xp) && isFinite(state.profile.xp)) ? state.profile.xp : 0,
+            nightsOut: (typeof state.profile.nightsOut === 'number' && !isNaN(state.profile.nightsOut) && isFinite(state.profile.nightsOut)) ? state.profile.nightsOut : 0,
+            barsHit: (typeof state.profile.barsHit === 'number' && !isNaN(state.profile.barsHit) && isFinite(state.profile.barsHit)) ? state.profile.barsHit : 0,
+            // Ensure arrays are valid
+            drunkScaleRatings: Array.isArray(state.profile.drunkScaleRatings) ? state.profile.drunkScaleRatings.filter(r => typeof r === 'number' && !isNaN(r) && isFinite(r)) : [],
+            xpActivities: Array.isArray(state.profile.xpActivities) ? state.profile.xpActivities : [],
+            visitedBars: Array.isArray(state.profile.visitedBars) ? state.profile.visitedBars : [],
+            friends: Array.isArray(state.profile.friends) ? state.profile.friends : [],
+            friendRequests: Array.isArray(state.profile.friendRequests) ? state.profile.friendRequests : [],
+          };
+        }
+      },
     }
   )
 );
