@@ -9,7 +9,6 @@ import { useUserProfileStore } from "@/stores/userProfileStore";
 import { useVenueInteractionStore } from "@/stores/venueInteractionStore";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
 import OnboardingModal from "@/components/OnboardingModal";
-import { LinearGradient } from "expo-linear-gradient";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -68,64 +67,47 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <StatusBar style="light" />
         
-        <LinearGradient
-          colors={[
-            '#1a0000', // Deep dark red/black at top
-            '#2d0a00', // Dark brown-red
-            '#4a1500', // Darker orange-red
-            '#ff4500', // Bright orange-red center
-            '#ff6b35', // Warm orange
-            '#ff8c42', // Lighter orange
-            '#2d0a00', // Back to dark
-            '#1a0000', // Deep dark at bottom
-          ]}
-          locations={[0, 0.15, 0.3, 0.45, 0.55, 0.7, 0.85, 1]}
-          style={{ flex: 1 }}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.2)' }}>
-            <Stack
-              screenOptions={{
+        <View style={{ flex: 1, backgroundColor: '#1a1a1a' }}>
+          <Stack
+            screenOptions={{
+              headerStyle: {
+                backgroundColor: 'transparent',
+              },
+              headerTintColor: '#FFFFFF',
+              headerShadowVisible: false,
+              contentStyle: {
+                backgroundColor: 'transparent',
+              },
+              headerShown: false,
+            }}
+          >
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="venue/[id]"
+              options={{
+                headerShown: true,
+                presentation: 'card',
+                headerBackTitle: 'Home',
+                headerTitle: '',
                 headerStyle: {
-                  backgroundColor: 'transparent',
+                  backgroundColor: 'rgba(18, 18, 18, 0.9)',
                 },
                 headerTintColor: '#FFFFFF',
-                headerShadowVisible: false,
-                contentStyle: {
-                  backgroundColor: 'transparent',
-                },
-                headerShown: false,
               }}
-            >
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="venue/[id]"
-                options={{
-                  headerShown: true,
-                  presentation: 'card',
-                  headerBackTitle: 'Home',
-                  headerTitle: '',
-                  headerStyle: {
-                    backgroundColor: 'rgba(18, 18, 18, 0.9)',
-                  },
-                  headerTintColor: '#FFFFFF',
-                }}
-              />
-              <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-            </Stack>
-
-            <AgeVerificationModal
-              visible={showAgeVerification}
-              onVerify={handleAgeVerification}
             />
+            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+          </Stack>
 
-            <OnboardingModal
-              visible={showOnboarding}
-              onComplete={handleOnboardingComplete}
-            />
-          </View>
-        </LinearGradient>
+          <AgeVerificationModal
+            visible={showAgeVerification}
+            onVerify={handleAgeVerification}
+          />
+
+          <OnboardingModal
+            visible={showOnboarding}
+            onComplete={handleOnboardingComplete}
+          />
+        </View>
       </QueryClientProvider>
     </trpc.Provider>
   );
