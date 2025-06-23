@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform } from 'react-native';
-import { Trophy, Award, Star, Target, CheckCircle } from 'lucide-react-native';
+import { Trophy, Award, Star, Target, CheckCircle, TrendingUp, MapPin } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
@@ -21,6 +21,13 @@ export default function TrophiesScreen() {
     beer: completedAchievements.filter(a => a.id.includes('beer') || a.id.includes('brew') || a.id.includes('lager') || a.id.includes('ale')),
     shot: completedAchievements.filter(a => a.id.includes('shot')),
     tower: completedAchievements.filter(a => a.id.includes('tower')),
+    scoop: completedAchievements.filter(a => a.id.includes('scoop')),
+    funnel: completedAchievements.filter(a => a.id.includes('funnel')),
+    shotgun: completedAchievements.filter(a => a.id.includes('shotgun')),
+    pool: completedAchievements.filter(a => a.id.includes('pool') && a.category === 'games'),
+    dart: completedAchievements.filter(a => a.id.includes('dart')),
+    bars: completedAchievements.filter(a => a.id.includes('bar-') && a.category === 'bars'),
+    nights: completedAchievements.filter(a => a.category === 'nights'),
   };
 
   return (
@@ -46,10 +53,10 @@ export default function TrophiesScreen() {
             <View style={styles.statItem}>
               <Trophy size={24} color={themeColors.primary} />
               <Text style={[styles.statNumber, { color: themeColors.text }]}>
-                {profile.visitedBars?.length || 0}
+                {profile.barsHit || 0}
               </Text>
               <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                Venues Visited
+                Bars Hit
               </Text>
             </View>
             
@@ -88,6 +95,38 @@ export default function TrophiesScreen() {
               </Text>
               <Text style={[styles.rankXP, { color: themeColors.subtext }]}>
                 {profile.xp} XP
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Nights Out and Bars Hit Tracker */}
+        <View style={[styles.nightsOutCard, { backgroundColor: themeColors.card }]}>
+          <View style={styles.nightsOutHeader}>
+            <TrendingUp size={24} color={themeColors.primary} />
+            <Text style={[styles.nightsOutTitle, { color: themeColors.text }]}>
+              Your Nightlife Journey
+            </Text>
+          </View>
+          
+          <View style={styles.nightsOutStats}>
+            <View style={styles.nightsOutStatItem}>
+              <TrendingUp size={20} color={themeColors.primary} />
+              <Text style={[styles.nightsOutStatNumber, { color: themeColors.text }]}>
+                {profile.nightsOut || 0}
+              </Text>
+              <Text style={[styles.nightsOutStatLabel, { color: themeColors.subtext }]}>
+                Nights Out
+              </Text>
+            </View>
+            
+            <View style={styles.nightsOutStatItem}>
+              <MapPin size={20} color={themeColors.primary} />
+              <Text style={[styles.nightsOutStatNumber, { color: themeColors.text }]}>
+                {profile.barsHit || 0}
+              </Text>
+              <Text style={[styles.nightsOutStatLabel, { color: themeColors.subtext }]}>
+                Bars Hit
               </Text>
             </View>
           </View>
@@ -144,6 +183,118 @@ export default function TrophiesScreen() {
             <View style={styles.levelBadges}>
               {multiLevelGroups.tower.map((achievement) => (
                 <View key={achievement.id} style={[styles.levelBadge, { backgroundColor: '#FF9800' }]}>
+                  <Text style={styles.levelBadgeText}>LV {achievement.level}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.progressSection}>
+            <Text style={[styles.progressSectionTitle, { color: themeColors.text }]}>
+              🥄 Scoop & Score Achievements
+            </Text>
+            <Text style={[styles.progressSectionSubtitle, { color: themeColors.subtext }]}>
+              {multiLevelGroups.scoop.length}/5 levels completed • {profile.totalScoopAndScores || 0} total scoop & scores
+            </Text>
+            <View style={styles.levelBadges}>
+              {multiLevelGroups.scoop.map((achievement) => (
+                <View key={achievement.id} style={[styles.levelBadge, { backgroundColor: '#E91E63' }]}>
+                  <Text style={styles.levelBadgeText}>LV {achievement.level}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.progressSection}>
+            <Text style={[styles.progressSectionTitle, { color: themeColors.text }]}>
+              🌪️ Funnel Achievements
+            </Text>
+            <Text style={[styles.progressSectionSubtitle, { color: themeColors.subtext }]}>
+              {multiLevelGroups.funnel.length}/5 levels completed • {profile.totalFunnels || 0} total funnels
+            </Text>
+            <View style={styles.levelBadges}>
+              {multiLevelGroups.funnel.map((achievement) => (
+                <View key={achievement.id} style={[styles.levelBadge, { backgroundColor: '#00BCD4' }]}>
+                  <Text style={styles.levelBadgeText}>LV {achievement.level}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.progressSection}>
+            <Text style={[styles.progressSectionTitle, { color: themeColors.text }]}>
+              🔫 Shotgun Achievements
+            </Text>
+            <Text style={[styles.progressSectionSubtitle, { color: themeColors.subtext }]}>
+              {multiLevelGroups.shotgun.length}/5 levels completed • {profile.totalShotguns || 0} total shotguns
+            </Text>
+            <View style={styles.levelBadges}>
+              {multiLevelGroups.shotgun.map((achievement) => (
+                <View key={achievement.id} style={[styles.levelBadge, { backgroundColor: '#795548' }]}>
+                  <Text style={styles.levelBadgeText}>LV {achievement.level}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.progressSection}>
+            <Text style={[styles.progressSectionTitle, { color: themeColors.text }]}>
+              🎱 Pool Game Achievements
+            </Text>
+            <Text style={[styles.progressSectionSubtitle, { color: themeColors.subtext }]}>
+              {multiLevelGroups.pool.length}/5 levels completed • {profile.totalPoolGamesWon || 0} total pool wins
+            </Text>
+            <View style={styles.levelBadges}>
+              {multiLevelGroups.pool.map((achievement) => (
+                <View key={achievement.id} style={[styles.levelBadge, { backgroundColor: '#607D8B' }]}>
+                  <Text style={styles.levelBadgeText}>LV {achievement.level}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.progressSection}>
+            <Text style={[styles.progressSectionTitle, { color: themeColors.text }]}>
+              🎯 Dart Game Achievements
+            </Text>
+            <Text style={[styles.progressSectionSubtitle, { color: themeColors.subtext }]}>
+              {multiLevelGroups.dart.length}/5 levels completed • {profile.totalDartGamesWon || 0} total dart wins
+            </Text>
+            <View style={styles.levelBadges}>
+              {multiLevelGroups.dart.map((achievement) => (
+                <View key={achievement.id} style={[styles.levelBadge, { backgroundColor: '#FF5722' }]}>
+                  <Text style={styles.levelBadgeText}>LV {achievement.level}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.progressSection}>
+            <Text style={[styles.progressSectionTitle, { color: themeColors.text }]}>
+              🗺️ Bar Exploration Achievements
+            </Text>
+            <Text style={[styles.progressSectionSubtitle, { color: themeColors.subtext }]}>
+              {multiLevelGroups.bars.length}/5 levels completed • {profile.barsHit || 0} bars visited
+            </Text>
+            <View style={styles.levelBadges}>
+              {multiLevelGroups.bars.map((achievement) => (
+                <View key={achievement.id} style={[styles.levelBadge, { backgroundColor: '#4CAF50' }]}>
+                  <Text style={styles.levelBadgeText}>LV {achievement.level}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.progressSection}>
+            <Text style={[styles.progressSectionTitle, { color: themeColors.text }]}>
+              🌙 Nightlife Achievements
+            </Text>
+            <Text style={[styles.progressSectionSubtitle, { color: themeColors.subtext }]}>
+              {multiLevelGroups.nights.length}/5 levels completed • {profile.nightsOut || 0} nights out
+            </Text>
+            <View style={styles.levelBadges}>
+              {multiLevelGroups.nights.map((achievement) => (
+                <View key={achievement.id} style={[styles.levelBadge, { backgroundColor: '#9C27B0' }]}>
                   <Text style={styles.levelBadgeText}>LV {achievement.level}</Text>
                 </View>
               ))}
@@ -369,6 +520,44 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  nightsOutCard: {
+    marginHorizontal: 16,
+    marginBottom: 24,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  nightsOutHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  nightsOutTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  nightsOutStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  nightsOutStatItem: {
+    alignItems: 'center',
+  },
+  nightsOutStatNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  nightsOutStatLabel: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   multiLevelCard: {
     marginHorizontal: 16,

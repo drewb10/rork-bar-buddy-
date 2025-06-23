@@ -25,23 +25,93 @@ export default function AchievementsScreen() {
       totalBeers: profile.totalBeers || 0,
       totalShots: profile.totalShots || 0,
       totalBeerTowers: profile.totalBeerTowers || 0,
+      totalScoopAndScores: profile.totalScoopAndScores || 0,
+      totalFunnels: profile.totalFunnels || 0,
+      totalShotguns: profile.totalShotguns || 0,
+      totalPoolGamesWon: profile.totalPoolGamesWon || 0,
+      totalDartGamesWon: profile.totalDartGamesWon || 0,
+      barsHit: profile.barsHit || 0,
+      nightsOut: profile.nightsOut || 0,
     });
-  }, [profile.totalBeers, profile.totalShots, profile.totalBeerTowers]);
+  }, [
+    profile.totalBeers, 
+    profile.totalShots, 
+    profile.totalBeerTowers,
+    profile.totalScoopAndScores,
+    profile.totalFunnels,
+    profile.totalShotguns,
+    profile.totalPoolGamesWon,
+    profile.totalDartGamesWon,
+    profile.barsHit,
+    profile.nightsOut
+  ]);
 
   const categories: { key: Achievement['category'] | 'all'; title: string; icon: string }[] = [
     { key: 'all', title: 'All', icon: '🎯' },
     { key: 'consumption', title: 'Consumption', icon: '🍻' },
     { key: 'bars', title: 'Bar Hopping', icon: '🏪' },
-    { key: 'activities', title: 'Activities', icon: '🎮' },
+    { key: 'nights', title: 'Nights Out', icon: '🌙' },
+    { key: 'games', title: 'Games', icon: '🎮' },
+    { key: 'activities', title: 'Activities', icon: '🎪' },
     { key: 'social', title: 'Social', icon: '👥' },
     { key: 'milestones', title: 'Milestones', icon: '🏆' },
     { key: 'special', title: 'Special', icon: '⭐' },
   ];
 
-  const filteredAchievements = selectedCategory === 'all' 
-    ? achievements 
-    : achievements.filter(a => a.category === selectedCategory);
+  // Filter achievements to show only incomplete ones or the current level for multi-level achievements
+  const getVisibleAchievements = () => {
+    const allAchievements = selectedCategory === 'all' 
+      ? achievements 
+      : achievements.filter(a => a.category === selectedCategory);
 
+    // For multi-level achievements, only show the current level (incomplete) or next level if current is complete
+    const visibleAchievements: Achievement[] = [];
+    const processedMultiLevel = new Set<string>();
+
+    allAchievements.forEach(achievement => {
+      if (achievement.isMultiLevel) {
+        // Create a base key for the multi-level group
+        const baseKey = achievement.id.replace(/-\d+$/, '').replace(/-(beginner|starter|rookie|novice|owl|explorer)$/, '');
+        
+        if (!processedMultiLevel.has(baseKey)) {
+          processedMultiLevel.add(baseKey);
+          
+          // Find all achievements in this multi-level group
+          const groupAchievements = allAchievements
+            .filter(a => a.isMultiLevel && (
+              a.id.includes(baseKey) || 
+              (baseKey.includes('beer') && (a.id.includes('beer') || a.id.includes('brew') || a.id.includes('lager') || a.id.includes('ale'))) ||
+              (baseKey.includes('shot') && a.id.includes('shot')) ||
+              (baseKey.includes('tower') && a.id.includes('tower')) ||
+              (baseKey.includes('scoop') && a.id.includes('scoop')) ||
+              (baseKey.includes('funnel') && a.id.includes('funnel')) ||
+              (baseKey.includes('shotgun') && a.id.includes('shotgun')) ||
+              (baseKey.includes('pool') && a.id.includes('pool') && a.category === 'games') ||
+              (baseKey.includes('dart') && a.id.includes('dart')) ||
+              (baseKey.includes('bar') && a.id.includes('bar-') && a.category === 'bars') ||
+              (baseKey.includes('night') && a.category === 'nights')
+            ))
+            .sort((a, b) => (a.level || 0) - (b.level || 0));
+
+          // Find the current level to show (first incomplete one)
+          const currentLevel = groupAchievements.find(a => !a.completed);
+          if (currentLevel) {
+            visibleAchievements.push(currentLevel);
+          } else if (groupAchievements.length > 0) {
+            // If all are complete, show the highest level
+            visibleAchievements.push(groupAchievements[groupAchievements.length - 1]);
+          }
+        }
+      } else {
+        // For non-multi-level achievements, show all
+        visibleAchievements.push(achievement);
+      }
+    });
+
+    return visibleAchievements.sort((a, b) => a.order - b.order);
+  };
+
+  const filteredAchievements = getVisibleAchievements();
   const completedCount = achievements.filter(a => a.completed).length;
   const totalCount = achievements.length;
 

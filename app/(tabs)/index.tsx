@@ -88,10 +88,10 @@ export default function HomeScreen() {
           filterType="venue"
         />
 
-        {/* Daily Tracker Icon - Moved below filters with dark gray color */}
+        {/* Daily Tracker Icon - Updated to black background */}
         <View style={styles.dailyTrackerContainer}>
           <Pressable
-            style={[styles.dailyTrackerButton, { backgroundColor: '#444444' }]}
+            style={[styles.dailyTrackerButton, { backgroundColor: '#000000' }]}
             onPress={() => setShowDailyTracker(true)}
           >
             <BarChart3 size={24} color="white" />

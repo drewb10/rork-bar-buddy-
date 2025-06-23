@@ -6,7 +6,7 @@ export interface Achievement {
   id: string;
   title: string;
   description: string;
-  category: 'bars' | 'activities' | 'social' | 'milestones' | 'special' | 'consumption';
+  category: 'bars' | 'activities' | 'social' | 'milestones' | 'special' | 'consumption' | 'nights' | 'games';
   completed: boolean;
   completedAt?: string;
   icon: string;
@@ -31,7 +31,18 @@ interface AchievementState {
   shouldShowPopup: () => boolean;
   shouldShow3AMPopup: () => boolean;
   mark3AMPopupShown: () => void;
-  checkAndUpdateMultiLevelAchievements: (userStats: { totalBeers: number; totalShots: number; totalBeerTowers: number; }) => void;
+  checkAndUpdateMultiLevelAchievements: (userStats: { 
+    totalBeers: number; 
+    totalShots: number; 
+    totalBeerTowers: number;
+    totalScoopAndScores: number;
+    totalFunnels: number;
+    totalShotguns: number;
+    totalPoolGamesWon: number;
+    totalDartGamesWon: number;
+    barsHit: number;
+    nightsOut: number;
+  }) => void;
 }
 
 const defaultAchievements: Achievement[] = [
@@ -76,16 +87,147 @@ const defaultAchievements: Achievement[] = [
     maxProgress: 3,
     order: 4,
   },
+
+  // Multi-Level Bars Visited Achievements
   {
-    id: 'venue-explorer',
-    title: 'Venue Explorer',
-    description: 'Visited 10 different venues',
+    id: 'bar-explorer',
+    title: 'Bar Explorer',
+    description: 'Visit 5 different bars total',
     category: 'bars',
     completed: false,
     icon: '🗺️',
     progress: 0,
-    maxProgress: 10,
+    maxProgress: 5,
     order: 5,
+    level: 1,
+    isMultiLevel: true,
+    nextLevelId: 'bar-adventurer',
+  },
+  {
+    id: 'bar-adventurer',
+    title: 'Bar Adventurer',
+    description: 'Visit 15 different bars total',
+    category: 'bars',
+    completed: false,
+    icon: '🗺️',
+    progress: 0,
+    maxProgress: 15,
+    order: 6,
+    level: 2,
+    isMultiLevel: true,
+    nextLevelId: 'bar-enthusiast',
+  },
+  {
+    id: 'bar-enthusiast',
+    title: 'Bar Enthusiast',
+    description: 'Visit 30 different bars total',
+    category: 'bars',
+    completed: false,
+    icon: '🗺️',
+    progress: 0,
+    maxProgress: 30,
+    order: 7,
+    level: 3,
+    isMultiLevel: true,
+    nextLevelId: 'bar-connoisseur',
+  },
+  {
+    id: 'bar-connoisseur',
+    title: 'Bar Connoisseur',
+    description: 'Visit 50 different bars total',
+    category: 'bars',
+    completed: false,
+    icon: '🗺️',
+    progress: 0,
+    maxProgress: 50,
+    order: 8,
+    level: 4,
+    isMultiLevel: true,
+    nextLevelId: 'bar-legend',
+  },
+  {
+    id: 'bar-legend',
+    title: 'Bar Legend',
+    description: 'Visit 100 different bars total',
+    category: 'bars',
+    completed: false,
+    icon: '🗺️',
+    progress: 0,
+    maxProgress: 100,
+    order: 9,
+    level: 5,
+    isMultiLevel: true,
+  },
+
+  // Multi-Level Nights Out Achievements
+  {
+    id: 'night-owl',
+    title: 'Night Owl',
+    description: 'Complete 10 nights out total',
+    category: 'nights',
+    completed: false,
+    icon: '🦉',
+    progress: 0,
+    maxProgress: 10,
+    order: 10,
+    level: 1,
+    isMultiLevel: true,
+    nextLevelId: 'party-goer',
+  },
+  {
+    id: 'party-goer',
+    title: 'Party Goer',
+    description: 'Complete 25 nights out total',
+    category: 'nights',
+    completed: false,
+    icon: '🎉',
+    progress: 0,
+    maxProgress: 25,
+    order: 11,
+    level: 2,
+    isMultiLevel: true,
+    nextLevelId: 'social-butterfly-nights',
+  },
+  {
+    id: 'social-butterfly-nights',
+    title: 'Social Butterfly',
+    description: 'Complete 50 nights out total',
+    category: 'nights',
+    completed: false,
+    icon: '🦋',
+    progress: 0,
+    maxProgress: 50,
+    order: 12,
+    level: 3,
+    isMultiLevel: true,
+    nextLevelId: 'nightlife-aficionado',
+  },
+  {
+    id: 'nightlife-aficionado',
+    title: 'Nightlife Aficionado',
+    description: 'Complete 75 nights out total',
+    category: 'nights',
+    completed: false,
+    icon: '🌙',
+    progress: 0,
+    maxProgress: 75,
+    order: 13,
+    level: 4,
+    isMultiLevel: true,
+    nextLevelId: 'nightlife-legend',
+  },
+  {
+    id: 'nightlife-legend',
+    title: 'Nightlife Legend',
+    description: 'Complete 100 nights out total',
+    category: 'nights',
+    completed: false,
+    icon: '👑',
+    progress: 0,
+    maxProgress: 100,
+    order: 14,
+    level: 5,
+    isMultiLevel: true,
   },
   
   // Multi-Level Beer Achievements
@@ -98,7 +240,7 @@ const defaultAchievements: Achievement[] = [
     icon: '🍺',
     progress: 0,
     maxProgress: 10,
-    order: 6,
+    order: 15,
     level: 1,
     isMultiLevel: true,
     nextLevelId: 'brew-enthusiast',
@@ -112,7 +254,7 @@ const defaultAchievements: Achievement[] = [
     icon: '🍻',
     progress: 0,
     maxProgress: 50,
-    order: 7,
+    order: 16,
     level: 2,
     isMultiLevel: true,
     nextLevelId: 'lager-lover',
@@ -126,7 +268,7 @@ const defaultAchievements: Achievement[] = [
     icon: '🍺',
     progress: 0,
     maxProgress: 100,
-    order: 8,
+    order: 17,
     level: 3,
     isMultiLevel: true,
     nextLevelId: 'ale-aficionado',
@@ -140,7 +282,7 @@ const defaultAchievements: Achievement[] = [
     icon: '🍻',
     progress: 0,
     maxProgress: 250,
-    order: 9,
+    order: 18,
     level: 4,
     isMultiLevel: true,
     nextLevelId: 'beer-annihilator',
@@ -154,7 +296,7 @@ const defaultAchievements: Achievement[] = [
     icon: '🍺',
     progress: 0,
     maxProgress: 500,
-    order: 10,
+    order: 19,
     level: 5,
     isMultiLevel: true,
   },
@@ -169,7 +311,7 @@ const defaultAchievements: Achievement[] = [
     icon: '🥃',
     progress: 0,
     maxProgress: 10,
-    order: 11,
+    order: 20,
     level: 1,
     isMultiLevel: true,
     nextLevelId: 'quick-shooter',
@@ -183,7 +325,7 @@ const defaultAchievements: Achievement[] = [
     icon: '🥃',
     progress: 0,
     maxProgress: 30,
-    order: 12,
+    order: 21,
     level: 2,
     isMultiLevel: true,
     nextLevelId: 'shot-pro',
@@ -197,7 +339,7 @@ const defaultAchievements: Achievement[] = [
     icon: '🥃',
     progress: 0,
     maxProgress: 75,
-    order: 13,
+    order: 22,
     level: 3,
     isMultiLevel: true,
     nextLevelId: 'shot-master',
@@ -211,7 +353,7 @@ const defaultAchievements: Achievement[] = [
     icon: '🥃',
     progress: 0,
     maxProgress: 150,
-    order: 14,
+    order: 23,
     level: 4,
     isMultiLevel: true,
     nextLevelId: 'shot-legend',
@@ -225,7 +367,7 @@ const defaultAchievements: Achievement[] = [
     icon: '🥃',
     progress: 0,
     maxProgress: 300,
-    order: 15,
+    order: 24,
     level: 5,
     isMultiLevel: true,
   },
@@ -240,7 +382,7 @@ const defaultAchievements: Achievement[] = [
     icon: '🗼',
     progress: 0,
     maxProgress: 5,
-    order: 16,
+    order: 25,
     level: 1,
     isMultiLevel: true,
     nextLevelId: 'tower-enthusiast',
@@ -254,7 +396,7 @@ const defaultAchievements: Achievement[] = [
     icon: '🗼',
     progress: 0,
     maxProgress: 15,
-    order: 17,
+    order: 26,
     level: 2,
     isMultiLevel: true,
     nextLevelId: 'tower-master',
@@ -268,7 +410,7 @@ const defaultAchievements: Achievement[] = [
     icon: '🗼',
     progress: 0,
     maxProgress: 30,
-    order: 18,
+    order: 27,
     level: 3,
     isMultiLevel: true,
     nextLevelId: 'tower-connoisseur',
@@ -282,7 +424,7 @@ const defaultAchievements: Achievement[] = [
     icon: '🗼',
     progress: 0,
     maxProgress: 50,
-    order: 19,
+    order: 28,
     level: 4,
     isMultiLevel: true,
     nextLevelId: 'tower-titan',
@@ -296,7 +438,362 @@ const defaultAchievements: Achievement[] = [
     icon: '🗼',
     progress: 0,
     maxProgress: 100,
-    order: 20,
+    order: 29,
+    level: 5,
+    isMultiLevel: true,
+  },
+
+  // Multi-Level Scoop and Score Achievements
+  {
+    id: 'rookie-scooper',
+    title: 'Rookie Scooper',
+    description: 'Complete 10 scoop and scores total',
+    category: 'consumption',
+    completed: false,
+    icon: '🥄',
+    progress: 0,
+    maxProgress: 10,
+    order: 30,
+    level: 1,
+    isMultiLevel: true,
+    nextLevelId: 'scoop-enthusiast',
+  },
+  {
+    id: 'scoop-enthusiast',
+    title: 'Scoop Enthusiast',
+    description: 'Complete 25 scoop and scores total',
+    category: 'consumption',
+    completed: false,
+    icon: '🥄',
+    progress: 0,
+    maxProgress: 25,
+    order: 31,
+    level: 2,
+    isMultiLevel: true,
+    nextLevelId: 'scoop-pro',
+  },
+  {
+    id: 'scoop-pro',
+    title: 'Scoop Pro',
+    description: 'Complete 50 scoop and scores total',
+    category: 'consumption',
+    completed: false,
+    icon: '🥄',
+    progress: 0,
+    maxProgress: 50,
+    order: 32,
+    level: 3,
+    isMultiLevel: true,
+    nextLevelId: 'scoop-master',
+  },
+  {
+    id: 'scoop-master',
+    title: 'Scoop Master',
+    description: 'Complete 100 scoop and scores total',
+    category: 'consumption',
+    completed: false,
+    icon: '🥄',
+    progress: 0,
+    maxProgress: 100,
+    order: 33,
+    level: 4,
+    isMultiLevel: true,
+    nextLevelId: 'scoop-champion',
+  },
+  {
+    id: 'scoop-champion',
+    title: 'Scoop Champion',
+    description: 'Complete 200 scoop and scores total',
+    category: 'consumption',
+    completed: false,
+    icon: '🥄',
+    progress: 0,
+    maxProgress: 200,
+    order: 34,
+    level: 5,
+    isMultiLevel: true,
+  },
+
+  // Multi-Level Funnel Achievements
+  {
+    id: 'funnel-novice',
+    title: 'Funnel Novice',
+    description: 'Complete 5 funnels total',
+    category: 'consumption',
+    completed: false,
+    icon: '🌪️',
+    progress: 0,
+    maxProgress: 5,
+    order: 35,
+    level: 1,
+    isMultiLevel: true,
+    nextLevelId: 'funnel-enthusiast',
+  },
+  {
+    id: 'funnel-enthusiast',
+    title: 'Funnel Enthusiast',
+    description: 'Complete 15 funnels total',
+    category: 'consumption',
+    completed: false,
+    icon: '🌪️',
+    progress: 0,
+    maxProgress: 15,
+    order: 36,
+    level: 2,
+    isMultiLevel: true,
+    nextLevelId: 'funnel-pro',
+  },
+  {
+    id: 'funnel-pro',
+    title: 'Funnel Pro',
+    description: 'Complete 30 funnels total',
+    category: 'consumption',
+    completed: false,
+    icon: '🌪️',
+    progress: 0,
+    maxProgress: 30,
+    order: 37,
+    level: 3,
+    isMultiLevel: true,
+    nextLevelId: 'funnel-master',
+  },
+  {
+    id: 'funnel-master',
+    title: 'Funnel Master',
+    description: 'Complete 50 funnels total',
+    category: 'consumption',
+    completed: false,
+    icon: '🌪️',
+    progress: 0,
+    maxProgress: 50,
+    order: 38,
+    level: 4,
+    isMultiLevel: true,
+    nextLevelId: 'funnel-champion',
+  },
+  {
+    id: 'funnel-champion',
+    title: 'Funnel Champion',
+    description: 'Complete 75 funnels total',
+    category: 'consumption',
+    completed: false,
+    icon: '🌪️',
+    progress: 0,
+    maxProgress: 75,
+    order: 39,
+    level: 5,
+    isMultiLevel: true,
+  },
+
+  // Multi-Level Shotgun Achievements
+  {
+    id: 'shotgun-novice',
+    title: 'Shotgun Novice',
+    description: 'Complete 10 shotguns total',
+    category: 'consumption',
+    completed: false,
+    icon: '🔫',
+    progress: 0,
+    maxProgress: 10,
+    order: 40,
+    level: 1,
+    isMultiLevel: true,
+    nextLevelId: 'shotgun-enthusiast',
+  },
+  {
+    id: 'shotgun-enthusiast',
+    title: 'Shotgun Enthusiast',
+    description: 'Complete 25 shotguns total',
+    category: 'consumption',
+    completed: false,
+    icon: '🔫',
+    progress: 0,
+    maxProgress: 25,
+    order: 41,
+    level: 2,
+    isMultiLevel: true,
+    nextLevelId: 'shotgun-pro',
+  },
+  {
+    id: 'shotgun-pro',
+    title: 'Shotgun Pro',
+    description: 'Complete 50 shotguns total',
+    category: 'consumption',
+    completed: false,
+    icon: '🔫',
+    progress: 0,
+    maxProgress: 50,
+    order: 42,
+    level: 3,
+    isMultiLevel: true,
+    nextLevelId: 'shotgun-master',
+  },
+  {
+    id: 'shotgun-master',
+    title: 'Shotgun Master',
+    description: 'Complete 75 shotguns total',
+    category: 'consumption',
+    completed: false,
+    icon: '🔫',
+    progress: 0,
+    maxProgress: 75,
+    order: 43,
+    level: 4,
+    isMultiLevel: true,
+    nextLevelId: 'shotgun-champion',
+  },
+  {
+    id: 'shotgun-champion',
+    title: 'Shotgun Champion',
+    description: 'Complete 100 shotguns total',
+    category: 'consumption',
+    completed: false,
+    icon: '🔫',
+    progress: 0,
+    maxProgress: 100,
+    order: 44,
+    level: 5,
+    isMultiLevel: true,
+  },
+
+  // Multi-Level Pool Game Achievements
+  {
+    id: 'pool-rookie',
+    title: 'Pool Rookie',
+    description: 'Win 5 pool games total',
+    category: 'games',
+    completed: false,
+    icon: '🎱',
+    progress: 0,
+    maxProgress: 5,
+    order: 45,
+    level: 1,
+    isMultiLevel: true,
+    nextLevelId: 'pool-enthusiast',
+  },
+  {
+    id: 'pool-enthusiast',
+    title: 'Pool Enthusiast',
+    description: 'Win 15 pool games total',
+    category: 'games',
+    completed: false,
+    icon: '🎱',
+    progress: 0,
+    maxProgress: 15,
+    order: 46,
+    level: 2,
+    isMultiLevel: true,
+    nextLevelId: 'pool-pro',
+  },
+  {
+    id: 'pool-pro',
+    title: 'Pool Pro',
+    description: 'Win 30 pool games total',
+    category: 'games',
+    completed: false,
+    icon: '🎱',
+    progress: 0,
+    maxProgress: 30,
+    order: 47,
+    level: 3,
+    isMultiLevel: true,
+    nextLevelId: 'pool-master',
+  },
+  {
+    id: 'pool-master',
+    title: 'Pool Master',
+    description: 'Win 50 pool games total',
+    category: 'games',
+    completed: false,
+    icon: '🎱',
+    progress: 0,
+    maxProgress: 50,
+    order: 48,
+    level: 4,
+    isMultiLevel: true,
+    nextLevelId: 'pool-champion',
+  },
+  {
+    id: 'pool-champion',
+    title: 'Pool Champion',
+    description: 'Win 75 pool games total',
+    category: 'games',
+    completed: false,
+    icon: '🎱',
+    progress: 0,
+    maxProgress: 75,
+    order: 49,
+    level: 5,
+    isMultiLevel: true,
+  },
+
+  // Multi-Level Dart Game Achievements
+  {
+    id: 'dart-rookie',
+    title: 'Dart Rookie',
+    description: 'Win 5 dart games total',
+    category: 'games',
+    completed: false,
+    icon: '🎯',
+    progress: 0,
+    maxProgress: 5,
+    order: 50,
+    level: 1,
+    isMultiLevel: true,
+    nextLevelId: 'dart-enthusiast',
+  },
+  {
+    id: 'dart-enthusiast',
+    title: 'Dart Enthusiast',
+    description: 'Win 15 dart games total',
+    category: 'games',
+    completed: false,
+    icon: '🎯',
+    progress: 0,
+    maxProgress: 15,
+    order: 51,
+    level: 2,
+    isMultiLevel: true,
+    nextLevelId: 'dart-pro',
+  },
+  {
+    id: 'dart-pro',
+    title: 'Dart Pro',
+    description: 'Win 30 dart games total',
+    category: 'games',
+    completed: false,
+    icon: '🎯',
+    progress: 0,
+    maxProgress: 30,
+    order: 52,
+    level: 3,
+    isMultiLevel: true,
+    nextLevelId: 'dart-master',
+  },
+  {
+    id: 'dart-master',
+    title: 'Dart Master',
+    description: 'Win 50 dart games total',
+    category: 'games',
+    completed: false,
+    icon: '🎯',
+    progress: 0,
+    maxProgress: 50,
+    order: 53,
+    level: 4,
+    isMultiLevel: true,
+    nextLevelId: 'dart-champion',
+  },
+  {
+    id: 'dart-champion',
+    title: 'Dart Champion',
+    description: 'Win 75 dart games total',
+    category: 'games',
+    completed: false,
+    icon: '🎯',
+    progress: 0,
+    maxProgress: 75,
+    order: 54,
     level: 5,
     isMultiLevel: true,
   },
@@ -311,7 +808,7 @@ const defaultAchievements: Achievement[] = [
     icon: '📸',
     progress: 0,
     maxProgress: 10,
-    order: 21,
+    order: 55,
   },
   {
     id: 'photo-master',
@@ -322,7 +819,7 @@ const defaultAchievements: Achievement[] = [
     icon: '📷',
     progress: 0,
     maxProgress: 50,
-    order: 22,
+    order: 56,
   },
   {
     id: 'karaoke-star',
@@ -331,7 +828,7 @@ const defaultAchievements: Achievement[] = [
     category: 'activities',
     completed: false,
     icon: '🎤',
-    order: 23,
+    order: 57,
   },
   {
     id: 'trivia-master',
@@ -340,7 +837,7 @@ const defaultAchievements: Achievement[] = [
     category: 'activities',
     completed: false,
     icon: '🧠',
-    order: 24,
+    order: 58,
   },
   {
     id: 'pool-shark',
@@ -349,7 +846,7 @@ const defaultAchievements: Achievement[] = [
     category: 'activities',
     completed: false,
     icon: '🎱',
-    order: 25,
+    order: 59,
   },
   
   // Social
@@ -362,7 +859,7 @@ const defaultAchievements: Achievement[] = [
     icon: '🦋',
     progress: 0,
     maxProgress: 5,
-    order: 26,
+    order: 60,
   },
   {
     id: 'conversation-starter',
@@ -371,7 +868,7 @@ const defaultAchievements: Achievement[] = [
     category: 'social',
     completed: false,
     icon: '💬',
-    order: 27,
+    order: 61,
   },
   {
     id: 'group-leader',
@@ -380,7 +877,7 @@ const defaultAchievements: Achievement[] = [
     category: 'social',
     completed: false,
     icon: '👥',
-    order: 28,
+    order: 62,
   },
 
   // Special Achievement - Trifecta
@@ -391,7 +888,7 @@ const defaultAchievements: Achievement[] = [
     category: 'special',
     completed: false,
     icon: '🏆',
-    order: 29,
+    order: 63,
   },
 ];
 
@@ -461,7 +958,7 @@ export const useAchievementStore = create<AchievementState>()(
         }
       },
 
-      checkAndUpdateMultiLevelAchievements: (userStats: { totalBeers: number; totalShots: number; totalBeerTowers: number; }) => {
+      checkAndUpdateMultiLevelAchievements: (userStats) => {
         try {
           const { achievements } = get();
           let updatedAchievements = [...achievements];
@@ -538,6 +1035,202 @@ export const useAchievementStore = create<AchievementState>()(
               const achievement = updatedAchievements[achievementIndex];
               const newProgress = Math.min(userStats.totalBeerTowers, threshold);
               const shouldComplete = userStats.totalBeerTowers >= threshold;
+
+              if (achievement.progress !== newProgress || (shouldComplete && !achievement.completed)) {
+                updatedAchievements[achievementIndex] = {
+                  ...achievement,
+                  progress: newProgress,
+                  completed: shouldComplete,
+                  completedAt: shouldComplete && !achievement.completed ? new Date().toISOString() : achievement.completedAt
+                };
+                hasChanges = true;
+              }
+            }
+          });
+
+          // Check scoop and score achievements
+          const scoopAchievements = [
+            { id: 'rookie-scooper', threshold: 10 },
+            { id: 'scoop-enthusiast', threshold: 25 },
+            { id: 'scoop-pro', threshold: 50 },
+            { id: 'scoop-master', threshold: 100 },
+            { id: 'scoop-champion', threshold: 200 },
+          ];
+
+          scoopAchievements.forEach(({ id, threshold }) => {
+            const achievementIndex = updatedAchievements.findIndex(a => a.id === id);
+            if (achievementIndex !== -1) {
+              const achievement = updatedAchievements[achievementIndex];
+              const newProgress = Math.min(userStats.totalScoopAndScores, threshold);
+              const shouldComplete = userStats.totalScoopAndScores >= threshold;
+
+              if (achievement.progress !== newProgress || (shouldComplete && !achievement.completed)) {
+                updatedAchievements[achievementIndex] = {
+                  ...achievement,
+                  progress: newProgress,
+                  completed: shouldComplete,
+                  completedAt: shouldComplete && !achievement.completed ? new Date().toISOString() : achievement.completedAt
+                };
+                hasChanges = true;
+              }
+            }
+          });
+
+          // Check funnel achievements
+          const funnelAchievements = [
+            { id: 'funnel-novice', threshold: 5 },
+            { id: 'funnel-enthusiast', threshold: 15 },
+            { id: 'funnel-pro', threshold: 30 },
+            { id: 'funnel-master', threshold: 50 },
+            { id: 'funnel-champion', threshold: 75 },
+          ];
+
+          funnelAchievements.forEach(({ id, threshold }) => {
+            const achievementIndex = updatedAchievements.findIndex(a => a.id === id);
+            if (achievementIndex !== -1) {
+              const achievement = updatedAchievements[achievementIndex];
+              const newProgress = Math.min(userStats.totalFunnels, threshold);
+              const shouldComplete = userStats.totalFunnels >= threshold;
+
+              if (achievement.progress !== newProgress || (shouldComplete && !achievement.completed)) {
+                updatedAchievements[achievementIndex] = {
+                  ...achievement,
+                  progress: newProgress,
+                  completed: shouldComplete,
+                  completedAt: shouldComplete && !achievement.completed ? new Date().toISOString() : achievement.completedAt
+                };
+                hasChanges = true;
+              }
+            }
+          });
+
+          // Check shotgun achievements
+          const shotgunAchievements = [
+            { id: 'shotgun-novice', threshold: 10 },
+            { id: 'shotgun-enthusiast', threshold: 25 },
+            { id: 'shotgun-pro', threshold: 50 },
+            { id: 'shotgun-master', threshold: 75 },
+            { id: 'shotgun-champion', threshold: 100 },
+          ];
+
+          shotgunAchievements.forEach(({ id, threshold }) => {
+            const achievementIndex = updatedAchievements.findIndex(a => a.id === id);
+            if (achievementIndex !== -1) {
+              const achievement = updatedAchievements[achievementIndex];
+              const newProgress = Math.min(userStats.totalShotguns, threshold);
+              const shouldComplete = userStats.totalShotguns >= threshold;
+
+              if (achievement.progress !== newProgress || (shouldComplete && !achievement.completed)) {
+                updatedAchievements[achievementIndex] = {
+                  ...achievement,
+                  progress: newProgress,
+                  completed: shouldComplete,
+                  completedAt: shouldComplete && !achievement.completed ? new Date().toISOString() : achievement.completedAt
+                };
+                hasChanges = true;
+              }
+            }
+          });
+
+          // Check pool game achievements
+          const poolAchievements = [
+            { id: 'pool-rookie', threshold: 5 },
+            { id: 'pool-enthusiast', threshold: 15 },
+            { id: 'pool-pro', threshold: 30 },
+            { id: 'pool-master', threshold: 50 },
+            { id: 'pool-champion', threshold: 75 },
+          ];
+
+          poolAchievements.forEach(({ id, threshold }) => {
+            const achievementIndex = updatedAchievements.findIndex(a => a.id === id);
+            if (achievementIndex !== -1) {
+              const achievement = updatedAchievements[achievementIndex];
+              const newProgress = Math.min(userStats.totalPoolGamesWon, threshold);
+              const shouldComplete = userStats.totalPoolGamesWon >= threshold;
+
+              if (achievement.progress !== newProgress || (shouldComplete && !achievement.completed)) {
+                updatedAchievements[achievementIndex] = {
+                  ...achievement,
+                  progress: newProgress,
+                  completed: shouldComplete,
+                  completedAt: shouldComplete && !achievement.completed ? new Date().toISOString() : achievement.completedAt
+                };
+                hasChanges = true;
+              }
+            }
+          });
+
+          // Check dart game achievements
+          const dartAchievements = [
+            { id: 'dart-rookie', threshold: 5 },
+            { id: 'dart-enthusiast', threshold: 15 },
+            { id: 'dart-pro', threshold: 30 },
+            { id: 'dart-master', threshold: 50 },
+            { id: 'dart-champion', threshold: 75 },
+          ];
+
+          dartAchievements.forEach(({ id, threshold }) => {
+            const achievementIndex = updatedAchievements.findIndex(a => a.id === id);
+            if (achievementIndex !== -1) {
+              const achievement = updatedAchievements[achievementIndex];
+              const newProgress = Math.min(userStats.totalDartGamesWon, threshold);
+              const shouldComplete = userStats.totalDartGamesWon >= threshold;
+
+              if (achievement.progress !== newProgress || (shouldComplete && !achievement.completed)) {
+                updatedAchievements[achievementIndex] = {
+                  ...achievement,
+                  progress: newProgress,
+                  completed: shouldComplete,
+                  completedAt: shouldComplete && !achievement.completed ? new Date().toISOString() : achievement.completedAt
+                };
+                hasChanges = true;
+              }
+            }
+          });
+
+          // Check bars visited achievements
+          const barAchievements = [
+            { id: 'bar-explorer', threshold: 5 },
+            { id: 'bar-adventurer', threshold: 15 },
+            { id: 'bar-enthusiast', threshold: 30 },
+            { id: 'bar-connoisseur', threshold: 50 },
+            { id: 'bar-legend', threshold: 100 },
+          ];
+
+          barAchievements.forEach(({ id, threshold }) => {
+            const achievementIndex = updatedAchievements.findIndex(a => a.id === id);
+            if (achievementIndex !== -1) {
+              const achievement = updatedAchievements[achievementIndex];
+              const newProgress = Math.min(userStats.barsHit, threshold);
+              const shouldComplete = userStats.barsHit >= threshold;
+
+              if (achievement.progress !== newProgress || (shouldComplete && !achievement.completed)) {
+                updatedAchievements[achievementIndex] = {
+                  ...achievement,
+                  progress: newProgress,
+                  completed: shouldComplete,
+                  completedAt: shouldComplete && !achievement.completed ? new Date().toISOString() : achievement.completedAt
+                };
+                hasChanges = true;
+              }
+            }
+          });
+
+          // Check nights out achievements
+          const nightsAchievements = [
+            { id: 'night-owl', threshold: 10 },
+            { id: 'party-goer', threshold: 25 },
+            { id: 'social-butterfly-nights', threshold: 50 },
+            { id: 'nightlife-aficionado', threshold: 75 },
+            { id: 'nightlife-legend', threshold: 100 },
+          ];
+
+          nightsAchievements.forEach(({ id, threshold }) => {
+            const achievementIndex = updatedAchievements.findIndex(a => a.id === id);
+            if (achievementIndex !== -1) {
+              const achievement = updatedAchievements[achievementIndex];
+              const newProgress = Math.min(userStats.nightsOut, threshold);
+              const shouldComplete = userStats.nightsOut >= threshold;
 
               if (achievement.progress !== newProgress || (shouldComplete && !achievement.completed)) {
                 updatedAchievements[achievementIndex] = {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, TextInput, Image } from 'react-native';
-import { User, TrendingUp, MapPin, Edit3, X, Award, Camera, Share2, Users, RotateCcw, Info, BarChart3 } from 'lucide-react-native';
+import { User, Edit3, X, Award, Camera, Share2, Users, RotateCcw, Info } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
@@ -259,27 +259,6 @@ export default function TrackingScreen() {
           </Pressable>
         </View>
 
-        {/* Bar Visits Tracker */}
-        {barVisits.length > 0 && (
-          <Pressable 
-            style={[styles.barVisitsCard, { backgroundColor: themeColors.card }]}
-            onPress={() => setBarVisitsModalVisible(true)}
-          >
-            <View style={styles.barVisitsHeader}>
-              <BarChart3 size={20} color={themeColors.primary} />
-              <Text style={[styles.barVisitsTitle, { color: themeColors.text }]}>
-                Bar Visit Tracker
-              </Text>
-              <Text style={[styles.totalVisits, { color: themeColors.primary }]}>
-                {totalVisits} total visits
-              </Text>
-            </View>
-            <Text style={[styles.barVisitsSubtitle, { color: themeColors.subtext }]}>
-              You've visited {barVisits.length} different bars • Tap to see details
-            </Text>
-          </Pressable>
-        )}
-
         {/* Friends Button */}
         <Pressable 
           style={[styles.friendsButton, { backgroundColor: themeColors.card }]}
@@ -304,30 +283,6 @@ export default function TrackingScreen() {
             Your Nightlife Stats
           </Text>
           
-          <View style={styles.statsGrid}>
-            {/* Nights Out */}
-            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
-              <TrendingUp size={28} color={themeColors.primary} />
-              <Text style={[styles.statNumber, { color: themeColors.text }]}>
-                {profile.nightsOut}
-              </Text>
-              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                Nights Out
-              </Text>
-            </View>
-
-            {/* Bars Hit */}
-            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
-              <MapPin size={28} color={themeColors.primary} />
-              <Text style={[styles.statNumber, { color: themeColors.text }]}>
-                {profile.barsHit}
-              </Text>
-              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                Bars Hit
-              </Text>
-            </View>
-          </View>
-
           {/* Drunk Scale Average - Display Only */}
           <View style={[styles.statCard, styles.fullWidthCard, { backgroundColor: themeColors.card }]}>
             <Text style={[styles.statNumber, { color: themeColors.text }]}>
@@ -439,63 +394,6 @@ export default function TrackingScreen() {
               >
                 <Text style={styles.saveButtonText}>Save</Text>
               </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Bar Visits Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={barVisitsModalVisible}
-        onRequestClose={() => setBarVisitsModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-                Bar Visit History
-              </Text>
-              <Pressable 
-                style={styles.closeButton}
-                onPress={() => setBarVisitsModalVisible(false)}
-              >
-                <X size={24} color={themeColors.subtext} />
-              </Pressable>
-            </View>
-            
-            <ScrollView style={styles.barVisitsList} showsVerticalScrollIndicator={false}>
-              {barVisits.map((bar, index) => (
-                <View 
-                  key={bar.venueId}
-                  style={[
-                    styles.barVisitItem,
-                    { 
-                      backgroundColor: themeColors.background,
-                      borderLeftColor: index < 3 ? themeColors.primary : themeColors.border
-                    }
-                  ]}
-                >
-                  <View style={styles.barVisitInfo}>
-                    <Text style={[styles.barVisitName, { color: themeColors.text }]}>
-                      {bar.venueName}
-                    </Text>
-                    <Text style={[styles.barVisitStats, { color: themeColors.subtext }]}>
-                      {bar.visits} {bar.visits === 1 ? 'visit' : 'visits'} • {bar.likes} {bar.likes === 1 ? 'like' : 'likes'}
-                    </Text>
-                  </View>
-                  <View style={[styles.visitBadge, { backgroundColor: themeColors.primary }]}>
-                    <Text style={styles.visitBadgeText}>{bar.visits}</Text>
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
-            
-            <View style={[styles.barVisitsSummary, { backgroundColor: themeColors.background }]}>
-              <Text style={[styles.summaryText, { color: themeColors.subtext }]}>
-                Total: {totalVisits} visits across {barVisits.length} bars
-              </Text>
             </View>
           </View>
         </View>
@@ -735,36 +633,6 @@ const styles = StyleSheet.create({
     right: -20,
     top: 8,
   },
-  barVisitsCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  barVisitsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  barVisitsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-    flex: 1,
-  },
-  totalVisits: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  barVisitsSubtitle: {
-    fontSize: 14,
-    lineHeight: 18,
-  },
   friendsButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -809,11 +677,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 16,
     textAlign: 'center',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
   },
   statCard: {
     flex: 1,
@@ -946,47 +809,6 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: 'white',
     fontWeight: '600',
-  },
-  // Bar visits modal styles
-  barVisitsList: {
-    maxHeight: 400,
-  },
-  barVisitItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-    borderLeftWidth: 4,
-  },
-  barVisitInfo: {
-    flex: 1,
-  },
-  barVisitName: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  barVisitStats: {
-    fontSize: 14,
-  },
-  visitBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  visitBadgeText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  barVisitsSummary: {
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 12,
-    alignItems: 'center',
   },
   // Rank details modal styles
   rankList: {
