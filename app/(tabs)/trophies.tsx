@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform } from 'react-native';
-import { Trophy, Award, Star, Target, CheckCircle, TrendingUp, MapPin } from 'lucide-react-native';
+import { Trophy, Award, Star, Target, CircleCheck as CheckCircle, TrendingUp, MapPin } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
