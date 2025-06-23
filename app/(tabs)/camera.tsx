@@ -179,29 +179,16 @@ export default function CameraScreen() {
           </Text>
         </View>
 
-        {/* Top Controls - Side by side */}
-        <View style={styles.topControls}>
+        {/* Bottom Controls - All three buttons */}
+        <View style={styles.bottomControls}>
           <Pressable 
-            style={[styles.controlButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
+            style={[styles.sideButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
             onPress={toggleCameraFacing}
           >
             <RotateCcw size={24} color="white" />
-            <Text style={styles.controlButtonText}>Flip</Text>
+            <Text style={styles.sideButtonText}>Flip</Text>
           </Pressable>
 
-          <Pressable 
-            style={[styles.controlButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
-            onPress={openCameraRoll}
-          >
-            <ImageIcon size={24} color="white" />
-            <Text style={styles.controlButtonText}>
-              Roll ({getPhotoCount()})
-            </Text>
-          </Pressable>
-        </View>
-
-        {/* Capture Button - Centered at bottom */}
-        <View style={styles.captureContainer}>
           <Pressable 
             style={[
               styles.captureButton, 
@@ -214,6 +201,16 @@ export default function CameraScreen() {
             disabled={isCapturing}
           >
             <Camera size={32} color="white" />
+          </Pressable>
+
+          <Pressable 
+            style={[styles.sideButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
+            onPress={openCameraRoll}
+          >
+            <ImageIcon size={24} color="white" />
+            <Text style={styles.sideButtonText}>
+              Roll ({getPhotoCount()})
+            </Text>
           </Pressable>
         </View>
       </CameraView>
@@ -288,23 +285,24 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  topControls: {
+  bottomControls: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 180 : 160,
+    bottom: 80,
     left: 0,
     right: 0,
     flexDirection: 'row',
     justifyContent: 'space-evenly',
+    alignItems: 'center',
     paddingHorizontal: 40,
   },
-  controlButton: {
+  sideButton: {
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 25,
-    minWidth: 80,
+    minWidth: 70,
   },
-  controlButtonText: {
+  sideButtonText: {
     color: 'white',
     fontSize: 12,
     fontWeight: '600',
@@ -312,13 +310,6 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
-  },
-  captureContainer: {
-    position: 'absolute',
-    bottom: 80,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
   },
   captureButton: {
     width: 80,
