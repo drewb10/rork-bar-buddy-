@@ -35,6 +35,7 @@ export const sendMessageProcedure = publicProcedure
         throw new Error('Message content cannot be empty after trimming');
       }
 
+      // Verify session exists and belongs to the venue
       const { data: session, error: sessionError } = await supabase
         .from('chat_sessions')
         .select('id, venue_id, anonymous_name')
@@ -48,27 +49,30 @@ export const sendMessageProcedure = publicProcedure
 
       const typedSession = session as LocalSessionInfo;
 
+      // Insert message with correct column name 'message' instead of 'content'
       const { data: newMessage, error: insertError } = await supabase
         .from('chat_messages')
         .insert({
           session_id: sessionId,
-          content: trimmedContent,
+          message: trimmedContent,  // Changed from 'content' to 'message'
         })
         .select(`
           id,
           session_id,
-          content,
+          message,
           timestamp,
           created_at
         `)
         .single();
 
       if (insertError) {
+        console.error('Insert error details:', insertError);
         throw new Error(`Failed to insert message: ${insertError.message}`);
       }
 
       const messageWithDetails = {
         ...newMessage,
+        content: newMessage.message, // Map 'message' back to 'content' for frontend compatibility
         anonymous_name: typedSession.anonymous_name,
         venue_id: typedSession.venue_id,
       };

@@ -25,7 +25,7 @@ export interface ChatSession {
 interface RawMessageFromSupabase {
   id: string;
   session_id: string;
-  content: string;
+  message: string;  // Database uses 'message' column
   timestamp: string;
   created_at: string;
   chat_sessions: {
@@ -177,7 +177,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         .select(`
           id,
           session_id,
-          content,
+          message,
           timestamp,
           created_at,
           chat_sessions!inner(
@@ -200,7 +200,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         return {
           id: msg.id,
           session_id: msg.session_id,
-          content: msg.content,
+          content: msg.message,  // Map 'message' to 'content' for frontend
           timestamp: msg.timestamp,
           created_at: msg.created_at,
           anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
@@ -237,27 +237,30 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       const session = get().currentSession || await get().createOrGetSession(venueId);
 
+      // Insert message with 'message' column name
       const { data: newMessage, error } = await supabase
         .from('chat_messages')
         .insert({
           session_id: session.id,
-          content: trimmedContent,
+          message: trimmedContent,  // Use 'message' column name
         })
         .select(`
           id,
           session_id,
-          content,
+          message,
           timestamp,
           created_at
         `)
         .single();
 
       if (error) {
+        console.error('Insert message error:', error);
         throw error;
       }
 
       const transformedMessage: ChatMessage = {
         ...newMessage,
+        content: newMessage.message,  // Map 'message' to 'content' for frontend
         anonymous_name: session.anonymous_name,
         venue_id: session.venue_id,
       };
@@ -311,10 +314,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
               }
 
               const newMessage: ChatMessage = {
-                ...payload.new,
+                id: payload.new.id,
+                session_id: payload.new.session_id,
+                content: payload.new.message,  // Map 'message' to 'content'
+                timestamp: payload.new.timestamp,
+                created_at: payload.new.created_at,
                 anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
                 venue_id: sessionData?.venue_id || venueId,
-              } as ChatMessage;
+              };
 
               const currentMessages = get().messages;
               if (!currentMessages.find(msg => msg.id === newMessage.id)) {

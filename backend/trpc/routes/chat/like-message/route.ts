@@ -43,6 +43,7 @@ export const likeMessageProcedure = publicProcedure
         .single();
 
       if (fetchError || !messageData) {
+        console.error('Fetch error details:', fetchError);
         throw new Error('Message not found or access denied');
       }
 
@@ -68,6 +69,7 @@ export const likeMessageProcedure = publicProcedure
         .single();
 
       if (updateError) {
+        console.error('Update error details:', updateError);
         throw new Error(`Failed to update likes: ${updateError.message}`);
       }
 

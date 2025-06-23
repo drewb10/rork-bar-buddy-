@@ -11,7 +11,7 @@ interface LocalSessionInfo {
 interface LocalRawMessageFromSupabase {
   id: string;
   session_id: string;
-  content: string;
+  message: string;  // Changed from 'content' to 'message'
   timestamp: string;
   created_at: string;
   chat_sessions: LocalSessionInfo | null;
@@ -20,7 +20,7 @@ interface LocalRawMessageFromSupabase {
 interface LocalTransformedMessage {
   id: string;
   session_id: string;
-  content: string;
+  content: string;  // Frontend expects 'content'
   timestamp: string;
   created_at: string;
   anonymous_name: string;
@@ -45,7 +45,7 @@ export const getMessagesProcedure = publicProcedure
         .select(`
           id,
           session_id,
-          content,
+          message,
           timestamp,
           created_at,
           chat_sessions!inner(
@@ -59,6 +59,7 @@ export const getMessagesProcedure = publicProcedure
         .limit(limit);
 
       if (error) {
+        console.error('Query error details:', error);
         throw new Error(`Failed to fetch messages: ${error.message}`);
       }
 
@@ -68,7 +69,7 @@ export const getMessagesProcedure = publicProcedure
         return {
           id: msg.id,
           session_id: msg.session_id,
-          content: msg.content,
+          content: msg.message,  // Map 'message' to 'content' for frontend
           timestamp: msg.timestamp,
           created_at: msg.created_at,
           anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
