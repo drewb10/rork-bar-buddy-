@@ -26,7 +26,7 @@ export default function BarBuddyLogo({ size = 'medium' }: BarBuddyLogoProps) {
   return (
     <View style={styles.container}>
       <Image
-        source={{ uri: 'https://i.postimg.cc/XqsP5XLf/dc3a8af4-19ed-4a3b-9b92-a738e62038d4-removalai-preview.png' }}
+        source={{ uri: 'https://i.imgur.com/ABJNLrv.png' }}
         style={[
           styles.logo,
           {
