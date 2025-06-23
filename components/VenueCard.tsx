@@ -30,39 +30,25 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const [isInteracting, setIsInteracting] = useState(false);
   const canInteractWithVenue = canInteract(venue.id);
 
-  // Animation values for premium interactions
+  // Separate animation values for different properties
   const scaleAnim = new Animated.Value(1);
-  const shadowAnim = new Animated.Value(1);
 
   const handlePress = () => {
     if (isInteracting) return; // Prevent multiple clicks
     
-    // Subtle press animation
-    Animated.parallel([
+    // Simple scale animation with native driver
+    Animated.sequence([
       Animated.timing(scaleAnim, {
         toValue: 0.98,
         duration: 100,
         useNativeDriver: true,
       }),
-      Animated.timing(shadowAnim, {
-        toValue: 0.8,
-        duration: 100,
-        useNativeDriver: false,
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
       })
-    ]).start(() => {
-      Animated.parallel([
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shadowAnim, {
-          toValue: 1,
-          duration: 150,
-          useNativeDriver: false,
-        })
-      ]).start();
-    });
+    ]).start();
     
     router.push(`/venue/${venue.id}`);
   };
@@ -209,7 +195,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     <Animated.View 
       style={{ 
         transform: [{ scale: scaleAnim }],
-        shadowOpacity: shadowAnim,
       }}
     >
       <Pressable 
