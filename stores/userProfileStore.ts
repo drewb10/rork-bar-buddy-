@@ -868,29 +868,27 @@ export const useUserProfileStore = create<UserProfileState>()(
         }
       },
 
-      syncToSupabase: async () => {
+      syncToSupabase: async (): Promise<void> => {
         try {
           // Mock implementation with timeout to prevent hanging
-          return Promise.race([
-            new Promise(resolve => setTimeout(resolve, 100)), // Mock sync
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Sync timeout')), 2000))
+          await Promise.race([
+            new Promise<void>(resolve => setTimeout(() => resolve(), 100)), // Mock sync
+            new Promise<void>((_, reject) => setTimeout(() => reject(new Error('Sync timeout')), 2000))
           ]);
         } catch (error) {
           console.warn('Error syncing to Supabase:', error);
-          return Promise.resolve();
         }
       },
 
-      loadFromSupabase: async () => {
+      loadFromSupabase: async (): Promise<void> => {
         try {
           // Mock implementation with timeout to prevent hanging
-          return Promise.race([
-            new Promise(resolve => setTimeout(resolve, 100)), // Mock load
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Load timeout')), 2000))
+          await Promise.race([
+            new Promise<void>(resolve => setTimeout(() => resolve(), 100)), // Mock load
+            new Promise<void>((_, reject) => setTimeout(() => reject(new Error('Load timeout')), 2000))
           ]);
         } catch (error) {
           console.warn('Error loading from Supabase:', error);
-          return Promise.resolve();
         }
       }
     }),
