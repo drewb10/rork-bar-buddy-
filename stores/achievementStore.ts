@@ -52,6 +52,26 @@ const defaultAchievements: Achievement[] = [
     progress: 0,
     maxProgress: 10,
   },
+  {
+    id: 'photo-master',
+    title: 'Photo Master',
+    description: 'Took 50 photos',
+    category: 'activities',
+    completed: false,
+    icon: '📷',
+    progress: 0,
+    maxProgress: 50,
+  },
+  {
+    id: 'social-butterfly',
+    title: 'Social Butterfly',
+    description: 'Added 5 friends',
+    category: 'social',
+    completed: false,
+    icon: '🦋',
+    progress: 0,
+    maxProgress: 5,
+  },
 ];
 
 export const useAchievementStore = create<AchievementState>()(

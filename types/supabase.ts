@@ -114,29 +114,6 @@ export interface Database {
           responded_at?: string | null
         }
       }
-      bingo_completions: {
-        Row: {
-          id: string
-          user_id: string
-          task_id: string
-          completed_at: string
-          session_id: string | null
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          task_id: string
-          completed_at?: string
-          session_id?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          task_id?: string
-          completed_at?: string
-          session_id?: string | null
-        }
-      }
       venue_interactions: {
         Row: {
           id: string
@@ -163,26 +140,6 @@ export interface Database {
           interaction_type?: string
           arrival_time?: string | null
           timestamp?: string
-          session_id?: string | null
-        }
-      }
-      bingo_card_completions: {
-        Row: {
-          id: string
-          user_id: string
-          completed_at: string
-          session_id: string | null
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          completed_at?: string
-          session_id?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          completed_at?: string
           session_id?: string | null
         }
       }

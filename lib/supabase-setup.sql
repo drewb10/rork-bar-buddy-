@@ -38,15 +38,6 @@ CREATE TABLE friend_requests (
   responded_at TIMESTAMP WITH TIME ZONE
 );
 
--- Create bingo_completions table
-CREATE TABLE bingo_completions (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES user_profiles(user_id) ON DELETE CASCADE,
-  task_id TEXT NOT NULL,
-  completed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  session_id TEXT
-);
-
 -- Create venue_interactions table
 CREATE TABLE venue_interactions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -58,14 +49,6 @@ CREATE TABLE venue_interactions (
   session_id TEXT
 );
 
--- Create bingo_card_completions table
-CREATE TABLE bingo_card_completions (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES user_profiles(user_id) ON DELETE CASCADE,
-  completed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  session_id TEXT
-);
-
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_friends_user_id ON friends(user_id);
@@ -73,18 +56,14 @@ CREATE INDEX IF NOT EXISTS idx_friends_friend_user_id ON friends(friend_user_id)
 CREATE INDEX IF NOT EXISTS idx_friend_requests_from_user_id ON friend_requests(from_user_id);
 CREATE INDEX IF NOT EXISTS idx_friend_requests_to_user_id ON friend_requests(to_user_id);
 CREATE INDEX IF NOT EXISTS idx_friend_requests_status ON friend_requests(status);
-CREATE INDEX IF NOT EXISTS idx_bingo_completions_user_id ON bingo_completions(user_id);
 CREATE INDEX IF NOT EXISTS idx_venue_interactions_user_id ON venue_interactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_venue_interactions_venue_id ON venue_interactions(venue_id);
-CREATE INDEX IF NOT EXISTS idx_bingo_card_completions_user_id ON bingo_card_completions(user_id);
 
 -- Enable Row Level Security
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE friends ENABLE ROW LEVEL SECURITY;
 ALTER TABLE friend_requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE bingo_completions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE venue_interactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE bingo_card_completions ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for user_profiles
 CREATE POLICY "Users can view all profiles" ON user_profiles FOR SELECT USING (true);
@@ -101,17 +80,9 @@ CREATE POLICY "Users can view friend requests" ON friend_requests FOR SELECT USI
 CREATE POLICY "Users can send friend requests" ON friend_requests FOR INSERT WITH CHECK (true);
 CREATE POLICY "Users can update friend requests" ON friend_requests FOR UPDATE USING (true);
 
--- Create policies for bingo_completions
-CREATE POLICY "Users can view all bingo completions" ON bingo_completions FOR SELECT USING (true);
-CREATE POLICY "Users can insert bingo completions" ON bingo_completions FOR INSERT WITH CHECK (true);
-
 -- Create policies for venue_interactions
 CREATE POLICY "Users can view all venue interactions" ON venue_interactions FOR SELECT USING (true);
 CREATE POLICY "Users can insert venue interactions" ON venue_interactions FOR INSERT WITH CHECK (true);
-
--- Create policies for bingo_card_completions
-CREATE POLICY "Users can view all bingo card completions" ON bingo_card_completions FOR SELECT USING (true);
-CREATE POLICY "Users can insert bingo card completions" ON bingo_card_completions FOR INSERT WITH CHECK (true);
 
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
