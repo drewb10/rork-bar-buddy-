@@ -110,20 +110,25 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
         get().resetDailyStatsIfNeeded();
         
         set((state) => {
-          const newDailyValue = Math.max(0, state.dailyStats[stat] + increment);
-          const totalIncrement = newDailyValue - state.dailyStats[stat];
+          const currentValue = state.dailyStats[stat] || 0;
+          const newDailyValue = Math.max(0, currentValue + increment);
+          const totalIncrement = newDailyValue - currentValue;
           
           // Award XP for the increment
           if (totalIncrement > 0) {
-            const xpPerItem = XP_VALUES[stat];
+            const xpPerItem = XP_VALUES[stat] || 0;
             const totalXP = xpPerItem * totalIncrement;
             
             // Get user profile store and award XP
             if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
               const userStore = (window as any).__userProfileStore.getState();
-              userStore.awardXP(stat, `${totalIncrement} ${stat} tracked`, undefined);
+              if (userStore && userStore.awardXP) {
+                userStore.awardXP(stat, `${totalIncrement} ${stat} tracked`, undefined);
+              }
             }
           }
+          
+          const currentTotalValue = state.totalStats[stat] || 0;
           
           return {
             dailyStats: {
@@ -132,19 +137,21 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
             },
             totalStats: {
               ...state.totalStats,
-              [stat]: Math.max(0, state.totalStats[stat] + totalIncrement),
+              [stat]: Math.max(0, currentTotalValue + totalIncrement),
             },
           };
         });
       },
       
       setDrunkScale: (rating) => {
+        // Ensure rating is a valid number
+        const validRating = typeof rating === 'number' && !isNaN(rating) ? rating : 0;
         const today = new Date().toISOString();
         
         set((state) => ({
           dailyStats: {
             ...state.dailyStats,
-            drunkScale: rating,
+            drunkScale: validRating,
           },
           lastDrunkScaleDate: today,
         }));
@@ -152,7 +159,9 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
         // Award to user profile store as well
         if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
           const userStore = (window as any).__userProfileStore.getState();
-          userStore.addDrunkScaleRating(rating);
+          if (userStore && userStore.addDrunkScaleRating) {
+            userStore.addDrunkScaleRating(validRating);
+          }
         }
       },
       
@@ -178,14 +187,20 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
       
       getDailyTotal: () => {
         const { dailyStats } = get();
-        return Object.values(dailyStats).reduce((sum, value) => {
-          return typeof value === 'number' ? sum + value : sum;
+        return Object.entries(dailyStats).reduce((sum, [key, value]) => {
+          if (key !== 'date' && key !== 'drunkScale' && typeof value === 'number' && !isNaN(value)) {
+            return sum + value;
+          }
+          return sum;
         }, 0);
       },
       
       getTotalCount: () => {
         const { totalStats } = get();
-        return Object.values(totalStats).reduce((sum, value) => sum + value, 0);
+        return Object.values(totalStats).reduce((sum, value) => {
+          const validValue = typeof value === 'number' && !isNaN(value) ? value : 0;
+          return sum + validValue;
+        }, 0);
       },
       
       awardXPForStats: () => {

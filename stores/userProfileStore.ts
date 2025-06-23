@@ -115,8 +115,8 @@ const XP_VALUES = {
   live_music: 40,
   featured_drink: 20,
   bar_game: 35,
-  photo_taken: 10, // Updated from 25 to 10
-  shots: 5, // Updated XP values
+  photo_taken: 10,
+  shots: 5,
   scoop_and_scores: 4,
   beers: 2,
   beer_towers: 5,
@@ -187,8 +187,11 @@ const defaultProfile: UserProfile = {
 };
 
 const getRankByXP = (xp: number): RankInfo => {
+  // Ensure xp is a valid number
+  const validXP = typeof xp === 'number' && !isNaN(xp) ? xp : 0;
+  
   for (let i = RANK_STRUCTURE.length - 1; i >= 0; i--) {
-    if (xp >= RANK_STRUCTURE[i].minXP) {
+    if (validXP >= RANK_STRUCTURE[i].minXP) {
       return RANK_STRUCTURE[i];
     }
   }
@@ -262,12 +265,14 @@ export const useUserProfileStore = create<UserProfileState>()(
       
       addDrunkScaleRating: (rating) => {
         try {
+          // Ensure rating is a valid number
+          const validRating = typeof rating === 'number' && !isNaN(rating) ? rating : 0;
           const today = new Date().toISOString();
           
           set((state) => ({
             profile: {
               ...state.profile,
-              drunkScaleRatings: [...state.profile.drunkScaleRatings, rating],
+              drunkScaleRatings: [...state.profile.drunkScaleRatings, validRating],
               lastDrunkScaleDate: today
             }
           }));
@@ -280,9 +285,20 @@ export const useUserProfileStore = create<UserProfileState>()(
       getAverageDrunkScale: () => {
         try {
           const { drunkScaleRatings } = get().profile;
-          if (drunkScaleRatings.length === 0) return 0;
-          const sum = drunkScaleRatings.reduce((acc, rating) => acc + rating, 0);
-          return Math.round((sum / drunkScaleRatings.length) * 10) / 10;
+          if (!drunkScaleRatings || drunkScaleRatings.length === 0) return 0;
+          
+          // Filter out any invalid ratings
+          const validRatings = drunkScaleRatings.filter(rating => 
+            typeof rating === 'number' && !isNaN(rating) && rating > 0
+          );
+          
+          if (validRatings.length === 0) return 0;
+          
+          const sum = validRatings.reduce((acc, rating) => acc + rating, 0);
+          const average = sum / validRatings.length;
+          
+          // Ensure the result is a valid number
+          return typeof average === 'number' && !isNaN(average) ? Math.round(average * 10) / 10 : 0;
         } catch {
           return 0;
         }
@@ -302,94 +318,122 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
       
       getXPForNextRank: () => {
-        const currentRank = get().getRank();
-        const currentRankIndex = RANK_STRUCTURE.findIndex(rank => 
-          rank.tier === currentRank.tier && rank.subRank === currentRank.subRank
-        );
-        
-        if (currentRankIndex < RANK_STRUCTURE.length - 1) {
-          return RANK_STRUCTURE[currentRankIndex + 1].minXP;
+        try {
+          const currentRank = get().getRank();
+          const currentRankIndex = RANK_STRUCTURE.findIndex(rank => 
+            rank.tier === currentRank.tier && rank.subRank === currentRank.subRank
+          );
+          
+          if (currentRankIndex < RANK_STRUCTURE.length - 1) {
+            return RANK_STRUCTURE[currentRankIndex + 1].minXP;
+          }
+          
+          return currentRank.maxXP;
+        } catch {
+          return RANK_STRUCTURE[0].maxXP;
         }
-        
-        return currentRank.maxXP;
       },
       
       getProgressToNextRank: () => {
-        const { xp } = get().profile;
-        const currentRank = get().getRank();
-        const nextRankXP = get().getXPForNextRank();
-        
-        if (nextRankXP === currentRank.maxXP) return 100; // Max rank
-        
-        const progress = ((xp - currentRank.minXP) / (nextRankXP - currentRank.minXP)) * 100;
-        return Math.min(Math.max(progress, 0), 100);
+        try {
+          const { xp } = get().profile;
+          const validXP = typeof xp === 'number' && !isNaN(xp) ? xp : 0;
+          const currentRank = get().getRank();
+          const nextRankXP = get().getXPForNextRank();
+          
+          if (nextRankXP === currentRank.maxXP) return 100; // Max rank
+          
+          const progress = ((validXP - currentRank.minXP) / (nextRankXP - currentRank.minXP)) * 100;
+          const validProgress = typeof progress === 'number' && !isNaN(progress) ? progress : 0;
+          
+          return Math.min(Math.max(validProgress, 0), 100);
+        } catch {
+          return 0;
+        }
       },
       
       awardXP: (type, description, venueId) => {
-        const xpAmount = XP_VALUES[type];
-        const activityId = Math.random().toString(36).substr(2, 9);
-        
-        set((state) => {
-          const newActivity: XPActivity = {
-            id: activityId,
-            type,
-            xpAwarded: xpAmount,
-            timestamp: new Date().toISOString(),
-            description,
-          };
+        try {
+          const xpAmount = XP_VALUES[type] || 0;
           
-          let updatedProfile = {
-            ...state.profile,
-            xp: state.profile.xp + xpAmount,
-            xpActivities: [...state.profile.xpActivities, newActivity],
-          };
-          
-          // Update specific counters
-          switch (type) {
-            case 'visit_new_bar':
-              if (venueId && !state.profile.visitedBars.includes(venueId)) {
-                updatedProfile.visitedBars = [...state.profile.visitedBars, venueId];
-              }
-              break;
-            case 'participate_event':
-              updatedProfile.eventsAttended = state.profile.eventsAttended + 1;
-              break;
-            case 'bring_friend':
-              updatedProfile.friendsReferred = state.profile.friendsReferred + 1;
-              break;
-            case 'live_music':
-              updatedProfile.liveEventsAttended = state.profile.liveEventsAttended + 1;
-              break;
-            case 'featured_drink':
-              updatedProfile.featuredDrinksTried = state.profile.featuredDrinksTried + 1;
-              break;
-            case 'bar_game':
-              updatedProfile.barGamesPlayed = state.profile.barGamesPlayed + 1;
-              break;
-            case 'photo_taken':
-              updatedProfile.photosTaken = state.profile.photosTaken + 1;
-              break;
+          // Ensure xpAmount is a valid number
+          if (typeof xpAmount !== 'number' || isNaN(xpAmount)) {
+            console.warn('Invalid XP amount for type:', type);
+            return;
           }
           
-          return { profile: updatedProfile };
-        });
-        
-        get().syncToSupabase();
+          const activityId = Math.random().toString(36).substr(2, 9);
+          
+          set((state) => {
+            const currentXP = typeof state.profile.xp === 'number' && !isNaN(state.profile.xp) ? state.profile.xp : 0;
+            
+            const newActivity: XPActivity = {
+              id: activityId,
+              type,
+              xpAwarded: xpAmount,
+              timestamp: new Date().toISOString(),
+              description,
+            };
+            
+            let updatedProfile = {
+              ...state.profile,
+              xp: currentXP + xpAmount,
+              xpActivities: [...(state.profile.xpActivities || []), newActivity],
+            };
+            
+            // Update specific counters
+            switch (type) {
+              case 'visit_new_bar':
+                if (venueId && !state.profile.visitedBars.includes(venueId)) {
+                  updatedProfile.visitedBars = [...state.profile.visitedBars, venueId];
+                }
+                break;
+              case 'participate_event':
+                updatedProfile.eventsAttended = (state.profile.eventsAttended || 0) + 1;
+                break;
+              case 'bring_friend':
+                updatedProfile.friendsReferred = (state.profile.friendsReferred || 0) + 1;
+                break;
+              case 'live_music':
+                updatedProfile.liveEventsAttended = (state.profile.liveEventsAttended || 0) + 1;
+                break;
+              case 'featured_drink':
+                updatedProfile.featuredDrinksTried = (state.profile.featuredDrinksTried || 0) + 1;
+                break;
+              case 'bar_game':
+                updatedProfile.barGamesPlayed = (state.profile.barGamesPlayed || 0) + 1;
+                break;
+              case 'photo_taken':
+                updatedProfile.photosTaken = (state.profile.photosTaken || 0) + 1;
+                break;
+            }
+            
+            return { profile: updatedProfile };
+          });
+          
+          get().syncToSupabase();
+        } catch (error) {
+          console.warn('Error awarding XP:', error);
+        }
       },
       
       updateDailyTrackerTotals: (stats) => {
-        set((state) => ({
-          profile: {
-            ...state.profile,
-            totalShots: state.profile.totalShots + stats.shots,
-            totalScoopAndScores: state.profile.totalScoopAndScores + stats.scoopAndScores,
-            totalBeers: state.profile.totalBeers + stats.beers,
-            totalBeerTowers: state.profile.totalBeerTowers + stats.beerTowers,
-            totalFunnels: state.profile.totalFunnels + stats.funnels,
-            totalShotguns: state.profile.totalShotguns + stats.shotguns,
-          }
-        }));
-        get().syncToSupabase();
+        try {
+          set((state) => ({
+            profile: {
+              ...state.profile,
+              totalShots: (state.profile.totalShots || 0) + (stats.shots || 0),
+              totalScoopAndScores: (state.profile.totalScoopAndScores || 0) + (stats.scoopAndScores || 0),
+              totalBeers: (state.profile.totalBeers || 0) + (stats.beers || 0),
+              totalBeerTowers: (state.profile.totalBeerTowers || 0) + (stats.beerTowers || 0),
+              totalFunnels: (state.profile.totalFunnels || 0) + (stats.funnels || 0),
+              totalShotguns: (state.profile.totalShotguns || 0) + (stats.shotguns || 0),
+            }
+          }));
+          get().syncToSupabase();
+        } catch (error) {
+          console.warn('Error updating daily tracker totals:', error);
+        }
       },
       
       canIncrementNightsOut: () => {

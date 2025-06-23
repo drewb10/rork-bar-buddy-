@@ -1,38 +1,30 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { StyleSheet, View, Text, Pressable, StatusBar, Platform, Alert, Image } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { Camera, RotateCcw, X, Check, Image as ImageIcon } from 'lucide-react-native';
+import { Camera, RotateCcw, Image as ImageIcon } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { useAchievementStore } from '@/stores/achievementStore';
+import { useCameraRollStore } from '@/stores/cameraRollStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
-import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
-import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
 
 export default function CameraScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const { awardXP, profile } = useUserProfileStore();
   const { updateAchievementProgress } = useAchievementStore();
+  const { addPhoto, getPhotoCount } = useCameraRollStore();
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [isCapturing, setIsCapturing] = useState(false);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(true);
   const cameraRef = useRef<CameraView>(null);
-
-  // Hide instructions after 10 seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowInstructions(false);
-    }, 10000);
-
-    return () => clearTimeout(timer);
-  }, []);
+  const router = useRouter();
 
   if (!permission) {
     return (
@@ -72,9 +64,6 @@ export default function CameraScreen() {
   }
 
   const toggleCameraFacing = () => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
     setFacing(current => (current === 'back' ? 'front' : 'back'));
   };
 
@@ -83,10 +72,6 @@ export default function CameraScreen() {
 
     try {
       setIsCapturing(true);
-      
-      if (Platform.OS !== 'web') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      }
 
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
@@ -103,6 +88,9 @@ export default function CameraScreen() {
           to: localUri,
         });
 
+        // Add to camera roll store
+        addPhoto(localUri);
+        
         setCapturedPhoto(localUri);
         
         // Award XP for taking a photo (10 XP)
@@ -134,41 +122,8 @@ export default function CameraScreen() {
     setShowSuccessModal(false);
   };
 
-  const openCameraRoll = async () => {
-    try {
-      if (Platform.OS !== 'web') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        
-        // Request media library permissions
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status === 'granted') {
-          const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: false,
-            quality: 1,
-          });
-
-          if (!result.canceled && result.assets[0]) {
-            // Show the selected image
-            setCapturedPhoto(result.assets[0].uri);
-            setShowSuccessModal(true);
-            
-            // Auto-hide after 3 seconds
-            setTimeout(() => {
-              setShowSuccessModal(false);
-              setCapturedPhoto(null);
-            }, 3000);
-          }
-        } else {
-          Alert.alert('Permission Required', 'Please grant media library access to view your photos.');
-        }
-      } else {
-        Alert.alert('Camera Roll', 'Camera roll not available on web.');
-      }
-    } catch (error) {
-      console.warn('Error opening camera roll:', error);
-      Alert.alert('Error', 'Failed to open camera roll. Please try again.');
-    }
+  const openCameraRoll = () => {
+    router.push('/camera-roll');
   };
 
   if (capturedPhoto && showSuccessModal) {
@@ -182,13 +137,13 @@ export default function CameraScreen() {
         <View style={styles.successOverlay}>
           <View style={[styles.successModal, { backgroundColor: themeColors.card }]}>
             <View style={[styles.successIcon, { backgroundColor: themeColors.primary }]}>
-              <Check size={32} color="white" />
+              <Camera size={32} color="white" />
             </View>
             <Text style={[styles.successTitle, { color: themeColors.text }]}>
               Great Shot! 📸
             </Text>
             <Text style={[styles.successSubtitle, { color: themeColors.subtext }]}>
-              Photo captured successfully!
+              Photo saved to your camera roll!
             </Text>
           </View>
         </View>
@@ -216,7 +171,7 @@ export default function CameraScreen() {
         style={styles.camera} 
         facing={facing}
       >
-        {/* Header - No background bar, just logo and text */}
+        {/* Header */}
         <View style={styles.header}>
           <BarBuddyLogo size="medium" />
           <Text style={[styles.headerTitle, { color: 'white' }]}>
@@ -224,35 +179,28 @@ export default function CameraScreen() {
           </Text>
         </View>
 
-        {/* Temporary Instructions */}
-        {showInstructions && (
-          <View style={styles.instructionsContainer}>
-            <Text style={[styles.instructionText, { color: 'white' }]}>
-              📸 Take photos at bars, earn 10 XP, and capture memories!
-            </Text>
-          </View>
-        )}
-
-        {/* Top Controls - Moved camera roll up to align with flip camera */}
+        {/* Top Controls - Side by side */}
         <View style={styles.topControls}>
-          {/* Flip Camera Button */}
           <Pressable 
             style={[styles.controlButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
             onPress={toggleCameraFacing}
           >
             <RotateCcw size={24} color="white" />
+            <Text style={styles.controlButtonText}>Flip</Text>
           </Pressable>
 
-          {/* Camera Roll Button - Moved up and fixed */}
           <Pressable 
             style={[styles.controlButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
             onPress={openCameraRoll}
           >
             <ImageIcon size={24} color="white" />
+            <Text style={styles.controlButtonText}>
+              Roll ({getPhotoCount()})
+            </Text>
           </Pressable>
         </View>
 
-        {/* Capture Button */}
+        {/* Capture Button - Centered at bottom */}
         <View style={styles.captureContainer}>
           <Pressable 
             style={[
@@ -340,39 +288,30 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  instructionsContainer: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 140 : 120,
-    left: 20,
-    right: 20,
-    alignItems: 'center',
-  },
-  instructionText: {
-    fontSize: 14,
-    textAlign: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
   topControls: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 200 : 180,
+    top: Platform.OS === 'ios' ? 180 : 160,
     left: 0,
     right: 0,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-evenly',
     paddingHorizontal: 40,
   },
   controlButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 25,
+    minWidth: 80,
+  },
+  controlButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   captureContainer: {
     position: 'absolute',
