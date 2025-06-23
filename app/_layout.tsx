@@ -35,15 +35,10 @@ export default function RootLayout() {
     const loadBackgroundImage = async () => {
       try {
         console.log('Loading background image from Supabase...');
-        
-        const { data } = supabase
-          .storage
-          .from('background-barbuddy')
-          .getPublicUrl('barbuddy-bg.png');
-        
-        const imageUrl = data.publicUrl;
-        console.log('Background URL resolved:', imageUrl);
-        
+
+        // Use hardcoded working public URL
+        const imageUrl = 'https://fxumtfryjehzsdfqgeis.supabase.co/storage/v1/object/public/background-barbuddy/barbuddy-bg.png';
+
         if (imageUrl && imageUrl !== '') {
           setBackgroundUrl(imageUrl);
           setImageLoadError(false);
@@ -65,7 +60,6 @@ export default function RootLayout() {
     // Initialize stores and load data
     const initializeApp = async () => {
       try {
-        // Load data if user has completed onboarding
         if (profile.hasCompletedOnboarding && profile.userId !== 'default') {
           await loadFromSupabase();
           await loadPopularTimesFromSupabase();
@@ -75,14 +69,11 @@ export default function RootLayout() {
       }
     };
 
-    // Show age verification modal if not verified
     if (!isVerified) {
       setShowAgeVerification(true);
     } else if (!profile.hasCompletedOnboarding) {
-      // Show onboarding after age verification
       setShowOnboarding(true);
     } else {
-      // Initialize app if user is verified and onboarded
       initializeApp();
     }
   }, [isVerified, profile.hasCompletedOnboarding]);
@@ -90,7 +81,7 @@ export default function RootLayout() {
   const handleAgeVerification = (verified: boolean) => {
     setVerified(verified);
     setShowAgeVerification(false);
-    
+
     if (verified && !profile.hasCompletedOnboarding) {
       setShowOnboarding(true);
     }
@@ -107,7 +98,6 @@ export default function RootLayout() {
   };
 
   const renderBackground = () => {
-    // If we have a valid background URL and no load error, use ImageBackground
     if (backgroundUrl && !imageLoadError) {
       return (
         <ImageBackground
@@ -123,7 +113,6 @@ export default function RootLayout() {
       );
     }
 
-    // Fallback to gradient background
     return (
       <LinearGradient
         colors={['#FF6B35', '#F7931E', '#FFD23F']}
@@ -154,8 +143,8 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen 
-          name="venue/[id]" 
+        <Stack.Screen
+          name="venue/[id]"
           options={{
             headerShown: true,
             presentation: 'card',
