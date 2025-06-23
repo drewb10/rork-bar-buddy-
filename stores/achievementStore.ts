@@ -16,7 +16,7 @@ export interface Achievement {
   order: number;
   level: number;
   maxLevel: number;
-  baseId: string; // Used to group achievement levels
+  baseId: string;
 }
 
 export interface CompletedAchievement {
@@ -35,6 +35,8 @@ interface AchievementState {
   completedAchievements: CompletedAchievement[];
   lastPopupDate?: string;
   canShowPopup: () => boolean;
+  shouldShow3AMPopup: () => boolean;
+  mark3AMPopupShown: () => void;
   initializeAchievements: () => void;
   completeAchievement: (id: string) => void;
   markPopupShown: () => void;
@@ -44,6 +46,18 @@ interface AchievementState {
   resetAchievements: () => void;
   updateAchievementProgress: (baseId: string, progress: number) => void;
   getCurrentLevelAchievements: () => Achievement[];
+  checkAndUpdateMultiLevelAchievements: (stats: {
+    totalBeers: number;
+    totalShots: number;
+    totalBeerTowers: number;
+    totalScoopAndScores: number;
+    totalFunnels: number;
+    totalShotguns: number;
+    totalPoolGamesWon: number;
+    totalDartGamesWon: number;
+    barsHit: number;
+    nightsOut: number;
+  }) => void;
 }
 
 const createAchievementLevels = (
@@ -260,6 +274,17 @@ export const useAchievementStore = create<AchievementState>()(
         const { lastPopupDate } = get();
         const today = new Date().toISOString();
         
+        if (lastPopupDate && isSameDay(lastPopupDate, today)) {
+          return false;
+        }
+        
+        return true;
+      },
+
+      shouldShow3AMPopup: () => {
+        const { lastPopupDate } = get();
+        const today = new Date().toISOString();
+        
         if (!isThreeAM()) return false;
         
         if (lastPopupDate && isSameDay(lastPopupDate, today)) {
@@ -267,6 +292,10 @@ export const useAchievementStore = create<AchievementState>()(
         }
         
         return true;
+      },
+
+      mark3AMPopupShown: () => {
+        set({ lastPopupDate: new Date().toISOString() });
       },
 
       initializeAchievements: () => {
@@ -367,6 +396,19 @@ export const useAchievementStore = create<AchievementState>()(
         });
       },
 
+      checkAndUpdateMultiLevelAchievements: (stats) => {
+        const { updateAchievementProgress } = get();
+        
+        // Update all achievement progress
+        updateAchievementProgress('bars-visited', stats.barsHit);
+        updateAchievementProgress('nights-out', stats.nightsOut);
+        updateAchievementProgress('scoop-and-scores', stats.totalScoopAndScores);
+        updateAchievementProgress('funnels', stats.totalFunnels);
+        updateAchievementProgress('shotguns', stats.totalShotguns);
+        updateAchievementProgress('pool-games', stats.totalPoolGamesWon);
+        updateAchievementProgress('dart-games', stats.totalDartGamesWon);
+      },
+
       markPopupShown: () => {
         set({ lastPopupDate: new Date().toISOString() });
       },
@@ -391,7 +433,7 @@ export const useAchievementStore = create<AchievementState>()(
       },
 
       getCurrentLevelAchievements: () => {
-        const { achievements, completedAchievements } = get();
+        const { achievements } = get();
         
         // Get all unique baseIds
         const allBaseIds = [...new Set(achievements.map(a => a.baseId))];

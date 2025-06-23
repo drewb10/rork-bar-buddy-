@@ -1,18 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, Text, Pressable, Modal } from 'react-native';
 import { Plus, Minus, ChartBar as BarChart3, X } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
-import { useAchievementStore } from '@/stores/achievementStore';
-import BarBuddyLogo from '@/components/BarBuddyLogo';
 import { Platform } from 'react-native';
 
 interface DrinkItem {
   id: string;
   name: string;
   icon: string;
-  xpType: 'shots' | 'scoop_and_scores' | 'beers' | 'beer_towers' | 'funnels' | 'shotguns' | 'pool_games_won' | 'dart_games_won';
+  xpType: 'shots' | 'scoop_and_scores' | 'beers' | 'beer_towers' | 'funnels' | 'shotguns' | 'pool_games' | 'dart_games';
 }
 
 const drinkItems: DrinkItem[] = [
@@ -22,8 +20,8 @@ const drinkItems: DrinkItem[] = [
   { id: 'beerTowers', name: 'Beer Towers', icon: '🗼', xpType: 'beer_towers' },
   { id: 'funnels', name: 'Funnels', icon: '⏳', xpType: 'funnels' },
   { id: 'shotguns', name: 'Shotguns', icon: '🔫', xpType: 'shotguns' },
-  { id: 'poolGamesWon', name: 'Pool Games Won', icon: '🎱', xpType: 'pool_games_won' },
-  { id: 'dartGamesWon', name: 'Dart Games Won', icon: '🎯', xpType: 'dart_games_won' },
+  { id: 'poolGamesWon', name: 'Pool Games Won', icon: '🎱', xpType: 'pool_games' },
+  { id: 'dartGamesWon', name: 'Dart Games Won', icon: '🎯', xpType: 'dart_games' },
 ];
 
 interface DailyTrackerProps {
@@ -35,9 +33,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const { awardXP, updateDailyTrackerTotals, getDailyStats } = useUserProfileStore();
-  const { checkAndUpdateMultiLevelAchievements } = useAchievementStore();
   
-  // Initialize counts from daily stats
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -66,6 +62,16 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     }
   }, [visible]);
 
+  // Award XP for increases - moved outside of render
+  const awardXPForIncrease = useCallback((itemId: string, change: number) => {
+    if (change > 0) {
+      const item = drinkItems.find(d => d.id === itemId);
+      if (item) {
+        awardXP(item.xpType, `Had ${change} ${item.name.toLowerCase()}`);
+      }
+    }
+  }, [awardXP]);
+
   const updateCount = (itemId: string, change: number) => {
     if (Platform.OS !== 'web') {
       // Haptics would go here for native platforms
@@ -75,15 +81,11 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       const newCount = Math.max(0, (prev[itemId] || 0) + change);
       const newCounts = { ...prev, [itemId]: newCount };
       
-      // Award XP for increases
+      // Award XP for increases using useEffect to avoid setState during render
       if (change > 0) {
-        const item = drinkItems.find(d => d.id === itemId);
-        if (item) {
-          // Use setTimeout to avoid setState during render
-          setTimeout(() => {
-            awardXP(item.xpType, `Had ${change} ${item.name.toLowerCase()}`);
-          }, 0);
-        }
+        setTimeout(() => {
+          awardXPForIncrease(itemId, change);
+        }, 0);
       }
       
       return newCounts;
@@ -111,26 +113,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       dartGamesWon: counts.dartGamesWon,
     });
 
-    // Trigger achievement check after updating totals
-    setTimeout(() => {
-      const userProfileStore = (window as any).__userProfileStore;
-      if (userProfileStore?.getState) {
-        const { profile } = userProfileStore.getState();
-        checkAndUpdateMultiLevelAchievements({
-          totalBeers: profile.totalBeers || 0,
-          totalShots: profile.totalShots || 0,
-          totalBeerTowers: profile.totalBeerTowers || 0,
-          totalScoopAndScores: profile.totalScoopAndScores || 0,
-          totalFunnels: profile.totalFunnels || 0,
-          totalShotguns: profile.totalShotguns || 0,
-          totalPoolGamesWon: profile.totalPoolGamesWon || 0,
-          totalDartGamesWon: profile.totalDartGamesWon || 0,
-          barsHit: profile.barsHit || 0,
-          nightsOut: profile.nightsOut || 0,
-        });
-      }
-    }, 100);
-
     onClose();
   };
 
@@ -146,26 +128,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       poolGamesWon: counts.poolGamesWon,
       dartGamesWon: counts.dartGamesWon,
     });
-
-    // Trigger achievement check after updating totals
-    setTimeout(() => {
-      const userProfileStore = (window as any).__userProfileStore;
-      if (userProfileStore?.getState) {
-        const { profile } = userProfileStore.getState();
-        checkAndUpdateMultiLevelAchievements({
-          totalBeers: profile.totalBeers || 0,
-          totalShots: profile.totalShots || 0,
-          totalBeerTowers: profile.totalBeerTowers || 0,
-          totalScoopAndScores: profile.totalScoopAndScores || 0,
-          totalFunnels: profile.totalFunnels || 0,
-          totalShotguns: profile.totalShotguns || 0,
-          totalPoolGamesWon: profile.totalPoolGamesWon || 0,
-          totalDartGamesWon: profile.totalDartGamesWon || 0,
-          barsHit: profile.barsHit || 0,
-          nightsOut: profile.nightsOut || 0,
-        });
-      }
-    }, 100);
 
     onClose();
   };

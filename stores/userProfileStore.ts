@@ -30,6 +30,18 @@ interface XPActivity {
   description: string;
 }
 
+interface DailyStats {
+  shots: number;
+  scoopAndScores: number;
+  beers: number;
+  beerTowers: number;
+  funnels: number;
+  shotguns: number;
+  poolGamesWon: number;
+  dartGamesWon: number;
+  date: string;
+}
+
 interface UserProfile {
   firstName: string;
   lastName: string;
@@ -63,6 +75,7 @@ interface UserProfile {
   totalShotguns: number;
   poolGamesWon: number;
   dartGamesWon: number;
+  dailyStats?: DailyStats;
 }
 
 interface RankInfo {
@@ -89,7 +102,7 @@ interface UserProfileState {
   setProfilePicture: (uri: string) => void;
   setUserName: (firstName: string, lastName: string) => void;
   generateUserId: (firstName: string, lastName: string) => string;
-  completeOnboarding: (firstName: string, lastName: string) => void;
+  completeOnboarding: (firstName: string, lastName: string) => Promise<void>;
   addFriend: (friendUserId: string) => Promise<boolean>;
   removeFriend: (friendUserId: string) => void;
   searchUser: (userId: string) => Promise<Friend | null>;
@@ -98,15 +111,16 @@ interface UserProfileState {
   declineFriendRequest: (requestId: string) => Promise<boolean>;
   loadFriendRequests: () => Promise<void>;
   resetProfile: () => void;
-  resetStats: () => void;
+  resetStats: () => Promise<void>;
   syncToSupabase: () => Promise<void>;
   loadFromSupabase: () => Promise<void>;
   awardXP: (type: XPActivity['type'], description: string, venueId?: string) => void;
   getAllRanks: () => RankInfo[];
   getXPForNextRank: () => number;
   getProgressToNextRank: () => number;
-  updateDailyTrackerTotals: (stats: { shots: number; scoopAndScores: number; beers: number; beerTowers: number; funnels: number; shotguns: number; }) => void;
+  updateDailyTrackerTotals: (stats: { shots: number; scoopAndScores: number; beers: number; beerTowers: number; funnels: number; shotguns: number; poolGamesWon: number; dartGamesWon: number; }) => void;
   updateAchievementProgress: () => void;
+  getDailyStats: () => DailyStats;
 }
 
 const XP_VALUES = {
@@ -203,6 +217,10 @@ const isSameDay = (date1: string, date2: string): boolean => {
   } catch {
     return false;
   }
+};
+
+const getTodayString = (): string => {
+  return new Date().toISOString().split('T')[0];
 };
 
 export const useUserProfileStore = create<UserProfileState>()(
@@ -383,19 +401,63 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
       
       updateDailyTrackerTotals: (stats) => {
-        set((state) => ({
-          profile: {
-            ...state.profile,
-            totalShots: state.profile.totalShots + stats.shots,
-            totalScoopAndScores: state.profile.totalScoopAndScores + stats.scoopAndScores,
-            totalBeers: state.profile.totalBeers + stats.beers,
-            totalBeerTowers: state.profile.totalBeerTowers + stats.beerTowers,
-            totalFunnels: state.profile.totalFunnels + stats.funnels,
-            totalShotguns: state.profile.totalShotguns + stats.shotguns,
-          }
-        }));
+        const today = getTodayString();
+        
+        set((state) => {
+          const currentDailyStats = state.profile.dailyStats;
+          const isToday = currentDailyStats?.date === today;
+          
+          const newDailyStats: DailyStats = {
+            shots: isToday ? (currentDailyStats.shots + stats.shots) : stats.shots,
+            scoopAndScores: isToday ? (currentDailyStats.scoopAndScores + stats.scoopAndScores) : stats.scoopAndScores,
+            beers: isToday ? (currentDailyStats.beers + stats.beers) : stats.beers,
+            beerTowers: isToday ? (currentDailyStats.beerTowers + stats.beerTowers) : stats.beerTowers,
+            funnels: isToday ? (currentDailyStats.funnels + stats.funnels) : stats.funnels,
+            shotguns: isToday ? (currentDailyStats.shotguns + stats.shotguns) : stats.shotguns,
+            poolGamesWon: isToday ? (currentDailyStats.poolGamesWon + stats.poolGamesWon) : stats.poolGamesWon,
+            dartGamesWon: isToday ? (currentDailyStats.dartGamesWon + stats.dartGamesWon) : stats.dartGamesWon,
+            date: today,
+          };
+          
+          return {
+            profile: {
+              ...state.profile,
+              totalShots: state.profile.totalShots + stats.shots,
+              totalScoopAndScores: state.profile.totalScoopAndScores + stats.scoopAndScores,
+              totalBeers: state.profile.totalBeers + stats.beers,
+              totalBeerTowers: state.profile.totalBeerTowers + stats.beerTowers,
+              totalFunnels: state.profile.totalFunnels + stats.funnels,
+              totalShotguns: state.profile.totalShotguns + stats.shotguns,
+              poolGamesWon: state.profile.poolGamesWon + stats.poolGamesWon,
+              dartGamesWon: state.profile.dartGamesWon + stats.dartGamesWon,
+              dailyStats: newDailyStats,
+            }
+          };
+        });
+        
         get().updateAchievementProgress();
         get().syncToSupabase();
+      },
+
+      getDailyStats: () => {
+        const { profile } = get();
+        const today = getTodayString();
+        
+        if (profile.dailyStats?.date === today) {
+          return profile.dailyStats;
+        }
+        
+        return {
+          shots: 0,
+          scoopAndScores: 0,
+          beers: 0,
+          beerTowers: 0,
+          funnels: 0,
+          shotguns: 0,
+          poolGamesWon: 0,
+          dartGamesWon: 0,
+          date: today,
+        };
       },
 
       updateAchievementProgress: () => {
@@ -464,7 +526,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         return `#${cleanName}${randomDigits}`;
       },
 
-      completeOnboarding: async (firstName: string, lastName: string) => {
+      completeOnboarding: async (firstName: string, lastName: string): Promise<void> => {
         const userId = get().generateUserId(firstName, lastName);
         
         set((state) => ({
@@ -482,7 +544,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         await get().syncToSupabase();
       },
 
-      addFriend: async (friendUserId: string) => {
+      addFriend: async (friendUserId: string): Promise<boolean> => {
         try {
           const friend = await get().searchUser(friendUserId);
           if (!friend) return false;
@@ -506,7 +568,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         }
       },
 
-      removeFriend: async (friendUserId: string) => {
+      removeFriend: (friendUserId: string) => {
         set((state) => ({
           profile: {
             ...state.profile,
@@ -515,7 +577,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         }));
       },
 
-      searchUser: async (userId: string) => {
+      searchUser: async (userId: string): Promise<Friend | null> => {
         try {
           if (userId.startsWith('#')) {
             return {
@@ -534,7 +596,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         }
       },
 
-      sendFriendRequest: async (friendUserId: string) => {
+      sendFriendRequest: async (friendUserId: string): Promise<boolean> => {
         try {
           return true;
         } catch {
@@ -542,7 +604,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         }
       },
 
-      acceptFriendRequest: async (requestId: string) => {
+      acceptFriendRequest: async (requestId: string): Promise<boolean> => {
         try {
           return true;
         } catch {
@@ -550,7 +612,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         }
       },
 
-      declineFriendRequest: async (requestId: string) => {
+      declineFriendRequest: async (requestId: string): Promise<boolean> => {
         try {
           return true;
         } catch {
@@ -558,7 +620,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         }
       },
 
-      loadFriendRequests: async () => {
+      loadFriendRequests: async (): Promise<void> => {
         try {
           // Mock implementation
         } catch (error) {
@@ -573,7 +635,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         }
       },
 
-      resetStats: async () => {
+      resetStats: async (): Promise<void> => {
         try {
           set((state) => ({
             profile: {
@@ -600,6 +662,7 @@ export const useUserProfileStore = create<UserProfileState>()(
               totalShotguns: 0,
               poolGamesWon: 0,
               dartGamesWon: 0,
+              dailyStats: undefined,
             }
           }));
           await get().syncToSupabase();
@@ -608,7 +671,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         }
       },
 
-      syncToSupabase: async () => {
+      syncToSupabase: async (): Promise<void> => {
         try {
           // Mock implementation
         } catch (error) {
@@ -616,7 +679,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         }
       },
 
-      loadFromSupabase: async () => {
+      loadFromSupabase: async (): Promise<void> => {
         try {
           // Mock implementation
         } catch (error) {
