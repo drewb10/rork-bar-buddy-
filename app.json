@@ -1,37 +1,38 @@
 {
   "expo": {
-    "name": "Bar Buddy ",
-    "slug": "macon-nightlife-guide",
+    "name": "Bar Buddy",
+    "slug": "bar-buddy-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "barbuddy",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#000000"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.rork.bar-buddy"
+      "bundleIdentifier": "com.barbuddy.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#000000"
       },
-      "package": "app.rork.bar-buddy"
+      "package": "com.barbuddy.app"
     },
     "web": {
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "output": "static"
     },
     "plugins": [
       [
         "expo-router",
         {
-          "origin": "https://rork.com/"
+          "origin": "https://barbuddy.app/"
         }
       ]
     ],

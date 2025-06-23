@@ -1,173 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal, Alert } from 'react-native';
-import { Trophy, Target, Users, Star, RotateCcw, X, Info, ChartBar as BarChart3, Camera } from 'lucide-react-native';
+import React from 'react';
+import { StyleSheet, View, Text, ScrollView, StatusBar, Platform } from 'react-native';
+import { Trophy, Target, Users, Star } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
-import { useAchievementStore, Achievement } from '@/stores/achievementStore';
-import { useUserProfileStore } from '@/stores/userProfileStore';
-import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
-import AchievementPopup from '@/components/AchievementPopup';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 
 export default function TrackingScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { 
-    achievements, 
-    canShowPopup, 
-    initializeAchievements, 
-    getCompletedCount, 
-    getAchievementsByCategory,
-    resetAchievements 
-  } = useAchievementStore();
-  
-  const { profile } = useUserProfileStore();
-  const { totalStats } = useDailyTrackerStore();
-  
-  const [showPopup, setShowPopup] = useState(false);
-  const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
-
-  useEffect(() => {
-    initializeAchievements();
-    
-    // Check if we should show the popup when the screen loads
-    if (canShowPopup()) {
-      setShowPopup(true);
-    }
-  }, []);
-
-  const completedCount = getCompletedCount();
-  const totalCount = achievements.length;
-  const completionPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
-  const getCategoryIcon = (category: Achievement['category']) => {
-    switch (category) {
-      case 'bars': return <Target size={20} color={themeColors.primary} />;
-      case 'activities': return <Trophy size={20} color={themeColors.primary} />;
-      case 'social': return <Users size={20} color={themeColors.primary} />;
-      case 'milestones': return <Star size={20} color={themeColors.primary} />;
-      default: return <Trophy size={20} color={themeColors.primary} />;
-    }
-  };
-
-  const getCategoryTitle = (category: Achievement['category']) => {
-    switch (category) {
-      case 'bars': return 'Bar Hopping';
-      case 'activities': return 'Activities';
-      case 'social': return 'Social';
-      case 'milestones': return 'Milestones';
-      default: return 'Other';
-    }
-  };
-
-  const handleAchievementPress = (achievement: Achievement) => {
-    setSelectedAchievement(achievement);
-  };
-
-  const getProgressPercentage = (achievement: Achievement) => {
-    if (!achievement.maxProgress) return achievement.completed ? 100 : 0;
-    return Math.round(((achievement.progress || 0) / achievement.maxProgress) * 100);
-  };
-
-  const renderProgressBar = (achievement: Achievement) => {
-    const percentage = getProgressPercentage(achievement);
-    
-    return (
-      <View style={styles.progressBarContainer}>
-        <View style={[styles.progressBarBackground, { backgroundColor: themeColors.background }]}>
-          <View 
-            style={[
-              styles.progressBarFill, 
-              { 
-                backgroundColor: achievement.completed ? themeColors.primary : themeColors.primary + '60',
-                width: `${percentage}%`
-              }
-            ]} 
-          />
-        </View>
-        <Text style={[styles.progressText, { color: themeColors.subtext }]}>
-          {achievement.maxProgress 
-            ? `${achievement.progress || 0}/${achievement.maxProgress}`
-            : achievement.completed ? 'Complete' : 'Not started'
-          }
-        </Text>
-      </View>
-    );
-  };
-
-  const renderAchievementCategory = (category: Achievement['category']) => {
-    const categoryAchievements = getAchievementsByCategory(category);
-    if (categoryAchievements.length === 0) return null;
-
-    const completedInCategory = categoryAchievements.filter(a => a.completed).length;
-
-    return (
-      <View key={category} style={[styles.categorySection, { backgroundColor: themeColors.card }]}>
-        <View style={styles.categoryHeader}>
-          {getCategoryIcon(category)}
-          <Text style={[styles.categoryTitle, { color: themeColors.text }]}>
-            {getCategoryTitle(category)}
-          </Text>
-          <Text style={[styles.categoryProgress, { color: themeColors.primary }]}>
-            {completedInCategory}/{categoryAchievements.length}
-          </Text>
-        </View>
-        
-        <View style={styles.achievementList}>
-          {categoryAchievements.map((achievement) => (
-            <Pressable
-              key={achievement.id}
-              style={[
-                styles.achievementCard,
-                { 
-                  backgroundColor: achievement.completed 
-                    ? themeColors.primary + '20' 
-                    : themeColors.background,
-                  borderColor: achievement.completed 
-                    ? themeColors.primary 
-                    : themeColors.border,
-                }
-              ]}
-              onPress={() => handleAchievementPress(achievement)}
-            >
-              <View style={styles.achievementHeader}>
-                <Text style={styles.achievementEmoji}>{achievement.icon}</Text>
-                <View style={styles.achievementInfo}>
-                  <Text 
-                    style={[
-                      styles.achievementName, 
-                      { 
-                        color: achievement.completed 
-                          ? themeColors.primary 
-                          : themeColors.text 
-                      }
-                    ]}
-                    numberOfLines={2}
-                  >
-                    {achievement.title}
-                  </Text>
-                  <Text style={[styles.achievementDescription, { color: themeColors.subtext }]}>
-                    {achievement.description}
-                  </Text>
-                </View>
-                {achievement.completed && (
-                  <Text style={[styles.completedBadge, { color: themeColors.primary }]}>
-                    ✓
-                  </Text>
-                )}
-              </View>
-              
-              {/* Progress Bar */}
-              {renderProgressBar(achievement)}
-            </Pressable>
-          ))}
-        </View>
-      </View>
-    );
-  };
 
   return (
-    <View style={[styles.container, { backgroundColor: '#000000' }]}>
+    <View style={[styles.container, { backgroundColor: '#121212' }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       <ScrollView 
@@ -186,91 +29,19 @@ export default function TrackingScreen() {
           </Text>
         </View>
 
-        {/* Progress Overview */}
-        <View style={[styles.progressCard, { backgroundColor: themeColors.card }]}>
-          <View style={styles.progressHeader}>
-            <Text style={[styles.progressTitle, { color: themeColors.text }]}>
-              Overall Progress
-            </Text>
-            <Text style={[styles.progressPercentage, { color: themeColors.primary }]}>
-              {completionPercentage}%
-            </Text>
-          </View>
-          
-          <View style={[styles.progressBar, { backgroundColor: themeColors.background }]}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { 
-                  backgroundColor: themeColors.primary,
-                  width: `${completionPercentage}%`
-                }
-              ]} 
-            />
-          </View>
-          
-          <Text style={[styles.progressText, { color: themeColors.subtext }]}>
-            {completedCount} of {totalCount} achievements completed
+        {/* Coming Soon */}
+        <View style={[styles.comingSoonCard, { backgroundColor: themeColors.card }]}>
+          <Trophy size={48} color={themeColors.primary} />
+          <Text style={[styles.comingSoonTitle, { color: themeColors.text }]}>
+            Achievement System
           </Text>
-        </View>
-
-        {/* Achievement Categories */}
-        <View style={styles.categoriesContainer}>
-          {(['bars', 'activities', 'social', 'milestones'] as const).map(renderAchievementCategory)}
+          <Text style={[styles.comingSoonText, { color: themeColors.subtext }]}>
+            Track your nightlife achievements and unlock rewards! Coming soon...
+          </Text>
         </View>
 
         <View style={styles.footer} />
       </ScrollView>
-
-      {/* Achievement Popup */}
-      <AchievementPopup
-        visible={showPopup}
-        onClose={() => setShowPopup(false)}
-      />
-
-      {/* Achievement Detail Modal */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={selectedAchievement !== null}
-        onRequestClose={() => setSelectedAchievement(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-                {selectedAchievement?.icon} {selectedAchievement?.title}
-              </Text>
-              <Pressable
-                style={styles.modalCloseButton}
-                onPress={() => setSelectedAchievement(null)}
-              >
-                <X size={24} color={themeColors.subtext} />
-              </Pressable>
-            </View>
-            
-            <Text style={[styles.modalDescription, { color: themeColors.subtext }]}>
-              {selectedAchievement?.detailedDescription}
-            </Text>
-            
-            {selectedAchievement && (
-              <View style={styles.modalProgress}>
-                <Text style={[styles.modalProgressTitle, { color: themeColors.text }]}>
-                  Progress
-                </Text>
-                {renderProgressBar(selectedAchievement)}
-              </View>
-            )}
-            
-            <Pressable
-              style={[styles.modalButton, { backgroundColor: themeColors.primary }]}
-              onPress={() => setSelectedAchievement(null)}
-            >
-              <Text style={styles.modalButtonText}>Got it!</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -287,8 +58,8 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingHorizontal: 16,
     paddingBottom: 24,
+    paddingHorizontal: 16,
   },
   headerTitle: {
     fontSize: 24,
@@ -301,175 +72,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-  progressCard: {
+  comingSoonCard: {
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 16,
-    padding: 20,
+    padding: 40,
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
   },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  progressTitle: {
-    fontSize: 18,
+  comingSoonTitle: {
+    fontSize: 20,
     fontWeight: '600',
-  },
-  progressPercentage: {
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  progressBar: {
-    height: 8,
-    borderRadius: 4,
+    marginTop: 16,
     marginBottom: 8,
   },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: 14,
+  comingSoonText: {
+    fontSize: 16,
     textAlign: 'center',
-  },
-  categoriesContainer: {
-    paddingHorizontal: 16,
-    gap: 20,
-  },
-  categorySection: {
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  categoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  categoryTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginLeft: 8,
-    flex: 1,
-  },
-  categoryProgress: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  achievementList: {
-    gap: 12,
-  },
-  achievementCard: {
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
-  },
-  achievementHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  achievementEmoji: {
-    fontSize: 24,
-    marginRight: 12,
-  },
-  achievementInfo: {
-    flex: 1,
-  },
-  achievementName: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-    lineHeight: 20,
-  },
-  achievementDescription: {
-    fontSize: 14,
-    lineHeight: 18,
-  },
-  completedBadge: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  progressBarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  progressBarBackground: {
-    flex: 1,
-    height: 6,
-    borderRadius: 3,
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 3,
+    lineHeight: 22,
   },
   footer: {
     height: 24,
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    padding: 20,
-  },
-  modalContent: {
-    width: '100%',
-    maxWidth: 400,
-    borderRadius: 20,
-    padding: 24,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    flex: 1,
-    lineHeight: 26,
-  },
-  modalCloseButton: {
-    padding: 4,
-    marginLeft: 12,
-  },
-  modalDescription: {
-    fontSize: 16,
-    lineHeight: 22,
-    marginBottom: 20,
-  },
-  modalProgress: {
-    marginBottom: 24,
-  },
-  modalProgressTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  modalButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  modalButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

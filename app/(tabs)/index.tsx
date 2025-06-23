@@ -1,18 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable, StatusBar, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MapPin, Heart, TrendingUp, ChartBar as BarChart3 } from 'lucide-react-native';
+import { MapPin, Heart, TrendingUp, BarChart3 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { venues, getSpecialsByDay } from '@/mocks/venues';
 import VenueCard from '@/components/VenueCard';
 import SectionHeader from '@/components/SectionHeader';
 import FilterBar from '@/components/FilterBar';
-import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import TopPickCard from '@/components/TopPickCard';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import DailyTrackerModal from '@/components/DailyTrackerModal';
-import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
 import { Venue, Special, TopPickItem } from '@/types/venue';
 
 export default function HomeScreen() {
@@ -22,8 +20,6 @@ export default function HomeScreen() {
   const [venueFilters, setVenueFilters] = useState<string[]>([]);
   const [topPickVenues, setTopPickVenues] = useState<TopPickItem[]>([]);
   const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
-  const { interactions, resetInteractionsIfNeeded } = useVenueInteractionStore();
-  const { getDailyTotal, resetDailyStatsIfNeeded } = useDailyTrackerStore();
 
   useEffect(() => {
     const day = getCurrentDay();
@@ -52,26 +48,15 @@ export default function HomeScreen() {
       .filter((item): item is TopPickItem => item !== null);
     
     setTopPickVenues(validTopPicks);
-    resetInteractionsIfNeeded();
-    resetDailyStatsIfNeeded();
   }, []);
 
   const filteredVenues = venueFilters.length > 0
     ? venues.filter(venue => venue.types.some(type => venueFilters.includes(type)))
     : venues;
 
-  // Sort venues by interaction count (most interactions first)
-  const sortedVenues = [...filteredVenues].sort((a, b) => {
-    const aCount = interactions.find(i => i && i.venueId === a.id)?.count || 0;
-    const bCount = interactions.find(i => i && i.venueId === b.id)?.count || 0;
-    return bCount - aCount;
-  });
-
   const handleDailyTrackerPress = () => {
     setDailyTrackerVisible(true);
   };
-
-  const dailyTotal = getDailyTotal();
 
   return (
     <View style={[styles.container, { backgroundColor: '#000000' }]}>
@@ -134,7 +119,7 @@ export default function HomeScreen() {
             showSeeAll={false}
           />
           <View style={styles.venueList}>
-            {sortedVenues.map(venue => (
+            {filteredVenues.map(venue => (
               <VenueCard key={venue.id} venue={venue} />
             ))}
           </View>

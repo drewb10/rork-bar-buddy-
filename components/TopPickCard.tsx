@@ -1,12 +1,10 @@
 import React from 'react';
 import { StyleSheet, View, Text, Pressable, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Clock, Star, Heart } from 'lucide-react-native';
+import { Clock, Star } from 'lucide-react-native';
 import { Venue, Special } from '@/types/venue';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
-import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
-import { LinearGradient } from 'expo-linear-gradient';
 
 interface TopPickCardProps {
   venue: Venue;
@@ -17,9 +15,6 @@ export default function TopPickCard({ venue, todaySpecial }: TopPickCardProps) {
   const router = useRouter();
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { getLikeCount } = useVenueInteractionStore();
-  
-  const likeCount = getLikeCount(venue.id);
 
   const handlePress = () => {
     router.push(`/venue/${venue.id}${todaySpecial ? `?specialId=${todaySpecial.id}` : ''}`);
@@ -40,18 +35,6 @@ export default function TopPickCard({ venue, todaySpecial }: TopPickCardProps) {
         source={{ uri: venue.featuredImage }} 
         style={styles.image} 
       />
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.7)']}
-        style={styles.gradient}
-      />
-      
-      {/* Like count badge */}
-      {likeCount > 0 && (
-        <View style={[styles.likeBadge, { backgroundColor: themeColors.primary }]}>
-          <Heart size={10} color="white" fill="white" />
-          <Text style={styles.likeText}>{likeCount}</Text>
-        </View>
-      )}
       
       <View style={styles.content}>
         <Text style={[styles.venueName, { color: themeColors.text }]} numberOfLines={1}>
@@ -99,39 +82,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    position: 'relative',
   },
   image: {
     width: '100%',
     height: 100,
-  },
-  gradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 100,
-  },
-  likeBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  likeText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: '600',
-    marginLeft: 3,
   },
   content: {
     padding: 10,

@@ -1,60 +1,15 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, TextInput, Image } from 'react-native';
-import { User, TrendingUp, MapPin, CreditCard as Edit3, X, Award, Camera, Share2, Users, RotateCcw, Info, ChartBar as BarChart3 } from 'lucide-react-native';
+import React from 'react';
+import { StyleSheet, View, Text, ScrollView, StatusBar, Platform } from 'react-native';
+import { User, TrendingUp, MapPin, Award } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
-import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
-import { venues } from '@/mocks/venues';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 
 export default function ProfileScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { 
-    profile, 
-    updateProfile, 
-    getAverageDrunkScale, 
-    getRank,
-    getAllRanks,
-    getXPForNextRank,
-    getProgressToNextRank,
-    setUserName,
-    resetStats
-  } = useUserProfileStore();
-  
-  const { interactions } = useVenueInteractionStore();
-  
-  const [nameEditModalVisible, setNameEditModalVisible] = useState(false);
-  const [rankDetailsModalVisible, setRankDetailsModalVisible] = useState(false);
-  const [barVisitsModalVisible, setBarVisitsModalVisible] = useState(false);
-  const [editFirstName, setEditFirstName] = useState(profile.firstName);
-  const [editLastName, setEditLastName] = useState(profile.lastName);
-  
-  const averageDrunkScale = getAverageDrunkScale();
-  const rankInfo = getRank();
-  const allRanks = getAllRanks();
-  const nextRankXP = getXPForNextRank();
-  const progressToNext = getProgressToNextRank();
-
-  // Get bar visit data
-  const getBarVisits = () => {
-    return interactions
-      .filter(interaction => interaction.count > 0)
-      .map(interaction => {
-        const venue = venues.find(v => v.id === interaction.venueId);
-        return {
-          venueId: interaction.venueId,
-          venueName: venue?.name || 'Unknown Bar',
-          visits: interaction.count,
-          likes: interaction.likes
-        };
-      })
-      .sort((a, b) => b.visits - a.visits);
-  };
-
-  const barVisits = getBarVisits();
-  const totalVisits = barVisits.reduce((sum, bar) => sum + bar.visits, 0);
+  const { profile } = useUserProfileStore();
 
   const formatJoinDate = (dateString: string) => {
     try {
@@ -66,33 +21,6 @@ export default function ProfileScreen() {
     } catch {
       return 'Recently';
     }
-  };
-
-  const handleNameSave = () => {
-    if (editFirstName.trim() && editLastName.trim()) {
-      setUserName(editFirstName.trim(), editLastName.trim());
-      setNameEditModalVisible(false);
-    } else {
-      Alert.alert('Error', 'Please enter both first and last name.');
-    }
-  };
-
-  const handleResetStats = () => {
-    Alert.alert(
-      'Reset My Stats',
-      'Are you sure you want to reset all your stats? This will set your nights out, bars hit, XP, and drunk scale ratings back to zero. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Reset', 
-          style: 'destructive',
-          onPress: () => {
-            resetStats();
-            Alert.alert('Stats Reset', 'Your stats have been reset to zero.');
-          }
-        },
-      ]
-    );
   };
 
   return (
@@ -114,31 +42,13 @@ export default function ProfileScreen() {
 
         {/* Profile Card */}
         <View style={[styles.profileCard, { backgroundColor: themeColors.card }]}>
-          <View style={styles.avatarContainer}>
-            {profile.profilePicture ? (
-              <Image source={{ uri: profile.profilePicture }} style={styles.avatarImage} />
-            ) : (
-              <View style={[styles.avatar, { backgroundColor: themeColors.primary }]}>
-                <User size={32} color="white" />
-              </View>
-            )}
+          <View style={[styles.avatar, { backgroundColor: themeColors.primary }]}>
+            <User size={32} color="white" />
           </View>
           
-          <View style={styles.nameContainer}>
-            <Text style={[styles.userName, { color: themeColors.text }]}>
-              {profile.firstName} {profile.lastName}
-            </Text>
-            <Pressable 
-              style={styles.editButton}
-              onPress={() => {
-                setEditFirstName(profile.firstName);
-                setEditLastName(profile.lastName);
-                setNameEditModalVisible(true);
-              }}
-            >
-              <Edit3 size={16} color={themeColors.primary} />
-            </Pressable>
-          </View>
+          <Text style={[styles.userName, { color: themeColors.text }]}>
+            {profile.firstName} {profile.lastName}
+          </Text>
           
           <Text style={[styles.joinDate, { color: themeColors.subtext }]}>
             Member since {formatJoinDate(profile.joinDate)}
@@ -150,67 +60,6 @@ export default function ProfileScreen() {
             </Text>
           )}
         </View>
-
-        {/* XP and Ranking Card */}
-        <View style={[styles.xpCard, { backgroundColor: themeColors.card }]}>
-          <View style={styles.xpHeader}>
-            <Award size={24} color={rankInfo.color} />
-            <View style={styles.xpInfo}>
-              <Text style={[styles.xpAmount, { color: themeColors.text }]}>
-                {profile.xp} XP
-              </Text>
-              <Text style={[styles.xpToNext, { color: themeColors.subtext }]}>
-                {nextRankXP - profile.xp} XP to next rank
-              </Text>
-            </View>
-          </View>
-          
-          <View style={[styles.progressBar, { backgroundColor: themeColors.background }]}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { 
-                  backgroundColor: rankInfo.color,
-                  width: `${progressToNext}%`
-                }
-              ]} 
-            />
-          </View>
-          
-          <Pressable 
-            style={styles.rankContainer}
-            onPress={() => setRankDetailsModalVisible(true)}
-          >
-            <Text style={[styles.rankTitle, { color: rankInfo.color }]}>
-              {rankInfo.title}
-            </Text>
-            <Text style={[styles.rankSubtitle, { color: themeColors.text }]}>
-              {rankInfo.subTitle}
-            </Text>
-            <Info size={16} color={themeColors.subtext} style={styles.infoIcon} />
-          </Pressable>
-        </View>
-
-        {/* Bar Visits Tracker */}
-        {barVisits.length > 0 && (
-          <Pressable 
-            style={[styles.barVisitsCard, { backgroundColor: themeColors.card }]}
-            onPress={() => setBarVisitsModalVisible(true)}
-          >
-            <View style={styles.barVisitsHeader}>
-              <BarChart3 size={20} color={themeColors.primary} />
-              <Text style={[styles.barVisitsTitle, { color: themeColors.text }]}>
-                Bar Visit Tracker
-              </Text>
-              <Text style={[styles.totalVisits, { color: themeColors.primary }]}>
-                {totalVisits} total visits
-              </Text>
-            </View>
-            <Text style={[styles.barVisitsSubtitle, { color: themeColors.subtext }]}>
-              You've visited {barVisits.length} different bars • Tap to see details
-            </Text>
-          </Pressable>
-        )}
 
         {/* Stats Section */}
         <View style={styles.statsSection}>
@@ -242,26 +91,16 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Drunk Scale Average - Display Only */}
+          {/* XP Card */}
           <View style={[styles.statCard, styles.fullWidthCard, { backgroundColor: themeColors.card }]}>
+            <Award size={28} color={themeColors.primary} />
             <Text style={[styles.statNumber, { color: themeColors.text }]}>
-              {averageDrunkScale > 0 ? averageDrunkScale.toFixed(1) : '0.0'}
+              {profile.xp}
             </Text>
             <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-              Drunk Scale Average
+              Experience Points
             </Text>
           </View>
-
-          {/* Reset Stats Button */}
-          <Pressable 
-            style={[styles.resetButton, { backgroundColor: themeColors.card }]}
-            onPress={handleResetStats}
-          >
-            <RotateCcw size={18} color="#FF4444" />
-            <Text style={[styles.resetButtonText, { color: "#FF4444" }]}>
-              Reset All Stats
-            </Text>
-          </Pressable>
 
           {/* Activity Summary */}
           <View style={[styles.summaryCard, { backgroundColor: themeColors.card }]}>
@@ -273,76 +112,6 @@ export default function ProfileScreen() {
 
         <View style={styles.footer} />
       </ScrollView>
-
-      {/* Name Edit Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={nameEditModalVisible}
-        onRequestClose={() => setNameEditModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-                Edit Name
-              </Text>
-              <Pressable 
-                style={styles.closeButton}
-                onPress={() => setNameEditModalVisible(false)}
-              >
-                <X size={24} color={themeColors.subtext} />
-              </Pressable>
-            </View>
-            
-            <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: themeColors.text }]}>First Name</Text>
-              <TextInput
-                style={[styles.textInput, { 
-                  backgroundColor: themeColors.background,
-                  color: themeColors.text,
-                  borderColor: themeColors.border
-                }]}
-                value={editFirstName}
-                onChangeText={setEditFirstName}
-                placeholder="Enter first name"
-                placeholderTextColor={themeColors.subtext}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: themeColors.text }]}>Last Name</Text>
-              <TextInput
-                style={[styles.textInput, { 
-                  backgroundColor: themeColors.background,
-                  color: themeColors.text,
-                  borderColor: themeColors.border
-                }]}
-                value={editLastName}
-                onChangeText={setEditLastName}
-                placeholder="Enter last name"
-                placeholderTextColor={themeColors.subtext}
-              />
-            </View>
-            
-            <View style={styles.modalActions}>
-              <Pressable 
-                style={[styles.modalButton, styles.cancelButton]} 
-                onPress={() => setNameEditModalVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </Pressable>
-              
-              <Pressable 
-                style={[styles.modalButton, styles.saveButton, { backgroundColor: themeColors.primary }]} 
-                onPress={handleNameSave}
-              >
-                <Text style={styles.saveButtonText}>Save</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -379,39 +148,23 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 16,
-  },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
   },
-  avatarImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
-  nameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
   userName: {
     fontSize: 26,
     fontWeight: '700',
-    marginRight: 8,
-  },
-  editButton: {
-    padding: 4,
+    marginBottom: 8,
   },
   joinDate: {
     fontSize: 14,
@@ -420,92 +173,6 @@ const styles = StyleSheet.create({
   userId: {
     fontSize: 16,
     fontWeight: '600',
-  },
-  xpCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  xpHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  xpInfo: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  xpAmount: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  xpToNext: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  progressBar: {
-    height: 8,
-    borderRadius: 4,
-    marginBottom: 12,
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  rankContainer: {
-    alignItems: 'center',
-    position: 'relative',
-  },
-  rankTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  rankSubtitle: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  infoIcon: {
-    position: 'absolute',
-    right: -20,
-    top: 8,
-  },
-  barVisitsCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  barVisitsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  barVisitsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-    flex: 1,
-  },
-  totalVisits: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  barVisitsSubtitle: {
-    fontSize: 14,
-    lineHeight: 18,
   },
   statsSection: {
     paddingHorizontal: 16,
@@ -549,24 +216,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
   },
-  resetButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    padding: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    marginBottom: 20,
-  },
-  resetButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
   summaryCard: {
     borderRadius: 16,
     padding: 20,
@@ -582,71 +231,5 @@ const styles = StyleSheet.create({
   },
   footer: {
     height: 24,
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  },
-  modalContent: {
-    width: '90%',
-    maxHeight: '80%',
-    borderRadius: 16,
-    padding: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
-  modalButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    minWidth: 100,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: 'transparent',
-  },
-  cancelButtonText: {
-    color: '#999',
-    fontWeight: '500',
-  },
-  saveButton: {
-    backgroundColor: '#FF6A00',
-  },
-  saveButtonText: {
-    color: 'white',
-    fontWeight: '600',
   },
 });
