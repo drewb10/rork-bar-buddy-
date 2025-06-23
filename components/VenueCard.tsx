@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, Pressable, Image, Dimensions, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MapPin, Clock, Star, Flame, Heart, TrendingUp } from 'lucide-react-native';
+import { MapPin, Clock, Star, Flame, Heart, TrendingUp, MessageCircle } from 'lucide-react-native';
 import { Venue } from '@/types/venue';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
-import * as Haptics from 'expo-haptics';
-import { Platform } from 'react-native';
+import ChatModal from '@/components/ChatModal';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface VenueCardProps {
@@ -26,6 +25,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const likeCount = getLikeCount(venue.id);
   const popularTime = getPopularArrivalTime(venue.id);
   const [rsvpModalVisible, setRsvpModalVisible] = useState(false);
+  const [chatModalVisible, setChatModalVisible] = useState(false);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
   const canInteractWithVenue = canInteract(venue.id);
@@ -35,14 +35,15 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     router.push(`/venue/${venue.id}`);
   };
 
+  const handleChatPress = (e: any) => {
+    e.stopPropagation(); // Prevent venue navigation
+    setChatModalVisible(true);
+  };
+
   const handleInteraction = () => {
     if (!canInteractWithVenue || isInteracting) return;
     
     setIsInteracting(true);
-    
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
     
     // Show RSVP modal
     setRsvpModalVisible(true);
@@ -136,6 +137,14 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
             <Text style={styles.compactLikeText}>{likeCount}</Text>
           </View>
         )}
+
+        {/* Chat Button for Compact Cards */}
+        <Pressable 
+          style={[styles.compactChatButton, { backgroundColor: themeColors.primary }]}
+          onPress={handleChatPress}
+        >
+          <MessageCircle size={14} color="white" />
+        </Pressable>
         
         <View style={styles.compactContent}>
           <Text style={[styles.compactName, { color: themeColors.text }]} numberOfLines={1}>
@@ -151,6 +160,13 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
             </View>
           </View>
         </View>
+
+        {/* Chat Modal for Compact Cards */}
+        <ChatModal
+          visible={chatModalVisible}
+          onClose={() => setChatModalVisible(false)}
+          venue={venue}
+        />
       </Pressable>
     );
   }
@@ -183,6 +199,14 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           size={18} 
           color={interactionCount > 0 ? 'white' : themeColors.primary} 
         />
+      </Pressable>
+
+      {/* Chat Button - New prominent position */}
+      <Pressable 
+        style={[styles.chatButton, { backgroundColor: themeColors.primary }]}
+        onPress={handleChatPress}
+      >
+        <MessageCircle size={18} color="white" />
       </Pressable>
 
       {/* Like count badge with enhanced styling */}
@@ -342,6 +366,13 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           </View>
         </View>
       </Modal>
+
+      {/* Chat Modal */}
+      <ChatModal
+        visible={chatModalVisible}
+        onClose={() => setChatModalVisible(false)}
+        venue={venue}
+      />
     </Pressable>
   );
 }
@@ -390,6 +421,21 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     right: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  chatButton: {
+    position: 'absolute',
+    top: 12,
+    right: 56, // Position next to the flame button
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -566,6 +612,21 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     marginLeft: 3,
+  },
+  compactChatButton: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   compactContent: {
     padding: 10,

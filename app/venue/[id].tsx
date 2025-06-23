@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, Image, Pressable, Linking, Platform, Dimensions, StatusBar } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { MapPin, Phone, Globe, Clock, Heart, Instagram, Share2, ChartBar as BarChart3, TrendingUp, MessageCircle } from 'lucide-react-native';
+import { MapPin, Phone, Globe, Clock, Heart, Instagram, Share2, BarChart3, TrendingUp, MessageCircle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { getVenueById } from '@/mocks/venues';
@@ -80,18 +80,22 @@ export default function VenueDetailScreen() {
               {venue.description}
             </Text>
 
-            {/* Chat Button */}
+            {/* Prominent Chat Button - Moved to top for visibility */}
             <Pressable 
               style={[styles.chatButton, { backgroundColor: themeColors.primary }]}
               onPress={handleChatPress}
             >
-              <MessageCircle size={20} color="white" />
-              <Text style={styles.chatButtonText}>
-                💬 Live Chat at {venue.name}
-              </Text>
-              <Text style={styles.chatSubtext}>
-                (Anonymous. Please keep it respectful.)
-              </Text>
+              <View style={styles.chatButtonContent}>
+                <MessageCircle size={24} color="white" />
+                <View style={styles.chatButtonText}>
+                  <Text style={styles.chatButtonTitle}>
+                    💬 Live Chat at {venue.name}
+                  </Text>
+                  <Text style={styles.chatButtonSubtitle}>
+                    Anonymous • Keep it respectful
+                  </Text>
+                </View>
+              </View>
             </Pressable>
 
             {/* Enhanced Popular Times Section */}
@@ -246,26 +250,30 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 24,
-    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
   },
+  chatButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   chatButtonText: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  chatButtonTitle: {
     color: 'white',
     fontSize: 18,
     fontWeight: '700',
-    marginTop: 8,
     marginBottom: 4,
-    textAlign: 'center',
   },
-  chatSubtext: {
+  chatButtonSubtitle: {
     color: 'rgba(255,255,255,0.8)',
     fontSize: 14,
     fontWeight: '500',
-    textAlign: 'center',
   },
   popularTimesSection: {
     borderRadius: 16,
