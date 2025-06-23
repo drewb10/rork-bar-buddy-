@@ -42,6 +42,7 @@ interface ChatState {
   error: string | null;
   subscription: any;
   appStartTime: number; // Track when app started
+  lastMessageTime: number; // For rate limiting
   loadMessages: (venueId: string) => Promise<void>;
   sendMessage: (venueId: string, content: string) => Promise<void>;
   createOrGetSession: (venueId: string) => Promise<ChatSession>;
@@ -51,6 +52,116 @@ interface ChatState {
   clearError: () => void;
   resetChatOnAppReopen: () => void;
 }
+
+// Content moderation filters
+const HATE_SPEECH_PATTERNS = [
+  // Racial/ethnic slurs and hate speech
+  /\b(n[i1]gg[ae3]r|n[i1]gg[ae3]|sp[i1]c|ch[i1]nk|g[o0][o0]k|w[e3]tb[a4]ck|b[e3][a4]n[e3]r|cr[a4]ck[e3]r)\b/i,
+  // Religious hate
+  /\b(k[i1]k[e3]|j[e3]w[s5]|m[u0]sl[i1]m[s5]?\s*(are|is).*(terrorist|bomb|evil))\b/i,
+  // LGBTQ+ slurs
+  /\b(f[a4]gg[o0]t|f[a4]g|tr[a4]nn[y1]|d[y1]k[e3])\b/i,
+  // Gender-based hate
+  /\b(wh[o0]r[e3]|sl[u0]t|b[i1]tch|c[u0]nt)\s*(are|is).*(worthless|stupid|trash)/i,
+  // General hate patterns
+  /\b(kill\s*(all|every)|genocide|lynch|hang\s*(all|every))\b/i,
+];
+
+const VIOLENCE_THREAT_PATTERNS = [
+  /\b(kill|murder|shoot|stab|bomb|attack|hurt|beat\s*up|fight\s*me)\b/i,
+  /\b(gonna\s*(kill|hurt|beat)|will\s*(kill|hurt|beat)|going\s*to\s*(kill|hurt|beat))\b/i,
+  /\b(meet\s*me\s*(outside|after)|lets\s*fight|wanna\s*fight)\b/i,
+  /\b(bring\s*a\s*(gun|knife|weapon)|school\s*shooter)\b/i,
+];
+
+const BULLYING_HARASSMENT_PATTERNS = [
+  /\b(ugly|fat|stupid|loser|freak|weird)\s*(ass|face|person|girl|guy|boy)\b/i,
+  /\b(nobody\s*likes\s*you|everyone\s*hates\s*you|kill\s*yourself|kys)\b/i,
+  /\b(you\s*should\s*(die|disappear|leave))\b/i,
+];
+
+const SEXUAL_HARASSMENT_PATTERNS = [
+  /\b(send\s*nudes|show\s*(me\s*)?(your|ur)\s*(tits|ass|pussy|dick))\b/i,
+  /\b(wanna\s*(fuck|hook\s*up|bang)|dtf|netflix\s*and\s*chill)\b/i,
+  /\b(rape|sexual\s*assault|non\s*consensual)\b/i,
+  /\b(daddy|mommy)\s*(issues|kink)/i,
+];
+
+const PII_PATTERNS = [
+  // Phone numbers
+  /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/,
+  /\b\(\d{3}\)\s*\d{3}[-.]?\d{4}\b/,
+  // Email addresses
+  /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/,
+  // Social media handles
+  /\b(instagram|insta|snapchat|snap|tiktok|twitter|ig|sc)[\s:]*[@]?[A-Za-z0-9._-]+\b/i,
+  // Full names (basic pattern)
+  /\b[A-Z][a-z]+\s+[A-Z][a-z]+\s*(jr|sr|iii|iv)?\b/,
+  // Addresses
+  /\b\d+\s+[A-Za-z\s]+(street|st|avenue|ave|road|rd|drive|dr|lane|ln|court|ct|place|pl)\b/i,
+];
+
+const SPAM_ADVERTISING_PATTERNS = [
+  /\b(follow\s*me|dm\s*me|message\s*me|add\s*me)\b/i,
+  /\b(promo\s*code|discount|sale|buy\s*now|click\s*here)\b/i,
+  /\b(crypto|bitcoin|nft|investment|make\s*money)\b/i,
+  /\b(onlyfans|premium\s*content|subscribe)\b/i,
+];
+
+const PROFANITY_PATTERNS = [
+  /\b(fuck|shit|damn|hell|ass|bitch|bastard|crap)\b/i,
+];
+
+// Rate limiting: 5 seconds between messages
+const RATE_LIMIT_MS = 5000;
+
+const moderateContent = (content: string): { isAllowed: boolean; reason?: string } => {
+  const trimmedContent = content.trim().toLowerCase();
+  
+  // Check for hate speech
+  for (const pattern of HATE_SPEECH_PATTERNS) {
+    if (pattern.test(trimmedContent)) {
+      return { isAllowed: false, reason: 'Hate speech is not allowed' };
+    }
+  }
+  
+  // Check for violence/threats
+  for (const pattern of VIOLENCE_THREAT_PATTERNS) {
+    if (pattern.test(trimmedContent)) {
+      return { isAllowed: false, reason: 'Threats and violent content are not allowed' };
+    }
+  }
+  
+  // Check for bullying/harassment
+  for (const pattern of BULLYING_HARASSMENT_PATTERNS) {
+    if (pattern.test(trimmedContent)) {
+      return { isAllowed: false, reason: 'Bullying and harassment are not allowed' };
+    }
+  }
+  
+  // Check for sexual harassment
+  for (const pattern of SEXUAL_HARASSMENT_PATTERNS) {
+    if (pattern.test(trimmedContent)) {
+      return { isAllowed: false, reason: 'Sexual harassment is not allowed' };
+    }
+  }
+  
+  // Check for PII
+  for (const pattern of PII_PATTERNS) {
+    if (pattern.test(content)) { // Use original content for PII to preserve case
+      return { isAllowed: false, reason: 'Personal information sharing is not allowed for your safety' };
+    }
+  }
+  
+  // Check for spam/advertising
+  for (const pattern of SPAM_ADVERTISING_PATTERNS) {
+    if (pattern.test(trimmedContent)) {
+      return { isAllowed: false, reason: 'Spam and advertising are not allowed' };
+    }
+  }
+  
+  return { isAllowed: true };
+};
 
 const getUserId = async (): Promise<string> => {
   let userId = '';
@@ -94,6 +205,28 @@ const generateAnonymousName = (userId: string): string => {
   return `${adjectives[adjIndex]}${nouns[nounIndex]}${number}`;
 };
 
+// Check if it's past 5 AM today and messages should be reset
+const shouldResetMessages = (messageTimestamp: string): boolean => {
+  try {
+    const now = new Date();
+    const messageDate = new Date(messageTimestamp);
+    
+    // Get today's 5 AM
+    const today5AM = new Date();
+    today5AM.setHours(5, 0, 0, 0);
+    
+    // If it's before 5 AM today, use yesterday's 5 AM as cutoff
+    if (now.getHours() < 5) {
+      today5AM.setDate(today5AM.getDate() - 1);
+    }
+    
+    // Message should be hidden if it's older than the last 5 AM reset
+    return messageDate < today5AM;
+  } catch {
+    return false;
+  }
+};
+
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   currentSession: null,
@@ -101,6 +234,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   error: null,
   subscription: null,
   appStartTime: Date.now(), // Initialize with current time
+  lastMessageTime: 0, // Initialize rate limiting
 
   clearError: () => set({ error: null }),
 
@@ -111,7 +245,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       currentSession: null, 
       error: null,
       isLoading: false,
-      appStartTime: Date.now() // Update app start time
+      appStartTime: Date.now(), // Update app start time
+      lastMessageTime: 0 // Reset rate limiting
     });
     
     // Clean up any existing subscriptions
@@ -195,9 +330,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw new Error('Venue ID is required and cannot be empty');
       }
 
-      // Only load messages that were created after app start time to ensure fresh chat
-      const appStartTime = get().appStartTime;
-      const startTimeISO = new Date(appStartTime).toISOString();
+      // Calculate cutoff time for daily reset (5 AM)
+      const now = new Date();
+      const cutoffTime = new Date();
+      cutoffTime.setHours(5, 0, 0, 0);
+      
+      // If it's before 5 AM today, use yesterday's 5 AM as cutoff
+      if (now.getHours() < 5) {
+        cutoffTime.setDate(cutoffTime.getDate() - 1);
+      }
 
       const { data: messagesData, error } = await supabase
         .from('chat_messages')
@@ -214,7 +355,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           )
         `)
         .eq('chat_sessions.venue_id', venueId)
-        .gte('created_at', startTimeISO) // Only load messages after app start
+        .gte('created_at', cutoffTime.toISOString()) // Only load messages after 5 AM cutoff
         .order('timestamp', { ascending: true })
         .limit(100);
 
@@ -238,7 +379,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           venue_id: sessionData?.venue_id || venueId,
         };
       }).filter(msg => {
-        return msg.venue_id === venueId;
+        return msg.venue_id === venueId && !shouldResetMessages(msg.created_at);
       }) || [];
 
       set({ messages: transformedMessages, isLoading: false });
@@ -263,6 +404,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const trimmedContent = content.trim();
       if (trimmedContent.length === 0) {
         throw new Error('Message content cannot be empty after trimming');
+      }
+
+      // Rate limiting check
+      const now = Date.now();
+      const { lastMessageTime } = get();
+      if (now - lastMessageTime < RATE_LIMIT_MS) {
+        const remainingTime = Math.ceil((RATE_LIMIT_MS - (now - lastMessageTime)) / 1000);
+        throw new Error(`Please wait ${remainingTime} seconds before sending another message`);
+      }
+
+      // Content moderation
+      const moderationResult = moderateContent(trimmedContent);
+      if (!moderationResult.isAllowed) {
+        throw new Error(moderationResult.reason || 'Message content is not allowed');
       }
 
       const session = get().currentSession || await get().createOrGetSession(venueId);
@@ -298,7 +453,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const currentMessages = get().messages;
       set({ 
         messages: [...currentMessages, transformedMessage],
-        isLoading: false 
+        isLoading: false,
+        lastMessageTime: now // Update last message time for rate limiting
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
@@ -332,12 +488,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
           },
           async (payload) => {
             try {
-              // Only process messages created after app start time
-              const appStartTime = get().appStartTime;
-              const messageCreatedAt = new Date(payload.new.created_at).getTime();
-              
-              if (messageCreatedAt < appStartTime) {
-                return; // Ignore messages from before app start
+              // Check if message should be reset due to daily cutoff
+              if (shouldResetMessages(payload.new.created_at)) {
+                return; // Ignore messages that should be reset
               }
 
               // Verify the message belongs to the current venue

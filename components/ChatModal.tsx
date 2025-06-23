@@ -146,9 +146,10 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
       await sendMessage(venue.id, messageToSend);
     } catch (error) {
       setInputText(messageToSend);
+      const errorMessage = error instanceof Error ? error.message : 'Could not send your message. Please try again.';
       Alert.alert(
         'Failed to Send',
-        'Could not send your message. Please try again.',
+        errorMessage,
         [{ text: 'OK' }]
       );
     } finally {
@@ -333,18 +334,31 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               borderColor: themeColors.glass.border,
             }]}>
               <Text style={[styles.termsTitle, { color: themeColors.text }]}>
-                Chat Guidelines
+                Chat Guidelines & Safety
               </Text>
               <ScrollView style={styles.termsScroll}>
                 <Text style={[styles.termsText, { color: themeColors.text }]}>
                   Welcome to BarBuddy anonymous chat! To keep our community safe and fun:{"\n\n"}
+                  
+                  <Text style={{ fontWeight: 'bold' }}>✅ DO:</Text>{"\n"}
                   • Be respectful and kind to others{"\n"}
-                  • No inappropriate language or content{"\n"}
-                  • No sharing of personal information{"\n"}
-                  • No harassment or bullying{"\n"}
-                  • No spam or promotional content{"\n"}
-                  • Keep conversations venue-related and fun{"\n\n"}
-                  Messages are automatically filtered for inappropriate content. Violations may result in temporary chat restrictions.{"\n\n"}
+                  • Keep conversations venue-related and fun{"\n"}
+                  • Respect others' privacy and anonymity{"\n"}
+                  • Report inappropriate behavior{"\n\n"}
+                  
+                  <Text style={{ fontWeight: 'bold' }}>❌ DON'T:</Text>{"\n"}
+                  • Share personal information (phone, email, social media){"\n"}
+                  • Use hate speech, threats, or harassment{"\n"}
+                  • Send spam or promotional content{"\n"}
+                  • Engage in sexual harassment{"\n"}
+                  • Bully or target other users{"\n\n"}
+                  
+                  <Text style={{ fontWeight: 'bold' }}>🔒 Privacy & Safety:</Text>{"\n"}
+                  • Messages reset daily at 5:00 AM{"\n"}
+                  • All content is automatically moderated{"\n"}
+                  • Violations may result in chat restrictions{"\n"}
+                  • Your safety is our priority{"\n\n"}
+                  
                   Have fun and stay safe! 🍻
                 </Text>
               </ScrollView>
@@ -559,7 +573,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   termsScroll: {
-    maxHeight: 300,
+    maxHeight: 400,
   },
   termsText: {
     fontSize: 16,
