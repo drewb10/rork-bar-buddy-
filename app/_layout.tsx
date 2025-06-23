@@ -46,7 +46,7 @@ export default function RootLayout() {
         const initTimeout = setTimeout(() => {
           console.warn('App initialization timeout, continuing anyway');
           setIsInitialized(true);
-        }, 10000); // 10 second timeout
+        }, 5000); // Reduced to 5 second timeout
 
         // Only load data if user has completed onboarding
         if (profile?.hasCompletedOnboarding && profile?.userId !== 'default') {
@@ -81,7 +81,10 @@ export default function RootLayout() {
     } else {
       // Only initialize if not already done
       if (!isInitialized) {
-        initializeApp();
+        // Use setTimeout to prevent blocking render
+        setTimeout(() => {
+          initializeApp();
+        }, 100);
       }
     }
   }, [isVerified, profile?.hasCompletedOnboarding, profile?.userId, isInitialized]);
@@ -100,8 +103,10 @@ export default function RootLayout() {
       }
     };
 
-    // Check immediately
-    checkFor3AMPopup();
+    // Check immediately with delay
+    setTimeout(() => {
+      checkFor3AMPopup();
+    }, 1000);
 
     // Set up interval with error handling
     const interval = setInterval(() => {

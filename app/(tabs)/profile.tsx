@@ -33,7 +33,6 @@ export default function TrackingScreen() {
   const [shareStatsModalVisible, setShareStatsModalVisible] = useState(false);
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
   const [rankDetailsModalVisible, setRankDetailsModalVisible] = useState(false);
-  const [barVisitsModalVisible, setBarVisitsModalVisible] = useState(false);
   const [editFirstName, setEditFirstName] = useState(profile.firstName);
   const [editLastName, setEditLastName] = useState(profile.lastName);
   
@@ -42,25 +41,6 @@ export default function TrackingScreen() {
   const allRanks = getAllRanks();
   const nextRankXP = getXPForNextRank();
   const progressToNext = getProgressToNextRank();
-
-  // Get bar visit data
-  const getBarVisits = () => {
-    return interactions
-      .filter(interaction => interaction.count > 0)
-      .map(interaction => {
-        const venue = venues.find(v => v.id === interaction.venueId);
-        return {
-          venueId: interaction.venueId,
-          venueName: venue?.name || 'Unknown Bar',
-          visits: interaction.count,
-          likes: interaction.likes
-        };
-      })
-      .sort((a, b) => b.visits - a.visits);
-  };
-
-  const barVisits = getBarVisits();
-  const totalVisits = barVisits.reduce((sum, bar) => sum + bar.visits, 0);
 
   const formatJoinDate = (dateString: string) => {
     try {

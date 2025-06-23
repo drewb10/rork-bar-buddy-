@@ -37,10 +37,9 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const { awardXP, updateDailyTrackerTotals, getDailyStats } = useUserProfileStore();
   const { checkAndUpdateMultiLevelAchievements } = useAchievementStore();
   
-  // Initialize counts from daily stats only once when component mounts or becomes visible
+  // Initialize counts from daily stats
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [isInitialized, setIsInitialized] = useState(false);
-  const [pendingXPAwards, setPendingXPAwards] = useState<Array<{ type: string, description: string }>>([]);
 
   // Initialize counts when modal becomes visible
   useEffect(() => {
@@ -60,21 +59,10 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     }
   }, [visible, isInitialized, getDailyStats]);
 
-  // Handle XP awards in a separate effect to avoid setState during render
-  useEffect(() => {
-    if (pendingXPAwards.length > 0) {
-      pendingXPAwards.forEach(({ type, description }) => {
-        awardXP(type as any, description);
-      });
-      setPendingXPAwards([]);
-    }
-  }, [pendingXPAwards, awardXP]);
-
   // Reset initialization when modal closes
   useEffect(() => {
     if (!visible) {
       setIsInitialized(false);
-      setPendingXPAwards([]);
     }
   }, [visible]);
 
@@ -87,14 +75,14 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       const newCount = Math.max(0, (prev[itemId] || 0) + change);
       const newCounts = { ...prev, [itemId]: newCount };
       
-      // Queue XP award for later processing instead of doing it synchronously
+      // Award XP for increases
       if (change > 0) {
         const item = drinkItems.find(d => d.id === itemId);
         if (item) {
-          setPendingXPAwards(current => [
-            ...current,
-            { type: item.xpType, description: `Had ${change} ${item.name.toLowerCase()}` }
-          ]);
+          // Use setTimeout to avoid setState during render
+          setTimeout(() => {
+            awardXP(item.xpType, `Had ${change} ${item.name.toLowerCase()}`);
+          }, 0);
         }
       }
       
@@ -132,6 +120,13 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
           totalBeers: profile.totalBeers || 0,
           totalShots: profile.totalShots || 0,
           totalBeerTowers: profile.totalBeerTowers || 0,
+          totalScoopAndScores: profile.totalScoopAndScores || 0,
+          totalFunnels: profile.totalFunnels || 0,
+          totalShotguns: profile.totalShotguns || 0,
+          totalPoolGamesWon: profile.totalPoolGamesWon || 0,
+          totalDartGamesWon: profile.totalDartGamesWon || 0,
+          barsHit: profile.barsHit || 0,
+          nightsOut: profile.nightsOut || 0,
         });
       }
     }, 100);
@@ -161,6 +156,13 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
           totalBeers: profile.totalBeers || 0,
           totalShots: profile.totalShots || 0,
           totalBeerTowers: profile.totalBeerTowers || 0,
+          totalScoopAndScores: profile.totalScoopAndScores || 0,
+          totalFunnels: profile.totalFunnels || 0,
+          totalShotguns: profile.totalShotguns || 0,
+          totalPoolGamesWon: profile.totalPoolGamesWon || 0,
+          totalDartGamesWon: profile.totalDartGamesWon || 0,
+          barsHit: profile.barsHit || 0,
+          nightsOut: profile.nightsOut || 0,
         });
       }
     }, 100);
