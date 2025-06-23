@@ -156,10 +156,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
-            Track your activities tonight
-          </Text>
-
           {/* Drunk Scale Slider */}
           <View style={[styles.drunkScaleContainer, { backgroundColor: themeColors.card }]}>
             <Text style={[styles.drunkScaleTitle, { color: themeColors.text }]}>
@@ -196,7 +192,13 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
 
           <View style={styles.itemsGrid}>
             {drinkItems.map((item) => (
-              <View key={item.id} style={[styles.itemCard, { backgroundColor: themeColors.card }]}>
+              <View key={item.id} style={[styles.itemCard, { 
+                backgroundColor: themeColors.card,
+                shadowColor: themeColors.primary,
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+                shadowOffset: { width: 0, height: 2 },
+              }]}>
                 <Text style={styles.itemIcon}>{item.icon}</Text>
                 <Text style={[styles.itemName, { color: themeColors.text }]}>
                   {item.name}
@@ -204,7 +206,11 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                 
                 <View style={styles.counter}>
                   <Pressable
-                    style={[styles.counterButton, { backgroundColor: themeColors.border }]}
+                    style={[styles.counterButton, { 
+                      backgroundColor: counts[item.id] === 0 ? themeColors.border : themeColors.background,
+                      borderColor: themeColors.border,
+                      borderWidth: 1,
+                    }]}
                     onPress={() => updateCount(item.id, -1)}
                     disabled={counts[item.id] === 0}
                   >
@@ -216,7 +222,14 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                   </Text>
                   
                   <Pressable
-                    style={[styles.counterButton, { backgroundColor: themeColors.primary }]}
+                    style={[styles.counterButton, { 
+                      backgroundColor: themeColors.primary,
+                      shadowColor: themeColors.primary,
+                      shadowOpacity: 0.3,
+                      shadowRadius: 4,
+                      shadowOffset: { width: 0, height: 2 },
+                      elevation: 3,
+                    }]}
                     onPress={() => updateCount(item.id, 1)}
                   >
                     <Plus size={16} color="white" />
@@ -263,10 +276,6 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
   },
-  subtitle: {
-    fontSize: 16,
-    marginBottom: 24,
-  },
   drunkScaleContainer: {
     borderRadius: 16,
     padding: 20,
@@ -275,8 +284,8 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   drunkScaleTitle: {
     fontSize: 18,
@@ -298,6 +307,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitButtonText: {
     color: 'white',
