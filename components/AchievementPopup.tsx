@@ -10,12 +10,13 @@ import { Platform } from 'react-native';
 interface AchievementPopupProps {
   visible: boolean;
   onClose: () => void;
+  is3AMPopup?: boolean;
 }
 
-export default function AchievementPopup({ visible, onClose }: AchievementPopupProps) {
+export default function AchievementPopup({ visible, onClose, is3AMPopup = false }: AchievementPopupProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { achievements, completeAchievement, markPopupShown } = useAchievementStore();
+  const { achievements, completeAchievement, markPopupShown, mark3AMPopupShown } = useAchievementStore();
   const [selectedAchievements, setSelectedAchievements] = useState<string[]>([]);
 
   const availableAchievements = achievements.filter(a => !a.completed);
@@ -42,7 +43,11 @@ export default function AchievementPopup({ visible, onClose }: AchievementPopupP
       completeAchievement(id);
     });
 
-    markPopupShown();
+    if (is3AMPopup) {
+      mark3AMPopupShown();
+    } else {
+      markPopupShown();
+    }
     
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -56,7 +61,11 @@ export default function AchievementPopup({ visible, onClose }: AchievementPopupP
   };
 
   const handleClose = () => {
-    markPopupShown();
+    if (is3AMPopup) {
+      mark3AMPopupShown();
+    } else {
+      markPopupShown();
+    }
     onClose();
   };
 
@@ -89,22 +98,27 @@ export default function AchievementPopup({ visible, onClose }: AchievementPopupP
       animationType="slide"
       transparent={true}
       visible={visible}
-      onRequestClose={handleClose}
+      onRequestClose={is3AMPopup ? undefined : handleClose}
     >
       <View style={styles.overlay}>
         <View style={[styles.container, { backgroundColor: themeColors.card }]}>
           {/* Header */}
           <View style={styles.header}>
             <Text style={[styles.title, { color: themeColors.text }]}>
-              How was your night? 🌙
+              {is3AMPopup ? 'How was your night? 🌙' : 'Log Tonight\'s Activities 🌙'}
             </Text>
-            <Pressable style={styles.closeButton} onPress={handleClose}>
-              <X size={24} color={themeColors.subtext} />
-            </Pressable>
+            {!is3AMPopup && (
+              <Pressable style={styles.closeButton} onPress={handleClose}>
+                <X size={24} color={themeColors.subtext} />
+              </Pressable>
+            )}
           </View>
 
           <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
-            Check off what you accomplished tonight!
+            {is3AMPopup 
+              ? 'Time to log your achievements from tonight!' 
+              : 'Check off what you accomplished tonight!'
+            }
           </Text>
 
           {/* Achievement List by Category */}
@@ -162,20 +176,25 @@ export default function AchievementPopup({ visible, onClose }: AchievementPopupP
 
           {/* Action Buttons */}
           <View style={styles.actions}>
-            <Pressable 
-              style={[styles.button, styles.skipButton]} 
-              onPress={handleClose}
-            >
-              <Text style={[styles.skipButtonText, { color: themeColors.subtext }]}>
-                Skip for now
-              </Text>
-            </Pressable>
+            {!is3AMPopup && (
+              <Pressable 
+                style={[styles.button, styles.skipButton]} 
+                onPress={handleClose}
+              >
+                <Text style={[styles.skipButtonText, { color: themeColors.subtext }]}>
+                  Skip for now
+                </Text>
+              </Pressable>
+            )}
             
             <Pressable 
               style={[
                 styles.button, 
                 styles.submitButton, 
-                { backgroundColor: themeColors.primary }
+                { 
+                  backgroundColor: themeColors.primary,
+                  flex: is3AMPopup ? 1 : undefined
+                }
               ]} 
               onPress={handleSubmit}
             >
@@ -183,6 +202,15 @@ export default function AchievementPopup({ visible, onClose }: AchievementPopupP
                 Complete ({selectedAchievements.length})
               </Text>
             </Pressable>
+
+            {is3AMPopup && (
+              <Pressable 
+                style={[styles.button, styles.skipButton]} 
+                onPress={handleClose}
+              >
+                <X size={20} color={themeColors.subtext} />
+              </Pressable>
+            )}
           </View>
         </View>
       </View>
@@ -214,6 +242,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
+    flex: 1,
   },
   closeButton: {
     padding: 4,
@@ -274,6 +303,8 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     backgroundColor: 'transparent',
+    flex: 0,
+    paddingHorizontal: 12,
   },
   skipButtonText: {
     fontSize: 16,

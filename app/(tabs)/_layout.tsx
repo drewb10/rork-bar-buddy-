@@ -36,17 +36,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="camera"
-        options={{
-          title: 'Camera',
-          tabBarIcon: ({ color, size }) => <Camera size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="achievements"
         options={{
           title: 'Achievements',
           tabBarIcon: ({ color, size }) => <Award size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="camera"
+        options={{
+          title: 'Camera',
+          tabBarIcon: ({ color, size }) => <Camera size={size} color={color} />,
         }}
       />
       <Tabs.Screen

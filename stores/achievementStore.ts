@@ -18,6 +18,7 @@ export interface Achievement {
 interface AchievementState {
   achievements: Achievement[];
   popupShown: boolean;
+  lastPopupDate: string | null;
   initializeAchievements: () => void;
   completeAchievement: (id: string) => void;
   getCompletedCount: () => number;
@@ -25,6 +26,8 @@ interface AchievementState {
   updateAchievementProgress: (id: string, progress: number) => void;
   markPopupShown: () => void;
   shouldShowPopup: () => boolean;
+  shouldShow3AMPopup: () => boolean;
+  mark3AMPopupShown: () => void;
 }
 
 const defaultAchievements: Achievement[] = [
@@ -164,11 +167,24 @@ const defaultAchievements: Achievement[] = [
   },
 ];
 
+const isSameDay = (date1: string, date2: string): boolean => {
+  try {
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    return d1.getFullYear() === d2.getFullYear() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getDate() === d2.getDate();
+  } catch {
+    return false;
+  }
+};
+
 export const useAchievementStore = create<AchievementState>()(
   persist(
     (set, get) => ({
       achievements: [],
       popupShown: false,
+      lastPopupDate: null,
 
       initializeAchievements: () => {
         const { achievements } = get();
@@ -218,6 +234,7 @@ export const useAchievementStore = create<AchievementState>()(
             progress: a.maxProgress ? 0 : undefined
           })),
           popupShown: false,
+          lastPopupDate: null,
         });
       },
 
@@ -229,6 +246,26 @@ export const useAchievementStore = create<AchievementState>()(
         const { achievements, popupShown } = get();
         const hasIncompleteAchievements = achievements.some(a => !a.completed);
         return !popupShown && hasIncompleteAchievements;
+      },
+
+      shouldShow3AMPopup: () => {
+        const { lastPopupDate } = get();
+        const now = new Date();
+        const currentHour = now.getHours();
+        const today = now.toISOString();
+        
+        // Check if it's 3 AM and we haven't shown the popup today
+        if (currentHour === 3) {
+          if (!lastPopupDate || !isSameDay(lastPopupDate, today)) {
+            return true;
+          }
+        }
+        
+        return false;
+      },
+
+      mark3AMPopupShown: () => {
+        set({ lastPopupDate: new Date().toISOString() });
       },
     }),
     {

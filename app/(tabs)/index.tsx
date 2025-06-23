@@ -11,6 +11,7 @@ import FilterBar from '@/components/FilterBar';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import TopPickCard from '@/components/TopPickCard';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
+import DailyTracker from '@/components/DailyTracker';
 import { TopPickItem } from '@/types/venue';
 
 export default function HomeScreen() {
@@ -74,6 +75,9 @@ export default function HomeScreen() {
         <View style={styles.logoContainer}>
           <BarBuddyLogo size="large" />
         </View>
+
+        {/* Daily Tracker */}
+        <DailyTracker />
 
         <FilterBar 
           filters={venueFilters}

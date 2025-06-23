@@ -6,8 +6,10 @@ import { useEffect, useState } from "react";
 import { useAgeVerificationStore } from "@/stores/ageVerificationStore";
 import { useUserProfileStore } from "@/stores/userProfileStore";
 import { useVenueInteractionStore } from "@/stores/venueInteractionStore";
+import { useAchievementStore } from "@/stores/achievementStore";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
 import OnboardingModal from "@/components/OnboardingModal";
+import AchievementPopup from "@/components/AchievementPopup";
 import { useFrameworkReady } from "@/hooks/useFrameworkReady";
 
 const queryClient = new QueryClient({
@@ -26,8 +28,10 @@ export default function RootLayout() {
   const { isVerified, setVerified } = useAgeVerificationStore();
   const { profile, completeOnboarding, loadFromSupabase } = useUserProfileStore();
   const { loadPopularTimesFromSupabase } = useVenueInteractionStore();
+  const { shouldShow3AMPopup, mark3AMPopupShown } = useAchievementStore();
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [show3AMPopup, setShow3AMPopup] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
@@ -64,6 +68,23 @@ export default function RootLayout() {
     }
   }, [isVerified, profile?.hasCompletedOnboarding, profile?.userId, isInitialized]);
 
+  // Check for 3 AM popup every minute
+  useEffect(() => {
+    const checkFor3AMPopup = () => {
+      if (shouldShow3AMPopup() && isVerified && profile?.hasCompletedOnboarding) {
+        setShow3AMPopup(true);
+      }
+    };
+
+    // Check immediately
+    checkFor3AMPopup();
+
+    // Set up interval to check every minute
+    const interval = setInterval(checkFor3AMPopup, 60000);
+
+    return () => clearInterval(interval);
+  }, [shouldShow3AMPopup, isVerified, profile?.hasCompletedOnboarding]);
+
   const handleAgeVerification = (verified: boolean) => {
     try {
       setVerified(verified);
@@ -85,6 +106,10 @@ export default function RootLayout() {
       console.warn('Error completing onboarding:', error);
       setShowOnboarding(false); // Still close modal to prevent hanging
     }
+  };
+
+  const handle3AMPopupClose = () => {
+    setShow3AMPopup(false);
   };
 
   return (
@@ -139,6 +164,12 @@ export default function RootLayout() {
         <OnboardingModal
           visible={showOnboarding}
           onComplete={handleOnboardingComplete}
+        />
+
+        <AchievementPopup
+          visible={show3AMPopup}
+          onClose={handle3AMPopupClose}
+          is3AMPopup={true}
         />
       </QueryClientProvider>
     </trpc.Provider>
