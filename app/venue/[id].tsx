@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, Image, Pressable, Linking, Platform, Dimensions, StatusBar } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { MapPin, Phone, Globe, Clock, Heart, Instagram, Share2, BarChart3, TrendingUp, MessageCircle } from 'lucide-react-native';
+import { MapPin, Phone, Globe, Clock, Heart, Instagram, Share2, ChartBar as BarChart3, TrendingUp, MessageCircle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { getVenueById } from '@/mocks/venues';
