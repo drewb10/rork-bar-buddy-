@@ -288,18 +288,23 @@ export default function TrophiesScreen() {
                             {achievement.icon}
                           </Text>
                           <View style={styles.achievementTextContainer}>
-                            <Text 
-                              style={[styles.achievementTitle, { color: themeColors.text }]}
-                              numberOfLines={2}
-                            >
-                              {achievement.title}
-                            </Text>
-                            
                             {achievement.level > 1 && (
                               <View style={[styles.levelBadge, { backgroundColor: category.color }]}>
                                 <Text style={styles.levelBadgeText}>Lv.{achievement.level}</Text>
                               </View>
                             )}
+                            <Text 
+                              style={[
+                                styles.achievementTitle, 
+                                { 
+                                  color: themeColors.text,
+                                  marginTop: achievement.level > 1 ? 16 : 0 // Add top margin when level badge is present
+                                }
+                              ]}
+                              numberOfLines={2}
+                            >
+                              {achievement.title}
+                            </Text>
                           </View>
                           
                           <View style={[styles.completedBadge, { backgroundColor: category.color }]}>
@@ -634,15 +639,17 @@ const styles = StyleSheet.create({
   },
   achievementContent: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start', // Changed from 'center' to 'flex-start' for better alignment
   },
   achievementIcon: {
     fontSize: 36, // Larger
     marginRight: 16, // More spacing
+    marginTop: 4, // Slight adjustment for alignment
   },
   achievementTextContainer: {
     flex: 1,
     position: 'relative',
+    paddingTop: 4, // Add padding to accommodate level badge
   },
   achievementTitle: {
     fontSize: 16, // Slightly larger for better readability
@@ -650,14 +657,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     letterSpacing: 0.2,
     paddingRight: 40, // Space for the completed badge
+    lineHeight: 20, // Better line height for readability
   },
   levelBadge: {
     position: 'absolute',
-    top: -8,
+    top: 0, // Changed from -8 to 0 to prevent overlap
     left: 0,
     paddingHorizontal: 8, // More padding
     paddingVertical: 4,
     borderRadius: 10, // More rounded
+    zIndex: 1, // Ensure it's above other elements
   },
   levelBadgeText: {
     color: 'white',
