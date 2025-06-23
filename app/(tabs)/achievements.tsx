@@ -78,7 +78,7 @@ export default function AchievementsScreen() {
             ]} 
           />
         </View>
-        <Text style={[styles.progressText, { color: themeColors.subtext }]}>
+        <Text style={[styles.progressBarText, { color: themeColors.subtext }]}>
           {achievement.maxProgress 
             ? `${achievement.progress || 0}/${achievement.maxProgress}`
             : achievement.completed ? 'Complete' : 'Not started'
@@ -425,6 +425,10 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 4,
   },
+  progressText: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
   dailyTrackerCard: {
     marginHorizontal: 16,
     marginBottom: 24,
@@ -556,7 +560,7 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 3,
   },
-  progressText: {
+  progressBarText: {
     fontSize: 12,
     fontWeight: '500',
   },
