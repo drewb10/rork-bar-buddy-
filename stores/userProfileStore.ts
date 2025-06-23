@@ -290,6 +290,7 @@ export const useUserProfileStore = create<UserProfileState>()(
               hasCustomizedProfile: true
             }
           }));
+          // Don't await sync to prevent hanging
           get().syncToSupabase().catch(err => console.warn('Sync error:', err));
         } catch (error) {
           console.warn('Error updating profile:', error);
@@ -869,8 +870,11 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       syncToSupabase: async () => {
         try {
-          // Mock implementation - would sync to Supabase in real app
-          return Promise.resolve();
+          // Mock implementation with timeout to prevent hanging
+          return Promise.race([
+            new Promise(resolve => setTimeout(resolve, 100)), // Mock sync
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Sync timeout')), 2000))
+          ]);
         } catch (error) {
           console.warn('Error syncing to Supabase:', error);
           return Promise.resolve();
@@ -879,8 +883,11 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       loadFromSupabase: async () => {
         try {
-          // Mock implementation - would load from Supabase in real app
-          return Promise.resolve();
+          // Mock implementation with timeout to prevent hanging
+          return Promise.race([
+            new Promise(resolve => setTimeout(resolve, 100)), // Mock load
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Load timeout')), 2000))
+          ]);
         } catch (error) {
           console.warn('Error loading from Supabase:', error);
           return Promise.resolve();

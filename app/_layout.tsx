@@ -15,8 +15,9 @@ import { useFrameworkReady } from "@/hooks/useFrameworkReady";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: false,
+      retry: 1, // Reduced retries to prevent hanging
       staleTime: 1000 * 60 * 5, // 5 minutes
+      networkMode: 'offlineFirst', // Prevent network hangs
     },
   },
 });
@@ -35,20 +36,36 @@ export default function RootLayout() {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // Initialize stores and load data with error handling
+    // Simplified initialization with better error handling
     const initializeApp = async () => {
       try {
-        // Prevent infinite loops by checking initialization state
+        // Prevent multiple initializations
         if (isInitialized) return;
         
-        // Load data if user has completed onboarding
+        // Set timeout for initialization to prevent hanging
+        const initTimeout = setTimeout(() => {
+          console.warn('App initialization timeout, continuing anyway');
+          setIsInitialized(true);
+        }, 10000); // 10 second timeout
+
+        // Only load data if user has completed onboarding
         if (profile?.hasCompletedOnboarding && profile?.userId !== 'default') {
-          await Promise.all([
-            loadFromSupabase().catch(err => console.warn('Failed to load from Supabase:', err)),
-            loadPopularTimesFromSupabase().catch(err => console.warn('Failed to load popular times:', err))
+          // Use Promise.allSettled to prevent one failure from blocking others
+          const results = await Promise.allSettled([
+            loadFromSupabase(),
+            loadPopularTimesFromSupabase()
           ]);
+          
+          // Log any failures but don't block initialization
+          results.forEach((result, index) => {
+            if (result.status === 'rejected') {
+              const operation = index === 0 ? 'loadFromSupabase' : 'loadPopularTimesFromSupabase';
+              console.warn(`${operation} failed:`, result.reason);
+            }
+          });
         }
         
+        clearTimeout(initTimeout);
         setIsInitialized(true);
       } catch (error) {
         console.warn('Error initializing app:', error);
@@ -56,31 +73,44 @@ export default function RootLayout() {
       }
     };
 
-    // Show age verification modal if not verified
+    // Show modals based on state
     if (!isVerified) {
       setShowAgeVerification(true);
     } else if (!profile?.hasCompletedOnboarding) {
-      // Show onboarding after age verification
       setShowOnboarding(true);
     } else {
-      // Initialize app if user is verified and onboarded
-      initializeApp();
+      // Only initialize if not already done
+      if (!isInitialized) {
+        initializeApp();
+      }
     }
   }, [isVerified, profile?.hasCompletedOnboarding, profile?.userId, isInitialized]);
 
-  // Check for 3 AM popup every minute
+  // Simplified 3 AM popup check
   useEffect(() => {
+    if (!isVerified || !profile?.hasCompletedOnboarding) return;
+
     const checkFor3AMPopup = () => {
-      if (shouldShow3AMPopup() && isVerified && profile?.hasCompletedOnboarding) {
-        setShow3AMPopup(true);
+      try {
+        if (shouldShow3AMPopup()) {
+          setShow3AMPopup(true);
+        }
+      } catch (error) {
+        console.warn('Error checking 3AM popup:', error);
       }
     };
 
     // Check immediately
     checkFor3AMPopup();
 
-    // Set up interval to check every minute
-    const interval = setInterval(checkFor3AMPopup, 60000);
+    // Set up interval with error handling
+    const interval = setInterval(() => {
+      try {
+        checkFor3AMPopup();
+      } catch (error) {
+        console.warn('Error in 3AM popup interval:', error);
+      }
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [shouldShow3AMPopup, isVerified, profile?.hasCompletedOnboarding]);
@@ -95,6 +125,7 @@ export default function RootLayout() {
       }
     } catch (error) {
       console.warn('Error handling age verification:', error);
+      setShowAgeVerification(false);
     }
   };
 
@@ -104,12 +135,18 @@ export default function RootLayout() {
       setShowOnboarding(false);
     } catch (error) {
       console.warn('Error completing onboarding:', error);
-      setShowOnboarding(false); // Still close modal to prevent hanging
+      setShowOnboarding(false);
     }
   };
 
   const handle3AMPopupClose = () => {
-    setShow3AMPopup(false);
+    try {
+      mark3AMPopupShown();
+      setShow3AMPopup(false);
+    } catch (error) {
+      console.warn('Error closing 3AM popup:', error);
+      setShow3AMPopup(false);
+    }
   };
 
   return (

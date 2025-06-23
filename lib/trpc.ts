@@ -21,9 +21,12 @@ export const trpcClient = trpc.createClient({
       url: `${getBaseUrl()}/api/trpc`,
       transformer: superjson,
       fetch: (url, options) => {
-        // Add timeout and error handling for network requests to prevent hanging
+        // Add aggressive timeout and error handling for network requests
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        const timeoutId = setTimeout(() => {
+          console.warn('Network request timeout, aborting');
+          controller.abort();
+        }, 3000); // Reduced to 3 second timeout
         
         return fetch(url, {
           ...options,
@@ -35,10 +38,13 @@ export const trpcClient = trpc.createClient({
         })
         .catch((error) => {
           clearTimeout(timeoutId);
-          console.warn('Network request failed:', error);
-          // Return a mock response to prevent crashes
-          return new Response(JSON.stringify({ error: "Network unavailable" }), {
-            status: 500,
+          console.warn('Network request failed, using offline mode:', error);
+          // Return a mock response to prevent crashes and hanging
+          return new Response(JSON.stringify({ 
+            result: { data: null },
+            error: { message: "Network unavailable", code: "NETWORK_ERROR" }
+          }), {
+            status: 200, // Return 200 to prevent trpc from retrying
             headers: { 'Content-Type': 'application/json' }
           });
         });

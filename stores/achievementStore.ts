@@ -415,184 +415,239 @@ export const useAchievementStore = create<AchievementState>()(
       lastPopupDate: null,
 
       initializeAchievements: () => {
-        const { achievements } = get();
-        if (achievements.length === 0) {
+        try {
+          const { achievements } = get();
+          if (achievements.length === 0) {
+            set({ achievements: defaultAchievements });
+          }
+        } catch (error) {
+          console.warn('Error initializing achievements:', error);
           set({ achievements: defaultAchievements });
         }
       },
 
       completeAchievement: (id: string) => {
-        set((state) => ({
-          achievements: state.achievements.map(achievement =>
-            achievement.id === id
-              ? { ...achievement, completed: true, completedAt: new Date().toISOString() }
-              : achievement
-          )
-        }));
+        try {
+          set((state) => ({
+            achievements: state.achievements.map(achievement =>
+              achievement.id === id
+                ? { ...achievement, completed: true, completedAt: new Date().toISOString() }
+                : achievement
+            )
+          }));
+        } catch (error) {
+          console.warn('Error completing achievement:', error);
+        }
       },
 
       updateAchievementProgress: (id: string, progress: number) => {
-        set((state) => ({
-          achievements: state.achievements.map(achievement =>
-            achievement.id === id
-              ? { 
-                  ...achievement, 
-                  progress,
-                  completed: achievement.maxProgress ? progress >= achievement.maxProgress : achievement.completed,
-                  completedAt: achievement.maxProgress && progress >= achievement.maxProgress && !achievement.completed 
-                    ? new Date().toISOString() 
-                    : achievement.completedAt
-                }
-              : achievement
-          )
-        }));
+        try {
+          set((state) => ({
+            achievements: state.achievements.map(achievement =>
+              achievement.id === id
+                ? { 
+                    ...achievement, 
+                    progress,
+                    completed: achievement.maxProgress ? progress >= achievement.maxProgress : achievement.completed,
+                    completedAt: achievement.maxProgress && progress >= achievement.maxProgress && !achievement.completed 
+                      ? new Date().toISOString() 
+                      : achievement.completedAt
+                  }
+                : achievement
+            )
+          }));
+        } catch (error) {
+          console.warn('Error updating achievement progress:', error);
+        }
       },
 
       checkAndUpdateMultiLevelAchievements: (userStats: { totalBeers: number; totalShots: number; totalBeerTowers: number; }) => {
-        const { achievements } = get();
-        let updatedAchievements = [...achievements];
-        let hasChanges = false;
+        try {
+          const { achievements } = get();
+          let updatedAchievements = [...achievements];
+          let hasChanges = false;
 
-        // Check beer achievements
-        const beerAchievements = [
-          { id: 'beer-beginner', threshold: 10 },
-          { id: 'brew-enthusiast', threshold: 50 },
-          { id: 'lager-lover', threshold: 100 },
-          { id: 'ale-aficionado', threshold: 250 },
-          { id: 'beer-annihilator', threshold: 500 },
-        ];
+          // Check beer achievements
+          const beerAchievements = [
+            { id: 'beer-beginner', threshold: 10 },
+            { id: 'brew-enthusiast', threshold: 50 },
+            { id: 'lager-lover', threshold: 100 },
+            { id: 'ale-aficionado', threshold: 250 },
+            { id: 'beer-annihilator', threshold: 500 },
+          ];
 
-        beerAchievements.forEach(({ id, threshold }) => {
-          const achievementIndex = updatedAchievements.findIndex(a => a.id === id);
-          if (achievementIndex !== -1) {
-            const achievement = updatedAchievements[achievementIndex];
-            const newProgress = Math.min(userStats.totalBeers, threshold);
-            const shouldComplete = userStats.totalBeers >= threshold;
+          beerAchievements.forEach(({ id, threshold }) => {
+            const achievementIndex = updatedAchievements.findIndex(a => a.id === id);
+            if (achievementIndex !== -1) {
+              const achievement = updatedAchievements[achievementIndex];
+              const newProgress = Math.min(userStats.totalBeers, threshold);
+              const shouldComplete = userStats.totalBeers >= threshold;
 
-            if (achievement.progress !== newProgress || (shouldComplete && !achievement.completed)) {
-              updatedAchievements[achievementIndex] = {
-                ...achievement,
-                progress: newProgress,
-                completed: shouldComplete,
-                completedAt: shouldComplete && !achievement.completed ? new Date().toISOString() : achievement.completedAt
-              };
-              hasChanges = true;
+              if (achievement.progress !== newProgress || (shouldComplete && !achievement.completed)) {
+                updatedAchievements[achievementIndex] = {
+                  ...achievement,
+                  progress: newProgress,
+                  completed: shouldComplete,
+                  completedAt: shouldComplete && !achievement.completed ? new Date().toISOString() : achievement.completedAt
+                };
+                hasChanges = true;
+              }
             }
-          }
-        });
+          });
 
-        // Check shot achievements
-        const shotAchievements = [
-          { id: 'shot-starter', threshold: 10 },
-          { id: 'quick-shooter', threshold: 30 },
-          { id: 'shot-pro', threshold: 75 },
-          { id: 'shot-master', threshold: 150 },
-          { id: 'shot-legend', threshold: 300 },
-        ];
+          // Check shot achievements
+          const shotAchievements = [
+            { id: 'shot-starter', threshold: 10 },
+            { id: 'quick-shooter', threshold: 30 },
+            { id: 'shot-pro', threshold: 75 },
+            { id: 'shot-master', threshold: 150 },
+            { id: 'shot-legend', threshold: 300 },
+          ];
 
-        shotAchievements.forEach(({ id, threshold }) => {
-          const achievementIndex = updatedAchievements.findIndex(a => a.id === id);
-          if (achievementIndex !== -1) {
-            const achievement = updatedAchievements[achievementIndex];
-            const newProgress = Math.min(userStats.totalShots, threshold);
-            const shouldComplete = userStats.totalShots >= threshold;
+          shotAchievements.forEach(({ id, threshold }) => {
+            const achievementIndex = updatedAchievements.findIndex(a => a.id === id);
+            if (achievementIndex !== -1) {
+              const achievement = updatedAchievements[achievementIndex];
+              const newProgress = Math.min(userStats.totalShots, threshold);
+              const shouldComplete = userStats.totalShots >= threshold;
 
-            if (achievement.progress !== newProgress || (shouldComplete && !achievement.completed)) {
-              updatedAchievements[achievementIndex] = {
-                ...achievement,
-                progress: newProgress,
-                completed: shouldComplete,
-                completedAt: shouldComplete && !achievement.completed ? new Date().toISOString() : achievement.completedAt
-              };
-              hasChanges = true;
+              if (achievement.progress !== newProgress || (shouldComplete && !achievement.completed)) {
+                updatedAchievements[achievementIndex] = {
+                  ...achievement,
+                  progress: newProgress,
+                  completed: shouldComplete,
+                  completedAt: shouldComplete && !achievement.completed ? new Date().toISOString() : achievement.completedAt
+                };
+                hasChanges = true;
+              }
             }
-          }
-        });
+          });
 
-        // Check beer tower achievements
-        const towerAchievements = [
-          { id: 'tower-rookie', threshold: 5 },
-          { id: 'tower-enthusiast', threshold: 15 },
-          { id: 'tower-master', threshold: 30 },
-          { id: 'tower-connoisseur', threshold: 50 },
-          { id: 'tower-titan', threshold: 100 },
-        ];
+          // Check beer tower achievements
+          const towerAchievements = [
+            { id: 'tower-rookie', threshold: 5 },
+            { id: 'tower-enthusiast', threshold: 15 },
+            { id: 'tower-master', threshold: 30 },
+            { id: 'tower-connoisseur', threshold: 50 },
+            { id: 'tower-titan', threshold: 100 },
+          ];
 
-        towerAchievements.forEach(({ id, threshold }) => {
-          const achievementIndex = updatedAchievements.findIndex(a => a.id === id);
-          if (achievementIndex !== -1) {
-            const achievement = updatedAchievements[achievementIndex];
-            const newProgress = Math.min(userStats.totalBeerTowers, threshold);
-            const shouldComplete = userStats.totalBeerTowers >= threshold;
+          towerAchievements.forEach(({ id, threshold }) => {
+            const achievementIndex = updatedAchievements.findIndex(a => a.id === id);
+            if (achievementIndex !== -1) {
+              const achievement = updatedAchievements[achievementIndex];
+              const newProgress = Math.min(userStats.totalBeerTowers, threshold);
+              const shouldComplete = userStats.totalBeerTowers >= threshold;
 
-            if (achievement.progress !== newProgress || (shouldComplete && !achievement.completed)) {
-              updatedAchievements[achievementIndex] = {
-                ...achievement,
-                progress: newProgress,
-                completed: shouldComplete,
-                completedAt: shouldComplete && !achievement.completed ? new Date().toISOString() : achievement.completedAt
-              };
-              hasChanges = true;
+              if (achievement.progress !== newProgress || (shouldComplete && !achievement.completed)) {
+                updatedAchievements[achievementIndex] = {
+                  ...achievement,
+                  progress: newProgress,
+                  completed: shouldComplete,
+                  completedAt: shouldComplete && !achievement.completed ? new Date().toISOString() : achievement.completedAt
+                };
+                hasChanges = true;
+              }
             }
-          }
-        });
+          });
 
-        if (hasChanges) {
-          set({ achievements: updatedAchievements });
+          if (hasChanges) {
+            set({ achievements: updatedAchievements });
+          }
+        } catch (error) {
+          console.warn('Error checking multi-level achievements:', error);
         }
       },
 
       getCompletedCount: () => {
-        const { achievements } = get();
-        return achievements.filter(a => a.completed).length;
+        try {
+          const { achievements } = get();
+          return achievements.filter(a => a.completed).length;
+        } catch (error) {
+          console.warn('Error getting completed count:', error);
+          return 0;
+        }
       },
 
       resetAchievements: () => {
-        set({
-          achievements: defaultAchievements.map(a => ({ 
-            ...a, 
-            completed: false, 
-            completedAt: undefined,
-            progress: a.maxProgress ? 0 : undefined
-          })),
-          popupShown: false,
-          lastPopupDate: null,
-        });
+        try {
+          set({
+            achievements: defaultAchievements.map(a => ({ 
+              ...a, 
+              completed: false, 
+              completedAt: undefined,
+              progress: a.maxProgress ? 0 : undefined
+            })),
+            popupShown: false,
+            lastPopupDate: null,
+          });
+        } catch (error) {
+          console.warn('Error resetting achievements:', error);
+        }
       },
 
       markPopupShown: () => {
-        set({ popupShown: true });
+        try {
+          set({ popupShown: true });
+        } catch (error) {
+          console.warn('Error marking popup shown:', error);
+        }
       },
 
       shouldShowPopup: () => {
-        const { achievements, popupShown } = get();
-        const hasIncompleteAchievements = achievements.some(a => !a.completed);
-        return !popupShown && hasIncompleteAchievements;
+        try {
+          const { achievements, popupShown } = get();
+          const hasIncompleteAchievements = achievements.some(a => !a.completed);
+          return !popupShown && hasIncompleteAchievements;
+        } catch (error) {
+          console.warn('Error checking should show popup:', error);
+          return false;
+        }
       },
 
       shouldShow3AMPopup: () => {
-        const { lastPopupDate } = get();
-        const now = new Date();
-        const currentHour = now.getHours();
-        const today = now.toISOString();
-        
-        // Check if it's 3 AM and we haven't shown the popup today
-        if (currentHour === 3) {
-          if (!lastPopupDate || !isSameDay(lastPopupDate, today)) {
-            return true;
+        try {
+          const { lastPopupDate } = get();
+          const now = new Date();
+          const currentHour = now.getHours();
+          const today = now.toISOString();
+          
+          // Check if it's 3 AM and we haven't shown the popup today
+          if (currentHour === 3) {
+            if (!lastPopupDate || !isSameDay(lastPopupDate, today)) {
+              return true;
+            }
           }
+          
+          return false;
+        } catch (error) {
+          console.warn('Error checking 3AM popup:', error);
+          return false;
         }
-        
-        return false;
       },
 
       mark3AMPopupShown: () => {
-        set({ lastPopupDate: new Date().toISOString() });
+        try {
+          set({ lastPopupDate: new Date().toISOString() });
+        } catch (error) {
+          console.warn('Error marking 3AM popup shown:', error);
+        }
       },
     }),
     {
       name: 'achievement-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        // Ensure achievements are properly initialized after rehydration
+        if (state && (!state.achievements || state.achievements.length === 0)) {
+          state.achievements = defaultAchievements;
+        }
+      },
     }
   )
 );
+
+// Store reference for cross-store access
+if (typeof window !== 'undefined') {
+  (window as any).__achievementStore = useAchievementStore;
+}
