@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable } from 'react-native';
-import { Award, Star, CheckCircle, Circle, Trophy } from 'lucide-react-native';
+import { Award, CheckCircle, Circle, Trophy } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAchievementStore, Achievement } from '@/stores/achievementStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
-import AchievementPopup from '@/components/AchievementPopup';
 import * as Haptics from 'expo-haptics';
 
 export default function AchievementsScreen() {
@@ -14,7 +13,6 @@ export default function AchievementsScreen() {
   const themeColors = colors[theme];
   const { achievements, initializeAchievements, completeAchievement } = useAchievementStore();
   const { profile } = useUserProfileStore();
-  const [showAchievementPopup, setShowAchievementPopup] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Achievement['category'] | 'all'>('all');
 
   useEffect(() => {
@@ -27,6 +25,7 @@ export default function AchievementsScreen() {
     { key: 'activities', title: 'Activities', icon: '🎮' },
     { key: 'social', title: 'Social', icon: '👥' },
     { key: 'milestones', title: 'Milestones', icon: '🏆' },
+    { key: 'special', title: 'Special', icon: '⭐' },
   ];
 
   const filteredAchievements = selectedCategory === 'all' 
@@ -141,17 +140,6 @@ export default function AchievementsScreen() {
           ))}
         </ScrollView>
 
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <Pressable
-            style={[styles.quickActionButton, { backgroundColor: themeColors.primary }]}
-            onPress={() => setShowAchievementPopup(true)}
-          >
-            <Star size={20} color="white" />
-            <Text style={styles.quickActionText}>Log Tonight's Activities</Text>
-          </Pressable>
-        </View>
-
         {/* Achievement List */}
         <View style={styles.achievementsList}>
           {filteredAchievements.map((achievement) => (
@@ -225,11 +213,6 @@ export default function AchievementsScreen() {
 
         <View style={styles.footer} />
       </ScrollView>
-
-      <AchievementPopup
-        visible={showAchievementPopup}
-        onClose={() => setShowAchievementPopup(false)}
-      />
     </View>
   );
 }
@@ -318,24 +301,6 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 14,
     fontWeight: '500',
-  },
-  quickActions: {
-    paddingHorizontal: 16,
-    marginBottom: 20,
-  },
-  quickActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-  },
-  quickActionText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
   },
   achievementsList: {
     paddingHorizontal: 16,

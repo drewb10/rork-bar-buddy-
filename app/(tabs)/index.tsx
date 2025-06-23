@@ -82,10 +82,16 @@ export default function HomeScreen() {
           <BarBuddyLogo size="large" />
         </View>
 
-        {/* Daily Tracker Icon */}
+        <FilterBar 
+          filters={venueFilters}
+          onFilterChange={setVenueFilters}
+          filterType="venue"
+        />
+
+        {/* Daily Tracker Icon - Moved below filters with dark gray color */}
         <View style={styles.dailyTrackerContainer}>
           <Pressable
-            style={[styles.dailyTrackerButton, { backgroundColor: themeColors.primary }]}
+            style={[styles.dailyTrackerButton, { backgroundColor: '#444444' }]}
             onPress={() => setShowDailyTracker(true)}
           >
             <BarChart3 size={24} color="white" />
@@ -97,12 +103,6 @@ export default function HomeScreen() {
             )}
           </Pressable>
         </View>
-
-        <FilterBar 
-          filters={venueFilters}
-          onFilterChange={setVenueFilters}
-          filterType="venue"
-        />
 
         {topPickVenues.length > 0 && (
           <View style={styles.section}>
@@ -173,6 +173,7 @@ const styles = StyleSheet.create({
   dailyTrackerContainer: {
     paddingHorizontal: 16,
     paddingBottom: 16,
+    paddingTop: 8,
   },
   dailyTrackerButton: {
     flexDirection: 'row',
