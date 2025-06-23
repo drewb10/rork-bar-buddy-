@@ -24,10 +24,28 @@ interface FriendRequest {
 
 interface XPActivity {
   id: string;
-  type: 'visit_new_bar' | 'participate_event' | 'bring_friend' | 'complete_night_out' | 'special_achievement' | 'live_music' | 'featured_drink' | 'bar_game' | 'photo_taken' | 'shots' | 'scoop_and_scores' | 'beers' | 'beer_towers' | 'funnels' | 'shotguns';
+  type: 'visit_new_bar' | 'participate_event' | 'bring_friend' | 'complete_night_out' | 'special_achievement' | 'live_music' | 'featured_drink' | 'bar_game' | 'photo_taken' | 'shots' | 'scoop_and_scores' | 'beers' | 'beer_towers' | 'funnels' | 'shotguns' | 'pool_games_won' | 'dart_games_won';
   xpAwarded: number;
   timestamp: string;
   description: string;
+}
+
+interface DailyStats {
+  shots: number;
+  scoopAndScores: number;
+  beers: number;
+  beerTowers: number;
+  funnels: number;
+  shotguns: number;
+  poolGamesWon: number;
+  dartGamesWon: number;
+  lastReset: string;
+}
+
+interface VenueSpecificActivity {
+  venueId: string;
+  activityType: 'pool_win' | 'dart_win' | 'group_shot';
+  timestamp: string;
 }
 
 interface UserProfile {
@@ -61,6 +79,10 @@ interface UserProfile {
   totalBeerTowers: number;
   totalFunnels: number;
   totalShotguns: number;
+  totalPoolGamesWon: number;
+  totalDartGamesWon: number;
+  dailyStats: DailyStats;
+  venueSpecificActivities: VenueSpecificActivity[];
 }
 
 interface RankInfo {
@@ -103,7 +125,11 @@ interface UserProfileState {
   getAllRanks: () => RankInfo[];
   getXPForNextRank: () => number;
   getProgressToNextRank: () => number;
-  updateDailyTrackerTotals: (stats: { shots: number; scoopAndScores: number; beers: number; beerTowers: number; funnels: number; shotguns: number; }) => void;
+  updateDailyTrackerTotals: (stats: { shots: number; scoopAndScores: number; beers: number; beerTowers: number; funnels: number; shotguns: number; poolGamesWon: number; dartGamesWon: number; }) => void;
+  getDailyStats: () => DailyStats;
+  resetDailyStats: () => void;
+  recordVenueSpecificActivity: (venueId: string, activityType: 'pool_win' | 'dart_win' | 'group_shot') => void;
+  checkTrifectaAchievement: () => boolean;
 }
 
 const XP_VALUES = {
@@ -122,6 +148,8 @@ const XP_VALUES = {
   beer_towers: 5,
   funnels: 3,
   shotguns: 3,
+  pool_games_won: 7,
+  dart_games_won: 7,
 };
 
 const RANK_STRUCTURE: RankInfo[] = [
@@ -156,6 +184,34 @@ const RANK_STRUCTURE: RankInfo[] = [
   { tier: 5, subRank: 4, title: 'Scoop & Score Champ', subTitle: 'Ultimate Legend', color: '#9C27B0', minXP: 2376, maxXP: 2500 },
 ];
 
+const RESET_HOUR = 5;
+
+const shouldResetDaily = (lastReset: string): boolean => {
+  try {
+    const lastResetDate = new Date(lastReset);
+    const now = new Date();
+    
+    const resetTime = new Date(now);
+    resetTime.setHours(RESET_HOUR, 0, 0, 0);
+    
+    return now >= resetTime && lastResetDate < resetTime;
+  } catch {
+    return false;
+  }
+};
+
+const defaultDailyStats: DailyStats = {
+  shots: 0,
+  scoopAndScores: 0,
+  beers: 0,
+  beerTowers: 0,
+  funnels: 0,
+  shotguns: 0,
+  poolGamesWon: 0,
+  dartGamesWon: 0,
+  lastReset: new Date().toISOString(),
+};
+
 const defaultProfile: UserProfile = {
   firstName: 'Bar',
   lastName: 'Buddy',
@@ -184,6 +240,10 @@ const defaultProfile: UserProfile = {
   totalBeerTowers: 0,
   totalFunnels: 0,
   totalShotguns: 0,
+  totalPoolGamesWon: 0,
+  totalDartGamesWon: 0,
+  dailyStats: defaultDailyStats,
+  venueSpecificActivities: [],
 };
 
 const getRankByXP = (xp: number): RankInfo => {
@@ -423,6 +483,12 @@ export const useUserProfileStore = create<UserProfileState>()(
               case 'photo_taken':
                 updatedProfile.photosTaken = (state.profile.photosTaken || 0) + 1;
                 break;
+              case 'pool_games_won':
+                updatedProfile.barGamesPlayed = (state.profile.barGamesPlayed || 0) + 1;
+                break;
+              case 'dart_games_won':
+                updatedProfile.barGamesPlayed = (state.profile.barGamesPlayed || 0) + 1;
+                break;
             }
             
             return { profile: updatedProfile };
@@ -436,20 +502,138 @@ export const useUserProfileStore = create<UserProfileState>()(
       
       updateDailyTrackerTotals: (stats) => {
         try {
-          set((state) => ({
-            profile: {
-              ...state.profile,
-              totalShots: (state.profile.totalShots || 0) + (stats.shots || 0),
-              totalScoopAndScores: (state.profile.totalScoopAndScores || 0) + (stats.scoopAndScores || 0),
-              totalBeers: (state.profile.totalBeers || 0) + (stats.beers || 0),
-              totalBeerTowers: (state.profile.totalBeerTowers || 0) + (stats.beerTowers || 0),
-              totalFunnels: (state.profile.totalFunnels || 0) + (stats.funnels || 0),
-              totalShotguns: (state.profile.totalShotguns || 0) + (stats.shotguns || 0),
+          set((state) => {
+            // Reset daily stats if needed
+            let dailyStats = state.profile.dailyStats;
+            if (shouldResetDaily(dailyStats.lastReset)) {
+              dailyStats = { ...defaultDailyStats, lastReset: new Date().toISOString() };
             }
-          }));
+
+            return {
+              profile: {
+                ...state.profile,
+                totalShots: (state.profile.totalShots || 0) + (stats.shots || 0),
+                totalScoopAndScores: (state.profile.totalScoopAndScores || 0) + (stats.scoopAndScores || 0),
+                totalBeers: (state.profile.totalBeers || 0) + (stats.beers || 0),
+                totalBeerTowers: (state.profile.totalBeerTowers || 0) + (stats.beerTowers || 0),
+                totalFunnels: (state.profile.totalFunnels || 0) + (stats.funnels || 0),
+                totalShotguns: (state.profile.totalShotguns || 0) + (stats.shotguns || 0),
+                totalPoolGamesWon: (state.profile.totalPoolGamesWon || 0) + (stats.poolGamesWon || 0),
+                totalDartGamesWon: (state.profile.totalDartGamesWon || 0) + (stats.dartGamesWon || 0),
+                dailyStats: {
+                  ...dailyStats,
+                  shots: stats.shots || 0,
+                  scoopAndScores: stats.scoopAndScores || 0,
+                  beers: stats.beers || 0,
+                  beerTowers: stats.beerTowers || 0,
+                  funnels: stats.funnels || 0,
+                  shotguns: stats.shotguns || 0,
+                  poolGamesWon: stats.poolGamesWon || 0,
+                  dartGamesWon: stats.dartGamesWon || 0,
+                }
+              }
+            };
+          });
           get().syncToSupabase().catch(err => console.warn('Sync error:', err));
         } catch (error) {
           console.warn('Error updating daily tracker totals:', error);
+        }
+      },
+
+      getDailyStats: () => {
+        try {
+          const { profile } = get();
+          let dailyStats = profile.dailyStats || defaultDailyStats;
+          
+          // Reset if needed
+          if (shouldResetDaily(dailyStats.lastReset)) {
+            dailyStats = { ...defaultDailyStats, lastReset: new Date().toISOString() };
+            // Update the store with reset stats
+            set((state) => ({
+              profile: {
+                ...state.profile,
+                dailyStats
+              }
+            }));
+          }
+          
+          return dailyStats;
+        } catch (error) {
+          console.warn('Error getting daily stats:', error);
+          return defaultDailyStats;
+        }
+      },
+
+      resetDailyStats: () => {
+        try {
+          set((state) => ({
+            profile: {
+              ...state.profile,
+              dailyStats: { ...defaultDailyStats, lastReset: new Date().toISOString() }
+            }
+          }));
+        } catch (error) {
+          console.warn('Error resetting daily stats:', error);
+        }
+      },
+
+      recordVenueSpecificActivity: (venueId: string, activityType: 'pool_win' | 'dart_win' | 'group_shot') => {
+        try {
+          const activity: VenueSpecificActivity = {
+            venueId,
+            activityType,
+            timestamp: new Date().toISOString(),
+          };
+
+          set((state) => ({
+            profile: {
+              ...state.profile,
+              venueSpecificActivities: [...(state.profile.venueSpecificActivities || []), activity]
+            }
+          }));
+
+          // Check for Trifecta achievement
+          if (get().checkTrifectaAchievement()) {
+            // Award Trifecta achievement through achievement store
+            const achievementStore = (window as any).__achievementStore;
+            if (achievementStore?.getState) {
+              const { completeAchievement } = achievementStore.getState();
+              completeAchievement('trifecta');
+            }
+            
+            // Award special XP
+            get().awardXP('special_achievement', 'Completed the Trifecta achievement!');
+          }
+
+          get().syncToSupabase().catch(err => console.warn('Sync error:', err));
+        } catch (error) {
+          console.warn('Error recording venue specific activity:', error);
+        }
+      },
+
+      checkTrifectaAchievement: () => {
+        try {
+          const { venueSpecificActivities } = get().profile;
+          
+          // Check for pool win at JBA (venue ID '6')
+          const poolAtJBA = venueSpecificActivities.some(a => 
+            a.venueId === '6' && a.activityType === 'pool_win'
+          );
+          
+          // Check for dart win at The Bird (venue ID '4')
+          const dartAtBird = venueSpecificActivities.some(a => 
+            a.venueId === '4' && a.activityType === 'dart_win'
+          );
+          
+          // Check for group shot at Late Nite (venue ID '5')
+          const groupShotAtLateNite = venueSpecificActivities.some(a => 
+            a.venueId === '5' && a.activityType === 'group_shot'
+          );
+          
+          return poolAtJBA && dartAtBird && groupShotAtLateNite;
+        } catch (error) {
+          console.warn('Error checking Trifecta achievement:', error);
+          return false;
         }
       },
       
@@ -671,6 +855,10 @@ export const useUserProfileStore = create<UserProfileState>()(
               totalBeerTowers: 0,
               totalFunnels: 0,
               totalShotguns: 0,
+              totalPoolGamesWon: 0,
+              totalDartGamesWon: 0,
+              dailyStats: defaultDailyStats,
+              venueSpecificActivities: [],
             }
           }));
           await get().syncToSupabase();
@@ -721,6 +909,9 @@ export const useUserProfileStore = create<UserProfileState>()(
             visitedBars: Array.isArray(state.profile.visitedBars) ? state.profile.visitedBars : [],
             friends: Array.isArray(state.profile.friends) ? state.profile.friends : [],
             friendRequests: Array.isArray(state.profile.friendRequests) ? state.profile.friendRequests : [],
+            venueSpecificActivities: Array.isArray(state.profile.venueSpecificActivities) ? state.profile.venueSpecificActivities : [],
+            // Ensure dailyStats exists
+            dailyStats: state.profile.dailyStats || defaultDailyStats,
           };
         }
       },

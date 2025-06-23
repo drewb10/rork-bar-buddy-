@@ -13,6 +13,7 @@ import TopPickCard from '@/components/TopPickCard';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import DailyTracker from '@/components/DailyTracker';
 import { TopPickItem } from '@/types/venue';
+import { useUserProfileStore } from '@/stores/userProfileStore';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -20,7 +21,9 @@ export default function HomeScreen() {
   const themeColors = colors[theme];
   const [venueFilters, setVenueFilters] = useState<string[]>([]);
   const [topPickVenues, setTopPickVenues] = useState<TopPickItem[]>([]);
+  const [showDailyTracker, setShowDailyTracker] = useState(false);
   const { interactions, resetInteractionsIfNeeded } = useVenueInteractionStore();
+  const { getDailyStats } = useUserProfileStore();
 
   useEffect(() => {
     const day = getCurrentDay();
@@ -63,6 +66,9 @@ export default function HomeScreen() {
     return bCount - aCount;
   });
 
+  const dailyStats = getDailyStats();
+  const totalDailyActivities = Object.values(dailyStats).reduce((sum, count) => sum + count, 0);
+
   return (
     <View style={[styles.container, { backgroundColor: '#000000' }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -76,8 +82,21 @@ export default function HomeScreen() {
           <BarBuddyLogo size="large" />
         </View>
 
-        {/* Daily Tracker */}
-        <DailyTracker />
+        {/* Daily Tracker Icon */}
+        <View style={styles.dailyTrackerContainer}>
+          <Pressable
+            style={[styles.dailyTrackerButton, { backgroundColor: themeColors.primary }]}
+            onPress={() => setShowDailyTracker(true)}
+          >
+            <BarChart3 size={24} color="white" />
+            <Text style={styles.dailyTrackerText}>Daily Tracker</Text>
+            {totalDailyActivities > 0 && (
+              <View style={[styles.badge, { backgroundColor: themeColors.accent }]}>
+                <Text style={styles.badgeText}>{totalDailyActivities}</Text>
+              </View>
+            )}
+          </Pressable>
+        </View>
 
         <FilterBar 
           filters={venueFilters}
@@ -122,6 +141,11 @@ export default function HomeScreen() {
 
         <View style={styles.footer} />
       </ScrollView>
+
+      <DailyTracker 
+        visible={showDailyTracker}
+        onClose={() => setShowDailyTracker(false)}
+      />
     </View>
   );
 }
@@ -145,6 +169,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 10,
     paddingHorizontal: 16,
+  },
+  dailyTrackerContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  dailyTrackerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+    position: 'relative',
+  },
+  dailyTrackerText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  badge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '700',
   },
   section: {
     marginTop: 24,

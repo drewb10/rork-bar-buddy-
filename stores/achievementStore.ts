@@ -6,7 +6,7 @@ export interface Achievement {
   id: string;
   title: string;
   description: string;
-  category: 'bars' | 'activities' | 'social' | 'milestones';
+  category: 'bars' | 'activities' | 'social' | 'milestones' | 'special';
   completed: boolean;
   completedAt?: string;
   icon: string;
@@ -165,6 +165,17 @@ const defaultAchievements: Achievement[] = [
     icon: '👥',
     order: 13,
   },
+
+  // Special Achievement - Trifecta
+  {
+    id: 'trifecta',
+    title: 'Trifecta',
+    description: 'Win pool at JBA, darts at The Bird, and take a group shot at Late Nite',
+    category: 'special',
+    completed: false,
+    icon: '🏆',
+    order: 14,
+  },
 ];
 
 const isSameDay = (date1: string, date2: string): boolean => {
@@ -274,3 +285,8 @@ export const useAchievementStore = create<AchievementState>()(
     }
   )
 );
+
+// Store reference for cross-store access
+if (typeof window !== 'undefined') {
+  (window as any).__achievementStore = useAchievementStore;
+}
