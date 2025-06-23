@@ -88,7 +88,7 @@ export default function HomeScreen() {
       >
         {/* BarBuddy Logo */}
         <View style={styles.logoContainer}>
-          <BarBuddyLogo size="medium" />
+          <BarBuddyLogo size="large" />
         </View>
 
         <FilterBar 

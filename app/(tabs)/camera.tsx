@@ -52,7 +52,7 @@ export default function CameraScreen() {
       <View style={[styles.container, { backgroundColor: '#000000' }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.permissionContainer}>
-          <BarBuddyLogo size="medium" />
+          <BarBuddyLogo size="large" />
           <Text style={[styles.permissionTitle, { color: themeColors.text }]}>
             Camera Access Needed
           </Text>
@@ -218,7 +218,7 @@ export default function CameraScreen() {
       >
         {/* Header - No background bar, just logo and text */}
         <View style={styles.header}>
-          <BarBuddyLogo size="small" />
+          <BarBuddyLogo size="medium" />
           <Text style={[styles.headerTitle, { color: 'white' }]}>
             Capture Your Night
           </Text>
