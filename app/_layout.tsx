@@ -1,5 +1,4 @@
 import { Stack } from "expo-router";
-import { View } from "react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { StatusBar } from "expo-status-bar";
@@ -98,6 +97,16 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="camera-roll" options={{ 
+            headerShown: true,
+            presentation: 'card',
+            headerBackTitle: 'Camera',
+            headerTitle: 'Camera Roll',
+            headerStyle: {
+              backgroundColor: '#000000',
+            },
+            headerTintColor: '#FFFFFF',
+          }} />
         </Stack>
 
         <AgeVerificationModal

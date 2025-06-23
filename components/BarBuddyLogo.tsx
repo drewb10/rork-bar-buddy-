@@ -12,12 +12,12 @@ export default function BarBuddyLogo({ size = 'medium' }: BarBuddyLogoProps) {
       height: 80,
     },
     medium: {
-      width: 120,
-      height: 120,
+      width: 140,
+      height: 140,
     },
     large: {
-      width: 160,
-      height: 160,
+      width: 180,
+      height: 180,
     },
   };
 
@@ -35,6 +35,10 @@ export default function BarBuddyLogo({ size = 'medium' }: BarBuddyLogoProps) {
           }
         ]}
         resizeMode="contain"
+        onError={(error) => {
+          console.warn('Logo failed to load:', error);
+        }}
+        defaultSource={{ uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==' }}
       />
     </View>
   );
