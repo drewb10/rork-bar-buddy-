@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal, Alert } from 'react-native';
-import { Trophy, Target, Users, Star, RotateCcw, X, Info } from 'lucide-react-native';
+import { Trophy, Target, Users, Star, RotateCcw, X, Info, BarChart3, Camera, TrendingUp } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAchievementStore, Achievement } from '@/stores/achievementStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
+import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
+import AchievementPopup from '@/components/AchievementPopup';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 
 export default function AchievementsScreen() {
@@ -14,12 +16,12 @@ export default function AchievementsScreen() {
     achievements, 
     initializeAchievements, 
     getCompletedCount, 
-    resetAchievements,
-    getCurrentLevelAchievements,
-    completedAchievements
+    getAchievementsByCategory,
+    resetAchievements 
   } = useAchievementStore();
   
   const { profile } = useUserProfileStore();
+  const { totalStats } = useDailyTrackerStore();
   
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
 
@@ -87,8 +89,10 @@ export default function AchievementsScreen() {
   };
 
   const renderAchievementCategory = (category: Achievement['category']) => {
-    const categoryAchievements = getCurrentLevelAchievements().filter(a => a.category === category);
+    const categoryAchievements = getAchievementsByCategory(category);
     if (categoryAchievements.length === 0) return null;
+
+    const completedInCategory = categoryAchievements.filter(a => a.completed).length;
 
     return (
       <View key={category} style={[styles.categorySection, { backgroundColor: themeColors.card }]}>
@@ -98,7 +102,7 @@ export default function AchievementsScreen() {
             {getCategoryTitle(category)}
           </Text>
           <Text style={[styles.categoryProgress, { color: themeColors.primary }]}>
-            In Progress
+            {completedInCategory}/{categoryAchievements.length}
           </Text>
         </View>
         
@@ -109,8 +113,12 @@ export default function AchievementsScreen() {
               style={[
                 styles.achievementCard,
                 { 
-                  backgroundColor: themeColors.background,
-                  borderColor: themeColors.border,
+                  backgroundColor: achievement.completed 
+                    ? themeColors.primary + '20' 
+                    : themeColors.background,
+                  borderColor: achievement.completed 
+                    ? themeColors.primary 
+                    : themeColors.border,
                 }
               ]}
               onPress={() => handleAchievementPress(achievement)}
@@ -119,7 +127,14 @@ export default function AchievementsScreen() {
                 <Text style={styles.achievementEmoji}>{achievement.icon}</Text>
                 <View style={styles.achievementInfo}>
                   <Text 
-                    style={[styles.achievementName, { color: themeColors.text }]}
+                    style={[
+                      styles.achievementName, 
+                      { 
+                        color: achievement.completed 
+                          ? themeColors.primary 
+                          : themeColors.text 
+                      }
+                    ]}
                     numberOfLines={2}
                   >
                     {achievement.title}
@@ -127,14 +142,15 @@ export default function AchievementsScreen() {
                   <Text style={[styles.achievementDescription, { color: themeColors.subtext }]}>
                     {achievement.description}
                   </Text>
-                  {achievement.level > 1 && (
-                    <Text style={[styles.levelIndicator, { color: themeColors.primary }]}>
-                      Level {achievement.level}
-                    </Text>
-                  )}
                 </View>
+                {achievement.completed && (
+                  <Text style={[styles.completedBadge, { color: themeColors.primary }]}>
+                    ✓
+                  </Text>
+                )}
               </View>
               
+              {/* Progress Bar */}
               {renderProgressBar(achievement)}
             </Pressable>
           ))}
@@ -152,14 +168,18 @@ export default function AchievementsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        {/* Header */}
         <View style={styles.header}>
           <BarBuddyLogo size="small" />
           <Text style={[styles.headerTitle, { color: themeColors.text }]}>
-            Tasks
+            Achievement Tracking
+          </Text>
+          <Text style={[styles.headerSubtitle, { color: themeColors.subtext }]}>
+            Complete achievements during your nights out!
           </Text>
         </View>
 
-        {/* Progress Overview with Progress Bar */}
+        {/* Progress Overview */}
         <View style={[styles.progressCard, { backgroundColor: themeColors.card }]}>
           <View style={styles.progressHeader}>
             <Text style={[styles.progressTitle, { color: themeColors.text }]}>
@@ -187,19 +207,95 @@ export default function AchievementsScreen() {
           </Text>
         </View>
 
+        {/* Daily Tracker Totals - New Section */}
+        <View style={[styles.dailyTrackerCard, { backgroundColor: themeColors.card }]}>
+          <View style={styles.dailyTrackerHeader}>
+            <BarChart3 size={20} color={themeColors.primary} />
+            <Text style={[styles.dailyTrackerTitle, { color: themeColors.text }]}>
+              Total Tracker Stats
+            </Text>
+          </View>
+          
+          <View style={styles.trackerStatsGrid}>
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {totalStats.shots}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                🥃 Shots
+              </Text>
+            </View>
+            
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {totalStats.scoopAndScores}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                🍺 Scoop & Scores
+              </Text>
+            </View>
+            
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {totalStats.beers}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                🍻 Beers
+              </Text>
+            </View>
+            
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {totalStats.beerTowers}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                🗼 Beer Towers
+              </Text>
+            </View>
+            
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {totalStats.funnels}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                🌪️ Funnels
+              </Text>
+            </View>
+            
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {totalStats.shotguns}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                💥 Shotguns
+              </Text>
+            </View>
+          </View>
+          
+          <View style={styles.photoStatContainer}>
+            <Camera size={16} color={themeColors.primary} />
+            <Text style={[styles.photoStatText, { color: themeColors.text }]}>
+              📸 Photos Taken: {profile.photosTaken}
+            </Text>
+          </View>
+        </View>
+
+        {/* Achievement Categories */}
         <View style={styles.categoriesContainer}>
           {(['bars', 'activities', 'social', 'milestones'] as const).map(renderAchievementCategory)}
         </View>
 
+        {/* Info Card */}
         <View style={[styles.infoCard, { backgroundColor: themeColors.card }]}>
           <Text style={[styles.infoTitle, { color: themeColors.text }]}>
             💡 How it works
           </Text>
           <Text style={[styles.infoText, { color: themeColors.subtext }]}>
-            Complete achievements to unlock trophies! Each achievement has multiple levels - complete one level to unlock the next. Visit the Trophies tab to see your earned achievements.
+            Visit this tab at 3:00 AM to log your night's achievements! The popup will appear automatically when you're out and about. Tap on any achievement to learn how to complete it.
           </Text>
         </View>
 
+        {/* Reset Button */}
         <Pressable 
           style={[styles.resetButton, { backgroundColor: themeColors.card }]}
           onPress={() => {
@@ -222,6 +318,7 @@ export default function AchievementsScreen() {
         <View style={styles.footer} />
       </ScrollView>
 
+      {/* Achievement Detail Modal */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -245,12 +342,6 @@ export default function AchievementsScreen() {
             <Text style={[styles.modalDescription, { color: themeColors.subtext }]}>
               {selectedAchievement?.detailedDescription}
             </Text>
-            
-            {selectedAchievement && selectedAchievement.level > 1 && (
-              <Text style={[styles.modalLevelInfo, { color: themeColors.primary }]}>
-                This is Level {selectedAchievement.level} of {selectedAchievement.maxLevel}
-              </Text>
-            )}
             
             {selectedAchievement && (
               <View style={styles.modalProgress}>
@@ -287,7 +378,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 24,
   },
   headerTitle: {
     fontSize: 24,
@@ -334,9 +425,60 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 4,
   },
-  progressText: {
-    fontSize: 14,
+  dailyTrackerCard: {
+    marginHorizontal: 16,
+    marginBottom: 24,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  dailyTrackerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  dailyTrackerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  trackerStatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  trackerStatItem: {
+    width: '48%',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  trackerStatNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  trackerStatLabel: {
+    fontSize: 12,
     textAlign: 'center',
+    fontWeight: '500',
+  },
+  photoStatContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  photoStatText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   categoriesContainer: {
     paddingHorizontal: 16,
@@ -395,14 +537,10 @@ const styles = StyleSheet.create({
   achievementDescription: {
     fontSize: 14,
     lineHeight: 18,
-    marginBottom: 4,
   },
-  levelIndicator: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  achievementAction: {
-    padding: 4,
+  completedBadge: {
+    fontSize: 20,
+    fontWeight: '700',
   },
   progressBarContainer: {
     flexDirection: 'row',
@@ -420,8 +558,7 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 12,
-    minWidth: 50,
-    textAlign: 'right',
+    fontWeight: '500',
   },
   infoCard: {
     marginHorizontal: 16,
@@ -466,6 +603,7 @@ const styles = StyleSheet.create({
   footer: {
     height: 24,
   },
+  // Modal styles
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
@@ -498,13 +636,7 @@ const styles = StyleSheet.create({
   modalDescription: {
     fontSize: 16,
     lineHeight: 22,
-    marginBottom: 16,
-  },
-  modalLevelInfo: {
-    fontSize: 14,
-    fontWeight: '600',
     marginBottom: 20,
-    textAlign: 'center',
   },
   modalProgress: {
     marginBottom: 24,
