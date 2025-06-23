@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, Pressable, Modal } from 'react-native';
 import { Plus, Minus, BarChart3, X } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
@@ -36,18 +36,47 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const themeColors = colors[theme];
   const { awardXP, updateDailyTrackerTotals, getDailyStats } = useUserProfileStore();
   const { checkAndUpdateMultiLevelAchievements } = useAchievementStore();
-  const dailyStats = getDailyStats();
   
-  const [counts, setCounts] = useState<Record<string, number>>({
-    shots: dailyStats.shots || 0,
-    scoopAndScores: dailyStats.scoopAndScores || 0,
-    beers: dailyStats.beers || 0,
-    beerTowers: dailyStats.beerTowers || 0,
-    funnels: dailyStats.funnels || 0,
-    shotguns: dailyStats.shotguns || 0,
-    poolGamesWon: dailyStats.poolGamesWon || 0,
-    dartGamesWon: dailyStats.dartGamesWon || 0,
-  });
+  // Initialize counts from daily stats only once when component mounts or becomes visible
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [pendingXPAwards, setPendingXPAwards] = useState<Array<{ type: string, description: string }>>([]);
+
+  // Initialize counts when modal becomes visible
+  useEffect(() => {
+    if (visible && !isInitialized) {
+      const dailyStats = getDailyStats();
+      setCounts({
+        shots: dailyStats.shots || 0,
+        scoopAndScores: dailyStats.scoopAndScores || 0,
+        beers: dailyStats.beers || 0,
+        beerTowers: dailyStats.beerTowers || 0,
+        funnels: dailyStats.funnels || 0,
+        shotguns: dailyStats.shotguns || 0,
+        poolGamesWon: dailyStats.poolGamesWon || 0,
+        dartGamesWon: dailyStats.dartGamesWon || 0,
+      });
+      setIsInitialized(true);
+    }
+  }, [visible, isInitialized, getDailyStats]);
+
+  // Handle XP awards in a separate effect to avoid setState during render
+  useEffect(() => {
+    if (pendingXPAwards.length > 0) {
+      pendingXPAwards.forEach(({ type, description }) => {
+        awardXP(type as any, description);
+      });
+      setPendingXPAwards([]);
+    }
+  }, [pendingXPAwards, awardXP]);
+
+  // Reset initialization when modal closes
+  useEffect(() => {
+    if (!visible) {
+      setIsInitialized(false);
+      setPendingXPAwards([]);
+    }
+  }, [visible]);
 
   const updateCount = (itemId: string, change: number) => {
     if (Platform.OS !== 'web') {
@@ -58,11 +87,14 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       const newCount = Math.max(0, (prev[itemId] || 0) + change);
       const newCounts = { ...prev, [itemId]: newCount };
       
-      // Award XP for the change
+      // Queue XP award for later processing instead of doing it synchronously
       if (change > 0) {
         const item = drinkItems.find(d => d.id === itemId);
         if (item) {
-          awardXP(item.xpType, `Had ${change} ${item.name.toLowerCase()}`);
+          setPendingXPAwards(current => [
+            ...current,
+            { type: item.xpType, description: `Had ${change} ${item.name.toLowerCase()}` }
+          ]);
         }
       }
       
