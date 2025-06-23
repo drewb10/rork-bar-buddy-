@@ -172,7 +172,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
             onValueChange={setDrunkScale}
             minimumTrackTintColor={themeColors.primary}
             maximumTrackTintColor={themeColors.border}
-            thumbStyle={{ backgroundColor: themeColors.primary }}
+            thumbTintColor={themeColors.primary}
             disabled={hasSubmittedDrunkScale}
           />
           {!hasSubmittedDrunkScale ? (
