@@ -117,14 +117,14 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
             };
             
             // Calculate the difference for total stats
-            const shotsDiff = (stats.shots || 0) - state.dailyStats.shots;
-            const scoopDiff = (stats.scoopAndScores || 0) - state.dailyStats.scoopAndScores;
-            const beersDiff = (stats.beers || 0) - state.dailyStats.beers;
-            const beerTowersDiff = (stats.beerTowers || 0) - state.dailyStats.beerTowers;
-            const funnelsDiff = (stats.funnels || 0) - state.dailyStats.funnels;
-            const shotgunsDiff = (stats.shotguns || 0) - state.dailyStats.shotguns;
-            const poolDiff = (stats.poolGamesWon || 0) - state.dailyStats.poolGamesWon;
-            const dartDiff = (stats.dartGamesWon || 0) - state.dailyStats.dartGamesWon;
+            const shotsDiff = (stats.shots !== undefined) ? Math.max(0, stats.shots - state.dailyStats.shots) : 0;
+            const scoopDiff = (stats.scoopAndScores !== undefined) ? Math.max(0, stats.scoopAndScores - state.dailyStats.scoopAndScores) : 0;
+            const beersDiff = (stats.beers !== undefined) ? Math.max(0, stats.beers - state.dailyStats.beers) : 0;
+            const beerTowersDiff = (stats.beerTowers !== undefined) ? Math.max(0, stats.beerTowers - state.dailyStats.beerTowers) : 0;
+            const funnelsDiff = (stats.funnels !== undefined) ? Math.max(0, stats.funnels - state.dailyStats.funnels) : 0;
+            const shotgunsDiff = (stats.shotguns !== undefined) ? Math.max(0, stats.shotguns - state.dailyStats.shotguns) : 0;
+            const poolDiff = (stats.poolGamesWon !== undefined) ? Math.max(0, stats.poolGamesWon - state.dailyStats.poolGamesWon) : 0;
+            const dartDiff = (stats.dartGamesWon !== undefined) ? Math.max(0, stats.dartGamesWon - state.dailyStats.dartGamesWon) : 0;
             
             const updatedTotalStats: TotalStats = {
               shots: state.totalStats.shots + shotsDiff,

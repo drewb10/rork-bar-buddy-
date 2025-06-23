@@ -208,7 +208,7 @@ export default function AchievementsScreen() {
           <View style={styles.trackerStatsGrid}>
             <View style={styles.trackerStatItem}>
               <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {totalStats.shots}
+                {profile.totalShots}
               </Text>
               <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
                 🥃 Shots
@@ -217,7 +217,7 @@ export default function AchievementsScreen() {
             
             <View style={styles.trackerStatItem}>
               <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {totalStats.scoopAndScores}
+                {profile.totalScoopAndScores}
               </Text>
               <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
                 🍺 Scoop & Scores
@@ -226,7 +226,7 @@ export default function AchievementsScreen() {
             
             <View style={styles.trackerStatItem}>
               <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {totalStats.beers}
+                {profile.totalBeers}
               </Text>
               <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
                 🍻 Beers
@@ -235,7 +235,7 @@ export default function AchievementsScreen() {
             
             <View style={styles.trackerStatItem}>
               <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {totalStats.beerTowers}
+                {profile.totalBeerTowers}
               </Text>
               <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
                 🗼 Beer Towers
@@ -244,7 +244,7 @@ export default function AchievementsScreen() {
             
             <View style={styles.trackerStatItem}>
               <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {totalStats.funnels}
+                {profile.totalFunnels}
               </Text>
               <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
                 🌪️ Funnels
@@ -253,7 +253,7 @@ export default function AchievementsScreen() {
             
             <View style={styles.trackerStatItem}>
               <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {totalStats.shotguns}
+                {profile.totalShotguns}
               </Text>
               <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
                 💥 Shotguns
@@ -262,7 +262,7 @@ export default function AchievementsScreen() {
 
             <View style={styles.trackerStatItem}>
               <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {totalStats.poolGamesWon || 0}
+                {profile.poolGamesWon || 0}
               </Text>
               <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
                 🎱 Pool Games
@@ -271,7 +271,7 @@ export default function AchievementsScreen() {
 
             <View style={styles.trackerStatItem}>
               <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {totalStats.dartGamesWon || 0}
+                {profile.dartGamesWon || 0}
               </Text>
               <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
                 🎯 Dart Games

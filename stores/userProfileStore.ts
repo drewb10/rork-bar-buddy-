@@ -407,29 +407,39 @@ export const useUserProfileStore = create<UserProfileState>()(
           const currentDailyStats = state.profile.dailyStats;
           const isToday = currentDailyStats?.date === today;
           
+          // Calculate the differences to avoid double counting
+          const shotsDiff = Math.max(0, stats.shots - (isToday ? currentDailyStats.shots : 0));
+          const scoopDiff = Math.max(0, stats.scoopAndScores - (isToday ? currentDailyStats.scoopAndScores : 0));
+          const beersDiff = Math.max(0, stats.beers - (isToday ? currentDailyStats.beers : 0));
+          const beerTowersDiff = Math.max(0, stats.beerTowers - (isToday ? currentDailyStats.beerTowers : 0));
+          const funnelsDiff = Math.max(0, stats.funnels - (isToday ? currentDailyStats.funnels : 0));
+          const shotgunsDiff = Math.max(0, stats.shotguns - (isToday ? currentDailyStats.shotguns : 0));
+          const poolDiff = Math.max(0, stats.poolGamesWon - (isToday ? currentDailyStats.poolGamesWon : 0));
+          const dartDiff = Math.max(0, stats.dartGamesWon - (isToday ? currentDailyStats.dartGamesWon : 0));
+          
           const newDailyStats: DailyStats = {
-            shots: isToday ? (currentDailyStats.shots + stats.shots) : stats.shots,
-            scoopAndScores: isToday ? (currentDailyStats.scoopAndScores + stats.scoopAndScores) : stats.scoopAndScores,
-            beers: isToday ? (currentDailyStats.beers + stats.beers) : stats.beers,
-            beerTowers: isToday ? (currentDailyStats.beerTowers + stats.beerTowers) : stats.beerTowers,
-            funnels: isToday ? (currentDailyStats.funnels + stats.funnels) : stats.funnels,
-            shotguns: isToday ? (currentDailyStats.shotguns + stats.shotguns) : stats.shotguns,
-            poolGamesWon: isToday ? (currentDailyStats.poolGamesWon + stats.poolGamesWon) : stats.poolGamesWon,
-            dartGamesWon: isToday ? (currentDailyStats.dartGamesWon + stats.dartGamesWon) : stats.dartGamesWon,
+            shots: stats.shots,
+            scoopAndScores: stats.scoopAndScores,
+            beers: stats.beers,
+            beerTowers: stats.beerTowers,
+            funnels: stats.funnels,
+            shotguns: stats.shotguns,
+            poolGamesWon: stats.poolGamesWon,
+            dartGamesWon: stats.dartGamesWon,
             date: today,
           };
           
           return {
             profile: {
               ...state.profile,
-              totalShots: state.profile.totalShots + stats.shots,
-              totalScoopAndScores: state.profile.totalScoopAndScores + stats.scoopAndScores,
-              totalBeers: state.profile.totalBeers + stats.beers,
-              totalBeerTowers: state.profile.totalBeerTowers + stats.beerTowers,
-              totalFunnels: state.profile.totalFunnels + stats.funnels,
-              totalShotguns: state.profile.totalShotguns + stats.shotguns,
-              poolGamesWon: state.profile.poolGamesWon + stats.poolGamesWon,
-              dartGamesWon: state.profile.dartGamesWon + stats.dartGamesWon,
+              totalShots: state.profile.totalShots + shotsDiff,
+              totalScoopAndScores: state.profile.totalScoopAndScores + scoopDiff,
+              totalBeers: state.profile.totalBeers + beersDiff,
+              totalBeerTowers: state.profile.totalBeerTowers + beerTowersDiff,
+              totalFunnels: state.profile.totalFunnels + funnelsDiff,
+              totalShotguns: state.profile.totalShotguns + shotgunsDiff,
+              poolGamesWon: state.profile.poolGamesWon + poolDiff,
+              dartGamesWon: state.profile.dartGamesWon + dartDiff,
               dailyStats: newDailyStats,
             }
           };
@@ -466,8 +476,11 @@ export const useUserProfileStore = create<UserProfileState>()(
         if (typeof window !== 'undefined' && (window as any).__achievementStore) {
           const achievementStore = (window as any).__achievementStore.getState();
           
-          achievementStore.updateAchievementProgress('bars-visited', profile.visitedBars.length);
+          achievementStore.updateAchievementProgress('bars-visited', profile.barsHit);
           achievementStore.updateAchievementProgress('nights-out', profile.nightsOut);
+          achievementStore.updateAchievementProgress('beers', profile.totalBeers);
+          achievementStore.updateAchievementProgress('shots', profile.totalShots);
+          achievementStore.updateAchievementProgress('beer-towers', profile.totalBeerTowers);
           achievementStore.updateAchievementProgress('scoop-and-scores', profile.totalScoopAndScores);
           achievementStore.updateAchievementProgress('funnels', profile.totalFunnels);
           achievementStore.updateAchievementProgress('shotguns', profile.totalShotguns);
