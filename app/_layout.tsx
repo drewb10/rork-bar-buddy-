@@ -32,15 +32,19 @@ export default function RootLayout() {
 
   useEffect(() => {
     // Load background image from Supabase
-    const loadBackgroundImage = async () => {
+    const loadBackground = () => {
       try {
         console.log('Loading background image from Supabase...');
+        
+        const { data } = supabase
+          .storage
+          .from('background-barbuddy')
+          .getPublicUrl('barbuddy-bg.png');
 
-        // Use hardcoded working public URL
-        const imageUrl = 'https://fxumtfryjehzsdfqgeis.supabase.co/storage/v1/object/public/background-barbuddy/barbuddy-bg.png';
-
-        if (imageUrl && imageUrl !== '') {
-          setBackgroundUrl(imageUrl);
+        console.log('BG URL:', data.publicUrl);
+        
+        if (data.publicUrl) {
+          setBackgroundUrl(data.publicUrl);
           setImageLoadError(false);
         } else {
           console.warn('Background URL is empty or invalid');
@@ -53,7 +57,7 @@ export default function RootLayout() {
       }
     };
 
-    loadBackgroundImage();
+    loadBackground();
   }, []);
 
   useEffect(() => {
