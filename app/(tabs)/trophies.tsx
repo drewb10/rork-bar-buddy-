@@ -288,7 +288,7 @@ export default function TrophiesScreen() {
                         </Text>
                         <Text 
                           style={[styles.achievementTitle, { color: themeColors.text }]}
-                          numberOfLines={2}
+                          numberOfLines={3}
                         >
                           {achievement.title}
                         </Text>
@@ -616,10 +616,10 @@ const styles = StyleSheet.create({
   achievementGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16, // More spacing
+    gap: 12, // Reduced gap to accommodate wider cards
   },
   achievementCard: {
-    width: '47%', // Slightly smaller for better spacing
+    width: '49%', // Increased from 47% to 49% for more space
     borderRadius: 16, // More rounded
     padding: 20, // More padding
     alignItems: 'center',
@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
     fontWeight: '700', // Bolder
     textAlign: 'center',
     marginBottom: 8,
-    minHeight: 36,
+    minHeight: 42, // Increased from 36 to accommodate 3 lines
     letterSpacing: 0.2,
   },
   levelBadge: {
