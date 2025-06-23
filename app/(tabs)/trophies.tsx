@@ -283,24 +283,28 @@ export default function TrophiesScreen() {
                         ]}
                         onPress={() => handleAchievementPress(achievement)}
                       >
-                        <Text style={styles.achievementIcon}>
-                          {achievement.icon}
-                        </Text>
-                        <Text 
-                          style={[styles.achievementTitle, { color: themeColors.text }]}
-                          numberOfLines={3}
-                        >
-                          {achievement.title}
-                        </Text>
-                        
-                        {achievement.level > 1 && (
-                          <View style={[styles.levelBadge, { backgroundColor: category.color }]}>
-                            <Text style={styles.levelBadgeText}>Lv.{achievement.level}</Text>
+                        <View style={styles.achievementContent}>
+                          <Text style={styles.achievementIcon}>
+                            {achievement.icon}
+                          </Text>
+                          <View style={styles.achievementTextContainer}>
+                            <Text 
+                              style={[styles.achievementTitle, { color: themeColors.text }]}
+                              numberOfLines={2}
+                            >
+                              {achievement.title}
+                            </Text>
+                            
+                            {achievement.level > 1 && (
+                              <View style={[styles.levelBadge, { backgroundColor: category.color }]}>
+                                <Text style={styles.levelBadgeText}>Lv.{achievement.level}</Text>
+                              </View>
+                            )}
                           </View>
-                        )}
-                        
-                        <View style={[styles.completedBadge, { backgroundColor: category.color }]}>
-                          <Trophy size={12} color="white" />
+                          
+                          <View style={[styles.completedBadge, { backgroundColor: category.color }]}>
+                            <Trophy size={12} color="white" />
+                          </View>
                         </View>
                       </Pressable>
                     </Animated.View>
@@ -614,15 +618,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   achievementGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12, // Reduced gap to accommodate wider cards
+    gap: 12, // Spacing between cards
   },
   achievementCard: {
-    width: '49%', // Increased from 47% to 49% for more space
+    width: '100%', // Full width for better text visibility
     borderRadius: 16, // More rounded
     padding: 20, // More padding
-    alignItems: 'center',
     position: 'relative',
     // Enhanced shadow
     shadowColor: '#000',
@@ -631,22 +632,29 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
+  achievementContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   achievementIcon: {
     fontSize: 36, // Larger
-    marginBottom: 12, // More spacing
+    marginRight: 16, // More spacing
+  },
+  achievementTextContainer: {
+    flex: 1,
+    position: 'relative',
   },
   achievementTitle: {
-    fontSize: 14,
+    fontSize: 16, // Slightly larger for better readability
     fontWeight: '700', // Bolder
-    textAlign: 'center',
     marginBottom: 8,
-    minHeight: 42, // Increased from 36 to accommodate 3 lines
     letterSpacing: 0.2,
+    paddingRight: 40, // Space for the completed badge
   },
   levelBadge: {
     position: 'absolute',
-    top: 8,
-    left: 8,
+    top: -8,
+    left: 0,
     paddingHorizontal: 8, // More padding
     paddingVertical: 4,
     borderRadius: 10, // More rounded
@@ -659,8 +667,8 @@ const styles = StyleSheet.create({
   },
   completedBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: -8,
+    right: -8,
     width: 24, // Larger
     height: 24,
     borderRadius: 12,
