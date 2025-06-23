@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable, Dimensions, StatusBar, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MapPin, Heart, TrendingUp, BarChart3 } from 'lucide-react-native';
+import { Heart, TrendingUp, BarChart3 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { venues, getSpecialsByDay } from '@/mocks/venues';
@@ -120,7 +120,7 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Daily Tracker Icon - Removed like counter */}
+        {/* Daily Tracker Icon */}
         <View style={styles.dailyTrackerSection}>
           <Pressable 
             style={[styles.dailyTrackerButton, { backgroundColor: themeColors.card }]}
