@@ -50,7 +50,7 @@ export default function TrophiesScreen() {
         <View style={styles.header}>
           <BarBuddyLogo size="small" />
           <Text style={[styles.headerTitle, { color: themeColors.text }]}>
-            Your Trophies & Achievements
+            Your Trophies
           </Text>
         </View>
 
@@ -78,10 +78,10 @@ export default function TrophiesScreen() {
           </View>
         </View>
 
-        {/* Current Rank */}
+        {/* Redesigned Current Rank */}
         <View style={[styles.rankCard, { backgroundColor: themeColors.card }]}>
           <View style={styles.rankContent}>
-            <Award size={28} color={rankInfo.color} />
+            <Award size={36} color={rankInfo.color} />
             <View style={styles.rankInfo}>
               <Text style={[styles.rankTitle, { color: rankInfo.color }]}>
                 {rankInfo.title}
@@ -225,7 +225,7 @@ export default function TrophiesScreen() {
               No Trophies Yet
             </Text>
             <Text style={[styles.emptyStateText, { color: themeColors.subtext }]}>
-              Complete achievements to earn your first trophy! Check the Achievements tab to see what you can work on.
+              Complete achievements to earn your first trophy! Check the Tasks tab to see what you can work on.
             </Text>
           </View>
         ) : (
@@ -417,28 +417,24 @@ const styles = StyleSheet.create({
   rankContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
   },
   rankInfo: {
     marginLeft: 16,
-    alignItems: 'center',
+    flex: 1,
   },
   rankTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    marginBottom: 2,
-    textAlign: 'center',
+    marginBottom: 4,
   },
   rankSubtitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '500',
     marginBottom: 4,
-    textAlign: 'center',
   },
   rankXP: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '500',
-    textAlign: 'center',
   },
   trackerStatsCard: {
     marginHorizontal: 16,

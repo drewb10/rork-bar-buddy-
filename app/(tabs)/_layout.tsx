@@ -38,7 +38,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="achievements"
         options={{
-          title: 'Achievements',
+          title: 'Tasks',
           tabBarIcon: ({ color, size }) => <Award size={size} color={color} />,
         }}
       />

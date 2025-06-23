@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, TextInput, Image } from 'react-native';
-import { User, Edit3, X, Award, Camera, Share2, Users, RotateCcw, Info } from 'lucide-react-native';
+import { User, Edit3, X, Award, Camera, Users, Info } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import { venues } from '@/mocks/venues';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
-import ShareStatsModal from '@/components/ShareStatsModal';
 import FriendsModal from '@/components/FriendsModal';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -22,14 +21,12 @@ export default function TrackingScreen() {
     getXPForNextRank,
     getProgressToNextRank,
     setProfilePicture,
-    setUserName,
-    resetStats
+    setUserName
   } = useUserProfileStore();
   
   const { interactions } = useVenueInteractionStore();
   
   const [nameEditModalVisible, setNameEditModalVisible] = useState(false);
-  const [shareStatsModalVisible, setShareStatsModalVisible] = useState(false);
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
   const [rankDetailsModalVisible, setRankDetailsModalVisible] = useState(false);
   const [editFirstName, setEditFirstName] = useState(profile.firstName);
@@ -59,24 +56,6 @@ export default function TrackingScreen() {
     } else {
       Alert.alert('Error', 'Please enter both first and last name.');
     }
-  };
-
-  const handleResetStats = () => {
-    Alert.alert(
-      'Reset My Stats',
-      'Are you sure you want to reset all your stats? This will set your nights out, bars hit, XP, and drunk scale ratings back to zero. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Reset', 
-          style: 'destructive',
-          onPress: () => {
-            resetStats();
-            Alert.alert('Stats Reset', 'Your stats have been reset to zero.');
-          }
-        },
-      ]
-    );
   };
 
   const handleProfilePicturePress = () => {
@@ -151,7 +130,7 @@ export default function TrackingScreen() {
         <View style={styles.header}>
           <BarBuddyLogo size="small" />
           <Text style={[styles.headerTitle, { color: themeColors.text }]}>
-            Your Bar Buddy Stats
+            Your Bar Buddy Profile
           </Text>
         </View>
 
@@ -254,45 +233,6 @@ export default function TrackingScreen() {
             </View>
           )}
         </Pressable>
-
-        {/* Stats Section */}
-        <View style={styles.statsSection}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-            Your Nightlife Stats
-          </Text>
-          
-          {/* Action Buttons Row */}
-          <View style={styles.actionButtonsRow}>
-            {/* Share Stats Button */}
-            <Pressable 
-              style={[styles.actionButton, { backgroundColor: themeColors.card }]}
-              onPress={() => setShareStatsModalVisible(true)}
-            >
-              <Share2 size={18} color={themeColors.primary} />
-              <Text style={[styles.actionButtonText, { color: themeColors.primary }]}>
-                Share Stats
-              </Text>
-            </Pressable>
-
-            {/* Reset Stats Button */}
-            <Pressable 
-              style={[styles.actionButton, { backgroundColor: themeColors.card }]}
-              onPress={handleResetStats}
-            >
-              <RotateCcw size={18} color="#FF4444" />
-              <Text style={[styles.actionButtonText, { color: "#FF4444" }]}>
-                Reset Stats
-              </Text>
-            </Pressable>
-          </View>
-
-          {/* Activity Summary */}
-          <View style={[styles.summaryCard, { backgroundColor: themeColors.card }]}>
-            <Text style={[styles.summaryText, { color: themeColors.subtext }]}>
-              You have been out {profile.nightsOut} {profile.nightsOut === 1 ? 'night' : 'nights'} and visited {profile.barsHit} different {profile.barsHit === 1 ? 'bar' : 'bars'}.
-            </Text>
-          </View>
-        </View>
 
         <View style={styles.footer} />
       </ScrollView>
@@ -427,20 +367,6 @@ export default function TrackingScreen() {
             </ScrollView>
           </View>
         </View>
-      </Modal>
-
-      {/* Share Stats Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={shareStatsModalVisible}
-        onRequestClose={() => setShareStatsModalVisible(false)}
-      >
-        <ShareStatsModal
-          profile={profile}
-          rankInfo={rankInfo}
-          onClose={() => setShareStatsModalVisible(false)}
-        />
       </Modal>
 
       {/* Friends Modal */}
@@ -635,52 +561,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '700',
-  },
-  statsSection: {
-    paddingHorizontal: 16,
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  actionButtonsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    padding: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
-  summaryCard: {
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  summaryText: {
-    fontSize: 14,
-    lineHeight: 20,
   },
   footer: {
     height: 24,

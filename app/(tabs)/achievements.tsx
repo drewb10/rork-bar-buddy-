@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal, Alert } from 'react-native';
-import { Trophy, Target, Users, Star, RotateCcw, X, Info, ChartBar as BarChart3, Camera } from 'lucide-react-native';
+import { Trophy, Target, Users, Star, RotateCcw, X, Info } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAchievementStore, Achievement } from '@/stores/achievementStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
-import DailyTracker from '@/components/DailyTracker';
 
 export default function AchievementsScreen() {
   const { theme } = useThemeStore();
@@ -23,7 +22,6 @@ export default function AchievementsScreen() {
   const { profile } = useUserProfileStore();
   
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
-  const [showDailyTracker, setShowDailyTracker] = useState(false);
 
   useEffect(() => {
     initializeAchievements();
@@ -157,7 +155,7 @@ export default function AchievementsScreen() {
         <View style={styles.header}>
           <BarBuddyLogo size="small" />
           <Text style={[styles.headerTitle, { color: themeColors.text }]}>
-            Achievements
+            Tasks
           </Text>
         </View>
 
@@ -188,17 +186,6 @@ export default function AchievementsScreen() {
             {completedCount} of {totalCount} achievements completed
           </Text>
         </View>
-
-        {/* Daily Tracker Button */}
-        <Pressable 
-          style={[styles.dailyTrackerButton, { backgroundColor: themeColors.card }]}
-          onPress={() => setShowDailyTracker(true)}
-        >
-          <BarChart3 size={24} color={themeColors.primary} />
-          <Text style={[styles.dailyTrackerButtonText, { color: themeColors.text }]}>
-            Open Daily Tracker
-          </Text>
-        </Pressable>
 
         <View style={styles.categoriesContainer}>
           {(['bars', 'activities', 'social', 'milestones'] as const).map(renderAchievementCategory)}
@@ -234,11 +221,6 @@ export default function AchievementsScreen() {
 
         <View style={styles.footer} />
       </ScrollView>
-
-      <DailyTracker
-        visible={showDailyTracker}
-        onClose={() => setShowDailyTracker(false)}
-      />
 
       <Modal
         animationType="fade"
@@ -317,20 +299,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 22,
-  },
-  dailyTrackerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  dailyTrackerButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
   },
   progressCard: {
     marginHorizontal: 16,
