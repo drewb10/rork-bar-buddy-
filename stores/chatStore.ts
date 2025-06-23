@@ -41,6 +41,7 @@ interface ChatState {
   isLoading: boolean;
   error: string | null;
   subscription: any;
+  appStartTime: number; // Track when app started
   loadMessages: (venueId: string) => Promise<void>;
   sendMessage: (venueId: string, content: string) => Promise<void>;
   createOrGetSession: (venueId: string) => Promise<ChatSession>;
@@ -48,6 +49,7 @@ interface ChatState {
   unsubscribeFromMessages: () => void;
   cleanup: () => void;
   clearError: () => void;
+  resetChatOnAppReopen: () => void;
 }
 
 const getUserId = async (): Promise<string> => {
@@ -98,8 +100,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isLoading: false,
   error: null,
   subscription: null,
+  appStartTime: Date.now(), // Initialize with current time
 
   clearError: () => set({ error: null }),
+
+  resetChatOnAppReopen: () => {
+    // Clear all chat-related state to ensure fresh start
+    set({ 
+      messages: [], 
+      currentSession: null, 
+      error: null,
+      isLoading: false,
+      appStartTime: Date.now() // Update app start time
+    });
+    
+    // Clean up any existing subscriptions
+    get().unsubscribeFromMessages();
+  },
 
   createOrGetSession: async (venueId: string): Promise<ChatSession> => {
     try {
@@ -178,6 +195,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw new Error('Venue ID is required and cannot be empty');
       }
 
+      // Only load messages that were created after app start time to ensure fresh chat
+      const appStartTime = get().appStartTime;
+      const startTimeISO = new Date(appStartTime).toISOString();
+
       const { data: messagesData, error } = await supabase
         .from('chat_messages')
         .select(`
@@ -193,6 +214,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           )
         `)
         .eq('chat_sessions.venue_id', venueId)
+        .gte('created_at', startTimeISO) // Only load messages after app start
         .order('timestamp', { ascending: true })
         .limit(100);
 
@@ -310,6 +332,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
           },
           async (payload) => {
             try {
+              // Only process messages created after app start time
+              const appStartTime = get().appStartTime;
+              const messageCreatedAt = new Date(payload.new.created_at).getTime();
+              
+              if (messageCreatedAt < appStartTime) {
+                return; // Ignore messages from before app start
+              }
+
               // Verify the message belongs to the current venue
               const { data: sessionData, error: sessionError } = await supabase
                 .from('chat_sessions')

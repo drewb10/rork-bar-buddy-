@@ -185,14 +185,14 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
         style={[styles.container, { backgroundColor: themeColors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Header with glassmorphism effect */}
+        {/* Header with glassmorphism effect - REDUCED FONT SIZE */}
         <View style={[styles.header, { 
           backgroundColor: themeColors.glass.background, 
           borderBottomColor: themeColors.glass.border 
         }]}>
           <View style={styles.headerContent}>
             <View style={styles.headerTitleRow}>
-              <MessageCircle size={20} color={themeColors.primary} />
+              <MessageCircle size={18} color={themeColors.primary} />
               <Text style={[styles.headerTitle, { color: themeColors.text }]}>
                 {venue.name}
               </Text>
@@ -206,13 +206,13 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               style={styles.termsButton}
               onPress={() => setShowTerms(true)}
             >
-              <AlertTriangle size={20} color={themeColors.subtext} />
+              <AlertTriangle size={18} color={themeColors.subtext} />
             </Pressable>
             <Pressable
               style={styles.closeButton}
               onPress={handleClose}
             >
-              <X size={24} color={themeColors.text} />
+              <X size={22} color={themeColors.text} />
             </Pressable>
           </View>
         </View>
@@ -389,13 +389,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 16, // REDUCED from 18 to 16
     fontWeight: '700', // Bolder
     marginLeft: 8,
     letterSpacing: 0.3,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 12, // REDUCED from 14 to 12
     marginTop: 4, // More spacing
     fontWeight: '500', // Slightly bolder
   },

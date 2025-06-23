@@ -156,10 +156,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
-            Track your activities tonight
-          </Text>
-
           {/* Drunk Scale Slider */}
           <View style={[styles.drunkScaleContainer, { backgroundColor: themeColors.card }]}>
             <Text style={[styles.drunkScaleTitle, { color: themeColors.text }]}>
@@ -262,10 +258,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingBottom: 40,
-  },
-  subtitle: {
-    fontSize: 16,
-    marginBottom: 24,
   },
   drunkScaleContainer: {
     borderRadius: 16,

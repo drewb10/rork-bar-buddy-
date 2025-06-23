@@ -7,6 +7,7 @@ import { useAgeVerificationStore } from "@/stores/ageVerificationStore";
 import { useUserProfileStore } from "@/stores/userProfileStore";
 import { useVenueInteractionStore } from "@/stores/venueInteractionStore";
 import { useAchievementStore } from "@/stores/achievementStore";
+import { useChatStore } from "@/stores/chatStore";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
 import OnboardingModal from "@/components/OnboardingModal";
 import AchievementPopup from "@/components/AchievementPopup";
@@ -30,12 +31,16 @@ export default function RootLayout() {
   const { profile, completeOnboarding, loadFromSupabase } = useUserProfileStore();
   const { loadPopularTimesFromSupabase } = useVenueInteractionStore();
   const { shouldShow3AMPopup, mark3AMPopupShown } = useAchievementStore();
+  const { resetChatOnAppReopen } = useChatStore();
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [show3AMPopup, setShow3AMPopup] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
+    // Reset chat messages on app start to ensure anonymous behavior
+    resetChatOnAppReopen();
+    
     // Simplified initialization with better error handling
     const initializeApp = async () => {
       try {
@@ -87,7 +92,7 @@ export default function RootLayout() {
         }, 100);
       }
     }
-  }, [isVerified, profile?.hasCompletedOnboarding, profile?.userId, isInitialized]);
+  }, [isVerified, profile?.hasCompletedOnboarding, profile?.userId, isInitialized, resetChatOnAppReopen]);
 
   // Simplified 3 AM popup check
   useEffect(() => {
