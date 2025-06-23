@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, TextInput, Image } from 'react-native';
-import { User, TrendingUp, MapPin, Edit3, X, Award, Camera, Share2, Users, RotateCcw, Info, BarChart3 } from 'lucide-react-native';
+import { User, TrendingUp, MapPin, CreditCard as Edit3, X, Award, Camera, Share2, Users, RotateCcw, Info, ChartBar as BarChart3 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';

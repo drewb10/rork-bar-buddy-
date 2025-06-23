@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable, StatusBar, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MapPin, Heart, TrendingUp, BarChart3 } from 'lucide-react-native';
+import { MapPin, Heart, TrendingUp, ChartBar as BarChart3 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { venues, getSpecialsByDay } from '@/mocks/venues';
