@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable, Dimensions, StatusBar, Platform } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Pressable, StatusBar, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Heart, TrendingUp, BarChart3 } from 'lucide-react-native';
+import { BarChart3 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { venues, getSpecialsByDay } from '@/mocks/venues';
 import VenueCard from '@/components/VenueCard';
-import SpecialCard from '@/components/SpecialCard';
 import SectionHeader from '@/components/SectionHeader';
 import FilterBar from '@/components/FilterBar';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
@@ -14,7 +13,7 @@ import TopPickCard from '@/components/TopPickCard';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import DailyTrackerModal from '@/components/DailyTrackerModal';
 import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
-import { Venue, Special, TopPickItem } from '@/types/venue';
+import { TopPickItem } from '@/types/venue';
 import * as Haptics from 'expo-haptics';
 
 export default function HomeScreen() {
