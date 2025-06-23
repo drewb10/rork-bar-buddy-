@@ -4,7 +4,6 @@ import { X } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAchievementStore } from '@/stores/achievementStore';
-import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 
 interface AchievementPopupProps {
@@ -30,7 +29,7 @@ export default function AchievementPopup({
   useEffect(() => {
     if (visible) {
       if (Platform.OS !== 'web') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        // Haptics would go here for native platforms
       }
       
       Animated.timing(fadeAnim, {

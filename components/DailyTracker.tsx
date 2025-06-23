@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, Pressable, Modal } from 'react-native';
-import { Plus, Minus, BarChart3, X } from 'lucide-react-native';
+import { Plus, Minus, ChartBar as BarChart3, X } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { useAchievementStore } from '@/stores/achievementStore';
-import * as Haptics from 'expo-haptics';
+import BarBuddyLogo from '@/components/BarBuddyLogo';
 import { Platform } from 'react-native';
 
 interface DrinkItem {
@@ -68,7 +68,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
 
   const updateCount = (itemId: string, change: number) => {
     if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      // Haptics would go here for native platforms
     }
 
     setCounts(prev => {
@@ -96,7 +96,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
 
   const handleSaveProgress = () => {
     if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Haptics would go here for native platforms
     }
 
     // Update totals in user profile
