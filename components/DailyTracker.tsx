@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, Text, Pressable, Modal } from 'react-native';
+import { StyleSheet, View, Text, Pressable, Modal, ScrollView } from 'react-native';
 import { Plus, Minus, ChartBar as BarChart3, X } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
@@ -151,75 +151,81 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
           </Pressable>
         </View>
         
-        <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
-          Track your activities tonight
-        </Text>
+        <ScrollView 
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
+            Track your activities tonight
+          </Text>
 
-        {/* Drunk Scale Slider */}
-        <View style={[styles.drunkScaleContainer, { backgroundColor: themeColors.card }]}>
-          <Text style={[styles.drunkScaleTitle, { color: themeColors.text }]}>
-            How drunk are you? 🍻
-          </Text>
-          <Text style={[styles.drunkScaleValue, { color: themeColors.primary }]}>
-            {drunkScale}/10 - {getDrunkScaleLabel(drunkScale)}
-          </Text>
-          <Slider
-            style={styles.slider}
-            minimumValue={1}
-            maximumValue={10}
-            step={1}
-            value={drunkScale}
-            onValueChange={setDrunkScale}
-            minimumTrackTintColor={themeColors.primary}
-            maximumTrackTintColor={themeColors.border}
-            thumbTintColor={themeColors.primary}
-            disabled={hasSubmittedDrunkScale}
-          />
-          {!hasSubmittedDrunkScale ? (
-            <Pressable
-              style={[styles.submitButton, { backgroundColor: themeColors.primary }]}
-              onPress={handleDrunkScaleSubmit}
-            >
-              <Text style={styles.submitButtonText}>Submit Level</Text>
-            </Pressable>
-          ) : (
-            <Text style={[styles.submittedText, { color: themeColors.subtext }]}>
-              ✓ Level submitted for today
+          {/* Drunk Scale Slider */}
+          <View style={[styles.drunkScaleContainer, { backgroundColor: themeColors.card }]}>
+            <Text style={[styles.drunkScaleTitle, { color: themeColors.text }]}>
+              How drunk are you? 🍻
             </Text>
-          )}
-        </View>
-
-        <View style={styles.itemsGrid}>
-          {drinkItems.map((item) => (
-            <View key={item.id} style={[styles.itemCard, { backgroundColor: themeColors.card }]}>
-              <Text style={styles.itemIcon}>{item.icon}</Text>
-              <Text style={[styles.itemName, { color: themeColors.text }]}>
-                {item.name}
+            <Text style={[styles.drunkScaleValue, { color: themeColors.primary }]}>
+              {drunkScale}/10 - {getDrunkScaleLabel(drunkScale)}
+            </Text>
+            <Slider
+              style={styles.slider}
+              minimumValue={1}
+              maximumValue={10}
+              step={1}
+              value={drunkScale}
+              onValueChange={setDrunkScale}
+              minimumTrackTintColor={themeColors.primary}
+              maximumTrackTintColor={themeColors.border}
+              thumbTintColor={themeColors.primary}
+              disabled={hasSubmittedDrunkScale}
+            />
+            {!hasSubmittedDrunkScale ? (
+              <Pressable
+                style={[styles.submitButton, { backgroundColor: themeColors.primary }]}
+                onPress={handleDrunkScaleSubmit}
+              >
+                <Text style={styles.submitButtonText}>Submit Level</Text>
+              </Pressable>
+            ) : (
+              <Text style={[styles.submittedText, { color: themeColors.subtext }]}>
+                ✓ Level submitted for today
               </Text>
-              
-              <View style={styles.counter}>
-                <Pressable
-                  style={[styles.counterButton, { backgroundColor: themeColors.border }]}
-                  onPress={() => updateCount(item.id, -1)}
-                  disabled={counts[item.id] === 0}
-                >
-                  <Minus size={16} color={counts[item.id] === 0 ? themeColors.subtext : themeColors.text} />
-                </Pressable>
-                
-                <Text style={[styles.count, { color: themeColors.text }]}>
-                  {counts[item.id] || 0}
+            )}
+          </View>
+
+          <View style={styles.itemsGrid}>
+            {drinkItems.map((item) => (
+              <View key={item.id} style={[styles.itemCard, { backgroundColor: themeColors.card }]}>
+                <Text style={styles.itemIcon}>{item.icon}</Text>
+                <Text style={[styles.itemName, { color: themeColors.text }]}>
+                  {item.name}
                 </Text>
                 
-                <Pressable
-                  style={[styles.counterButton, { backgroundColor: themeColors.primary }]}
-                  onPress={() => updateCount(item.id, 1)}
-                >
-                  <Plus size={16} color="white" />
-                </Pressable>
+                <View style={styles.counter}>
+                  <Pressable
+                    style={[styles.counterButton, { backgroundColor: themeColors.border }]}
+                    onPress={() => updateCount(item.id, -1)}
+                    disabled={counts[item.id] === 0}
+                  >
+                    <Minus size={16} color={counts[item.id] === 0 ? themeColors.subtext : themeColors.text} />
+                  </Pressable>
+                  
+                  <Text style={[styles.count, { color: themeColors.text }]}>
+                    {counts[item.id] || 0}
+                  </Text>
+                  
+                  <Pressable
+                    style={[styles.counterButton, { backgroundColor: themeColors.primary }]}
+                    onPress={() => updateCount(item.id, 1)}
+                  >
+                    <Plus size={16} color="white" />
+                  </Pressable>
+                </View>
               </View>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -228,16 +234,15 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     paddingTop: 60,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    marginBottom: 16,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -250,6 +255,13 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 8,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
   },
   subtitle: {
     fontSize: 16,
