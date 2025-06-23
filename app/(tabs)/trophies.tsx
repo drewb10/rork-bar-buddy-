@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal } from 'react-native';
-import { Trophy, Award, Star, Target, Users, Calendar, X } from 'lucide-react-native';
+import { Trophy, Award, Star, Target, Users, Calendar, X, MapPin, TrendingUp } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
@@ -74,14 +74,32 @@ export default function TrophiesScreen() {
                 Total XP
               </Text>
             </View>
-            
-            <View style={styles.statItem}>
-              <Star size={24} color={themeColors.accent} />
-              <Text style={[styles.statNumber, { color: themeColors.text }]}>
+          </View>
+        </View>
+
+        {/* Lifetime Stats Section */}
+        <View style={[styles.lifetimeStatsCard, { backgroundColor: themeColors.card }]}>
+          <Text style={[styles.lifetimeStatsTitle, { color: themeColors.text }]}>
+            Lifetime Stats
+          </Text>
+          <View style={styles.lifetimeStatsGrid}>
+            <View style={styles.lifetimeStat}>
+              <TrendingUp size={20} color={themeColors.primary} />
+              <Text style={[styles.lifetimeStatNumber, { color: themeColors.text }]}>
                 {profile.nightsOut}
               </Text>
-              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
+              <Text style={[styles.lifetimeStatLabel, { color: themeColors.subtext }]}>
                 Nights Out
+              </Text>
+            </View>
+
+            <View style={styles.lifetimeStat}>
+              <MapPin size={20} color={themeColors.primary} />
+              <Text style={[styles.lifetimeStatNumber, { color: themeColors.text }]}>
+                {profile.barsHit}
+              </Text>
+              <Text style={[styles.lifetimeStatLabel, { color: themeColors.subtext }]}>
+                Bars Hit
               </Text>
             </View>
           </View>
@@ -285,6 +303,40 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   statLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  lifetimeStatsCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  lifetimeStatsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  lifetimeStatsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  lifetimeStat: {
+    alignItems: 'center',
+  },
+  lifetimeStatNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  lifetimeStatLabel: {
     fontSize: 12,
     fontWeight: '500',
   },
