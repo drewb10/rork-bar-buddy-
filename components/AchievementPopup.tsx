@@ -120,7 +120,7 @@ export default function AchievementPopup({ visible, onClose }: AchievementPopupP
                     key={achievement.id}
                     style={[
                       styles.achievementItem,
-                      { 
+                      {
                         backgroundColor: selectedAchievements.includes(achievement.id) 
                           ? themeColors.primary + '20' 
                           : themeColors.background,
