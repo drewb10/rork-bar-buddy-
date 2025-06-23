@@ -53,8 +53,8 @@ interface AchievementState {
     totalScoopAndScores: number;
     totalFunnels: number;
     totalShotguns: number;
-    totalPoolGamesWon: number;
-    totalDartGamesWon: number;
+    poolGamesWon: number;
+    dartGamesWon: number;
     barsHit: number;
     nightsOut: number;
   }) => void;
@@ -456,8 +456,8 @@ export const useAchievementStore = create<AchievementState>()(
         updateAchievementProgress('scoop-and-scores', stats.totalScoopAndScores);
         updateAchievementProgress('funnels', stats.totalFunnels);
         updateAchievementProgress('shotguns', stats.totalShotguns);
-        updateAchievementProgress('pool-games', stats.totalPoolGamesWon);
-        updateAchievementProgress('dart-games', stats.totalDartGamesWon);
+        updateAchievementProgress('pool-games', stats.poolGamesWon);
+        updateAchievementProgress('dart-games', stats.dartGamesWon);
       },
 
       markPopupShown: () => {

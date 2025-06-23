@@ -4,15 +4,15 @@ import { X, CircleCheck as CheckCircle, Circle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAchievementStore, Achievement } from '@/stores/achievementStore';
-import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 
 interface AchievementPopupProps {
   visible: boolean;
   onClose: () => void;
+  is3AMPopup?: boolean;
 }
 
-export default function AchievementPopup({ visible, onClose }: AchievementPopupProps) {
+export default function AchievementPopup({ visible, onClose, is3AMPopup = false }: AchievementPopupProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const { getCurrentLevelAchievements, completeAchievement, markPopupShown } = useAchievementStore();
@@ -22,7 +22,7 @@ export default function AchievementPopup({ visible, onClose }: AchievementPopupP
 
   const toggleAchievement = (id: string) => {
     if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      // Haptics would go here for native platforms
     }
     
     setSelectedAchievements(prev => 
@@ -45,7 +45,7 @@ export default function AchievementPopup({ visible, onClose }: AchievementPopupP
     markPopupShown();
     
     if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Haptics would go here for native platforms
     }
 
     Alert.alert(
@@ -93,7 +93,7 @@ export default function AchievementPopup({ visible, onClose }: AchievementPopupP
         <View style={[styles.container, { backgroundColor: themeColors.card }]}>
           <View style={styles.header}>
             <Text style={[styles.title, { color: themeColors.text }]}>
-              How was your night? 🌙
+              {is3AMPopup ? "How was your night? 🌙" : "Complete Achievements"}
             </Text>
             <Pressable style={styles.closeButton} onPress={handleClose}>
               <X size={24} color={themeColors.subtext} />
@@ -101,7 +101,7 @@ export default function AchievementPopup({ visible, onClose }: AchievementPopupP
           </View>
 
           <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
-            Check off what you accomplished tonight!
+            {is3AMPopup ? "Check off what you accomplished tonight!" : "Select achievements you've completed"}
           </Text>
 
           <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>

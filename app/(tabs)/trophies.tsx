@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal } from 'react-native';
-import { Trophy, Award, Star, Target, Users, Calendar, X, MapPin, TrendingUp } from 'lucide-react-native';
+import { Trophy, Award, Star, Target, Users, Calendar, X, MapPin, TrendingUp, ChartBar as BarChart3 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
@@ -10,12 +10,13 @@ import BarBuddyLogo from '@/components/BarBuddyLogo';
 export default function TrophiesScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { profile, getRank } = useUserProfileStore();
+  const { profile, getRank, getAverageDrunkScale } = useUserProfileStore();
   const { completedAchievements, getCompletedAchievementsByCategory } = useAchievementStore();
   const [selectedAchievement, setSelectedAchievement] = useState<CompletedAchievement | null>(null);
   
   const rankInfo = getRank();
   const totalCompletedAchievements = completedAchievements.length;
+  const averageDrunkScale = getAverageDrunkScale();
   
   const categories = [
     { key: 'bars', title: 'Bar Hopping', icon: Trophy, color: '#FF6A00' },
@@ -77,6 +78,108 @@ export default function TrophiesScreen() {
           </View>
         </View>
 
+        {/* Current Rank */}
+        <View style={[styles.rankCard, { backgroundColor: themeColors.card }]}>
+          <View style={styles.rankContent}>
+            <Award size={28} color={rankInfo.color} />
+            <View style={styles.rankInfo}>
+              <Text style={[styles.rankTitle, { color: rankInfo.color }]}>
+                {rankInfo.title}
+              </Text>
+              <Text style={[styles.rankSubtitle, { color: themeColors.text }]}>
+                {rankInfo.subTitle}
+              </Text>
+              <Text style={[styles.rankXP, { color: themeColors.subtext }]}>
+                {profile.xp} XP
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Total Tracker Stats - Moved from Achievements page */}
+        <View style={[styles.trackerStatsCard, { backgroundColor: themeColors.card }]}>
+          <View style={styles.trackerStatsHeader}>
+            <BarChart3 size={20} color={themeColors.primary} />
+            <Text style={[styles.trackerStatsTitle, { color: themeColors.text }]}>
+              Total Tracker Stats
+            </Text>
+          </View>
+          
+          <View style={styles.trackerStatsGrid}>
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {profile.totalShots}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                🥃 Shots
+              </Text>
+            </View>
+            
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {profile.totalScoopAndScores}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                🍺 Scoop & Scores
+              </Text>
+            </View>
+            
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {profile.totalBeers}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                🍻 Beers
+              </Text>
+            </View>
+            
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {profile.totalBeerTowers}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                🗼 Beer Towers
+              </Text>
+            </View>
+            
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {profile.totalFunnels}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                🌪️ Funnels
+              </Text>
+            </View>
+            
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {profile.totalShotguns}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                💥 Shotguns
+              </Text>
+            </View>
+
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {profile.poolGamesWon || 0}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                🎱 Pool Games
+              </Text>
+            </View>
+
+            <View style={styles.trackerStatItem}>
+              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
+                {profile.dartGamesWon || 0}
+              </Text>
+              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
+                🎯 Dart Games
+              </Text>
+            </View>
+          </View>
+        </View>
+
         {/* Lifetime Stats Section */}
         <View style={[styles.lifetimeStatsCard, { backgroundColor: themeColors.card }]}>
           <Text style={[styles.lifetimeStatsTitle, { color: themeColors.text }]}>
@@ -102,21 +205,14 @@ export default function TrophiesScreen() {
                 Bars Hit
               </Text>
             </View>
-          </View>
-        </View>
 
-        <View style={[styles.rankCard, { backgroundColor: themeColors.card }]}>
-          <View style={styles.rankContent}>
-            <Award size={28} color={rankInfo.color} />
-            <View style={styles.rankInfo}>
-              <Text style={[styles.rankTitle, { color: rankInfo.color }]}>
-                {rankInfo.title}
+            <View style={styles.lifetimeStat}>
+              <Star size={20} color={themeColors.primary} />
+              <Text style={[styles.lifetimeStatNumber, { color: themeColors.text }]}>
+                {averageDrunkScale > 0 ? averageDrunkScale.toFixed(1) : '0.0'}
               </Text>
-              <Text style={[styles.rankSubtitle, { color: themeColors.text }]}>
-                {rankInfo.subTitle}
-              </Text>
-              <Text style={[styles.rankXP, { color: themeColors.subtext }]}>
-                {profile.xp} XP
+              <Text style={[styles.lifetimeStatLabel, { color: themeColors.subtext }]}>
+                Drunk Scale Avg
               </Text>
             </View>
           </View>
@@ -267,6 +363,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 40,
   },
   header: {
     alignItems: 'center',
@@ -306,43 +403,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
-  lifetimeStatsCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  lifetimeStatsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  lifetimeStatsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  lifetimeStat: {
-    alignItems: 'center',
-  },
-  lifetimeStatNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  lifetimeStatLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
   rankCard: {
     marginHorizontal: 16,
-    marginBottom: 24,
+    marginBottom: 16,
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
@@ -376,6 +439,81 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  trackerStatsCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  trackerStatsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  trackerStatsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  trackerStatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  trackerStatItem: {
+    width: '48%',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  trackerStatNumber: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  trackerStatLabel: {
+    fontSize: 12,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  lifetimeStatsCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  lifetimeStatsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  lifetimeStatsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  lifetimeStat: {
+    alignItems: 'center',
+  },
+  lifetimeStatNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  lifetimeStatLabel: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   emptyState: {
     marginHorizontal: 16,

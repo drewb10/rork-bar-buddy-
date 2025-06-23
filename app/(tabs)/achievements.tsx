@@ -5,8 +5,6 @@ import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAchievementStore, Achievement } from '@/stores/achievementStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
-import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
-import AchievementPopup from '@/components/AchievementPopup';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import DailyTracker from '@/components/DailyTracker';
 
@@ -15,28 +13,20 @@ export default function AchievementsScreen() {
   const themeColors = colors[theme];
   const { 
     achievements, 
-    canShowPopup, 
     initializeAchievements, 
     getCompletedCount, 
-    getAchievementsByCategory,
     resetAchievements,
-    getCurrentLevelAchievements
+    getCurrentLevelAchievements,
+    completedAchievements
   } = useAchievementStore();
   
   const { profile } = useUserProfileStore();
-  const { totalStats } = useDailyTrackerStore();
   
-  const [showPopup, setShowPopup] = useState(false);
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
   const [showDailyTracker, setShowDailyTracker] = useState(false);
 
   useEffect(() => {
     initializeAchievements();
-    
-    // Check if we should show the popup when the screen loads
-    if (canShowPopup()) {
-      setShowPopup(true);
-    }
   }, []);
 
   const completedCount = getCompletedCount();
@@ -171,6 +161,34 @@ export default function AchievementsScreen() {
           </Text>
         </View>
 
+        {/* Progress Overview with Progress Bar */}
+        <View style={[styles.progressCard, { backgroundColor: themeColors.card }]}>
+          <View style={styles.progressHeader}>
+            <Text style={[styles.progressTitle, { color: themeColors.text }]}>
+              Overall Progress
+            </Text>
+            <Text style={[styles.progressPercentage, { color: themeColors.primary }]}>
+              {completionPercentage}%
+            </Text>
+          </View>
+          
+          <View style={[styles.progressBar, { backgroundColor: themeColors.background }]}>
+            <View 
+              style={[
+                styles.progressFill, 
+                { 
+                  backgroundColor: themeColors.primary,
+                  width: `${completionPercentage}%`
+                }
+              ]} 
+            />
+          </View>
+          
+          <Text style={[styles.progressText, { color: themeColors.subtext }]}>
+            {completedCount} of {totalCount} achievements completed
+          </Text>
+        </View>
+
         {/* Daily Tracker Button */}
         <Pressable 
           style={[styles.dailyTrackerButton, { backgroundColor: themeColors.card }]}
@@ -181,111 +199,6 @@ export default function AchievementsScreen() {
             Open Daily Tracker
           </Text>
         </Pressable>
-
-        <View style={[styles.progressCard, { backgroundColor: themeColors.card }]}>
-          <View style={styles.progressHeader}>
-            <Text style={[styles.progressTitle, { color: themeColors.text }]}>
-              Achievements Earned
-            </Text>
-            <Text style={[styles.progressPercentage, { color: themeColors.primary }]}>
-              {completedCount}
-            </Text>
-          </View>
-          
-          <Text style={[styles.progressText, { color: themeColors.subtext }]}>
-            {completedCount} achievements completed
-          </Text>
-        </View>
-
-        <View style={[styles.dailyTrackerCard, { backgroundColor: themeColors.card }]}>
-          <View style={styles.dailyTrackerHeader}>
-            <BarChart3 size={20} color={themeColors.primary} />
-            <Text style={[styles.dailyTrackerTitle, { color: themeColors.text }]}>
-              Total Tracker Stats
-            </Text>
-          </View>
-          
-          <View style={styles.trackerStatsGrid}>
-            <View style={styles.trackerStatItem}>
-              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {profile.totalShots}
-              </Text>
-              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
-                🥃 Shots
-              </Text>
-            </View>
-            
-            <View style={styles.trackerStatItem}>
-              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {profile.totalScoopAndScores}
-              </Text>
-              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
-                🍺 Scoop & Scores
-              </Text>
-            </View>
-            
-            <View style={styles.trackerStatItem}>
-              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {profile.totalBeers}
-              </Text>
-              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
-                🍻 Beers
-              </Text>
-            </View>
-            
-            <View style={styles.trackerStatItem}>
-              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {profile.totalBeerTowers}
-              </Text>
-              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
-                🗼 Beer Towers
-              </Text>
-            </View>
-            
-            <View style={styles.trackerStatItem}>
-              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {profile.totalFunnels}
-              </Text>
-              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
-                🌪️ Funnels
-              </Text>
-            </View>
-            
-            <View style={styles.trackerStatItem}>
-              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {profile.totalShotguns}
-              </Text>
-              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
-                💥 Shotguns
-              </Text>
-            </View>
-
-            <View style={styles.trackerStatItem}>
-              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {profile.poolGamesWon || 0}
-              </Text>
-              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
-                🎱 Pool Games
-              </Text>
-            </View>
-
-            <View style={styles.trackerStatItem}>
-              <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {profile.dartGamesWon || 0}
-              </Text>
-              <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
-                🎯 Dart Games
-              </Text>
-            </View>
-          </View>
-          
-          <View style={styles.photoStatContainer}>
-            <Camera size={16} color={themeColors.primary} />
-            <Text style={[styles.photoStatText, { color: themeColors.text }]}>
-              📸 Photos Taken: {profile.photosTaken}
-            </Text>
-          </View>
-        </View>
 
         <View style={styles.categoriesContainer}>
           {(['bars', 'activities', 'social', 'milestones'] as const).map(renderAchievementCategory)}
@@ -321,11 +234,6 @@ export default function AchievementsScreen() {
 
         <View style={styles.footer} />
       </ScrollView>
-
-      <AchievementPopup
-        visible={showPopup}
-        onClose={() => setShowPopup(false)}
-      />
 
       <DailyTracker
         visible={showDailyTracker}
@@ -449,64 +357,18 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
   },
+  progressBar: {
+    height: 8,
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
   progressText: {
     fontSize: 14,
     textAlign: 'center',
-  },
-  dailyTrackerCard: {
-    marginHorizontal: 16,
-    marginBottom: 24,
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  dailyTrackerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  dailyTrackerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  trackerStatsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  trackerStatItem: {
-    width: '48%',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  trackerStatNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  trackerStatLabel: {
-    fontSize: 12,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  photoStatContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.1)',
-  },
-  photoStatText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
   },
   categoriesContainer: {
     paddingHorizontal: 16,
@@ -587,6 +449,11 @@ const styles = StyleSheet.create({
   progressBarFill: {
     height: '100%',
     borderRadius: 3,
+  },
+  progressText: {
+    fontSize: 12,
+    minWidth: 50,
+    textAlign: 'right',
   },
   infoCard: {
     marginHorizontal: 16,
