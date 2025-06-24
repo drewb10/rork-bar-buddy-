@@ -35,8 +35,10 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         
         try {
+          console.log('🎯 AuthStore: Starting signup process...');
           const { user, profile } = await authService.signUp({ email, password, username });
           
+          console.log('🎯 AuthStore: Signup successful, updating state...');
           set({
             user,
             profile,
@@ -45,8 +47,10 @@ export const useAuthStore = create<AuthState>()(
             error: null
           });
           
+          console.log('🎯 AuthStore: State updated successfully');
           return true;
         } catch (error) {
+          console.error('🎯 AuthStore: Signup failed:', error);
           const errorMessage = error instanceof AuthError ? error.message : 'Failed to create account';
           set({ 
             error: errorMessage, 
@@ -63,8 +67,10 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         
         try {
+          console.log('🎯 AuthStore: Starting signin process...');
           const { user, profile } = await authService.signIn({ email, password });
           
+          console.log('🎯 AuthStore: Signin successful, updating state...');
           set({
             user,
             profile,
@@ -73,8 +79,10 @@ export const useAuthStore = create<AuthState>()(
             error: null
           });
           
+          console.log('🎯 AuthStore: State updated successfully');
           return true;
         } catch (error) {
+          console.error('🎯 AuthStore: Signin failed:', error);
           const errorMessage = error instanceof AuthError ? error.message : 'Failed to sign in';
           set({ 
             error: errorMessage, 
@@ -91,6 +99,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         
         try {
+          console.log('🎯 AuthStore: Starting signout process...');
           await authService.signOut();
           set({
             user: null,
@@ -99,8 +108,9 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             error: null
           });
+          console.log('🎯 AuthStore: Signout successful');
         } catch (error) {
-          console.error('Sign out error:', error);
+          console.error('🎯 AuthStore: Signout error:', error);
           // Force sign out locally even if server call fails
           set({
             user: null,
@@ -159,9 +169,11 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         
         try {
+          console.log('🎯 AuthStore: Initializing auth state...');
           const { user, profile } = await authService.getCurrentUser();
           
           if (user && profile) {
+            console.log('🎯 AuthStore: Found existing session');
             set({
               user,
               profile,
@@ -170,6 +182,7 @@ export const useAuthStore = create<AuthState>()(
               error: null
             });
           } else {
+            console.log('🎯 AuthStore: No existing session');
             set({
               user: null,
               profile: null,
@@ -179,7 +192,7 @@ export const useAuthStore = create<AuthState>()(
             });
           }
         } catch (error) {
-          console.error('Auth initialization error:', error);
+          console.error('🎯 AuthStore: Auth initialization error:', error);
           set({
             user: null,
             profile: null,
@@ -204,6 +217,7 @@ export const useAuthStore = create<AuthState>()(
 
 // Set up auth state listener
 supabase.auth.onAuthStateChange(async (event, session) => {
+  console.log('🎯 Auth state change:', event);
   const { initialize } = useAuthStore.getState();
   
   if (event === 'SIGNED_IN' && session) {

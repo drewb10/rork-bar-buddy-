@@ -78,11 +78,14 @@ export default function SignUpScreen() {
       return;
     }
 
+    console.log('🎯 SignUp: Starting signup with:', { email, username });
     const success = await signUp(email, password, username);
     
     if (success) {
+      console.log('🎯 SignUp: Success! Redirecting to tabs...');
       router.replace('/(tabs)');
     } else if (error) {
+      console.log('🎯 SignUp: Failed with error:', error);
       Alert.alert('Sign Up Failed', error);
     }
   };
@@ -146,6 +149,15 @@ export default function SignUpScreen() {
               Join the best bar community
             </Text>
           </View>
+
+          {/* Error Display */}
+          {error && (
+            <View style={[styles.errorContainer, { backgroundColor: '#FF4444' + '20', borderColor: '#FF4444' }]}>
+              <Text style={[styles.errorText, { color: '#FF4444' }]}>
+                {error}
+              </Text>
+            </View>
+          )}
 
           {/* Form */}
           <View style={styles.form}>
@@ -277,6 +289,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginTop: 16,
+  },
+  errorContainer: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 20,
+  },
+  errorText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   form: {
     width: '100%',
