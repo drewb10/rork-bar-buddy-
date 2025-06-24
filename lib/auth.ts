@@ -100,37 +100,29 @@ export const authService = {
         throw new AuthError('Failed to create user account', 'SIGNUP_FAILED');
       }
 
-      // Wait a moment for the trigger to create the profile
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Get the created profile
+      // CRITICAL: Create profile with matching user ID
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
+        .insert({
+          id: authData.user.id,  // 🔑 REQUIRED - must match auth.users.id
+          username,
+          email,
+          xp: 0
+        })
         .select('*')
-        .eq('id', authData.user.id)
         .single();
 
       if (profileError) {
-        console.warn('Profile not found after signup, creating manually:', profileError);
+        console.error('Failed to create profile:', profileError);
         
-        // Create profile manually if it doesn't exist
-        const { data: newProfile, error: createError } = await supabase
-          .from('profiles')
-          .insert({
-            id: authData.user.id,
-            username,
-            email,
-            has_completed_onboarding: false
-          })
-          .select('*')
-          .single();
-          
-        if (createError) {
-          console.error('Failed to create profile:', createError);
-          throw new AuthError('Failed to create user profile', 'PROFILE_CREATION_FAILED');
+        // Clean up the auth user if profile creation fails
+        try {
+          await supabase.auth.admin.deleteUser(authData.user.id);
+        } catch (cleanupError) {
+          console.error('Failed to cleanup auth user:', cleanupError);
         }
         
-        return { user: authData.user, profile: newProfile };
+        throw new AuthError('Failed to create user profile', 'PROFILE_CREATION_FAILED');
       }
 
       return { user: authData.user, profile };
