@@ -80,8 +80,8 @@ export const authService = {
         throw new AuthError('Username is already taken', 'USERNAME_TAKEN');
       }
 
-      // Step 1: Sign up with Supabase Auth
-      console.log('📝 Creating auth user...');
+      // Step 1: Sign up with Supabase Auth (trigger will create profile automatically)
+      console.log('📝 Creating auth user with trigger-based profile creation...');
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -107,60 +107,88 @@ export const authService = {
 
       console.log('✅ Auth user created successfully:', authData.user.id);
 
-      // Step 2: Create profile record with matching user ID
-      console.log('📝 Creating profile record...');
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,  // 🔑 CRITICAL: Must match auth.users.id
-          username,
-          email,
-          xp: 0,
-          nights_out: 0,
-          bars_hit: 0,
-          drunk_scale_ratings: [],
-          total_shots: 0,
-          total_scoop_and_scores: 0,
-          total_beers: 0,
-          total_beer_towers: 0,
-          total_funnels: 0,
-          total_shotguns: 0,
-          pool_games_won: 0,
-          dart_games_won: 0,
-          photos_taken: 0,
-          visited_bars: [],
-          xp_activities: [],
-          has_completed_onboarding: false
-        })
-        .select('*')
-        .single();
+      // Step 2: Wait a moment for the trigger to create the profile, then fetch it
+      console.log('📝 Waiting for profile creation via trigger...');
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
 
-      if (profileError) {
-        console.error('❌ Profile creation error:', profileError);
-        console.error('Profile error details:', {
-          code: profileError.code,
-          message: profileError.message,
-          details: profileError.details,
-          hint: profileError.hint
-        });
-        
-        // CRITICAL: Clean up the auth user if profile creation fails
-        console.log('🧹 Cleaning up auth user due to profile creation failure...');
-        try {
-          const { error: deleteError } = await supabase.auth.admin.deleteUser(authData.user.id);
-          if (deleteError) {
-            console.error('❌ Failed to cleanup auth user:', deleteError);
-          } else {
-            console.log('✅ Auth user cleaned up successfully');
-          }
-        } catch (cleanupError) {
-          console.error('❌ Exception during auth user cleanup:', cleanupError);
+      // Try to get the profile created by the trigger
+      let profile = null;
+      let retries = 3;
+      
+      while (retries > 0 && !profile) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authData.user.id)
+          .maybeSingle();
+
+        if (profileData) {
+          profile = profileData;
+          break;
         }
-        
-        throw new AuthError('Failed to create user profile. Please try again.', 'PROFILE_CREATION_FAILED');
+
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error('❌ Error fetching profile:', profileError);
+          break;
+        }
+
+        retries--;
+        if (retries > 0) {
+          console.log(`⏳ Profile not found, retrying... (${retries} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
 
-      console.log('✅ Profile created successfully:', profile.id);
+      // If trigger didn't create profile, create it manually
+      if (!profile) {
+        console.log('📝 Trigger didn\'t create profile, creating manually...');
+        const { data: manualProfile, error: manualError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            username,
+            email,
+            xp: 0,
+            nights_out: 0,
+            bars_hit: 0,
+            drunk_scale_ratings: [],
+            total_shots: 0,
+            total_scoop_and_scores: 0,
+            total_beers: 0,
+            total_beer_towers: 0,
+            total_funnels: 0,
+            total_shotguns: 0,
+            pool_games_won: 0,
+            dart_games_won: 0,
+            photos_taken: 0,
+            visited_bars: [],
+            xp_activities: [],
+            has_completed_onboarding: false
+          })
+          .select('*')
+          .single();
+
+        if (manualError) {
+          console.error('❌ Manual profile creation error:', manualError);
+          
+          // Clean up the auth user
+          console.log('🧹 Cleaning up auth user due to profile creation failure...');
+          try {
+            const { error: deleteError } = await supabase.auth.admin.deleteUser(authData.user.id);
+            if (deleteError) {
+              console.error('❌ Failed to cleanup auth user:', deleteError);
+            }
+          } catch (cleanupError) {
+            console.error('❌ Exception during auth user cleanup:', cleanupError);
+          }
+          
+          throw new AuthError('Failed to create user profile. Please try again.', 'PROFILE_CREATION_FAILED');
+        }
+
+        profile = manualProfile;
+      }
+
+      console.log('✅ Profile ready:', profile.id);
       console.log('🎉 Signup completed successfully for user:', authData.user.id);
 
       return { user: authData.user, profile };
