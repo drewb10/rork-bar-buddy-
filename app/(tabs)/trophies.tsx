@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal, Animated } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal } from 'react-native';
 import { Trophy, Award, Star, Target, Users, Calendar, X, MapPin, TrendingUp, ChartBar as BarChart3 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
@@ -18,9 +18,6 @@ export default function TrophiesScreen() {
   const totalCompletedAchievements = completedAchievements.length;
   const averageDrunkScale = getAverageDrunkScale();
 
-  // Animation values for premium interactions
-  const scaleAnim = new Animated.Value(1);
-  
   const categories = [
     { key: 'bars', title: 'Bar Hopping', icon: Trophy, color: '#FF6A00' },
     { key: 'activities', title: 'Activities', icon: Target, color: '#4CAF50' },
@@ -42,20 +39,6 @@ export default function TrophiesScreen() {
   };
 
   const handleAchievementPress = (achievement: CompletedAchievement) => {
-    // Subtle press animation
-    Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: 0.98,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      })
-    ]).start();
-    
     setSelectedAchievement(achievement);
   };
 
@@ -271,48 +254,47 @@ export default function TrophiesScreen() {
                 
                 <View style={styles.achievementGrid}>
                   {categoryCompletedAchievements.map((achievement) => (
-                    <Animated.View key={achievement.id} style={{ transform: [{ scale: scaleAnim }] }}>
-                      <Pressable
-                        style={[
-                          styles.achievementCard,
-                          { 
-                            backgroundColor: themeColors.card,
-                            borderColor: category.color,
-                            borderWidth: 2,
-                          }
-                        ]}
-                        onPress={() => handleAchievementPress(achievement)}
-                      >
-                        <View style={styles.achievementContent}>
-                          <Text style={styles.achievementIcon}>
-                            {achievement.icon}
+                    <Pressable
+                      key={achievement.id}
+                      style={[
+                        styles.achievementCard,
+                        { 
+                          backgroundColor: themeColors.card,
+                          borderColor: category.color,
+                          borderWidth: 2,
+                        }
+                      ]}
+                      onPress={() => handleAchievementPress(achievement)}
+                    >
+                      <View style={styles.achievementContent}>
+                        <Text style={styles.achievementIcon}>
+                          {achievement.icon}
+                        </Text>
+                        <View style={styles.achievementTextContainer}>
+                          <Text 
+                            style={[
+                              styles.achievementTitle, 
+                              { 
+                                color: themeColors.text,
+                              }
+                            ]}
+                            numberOfLines={2}
+                          >
+                            {achievement.title}
                           </Text>
-                          <View style={styles.achievementTextContainer}>
-                            <Text 
-                              style={[
-                                styles.achievementTitle, 
-                                { 
-                                  color: themeColors.text,
-                                }
-                              ]}
-                              numberOfLines={2}
-                            >
-                              {achievement.title}
-                            </Text>
-                            
-                            {achievement.level > 1 && (
-                              <View style={[styles.levelBadge, { backgroundColor: category.color }]}>
-                                <Text style={styles.levelBadgeText}>Lv.{achievement.level}</Text>
-                              </View>
-                            )}
-                          </View>
                           
-                          <View style={[styles.completedBadge, { backgroundColor: category.color }]}>
-                            <Trophy size={12} color="white" />
-                          </View>
+                          {achievement.level > 1 && (
+                            <View style={[styles.levelBadge, { backgroundColor: category.color }]}>
+                              <Text style={styles.levelBadgeText}>Lv.{achievement.level}</Text>
+                            </View>
+                          )}
                         </View>
-                      </Pressable>
-                    </Animated.View>
+                        
+                        <View style={[styles.completedBadge, { backgroundColor: category.color }]}>
+                          <Trophy size={12} color="white" />
+                        </View>
+                      </View>
+                    </Pressable>
                   ))}
                 </View>
               </View>
@@ -402,21 +384,20 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingBottom: 24, // More spacing
+    paddingBottom: 24,
     paddingHorizontal: 16,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700', // Bolder
+    fontWeight: '700',
     marginTop: 8,
     letterSpacing: 0.3,
   },
   statsCard: {
     marginHorizontal: 16,
-    marginBottom: 20, // More spacing
-    borderRadius: 20, // More rounded
-    padding: 24, // More padding
-    // Enhanced shadow
+    marginBottom: 20,
+    borderRadius: 20,
+    padding: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
@@ -433,23 +414,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 28, // Larger for impact
-    fontWeight: '800', // Bolder
-    marginTop: 12, // More spacing
+    fontSize: 28,
+    fontWeight: '800',
+    marginTop: 12,
     marginBottom: 6,
     letterSpacing: 0.5,
   },
   statLabel: {
     fontSize: 12,
-    fontWeight: '600', // Bolder
+    fontWeight: '600',
     letterSpacing: 0.3,
   },
   rankCard: {
     marginHorizontal: 16,
-    marginBottom: 20, // More spacing
-    borderRadius: 20, // More rounded
-    padding: 24, // More padding
-    // Enhanced shadow
+    marginBottom: 20,
+    borderRadius: 20,
+    padding: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
@@ -463,32 +443,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rankInfo: {
-    marginLeft: 20, // More spacing
+    marginLeft: 20,
     flex: 1,
   },
   rankTitle: {
-    fontSize: 22, // Larger
-    fontWeight: '800', // Bolder
-    marginBottom: 6, // More spacing
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 6,
     letterSpacing: 0.5,
   },
   rankSubtitle: {
     fontSize: 16,
-    fontWeight: '600', // Bolder
-    marginBottom: 6, // More spacing
+    fontWeight: '600',
+    marginBottom: 6,
     letterSpacing: 0.3,
   },
   rankXP: {
     fontSize: 14,
-    fontWeight: '600', // Bolder
+    fontWeight: '600',
     letterSpacing: 0.2,
   },
   trackerStatsCard: {
     marginHorizontal: 16,
-    marginBottom: 20, // More spacing
-    borderRadius: 20, // More rounded
-    padding: 24, // More padding
-    // Enhanced shadow
+    marginBottom: 20,
+    borderRadius: 20,
+    padding: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
@@ -500,11 +479,11 @@ const styles = StyleSheet.create({
   trackerStatsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20, // More spacing
+    marginBottom: 20,
   },
   trackerStatsTitle: {
     fontSize: 18,
-    fontWeight: '700', // Bolder
+    fontWeight: '700',
     marginLeft: 8,
     letterSpacing: 0.3,
   },
@@ -516,26 +495,25 @@ const styles = StyleSheet.create({
   trackerStatItem: {
     width: '48%',
     alignItems: 'center',
-    marginBottom: 20, // More spacing
+    marginBottom: 20,
   },
   trackerStatNumber: {
-    fontSize: 24, // Larger
-    fontWeight: '800', // Bolder
-    marginBottom: 6, // More spacing
+    fontSize: 24,
+    fontWeight: '800',
+    marginBottom: 6,
     letterSpacing: 0.5,
   },
   trackerStatLabel: {
     fontSize: 12,
     textAlign: 'center',
-    fontWeight: '600', // Bolder
+    fontWeight: '600',
     letterSpacing: 0.2,
   },
   lifetimeStatsCard: {
     marginHorizontal: 16,
-    marginBottom: 20, // More spacing
-    borderRadius: 20, // More rounded
-    padding: 24, // More padding
-    // Enhanced shadow
+    marginBottom: 20,
+    borderRadius: 20,
+    padding: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
@@ -546,8 +524,8 @@ const styles = StyleSheet.create({
   },
   lifetimeStatsTitle: {
     fontSize: 18,
-    fontWeight: '700', // Bolder
-    marginBottom: 20, // More spacing
+    fontWeight: '700',
+    marginBottom: 20,
     textAlign: 'center',
     letterSpacing: 0.3,
   },
@@ -559,23 +537,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   lifetimeStatNumber: {
-    fontSize: 28, // Larger
-    fontWeight: '800', // Bolder
-    marginTop: 12, // More spacing
+    fontSize: 28,
+    fontWeight: '800',
+    marginTop: 12,
     marginBottom: 6,
     letterSpacing: 0.5,
   },
   lifetimeStatLabel: {
     fontSize: 12,
-    fontWeight: '600', // Bolder
+    fontWeight: '600',
     letterSpacing: 0.2,
   },
   emptyState: {
     marginHorizontal: 16,
-    borderRadius: 20, // More rounded
-    padding: 40, // More padding
+    borderRadius: 20,
+    padding: 40,
     alignItems: 'center',
-    // Enhanced shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
@@ -586,7 +563,7 @@ const styles = StyleSheet.create({
   },
   emptyStateTitle: {
     fontSize: 20,
-    fontWeight: '700', // Bolder
+    fontWeight: '700',
     marginTop: 16,
     marginBottom: 8,
     letterSpacing: 0.3,
@@ -595,17 +572,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 22,
-    fontWeight: '500', // Slightly bolder
+    fontWeight: '500',
   },
   categorySection: {
     marginHorizontal: 16,
-    marginBottom: 28, // More spacing
+    marginBottom: 28,
   },
   categoryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16, // More spacing
+    marginBottom: 16,
   },
   categoryTitleRow: {
     flexDirection: 'row',
@@ -613,24 +590,23 @@ const styles = StyleSheet.create({
   },
   categoryTitle: {
     fontSize: 18,
-    fontWeight: '700', // Bolder
+    fontWeight: '700',
     marginLeft: 8,
     letterSpacing: 0.3,
   },
   categoryProgress: {
     fontSize: 14,
-    fontWeight: '600', // Bolder
+    fontWeight: '600',
     letterSpacing: 0.2,
   },
   achievementGrid: {
-    gap: 12, // Spacing between cards
+    gap: 12,
   },
   achievementCard: {
-    width: '100%', // Full width for better text visibility
-    borderRadius: 16, // More rounded
-    padding: 20, // More padding
+    width: '100%',
+    borderRadius: 16,
+    padding: 20,
     position: 'relative',
-    // Enhanced shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
@@ -639,49 +615,48 @@ const styles = StyleSheet.create({
   },
   achievementContent: {
     flexDirection: 'row',
-    alignItems: 'center', // Changed back to center for proper alignment
+    alignItems: 'center',
   },
   achievementIcon: {
-    fontSize: 36, // Larger
-    marginRight: 16, // More spacing
+    fontSize: 36,
+    marginRight: 16,
   },
   achievementTextContainer: {
     flex: 1,
     position: 'relative',
   },
   achievementTitle: {
-    fontSize: 16, // Slightly larger for better readability
-    fontWeight: '700', // Bolder
+    fontSize: 16,
+    fontWeight: '700',
     marginBottom: 8,
     letterSpacing: 0.2,
-    paddingRight: 40, // Space for the completed badge
-    lineHeight: 20, // Better line height for readability
+    paddingRight: 40,
+    lineHeight: 20,
   },
   levelBadge: {
     position: 'absolute',
-    bottom: -8, // Moved to bottom-right corner
-    right: 0, // Positioned at the right edge
-    paddingHorizontal: 8, // More padding
+    bottom: -8,
+    right: 0,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 10, // More rounded
-    zIndex: 1, // Ensure it's above other elements
+    borderRadius: 10,
+    zIndex: 1,
   },
   levelBadgeText: {
     color: 'white',
     fontSize: 10,
-    fontWeight: '700', // Bolder
+    fontWeight: '700',
     letterSpacing: 0.2,
   },
   completedBadge: {
     position: 'absolute',
     top: -8,
     right: -8,
-    width: 24, // Larger
+    width: 24,
     height: 24,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    // Enhanced shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -689,22 +664,20 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   footer: {
-    height: 32, // More spacing
+    height: 32,
   },
-  // Enhanced modal styles with glassmorphism
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)', // Darker overlay
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
   },
   modalContent: {
     width: '90%',
     maxHeight: '80%',
-    borderRadius: 24, // More rounded
-    padding: 28, // More padding
+    borderRadius: 24,
+    padding: 28,
     borderWidth: 1,
-    // Enhanced shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.3,
@@ -715,27 +688,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24, // More spacing
+    marginBottom: 24,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '800', // Bolder
+    fontWeight: '800',
     letterSpacing: 0.3,
   },
   closeButton: {
-    padding: 8, // More padding
+    padding: 8,
   },
   modalBody: {
     alignItems: 'center',
   },
   modalIcon: {
-    fontSize: 56, // Larger
-    marginBottom: 20, // More spacing
+    fontSize: 56,
+    marginBottom: 20,
   },
   modalAchievementTitle: {
-    fontSize: 24, // Larger
-    fontWeight: '800', // Bolder
-    marginBottom: 16, // More spacing
+    fontSize: 24,
+    fontWeight: '800',
+    marginBottom: 16,
     textAlign: 'center',
     letterSpacing: 0.5,
   },
@@ -743,15 +716,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     textAlign: 'center',
-    marginBottom: 24, // More spacing
-    fontWeight: '500', // Slightly bolder
+    marginBottom: 24,
+    fontWeight: '500',
   },
   modalLevelBadge: {
-    paddingHorizontal: 16, // More padding
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 16, // More rounded
-    marginBottom: 20, // More spacing
-    // Enhanced shadow
+    borderRadius: 16,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -761,28 +733,27 @@ const styles = StyleSheet.create({
   modalLevelText: {
     color: 'white',
     fontSize: 14,
-    fontWeight: '800', // Bolder
+    fontWeight: '800',
     letterSpacing: 0.3,
   },
   completedInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20, // More spacing
+    marginBottom: 20,
   },
   completedDate: {
     fontSize: 14,
-    fontWeight: '600', // Bolder
+    fontWeight: '600',
     marginLeft: 8,
     letterSpacing: 0.2,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20, // More padding
+    paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 24, // More rounded
-    gap: 10, // More spacing
-    // Enhanced shadow
+    borderRadius: 24,
+    gap: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -791,7 +762,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 14,
-    fontWeight: '700', // Bolder
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
 });

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal, Alert, Animated } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal, Alert } from 'react-native';
 import { Trophy, Target, Users, Star, RotateCcw, X, Info } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
@@ -19,9 +19,6 @@ export default function AchievementsScreen() {
   } = useAchievementStore();
   
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
-
-  // Animation values for premium interactions
-  const scaleAnim = new Animated.Value(1);
 
   useEffect(() => {
     initializeAchievements();
@@ -52,20 +49,6 @@ export default function AchievementsScreen() {
   };
 
   const handleAchievementPress = (achievement: Achievement) => {
-    // Subtle press animation
-    Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: 0.98,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      })
-    ]).start();
-    
     setSelectedAchievement(achievement);
   };
 
@@ -120,52 +103,51 @@ export default function AchievementsScreen() {
         
         <View style={styles.achievementList}>
           {categoryAchievements.map((achievement) => (
-            <Animated.View key={achievement.id} style={{ transform: [{ scale: scaleAnim }] }}>
-              <Pressable
-                style={[
-                  styles.achievementCard,
-                  { 
-                    backgroundColor: achievement.completed 
-                      ? themeColors.primary + '20' 
-                      : themeColors.background,
-                    borderColor: achievement.completed 
-                      ? themeColors.primary 
-                      : themeColors.border,
-                  }
-                ]}
-                onPress={() => handleAchievementPress(achievement)}
-              >
-                <View style={styles.achievementHeader}>
-                  <Text style={styles.achievementEmoji}>{achievement.icon}</Text>
-                  <View style={styles.achievementInfo}>
-                    <Text 
-                      style={[
-                        styles.achievementName, 
-                        { 
-                          color: achievement.completed 
-                            ? themeColors.primary 
-                            : themeColors.text 
-                        }
-                      ]}
-                      numberOfLines={2}
-                    >
-                      {achievement.title}
-                    </Text>
-                    <Text style={[styles.achievementDescription, { color: themeColors.subtext }]}>
-                      {achievement.description}
-                    </Text>
-                  </View>
-                  {achievement.completed && (
-                    <Text style={[styles.completedBadge, { color: themeColors.primary }]}>
-                      ✓
-                    </Text>
-                  )}
+            <Pressable
+              key={achievement.id}
+              style={[
+                styles.achievementCard,
+                { 
+                  backgroundColor: achievement.completed 
+                    ? themeColors.primary + '20' 
+                    : themeColors.background,
+                  borderColor: achievement.completed 
+                    ? themeColors.primary 
+                    : themeColors.border,
+                }
+              ]}
+              onPress={() => handleAchievementPress(achievement)}
+            >
+              <View style={styles.achievementHeader}>
+                <Text style={styles.achievementEmoji}>{achievement.icon}</Text>
+                <View style={styles.achievementInfo}>
+                  <Text 
+                    style={[
+                      styles.achievementName, 
+                      { 
+                        color: achievement.completed 
+                          ? themeColors.primary 
+                          : themeColors.text 
+                      }
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {achievement.title}
+                  </Text>
+                  <Text style={[styles.achievementDescription, { color: themeColors.subtext }]}>
+                    {achievement.description}
+                  </Text>
                 </View>
-                
-                {/* Progress Bar */}
-                {renderProgressBar(achievement)}
-              </Pressable>
-            </Animated.View>
+                {achievement.completed && (
+                  <Text style={[styles.completedBadge, { color: themeColors.primary }]}>
+                    ✓
+                  </Text>
+                )}
+              </View>
+              
+              {/* Progress Bar */}
+              {renderProgressBar(achievement)}
+            </Pressable>
           ))}
         </View>
       </View>
@@ -321,11 +303,11 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingBottom: 28, // More spacing
+    paddingBottom: 28,
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '800', // Bolder
+    fontWeight: '800',
     marginTop: 12,
     marginBottom: 8,
     letterSpacing: 0.5,
@@ -334,14 +316,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 22,
-    fontWeight: '500', // Slightly bolder
+    fontWeight: '500',
   },
   progressCard: {
     marginHorizontal: 16,
-    marginBottom: 20, // More spacing
-    borderRadius: 20, // More rounded
-    padding: 24, // More padding
-    // Enhanced shadow
+    marginBottom: 20,
+    borderRadius: 20,
+    padding: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
@@ -354,22 +335,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16, // More spacing
+    marginBottom: 16,
   },
   progressTitle: {
     fontSize: 18,
-    fontWeight: '700', // Bolder
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
   progressPercentage: {
-    fontSize: 28, // Larger
-    fontWeight: '800', // Bolder
+    fontSize: 28,
+    fontWeight: '800',
     letterSpacing: 0.5,
   },
   progressBar: {
-    height: 10, // Thicker
+    height: 10,
     borderRadius: 5,
-    marginBottom: 12, // More spacing
+    marginBottom: 12,
   },
   progressFill: {
     height: '100%',
@@ -378,17 +359,16 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 14,
     textAlign: 'center',
-    fontWeight: '600', // Bolder
+    fontWeight: '600',
     letterSpacing: 0.2,
   },
   categoriesContainer: {
     paddingHorizontal: 16,
-    gap: 24, // More spacing
+    gap: 24,
   },
   categorySection: {
-    borderRadius: 20, // More rounded
-    padding: 20, // More padding
-    // Enhanced shadow
+    borderRadius: 20,
+    padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
@@ -400,28 +380,27 @@ const styles = StyleSheet.create({
   categoryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20, // More spacing
+    marginBottom: 20,
   },
   categoryTitle: {
     fontSize: 18,
-    fontWeight: '700', // Bolder
+    fontWeight: '700',
     marginLeft: 8,
     flex: 1,
     letterSpacing: 0.3,
   },
   categoryProgress: {
     fontSize: 16,
-    fontWeight: '700', // Bolder
+    fontWeight: '700',
     letterSpacing: 0.2,
   },
   achievementList: {
-    gap: 16, // More spacing
+    gap: 16,
   },
   achievementCard: {
-    borderRadius: 16, // More rounded
-    padding: 20, // More padding
+    borderRadius: 16,
+    padding: 20,
     borderWidth: 2,
-    // Enhanced shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -431,39 +410,39 @@ const styles = StyleSheet.create({
   achievementHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 16, // More spacing
+    marginBottom: 16,
   },
   achievementEmoji: {
-    fontSize: 28, // Larger
-    marginRight: 16, // More spacing
+    fontSize: 28,
+    marginRight: 16,
   },
   achievementInfo: {
     flex: 1,
   },
   achievementName: {
     fontSize: 16,
-    fontWeight: '700', // Bolder
-    marginBottom: 6, // More spacing
+    fontWeight: '700',
+    marginBottom: 6,
     lineHeight: 20,
     letterSpacing: 0.3,
   },
   achievementDescription: {
     fontSize: 14,
     lineHeight: 18,
-    fontWeight: '500', // Slightly bolder
+    fontWeight: '500',
   },
   completedBadge: {
-    fontSize: 24, // Larger
-    fontWeight: '800', // Bolder
+    fontSize: 24,
+    fontWeight: '800',
   },
   progressBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16, // More spacing
+    gap: 16,
   },
   progressBarBackground: {
     flex: 1,
-    height: 8, // Thicker
+    height: 8,
     borderRadius: 4,
   },
   progressBarFill: {
@@ -472,16 +451,15 @@ const styles = StyleSheet.create({
   },
   progressBarText: {
     fontSize: 12,
-    fontWeight: '600', // Bolder
+    fontWeight: '600',
     letterSpacing: 0.2,
   },
   infoCard: {
     marginHorizontal: 16,
-    marginTop: 28, // More spacing
+    marginTop: 28,
     marginBottom: 20,
-    borderRadius: 20, // More rounded
-    padding: 24, // More padding
-    // Enhanced shadow
+    borderRadius: 20,
+    padding: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
@@ -492,24 +470,23 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontSize: 16,
-    fontWeight: '700', // Bolder
-    marginBottom: 12, // More spacing
+    fontWeight: '700',
+    marginBottom: 12,
     letterSpacing: 0.3,
   },
   infoText: {
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '500', // Slightly bolder
+    fontWeight: '500',
   },
   resetButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: 16,
-    marginBottom: 20, // More spacing
-    borderRadius: 16, // More rounded
-    padding: 18, // More padding
-    // Enhanced shadow
+    marginBottom: 20,
+    borderRadius: 16,
+    padding: 18,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -520,28 +497,26 @@ const styles = StyleSheet.create({
   },
   resetButtonText: {
     fontSize: 14,
-    fontWeight: '700', // Bolder
+    fontWeight: '700',
     marginLeft: 8,
     letterSpacing: 0.3,
   },
   footer: {
-    height: 32, // More spacing
+    height: 32,
   },
-  // Enhanced modal styles with glassmorphism
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)', // Darker overlay
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     padding: 20,
   },
   modalContent: {
     width: '100%',
     maxWidth: 400,
-    borderRadius: 24, // More rounded
-    padding: 28, // More padding
+    borderRadius: 24,
+    padding: 28,
     borderWidth: 1,
-    // Enhanced shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.3,
@@ -552,40 +527,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20, // More spacing
+    marginBottom: 20,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '800', // Bolder
+    fontWeight: '800',
     flex: 1,
     lineHeight: 26,
     letterSpacing: 0.3,
   },
   modalCloseButton: {
-    padding: 8, // More padding
+    padding: 8,
     marginLeft: 12,
   },
   modalDescription: {
     fontSize: 16,
     lineHeight: 22,
-    marginBottom: 24, // More spacing
-    fontWeight: '500', // Slightly bolder
+    marginBottom: 24,
+    fontWeight: '500',
   },
   modalProgress: {
-    marginBottom: 28, // More spacing
+    marginBottom: 28,
   },
   modalProgressTitle: {
     fontSize: 16,
-    fontWeight: '700', // Bolder
-    marginBottom: 16, // More spacing
+    fontWeight: '700',
+    marginBottom: 16,
     letterSpacing: 0.3,
   },
   modalButton: {
-    paddingVertical: 16, // More padding
+    paddingVertical: 16,
     paddingHorizontal: 28,
-    borderRadius: 16, // More rounded
+    borderRadius: 16,
     alignItems: 'center',
-    // Enhanced shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -595,7 +569,7 @@ const styles = StyleSheet.create({
   modalButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '700', // Bolder
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
 });
