@@ -46,12 +46,14 @@ export class AuthError extends Error {
 export const authService = {
   async checkUsernameAvailable(username: string): Promise<boolean> {
     try {
-      const { data, error } = await supabase.rpc('check_username_available', {
-        username_to_check: username
-      });
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', username)
+        .maybeSingle();
       
       if (error) throw error;
-      return data;
+      return !data;
     } catch (error) {
       console.error('Error checking username availability:', error);
       return false;
@@ -97,6 +99,24 @@ export const authService = {
 
       if (profileError) {
         console.warn('Profile not found immediately after signup:', profileError);
+        
+        // Create profile manually if it doesn't exist
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            username,
+            email,
+            has_completed_onboarding: false
+          })
+          .select('*')
+          .single();
+          
+        if (createError) {
+          console.error('Failed to create profile:', createError);
+        }
+        
+        return { user: authData.user, profile: newProfile || null };
       }
 
       return { user: authData.user, profile };

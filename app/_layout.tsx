@@ -84,7 +84,7 @@ export default function RootLayout() {
 
   // 3 AM popup check
   useEffect(() => {
-    if (!isVerified || !isAuthenticated) return;
+    if (!isVerified || !isInitialized) return;
 
     const checkFor3AMPopup = () => {
       try {
@@ -109,7 +109,7 @@ export default function RootLayout() {
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [shouldShow3AMPopup, isVerified, isAuthenticated]);
+  }, [shouldShow3AMPopup, isVerified, isInitialized]);
 
   const handleAgeVerification = (verified: boolean) => {
     try {

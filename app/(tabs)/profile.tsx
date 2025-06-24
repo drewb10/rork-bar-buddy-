@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, TextInput, Image } from 'react-native';
-import { User, CreditCard as Edit3, X, Award, Camera, Users, Info, LogOut } from 'lucide-react-native';
+import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, Image, ActivityIndicator } from 'react-native';
+import { User, Award, Camera, Users, Info, LogOut } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -19,7 +19,7 @@ export default function ProfileScreen() {
     profile, 
     updateProfile,
     signOut,
-    user
+    isLoading
   } = useAuthStore();
   const router = useRouter();
   
@@ -152,14 +152,34 @@ export default function ProfileScreen() {
 
   const rankInfo = getRank();
 
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF6A00" />
+          <Text style={[styles.loadingText, { color: themeColors.text, marginTop: 16 }]}>
+            Loading profile...
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   if (!profile) {
     return (
       <View style={[styles.container, { backgroundColor: '#000000' }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
           <Text style={[styles.loadingText, { color: themeColors.text }]}>
-            Loading profile...
+            No profile found. Please sign in.
           </Text>
+          <Pressable 
+            style={[styles.signInButton, { backgroundColor: themeColors.primary, marginTop: 20 }]}
+            onPress={() => router.replace('/auth/sign-in')}
+          >
+            <Text style={styles.signInButtonText}>Sign In</Text>
+          </Pressable>
         </View>
       </View>
     );
@@ -254,7 +274,7 @@ export default function ProfileScreen() {
               <Award size={24} color={rankInfo.color} />
               <View style={styles.xpInfo}>
                 <Text style={[styles.xpAmount, { color: themeColors.text }]}>
-                  {profile.xp} XP
+                  {profile.xp || 0} XP
                 </Text>
               </View>
             </View>
@@ -273,7 +293,7 @@ export default function ProfileScreen() {
           <View style={styles.statsGrid}>
             <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
               <Text style={[styles.statNumber, { color: themeColors.text }]}>
-                {profile.nights_out}
+                {profile.nights_out || 0}
               </Text>
               <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
                 Nights Out
@@ -282,7 +302,7 @@ export default function ProfileScreen() {
 
             <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
               <Text style={[styles.statNumber, { color: themeColors.text }]}>
-                {profile.bars_hit}
+                {profile.bars_hit || 0}
               </Text>
               <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
                 Bars Hit
@@ -521,5 +541,15 @@ const styles = StyleSheet.create({
   },
   footer: {
     height: 24,
+  },
+  signInButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  signInButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

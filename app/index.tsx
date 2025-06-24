@@ -7,14 +7,16 @@ export default function Index() {
   const { isAuthenticated } = useAuthStore();
   const { isVerified } = useAgeVerificationStore();
 
-  // Redirect based on authentication and age verification status
+  // If not age verified, go to tabs to show age verification modal
   if (!isVerified) {
     return <Redirect href="/(tabs)" />;
   }
 
+  // If age verified but not authenticated, go to sign in
   if (!isAuthenticated) {
     return <Redirect href="/auth/sign-in" />;
   }
 
+  // If both verified and authenticated, go to tabs
   return <Redirect href="/(tabs)" />;
 }
