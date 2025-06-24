@@ -31,9 +31,7 @@ export interface UserProfile {
   profile_picture?: string;
   visited_bars: string[];
   xp_activities: any[];
-  completed_achievements: any[];
-  achievement_progress: any;
-  daily_stats: any;
+  has_completed_onboarding: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -222,7 +220,7 @@ export const authService = {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, email, xp, nights_out, bars_hit, created_at')
+        .select('*')
         .eq('username', username)
         .single();
 

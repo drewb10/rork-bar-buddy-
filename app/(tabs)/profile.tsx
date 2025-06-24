@@ -10,6 +10,7 @@ import FriendsModal from '@/components/FriendsModal';
 import BarBuddyChatbot from '@/components/BarBuddyChatbot';
 import OnboardingModal from '@/components/OnboardingModal';
 import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
   const { theme } = useThemeStore();
@@ -20,10 +21,10 @@ export default function ProfileScreen() {
     signOut,
     user
   } = useAuthStore();
+  const router = useRouter();
   
   const { interactions } = useVenueInteractionStore();
   
-  const [nameEditModalVisible, setNameEditModalVisible] = useState(false);
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
   const [rankDetailsModalVisible, setRankDetailsModalVisible] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -140,7 +141,10 @@ export default function ProfileScreen() {
         { 
           text: 'Sign Out', 
           style: 'destructive',
-          onPress: signOut
+          onPress: async () => {
+            await signOut();
+            router.replace('/auth/sign-in');
+          }
         }
       ]
     );
@@ -286,6 +290,17 @@ export default function ProfileScreen() {
             </View>
           </View>
 
+          {/* Friends Button */}
+          <Pressable 
+            style={[styles.friendsButton, { backgroundColor: themeColors.card }]}
+            onPress={() => setFriendsModalVisible(true)}
+          >
+            <Users size={20} color={themeColors.primary} />
+            <Text style={[styles.friendsButtonText, { color: themeColors.primary }]}>
+              Friends
+            </Text>
+          </Pressable>
+
           <View style={styles.footer} />
         </ScrollView>
       ) : (
@@ -297,6 +312,19 @@ export default function ProfileScreen() {
         visible={showOnboarding}
         onComplete={() => setShowOnboarding(false)}
       />
+
+      {/* Friends Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={friendsModalVisible}
+        onRequestClose={() => setFriendsModalVisible(false)}
+      >
+        <FriendsModal
+          visible={friendsModalVisible}
+          onClose={() => setFriendsModalVisible(false)}
+        />
+      </Modal>
     </View>
   );
 }
@@ -311,4 +339,187 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    fontSize: 16,<boltArtifact id="auth-system-implementation" title="Username and Password Authentication System">
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  signOutButton: {
+    padding: 8,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  profileCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  cameraIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#000000',
+  },
+  nameContainer: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  userName: {
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  joinDate: {
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  email: {
+    fontSize: 14,
+    color: '#888',
+  },
+  xpCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  xpHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  xpInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  xpAmount: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  rankContainer: {
+    alignItems: 'center',
+  },
+  rankTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  rankSubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    gap: 16,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  friendsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 16,
+    marginBottom: 24,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  friendsButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  footer: {
+    height: 24,
+  },
+});

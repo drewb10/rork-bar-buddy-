@@ -14,14 +14,22 @@ interface OnboardingModalProps {
 export default function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, updateProfile, profile } = useAuthStore();
   const router = useRouter();
 
-  const handleGetStarted = () => {
+  const handleGetStarted = async () => {
     if (!isAuthenticated) {
       router.push('/auth/sign-up');
-    } else if (onComplete) {
-      onComplete();
+    } else if (profile) {
+      try {
+        await updateProfile({ has_completed_onboarding: true });
+        if (onComplete) {
+          onComplete();
+        }
+      } catch (error) {
+        console.error('Error completing onboarding:', error);
+        Alert.alert('Error', 'Failed to complete onboarding. Please try again.');
+      }
     }
   };
 
