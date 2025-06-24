@@ -8,7 +8,7 @@ import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import { venues } from '@/mocks/venues';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import FriendsModal from '@/components/FriendsModal';
-import AvatarCustomizer from '@/components/AvatarCustomizer';
+import BarBuddyChatbot from '@/components/BarBuddyChatbot';
 import * as ImagePicker from 'expo-image-picker';
 
 export default function TrackingScreen() {
@@ -32,7 +32,7 @@ export default function TrackingScreen() {
   const [rankDetailsModalVisible, setRankDetailsModalVisible] = useState(false);
   const [editFirstName, setEditFirstName] = useState(profile.firstName);
   const [editLastName, setEditLastName] = useState(profile.lastName);
-  const [activeTab, setActiveTab] = useState<'profile' | 'avatar'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'chatbot'>('profile');
   
   const rankInfo = getRank();
   const allRanks = getAllRanks();
@@ -150,15 +150,15 @@ export default function TrackingScreen() {
         <Pressable 
           style={[
             styles.tab, 
-            activeTab === 'avatar' && { borderBottomColor: themeColors.primary, borderBottomWidth: 2 }
+            activeTab === 'chatbot' && { borderBottomColor: themeColors.primary, borderBottomWidth: 2 }
           ]}
-          onPress={() => setActiveTab('avatar')}
+          onPress={() => setActiveTab('chatbot')}
         >
           <Text style={[
             styles.tabText, 
-            { color: activeTab === 'avatar' ? themeColors.primary : themeColors.subtext }
+            { color: activeTab === 'chatbot' ? themeColors.primary : themeColors.subtext }
           ]}>
-            Bar Buddy
+            BarBuddy AI
           </Text>
         </Pressable>
       </View>
@@ -272,7 +272,7 @@ export default function TrackingScreen() {
           <View style={styles.footer} />
         </ScrollView>
       ) : (
-        <AvatarCustomizer />
+        <BarBuddyChatbot />
       )}
 
       {/* Name Edit Modal */}
