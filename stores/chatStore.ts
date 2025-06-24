@@ -325,7 +325,39 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       const userId = await getUserId();
       
-      // Always create a new session for demo purposes to ensure clean state
+      // Check for existing session with better error handling
+      const { data: existingSession, error: fetchError } = await supabase
+        .from('chat_sessions')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('venue_id', venueId)
+        .maybeSingle();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.warn('Session fetch error (non-critical):', fetchError);
+        // Don't throw error, continue with creating new session
+      }
+
+      if (existingSession) {
+        // Update last_active timestamp with error handling
+        const { data: updatedSession, error: updateError } = await supabase
+          .from('chat_sessions')
+          .update({ last_active: new Date().toISOString() })
+          .eq('id', existingSession.id)
+          .select()
+          .single();
+        
+        if (updateError) {
+          console.warn('Failed to update session timestamp (non-critical):', updateError);
+          // Use existing session if update fails
+        }
+        
+        const session = updatedSession || existingSession;
+        set({ currentSession: session, isLoading: false });
+        return session;
+      }
+
+      // Create new session with error handling
       const anonymousName = generateAnonymousName(userId);
       const { data: newSession, error: createError } = await supabase
         .from('chat_sessions')
@@ -359,8 +391,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
         throw new Error('Venue ID is required and cannot be empty');
       }
 
-      // Since we cleared all messages, this will return empty array
-      // But we keep the logic for when messages start appearing
+      // Calculate cutoff time for daily reset (5 AM)
+      const now = new Date();
+      const cutoffTime = new Date();
+      cutoffTime.setHours(5, 0, 0, 0);
+      
+      // If it's before 5 AM today, use yesterday's 5 AM as cutoff
+      if (now.getHours() < 5) {
+        cutoffTime.setDate(cutoffTime.getDate() - 1);
+      }
+
       const { data: messagesData, error } = await supabase
         .from('chat_messages')
         .select(`
@@ -376,23 +416,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
           )
         `)
         .eq('chat_sessions.venue_id', venueId)
+        .gte('created_at', cutoffTime.toISOString()) // Only load messages after 5 AM cutoff
         .order('timestamp', { ascending: true })
         .limit(100);
 
       if (error) {
         console.warn('Messages query error (non-critical):', error);
+        // Don't throw error, just set empty messages
         set({ messages: [], isLoading: false });
         return;
       }
 
-      // Transform messages (will be empty array initially)
       const transformedMessages: ChatMessage[] = (messagesData as unknown as RawMessageFromSupabase[])?.map(msg => {
         const sessionData = msg.chat_sessions;
 
         return {
           id: msg.id,
           session_id: msg.session_id,
-          content: msg.message,
+          content: msg.message,  // Map 'message' to 'content' for frontend
           timestamp: msg.timestamp,
           created_at: msg.created_at,
           anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
@@ -405,7 +446,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ messages: transformedMessages, isLoading: false });
     } catch (error) {
       console.warn('Failed to load messages (non-critical):', error);
-      set({ error: null, isLoading: false, messages: [] });
+      set({ error: null, isLoading: false, messages: [] }); // Don't show error to user
     }
   },
 
@@ -453,7 +494,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         .from('chat_messages')
         .insert({
           session_id: session.id,
-          message: trimmedContent,
+          message: trimmedContent,  // Use 'message' column name
         })
         .select(`
           id,
@@ -471,7 +512,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       const transformedMessage: ChatMessage = {
         ...newMessage,
-        content: newMessage.message,
+        content: newMessage.message,  // Map 'message' to 'content' for frontend
         anonymous_name: session.anonymous_name,
         venue_id: session.venue_id,
       };
@@ -480,7 +521,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ 
         messages: [...currentMessages, transformedMessage],
         isLoading: false,
-        lastMessageTime: now
+        lastMessageTime: now // Update last message time for rate limiting
       });
     } catch (error) {
       const userError = createUserError(error as Error);
@@ -496,9 +537,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
         return;
       }
 
-      // Clean up existing subscription first
+      // Clean up existing subscription first to prevent multiple subscriptions
       get().unsubscribeFromMessages();
 
+      // Create a unique channel name to avoid conflicts
       const channelName = `chat_messages_${venueId}_${Date.now()}`;
       
       const subscription = supabase
@@ -514,7 +556,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             try {
               // Check if message should be reset due to daily cutoff
               if (shouldResetMessages(payload.new.created_at)) {
-                return;
+                return; // Ignore messages that should be reset
               }
 
               // Verify the message belongs to the current venue
@@ -529,6 +571,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 return;
               }
 
+              // Only add message if it belongs to the current venue
               if (sessionData?.venue_id !== venueId) {
                 return;
               }
@@ -536,7 +579,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
               const newMessage: ChatMessage = {
                 id: payload.new.id,
                 session_id: payload.new.session_id,
-                content: payload.new.message,
+                content: payload.new.message,  // Map 'message' to 'content'
                 timestamp: payload.new.timestamp,
                 created_at: payload.new.created_at,
                 anonymous_name: sessionData?.anonymous_name || 'Anonymous Buddy',
@@ -544,6 +587,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
               };
 
               const currentMessages = get().messages;
+              // Prevent duplicate messages
               if (!currentMessages.find(msg => msg.id === newMessage.id)) {
                 set({ messages: [...currentMessages, newMessage] });
               }
@@ -557,6 +601,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             console.log(`Successfully subscribed to chat for venue ${venueId}`);
           } else if (status === 'CHANNEL_ERROR') {
             console.warn(`Failed to subscribe to chat for venue ${venueId} (non-critical)`);
+            // Don't show error to user, just log it
           } else if (status === 'CLOSED') {
             console.log(`Chat subscription closed for venue ${venueId}`);
           }
@@ -565,6 +610,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ subscription });
     } catch (error) {
       console.warn('Failed to subscribe to messages (non-critical):', error);
+      // Don't show error to user
     }
   },
 
