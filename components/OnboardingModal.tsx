@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, Pressable, Alert, TextInput } from 'react-native';
+import { StyleSheet, View, Text, Pressable, Alert } from 'react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -18,6 +18,7 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
   const { profile, updateProfile } = useAuthStore();
   const router = useRouter();
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleGetStarted = async () => {
     if (!profile) {
@@ -31,11 +32,15 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
     }
 
     try {
+      setIsSubmitting(true);
       await updateProfile({ has_completed_onboarding: true });
+      setIsSubmitting(false);
+      
       if (onComplete) {
         onComplete();
       }
     } catch (error) {
+      setIsSubmitting(false);
       console.error('Error completing onboarding:', error);
       Alert.alert('Error', 'Failed to complete onboarding. Please try again.');
     }
@@ -97,13 +102,14 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
             styles.getStartedButton, 
             { 
               backgroundColor: themeColors.primary,
-              opacity: termsAccepted ? 1 : 0.7
+              opacity: termsAccepted && !isSubmitting ? 1 : 0.7
             }
           ]} 
           onPress={handleGetStarted}
+          disabled={!termsAccepted || isSubmitting}
         >
           <Text style={styles.getStartedButtonText}>
-            Get Started
+            {isSubmitting ? 'Processing...' : 'Get Started'}
           </Text>
         </Pressable>
       </View>

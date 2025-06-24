@@ -32,7 +32,7 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     // Show onboarding if user hasn't completed it
-    if (profile && !profile.has_completed_onboarding) {
+    if (profile && profile.has_completed_onboarding === false) {
       setShowOnboarding(true);
     }
   }, [profile]);
@@ -148,6 +148,10 @@ export default function ProfileScreen() {
         }
       ]
     );
+  };
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
   };
 
   const rankInfo = getRank();
@@ -330,7 +334,7 @@ export default function ProfileScreen() {
       {/* Onboarding Modal */}
       <OnboardingModal
         visible={showOnboarding}
-        onComplete={() => setShowOnboarding(false)}
+        onComplete={handleOnboardingComplete}
       />
 
       {/* Friends Modal */}

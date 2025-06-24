@@ -46,14 +46,35 @@ export class AuthError extends Error {
 export const authService = {
   async checkUsernameAvailable(username: string): Promise<boolean> {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('username', username)
-        .maybeSingle();
+      // First check if username is valid
+      if (!username || username.length < 3 || username.length > 20 || !/^[a-zA-Z0-9_]+$/.test(username)) {
+        return false;
+      }
       
-      if (error) throw error;
-      return !data;
+      // Call the function we created in the database
+      const { data, error } = await supabase.rpc('check_username_available', {
+        username_to_check: username
+      });
+      
+      if (error) {
+        console.error('Error checking username availability:', error);
+        
+        // Fallback to direct query if RPC fails
+        const { data: queryData, error: queryError } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('username', username)
+          .maybeSingle();
+        
+        if (queryError) {
+          console.error('Fallback query error:', queryError);
+          return false;
+        }
+        
+        return !queryData;
+      }
+      
+      return data === true;
     } catch (error) {
       console.error('Error checking username availability:', error);
       return false;
@@ -89,6 +110,9 @@ export const authService = {
       if (!authData.user) {
         throw new AuthError('Failed to create user account', 'SIGNUP_FAILED');
       }
+
+      // Wait a moment for the trigger to create the profile
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Get the created profile
       const { data: profile, error: profileError } = await supabase
