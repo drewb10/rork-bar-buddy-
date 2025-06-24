@@ -51,30 +51,19 @@ export const authService = {
         return false;
       }
       
-      // Call the function we created in the database
-      const { data, error } = await supabase.rpc('check_username_available', {
-        username_to_check: username
-      });
+      // Check if username exists in profiles table
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', username)
+        .maybeSingle();
       
       if (error) {
         console.error('Error checking username availability:', error);
-        
-        // Fallback to direct query if RPC fails
-        const { data: queryData, error: queryError } = await supabase
-          .from('profiles')
-          .select('username')
-          .eq('username', username)
-          .maybeSingle();
-        
-        if (queryError) {
-          console.error('Fallback query error:', queryError);
-          return false;
-        }
-        
-        return !queryData;
+        return false;
       }
       
-      return data === true;
+      return !data;
     } catch (error) {
       console.error('Error checking username availability:', error);
       return false;
@@ -122,7 +111,7 @@ export const authService = {
         .single();
 
       if (profileError) {
-        console.warn('Profile not found immediately after signup:', profileError);
+        console.warn('Profile not found after signup, creating manually:', profileError);
         
         // Create profile manually if it doesn't exist
         const { data: newProfile, error: createError } = await supabase
@@ -138,9 +127,10 @@ export const authService = {
           
         if (createError) {
           console.error('Failed to create profile:', createError);
+          throw new AuthError('Failed to create user profile', 'PROFILE_CREATION_FAILED');
         }
         
-        return { user: authData.user, profile: newProfile || null };
+        return { user: authData.user, profile: newProfile };
       }
 
       return { user: authData.user, profile };
