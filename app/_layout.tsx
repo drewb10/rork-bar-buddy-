@@ -8,17 +8,19 @@ import { useUserProfileStore } from "@/stores/userProfileStore";
 import { useVenueInteractionStore } from "@/stores/venueInteractionStore";
 import { useAchievementStore } from "@/stores/achievementStore";
 import { useChatStore } from "@/stores/chatStore";
+import { useAuthStore } from "@/stores/authStore";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
 import OnboardingModal from "@/components/OnboardingModal";
 import AchievementPopup from "@/components/AchievementPopup";
 import { useFrameworkReady } from "@/hooks/useFrameworkReady";
+import { supabase } from "@/lib/supabase";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1, // Reduced retries to prevent hanging
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      networkMode: 'offlineFirst', // Prevent network hangs
+      retry: 1,
+      staleTime: 1000 * 60 * 5,
+      networkMode: 'offlineFirst',
     },
   },
 });
@@ -32,10 +34,52 @@ export default function RootLayout() {
   const { loadPopularTimesFromSupabase } = useVenueInteractionStore();
   const { shouldShow3AMPopup, mark3AMPopupShown } = useAchievementStore();
   const { resetChatOnAppReopen } = useChatStore();
+  const { user, isAuthenticated, setUser } = useAuthStore();
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [show3AMPopup, setShow3AMPopup] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    // Check for existing Supabase session
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          // Get user profile from database
+          const { data: profileData } = await supabase
+            .from('user_profiles')
+            .select('username, first_name, last_name, email')
+            .eq('user_id', session.user.id)
+            .single();
+          
+          if (profileData) {
+            setUser({
+              id: session.user.id,
+              email: profileData.email || session.user.email || '',
+              username: profileData.username,
+              firstName: profileData.first_name,
+              lastName: profileData.last_name,
+            });
+          }
+        }
+      } catch (error) {
+        console.warn('Session check error:', error);
+      }
+    };
+
+    checkSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [setUser]);
 
   useEffect(() => {
     // Reset chat messages on app start to ensure anonymous behavior
@@ -51,7 +95,7 @@ export default function RootLayout() {
         const initTimeout = setTimeout(() => {
           console.warn('App initialization timeout, continuing anyway');
           setIsInitialized(true);
-        }, 5000); // Reduced to 5 second timeout
+        }, 5000);
 
         // Only load data if user has completed onboarding
         if (profile?.hasCompletedOnboarding && profile?.userId !== 'default') {
@@ -74,29 +118,31 @@ export default function RootLayout() {
         setIsInitialized(true);
       } catch (error) {
         console.warn('Error initializing app:', error);
-        setIsInitialized(true); // Still mark as initialized to prevent loops
+        setIsInitialized(true);
       }
     };
 
     // Show modals based on state
-    if (!isVerified) {
+    if (!isAuthenticated) {
+      // User needs to sign in/up - redirect to auth
+      return;
+    } else if (!isVerified) {
       setShowAgeVerification(true);
     } else if (!profile?.hasCompletedOnboarding) {
       setShowOnboarding(true);
     } else {
       // Only initialize if not already done
       if (!isInitialized) {
-        // Use setTimeout to prevent blocking render
         setTimeout(() => {
           initializeApp();
         }, 100);
       }
     }
-  }, [isVerified, profile?.hasCompletedOnboarding, profile?.userId, isInitialized, resetChatOnAppReopen]);
+  }, [isAuthenticated, isVerified, profile?.hasCompletedOnboarding, profile?.userId, isInitialized, resetChatOnAppReopen]);
 
   // Simplified 3 AM popup check
   useEffect(() => {
-    if (!isVerified || !profile?.hasCompletedOnboarding) return;
+    if (!isAuthenticated || !isVerified || !profile?.hasCompletedOnboarding) return;
 
     const checkFor3AMPopup = () => {
       try {
@@ -123,7 +169,7 @@ export default function RootLayout() {
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [shouldShow3AMPopup, isVerified, profile?.hasCompletedOnboarding]);
+  }, [shouldShow3AMPopup, isAuthenticated, isVerified, profile?.hasCompletedOnboarding]);
 
   const handleAgeVerification = (verified: boolean) => {
     try {
@@ -176,31 +222,40 @@ export default function RootLayout() {
             headerShown: false,
           }}
         >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen 
-            name="venue/[id]" 
-            options={{
-              headerShown: true,
-              presentation: 'card',
-              headerBackTitle: 'Home',
-              headerTitle: '',
-              headerStyle: {
-                backgroundColor: '#000000',
-              },
-              headerTintColor: '#FFFFFF',
-            }}
-          />
-          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="camera-roll" options={{ 
-            headerShown: true,
-            presentation: 'card',
-            headerBackTitle: 'Camera',
-            headerTitle: 'Camera Roll',
-            headerStyle: {
-              backgroundColor: '#000000',
-            },
-            headerTintColor: '#FFFFFF',
-          }} />
+          {!isAuthenticated ? (
+            <>
+              <Stack.Screen name="auth/sign-in" options={{ headerShown: false }} />
+              <Stack.Screen name="auth/sign-up" options={{ headerShown: false }} />
+            </>
+          ) : (
+            <>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen 
+                name="venue/[id]" 
+                options={{
+                  headerShown: true,
+                  presentation: 'card',
+                  headerBackTitle: 'Home',
+                  headerTitle: '',
+                  headerStyle: {
+                    backgroundColor: '#000000',
+                  },
+                  headerTintColor: '#FFFFFF',
+                }}
+              />
+              <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="camera-roll" options={{ 
+                headerShown: true,
+                presentation: 'card',
+                headerBackTitle: 'Camera',
+                headerTitle: 'Camera Roll',
+                headerStyle: {
+                  backgroundColor: '#000000',
+                },
+                headerTintColor: '#FFFFFF',
+              }} />
+            </>
+          )}
         </Stack>
 
         <AgeVerificationModal

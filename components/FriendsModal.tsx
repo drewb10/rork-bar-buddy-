@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, Pressable, TextInput, ScrollView, Alert, Image } from 'react-native';
-import { X, Search, UserPlus, Users, Award, TrendingUp, MapPin, Check, UserX } from 'lucide-react-native';
+import { StyleSheet, View, Text, Pressable, TextInput, ScrollView, Alert, Image, ActivityIndicator } from 'react-native';
+import { X, Search, UserPlus, Users, Award, TrendingUp, MapPin, Check, UserX, Beer, Glass } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
@@ -18,7 +18,8 @@ export default function FriendsModal({ visible, onClose }: FriendsModalProps) {
     sendFriendRequest, 
     acceptFriendRequest, 
     declineFriendRequest,
-    loadFriendRequests 
+    loadFriendRequests,
+    searchUser
   } = useUserProfileStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -32,16 +33,11 @@ export default function FriendsModal({ visible, onClose }: FriendsModalProps) {
 
   const handleSendFriendRequest = async () => {
     if (!searchQuery.trim()) {
-      Alert.alert('Error', 'Please enter a User ID to search.');
+      Alert.alert('Error', 'Please enter a username to search.');
       return;
     }
 
-    if (!searchQuery.startsWith('#')) {
-      Alert.alert('Error', 'User ID must start with #');
-      return;
-    }
-
-    if (searchQuery === profile.userId) {
+    if (searchQuery === profile.username) {
       Alert.alert('Error', 'You cannot add yourself as a friend.');
       return;
     }
@@ -90,13 +86,13 @@ export default function FriendsModal({ visible, onClose }: FriendsModalProps) {
           </Pressable>
         </View>
 
-        {/* Your User ID */}
+        {/* Your Username */}
         <View style={[styles.userIdCard, { backgroundColor: themeColors.card }]}>
           <Text style={[styles.userIdLabel, { color: themeColors.subtext }]}>
-            Your User ID:
+            Your Username:
           </Text>
           <Text style={[styles.userId, { color: themeColors.primary }]}>
-            {profile.userId}
+            {profile.username}
           </Text>
           <Text style={[styles.userIdHint, { color: themeColors.subtext }]}>
             Share this with friends to connect!
@@ -151,7 +147,7 @@ export default function FriendsModal({ visible, onClose }: FriendsModalProps) {
                   }]}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
-                  placeholder="Enter User ID (e.g., #JohnDoe12345)"
+                  placeholder="Enter username"
                   placeholderTextColor={themeColors.subtext}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -162,7 +158,7 @@ export default function FriendsModal({ visible, onClose }: FriendsModalProps) {
                   disabled={isSearching}
                 >
                   {isSearching ? (
-                    <Text style={styles.searchButtonText}>...</Text>
+                    <ActivityIndicator size="small" color="white" />
                   ) : (
                     <UserPlus size={20} color="white" />
                   )}
@@ -202,8 +198,11 @@ export default function FriendsModal({ visible, onClose }: FriendsModalProps) {
                             <Text style={[styles.friendName, { color: themeColors.text }]}>
                               {friend.name}
                             </Text>
-                            <Text style={[styles.friendId, { color: themeColors.subtext }]}>
-                              {friend.userId}
+                            <Text style={[styles.friendUsername, { color: themeColors.subtext }]}>
+                              @{friend.username}
+                            </Text>
+                            <Text style={[styles.rankText, { color: themeColors.primary }]}>
+                              {friend.rankTitle}
                             </Text>
                           </View>
                         </View>
@@ -231,9 +230,12 @@ export default function FriendsModal({ visible, onClose }: FriendsModalProps) {
                         </View>
                         
                         <View style={styles.statItem}>
-                          <Award size={16} color={themeColors.primary} />
-                          <Text style={[styles.rankText, { color: themeColors.primary }]}>
-                            {friend.rankTitle}
+                          <Beer size={16} color={themeColors.primary} />
+                          <Text style={[styles.statValue, { color: themeColors.text }]}>
+                            {friend.totalBeers || 0}
+                          </Text>
+                          <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
+                            Beers
                           </Text>
                         </View>
                       </View>
@@ -276,8 +278,8 @@ export default function FriendsModal({ visible, onClose }: FriendsModalProps) {
                           <Text style={[styles.friendName, { color: themeColors.text }]}>
                             {request.fromUserName}
                           </Text>
-                          <Text style={[styles.friendId, { color: themeColors.subtext }]}>
-                            {request.fromUserId}
+                          <Text style={[styles.friendUsername, { color: themeColors.subtext }]}>
+                            @{request.fromUsername}
                           </Text>
                           <Text style={[styles.rankText, { color: themeColors.primary }]}>
                             {request.fromUserRank}
@@ -476,7 +478,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 2,
   },
-  friendId: {
+  friendUsername: {
     fontSize: 12,
     marginBottom: 2,
   },

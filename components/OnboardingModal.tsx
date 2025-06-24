@@ -4,6 +4,7 @@ import { User } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
+import { useAuthStore } from '@/stores/authStore';
 
 interface OnboardingModalProps {
   visible: boolean;
@@ -13,6 +14,7 @@ interface OnboardingModalProps {
 export default function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
+  const { user } = useAuthStore();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
 
@@ -76,9 +78,16 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
           />
         </View>
 
-        <Text style={[styles.infoText, { color: themeColors.subtext }]}>
-          We'll create a unique ID for you to connect with friends!
-        </Text>
+        {user && (
+          <View style={styles.usernameContainer}>
+            <Text style={[styles.usernameLabel, { color: themeColors.subtext }]}>
+              Your Username:
+            </Text>
+            <Text style={[styles.username, { color: themeColors.primary }]}>
+              @{user.username}
+            </Text>
+          </View>
+        )}
         
         <Pressable 
           style={[styles.submitButton, { backgroundColor: themeColors.primary }]} 
@@ -146,11 +155,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     width: '100%',
   },
-  infoText: {
-    fontSize: 14,
-    textAlign: 'center',
+  usernameContainer: {
     marginBottom: 24,
-    lineHeight: 20,
+    alignItems: 'center',
+  },
+  usernameLabel: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  username: {
+    fontSize: 18,
+    fontWeight: '700',
   },
   submitButton: {
     paddingVertical: 16,

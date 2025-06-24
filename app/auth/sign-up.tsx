@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, StatusBar, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, StatusBar, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react-native';
+import { Eye, EyeOff, User, Lock, Check, X } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -12,18 +12,44 @@ export default function SignUpScreen() {
   const router = useRouter();
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { signUp, isLoading } = useAuthStore();
+  const { signUp, isLoading, error, clearError, checkUsernameAvailability } = useAuthStore();
   
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+
+  const checkUsername = async (usernameValue: string) => {
+    if (usernameValue.length < 3) {
+      setUsernameStatus('idle');
+      return;
+    }
+    
+    setUsernameStatus('checking');
+    const isAvailable = await checkUsernameAvailability(usernameValue);
+    setUsernameStatus(isAvailable ? 'available' : 'taken');
+  };
+
+  const handleUsernameChange = (value: string) => {
+    setUsername(value);
+    clearError();
+    
+    // Debounce username checking
+    setTimeout(() => {
+      if (value === username) {
+        checkUsername(value);
+      }
+    }, 500);
+  };
 
   const handleSignUp = async () => {
-    if (!firstName || !lastName || !email || !password || !confirmPassword) {
+    clearError();
+    
+    if (!username || !password || !confirmPassword || !firstName || !lastName) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -38,17 +64,44 @@ export default function SignUpScreen() {
       return;
     }
 
-    const success = await signUp(email, password, firstName, lastName);
+    if (usernameStatus === 'taken') {
+      Alert.alert('Error', 'Username is already taken. Please choose another.');
+      return;
+    }
+
+    const success = await signUp(username, password, firstName, lastName);
     
     if (success) {
       router.replace('/(tabs)');
-    } else {
-      Alert.alert('Error', 'Failed to create account. Please try again.');
     }
   };
 
   const navigateToSignIn = () => {
     router.push('/auth/sign-in');
+  };
+
+  const getUsernameStatusIcon = () => {
+    switch (usernameStatus) {
+      case 'checking':
+        return <ActivityIndicator size="small" color={themeColors.primary} />;
+      case 'available':
+        return <Check size={20} color="#4CAF50" />;
+      case 'taken':
+        return <X size={20} color="#FF4444" />;
+      default:
+        return null;
+    }
+  };
+
+  const getUsernameStatusColor = () => {
+    switch (usernameStatus) {
+      case 'available':
+        return '#4CAF50';
+      case 'taken':
+        return '#FF4444';
+      default:
+        return themeColors.border;
+    }
   };
 
   return (
@@ -72,8 +125,50 @@ export default function SignUpScreen() {
             </Text>
           </View>
 
+          {/* Error Message */}
+          {error && (
+            <View style={[styles.errorContainer, { backgroundColor: '#FF4444' + '20' }]}>
+              <Text style={[styles.errorText, { color: '#FF4444' }]}>{error}</Text>
+            </View>
+          )}
+
           {/* Form */}
           <View style={styles.form}>
+            {/* Username */}
+            <View style={styles.inputContainer}>
+              <View style={[
+                styles.inputWrapper, 
+                { 
+                  backgroundColor: themeColors.card, 
+                  borderColor: getUsernameStatusColor()
+                }
+              ]}>
+                <User size={20} color={themeColors.subtext} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, { color: themeColors.text }]}
+                  placeholder="Username"
+                  placeholderTextColor={themeColors.subtext}
+                  value={username}
+                  onChangeText={handleUsernameChange}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <View style={styles.statusIcon}>
+                  {getUsernameStatusIcon()}
+                </View>
+              </View>
+              {usernameStatus === 'taken' && (
+                <Text style={[styles.helperText, { color: '#FF4444' }]}>
+                  Username is already taken
+                </Text>
+              )}
+              {usernameStatus === 'available' && (
+                <Text style={[styles.helperText, { color: '#4CAF50' }]}>
+                  Username is available
+                </Text>
+              )}
+            </View>
+
             <View style={styles.nameRow}>
               <View style={[styles.inputContainer, styles.halfWidth]}>
                 <View style={[styles.inputWrapper, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
@@ -103,22 +198,6 @@ export default function SignUpScreen() {
                     autoCorrect={false}
                   />
                 </View>
-              </View>
-            </View>
-
-            <View style={styles.inputContainer}>
-              <View style={[styles.inputWrapper, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
-                <Mail size={20} color={themeColors.subtext} style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.input, { color: themeColors.text }]}
-                  placeholder="Email"
-                  placeholderTextColor={themeColors.subtext}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
               </View>
             </View>
 
@@ -185,9 +264,11 @@ export default function SignUpScreen() {
                 onPress={handleSignUp}
                 disabled={isLoading}
               >
-                <Text style={styles.signUpButtonText}>
-                  {isLoading ? 'Creating Account...' : 'Sign Up'}
-                </Text>
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={styles.signUpButtonText}>Sign Up</Text>
+                )}
               </Pressable>
             </LinearGradient>
 
@@ -232,6 +313,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 16,
   },
+  errorContainer: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  errorText: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
   form: {
     width: '100%',
   },
@@ -261,8 +352,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
+  statusIcon: {
+    width: 20,
+    alignItems: 'center',
+  },
   eyeIcon: {
     padding: 4,
+  },
+  helperText: {
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '500',
   },
   signUpButton: {
     borderRadius: 14,

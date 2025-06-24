@@ -4,11 +4,13 @@ import { LogOut, User } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useRouter } from 'expo-router';
 
 export default function UserProfile() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const { user, signOut } = useAuthStore();
+  const router = useRouter();
 
   const handleSignOut = () => {
     Alert.alert(
@@ -19,10 +21,9 @@ export default function UserProfile() {
         { 
           text: 'Sign Out', 
           style: 'destructive',
-          onPress: () => {
-            // This only clears auth data, not user stats
-            signOut();
-            // Note: User stats persist in AsyncStorage even after logout
+          onPress: async () => {
+            await signOut();
+            router.replace('/auth/sign-in');
           }
         }
       ]
@@ -41,8 +42,8 @@ export default function UserProfile() {
           <Text style={[styles.userName, { color: themeColors.text }]}>
             {user.firstName} {user.lastName}
           </Text>
-          <Text style={[styles.userEmail, { color: themeColors.subtext }]}>
-            {user.email}
+          <Text style={[styles.userUsername, { color: themeColors.primary }]}>
+            @{user.username}
           </Text>
         </View>
       </View>
@@ -85,8 +86,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 2,
   },
-  userEmail: {
+  userUsername: {
     fontSize: 14,
+    fontWeight: '500',
   },
   signOutButton: {
     padding: 8,

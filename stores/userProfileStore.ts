@@ -1,9 +1,12 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
 
 interface Friend {
   userId: string;
+  username: string;
   name: string;
   profilePicture?: string;
   nightsOut: number;
@@ -11,11 +14,15 @@ interface Friend {
   rankTitle: string;
   addedAt: string;
   xp: number;
+  totalShots: number;
+  totalBeers: number;
+  totalBeerTowers: number;
 }
 
 interface FriendRequest {
   id: string;
   fromUserId: string;
+  fromUsername: string;
   fromUserName: string;
   fromUserProfilePicture?: string;
   fromUserRank: string;
@@ -54,6 +61,7 @@ interface UserProfile {
   lastDrunkScaleDate?: string;
   profilePicture?: string;
   userId?: string;
+  username?: string;
   hasCustomizedProfile?: boolean;
   hasCompletedOnboarding?: boolean;
   friends: Friend[];
@@ -103,10 +111,10 @@ interface UserProfileState {
   setUserName: (firstName: string, lastName: string) => void;
   generateUserId: (firstName: string, lastName: string) => string;
   completeOnboarding: (firstName: string, lastName: string) => Promise<void>;
-  addFriend: (friendUserId: string) => Promise<boolean>;
+  addFriend: (friendUsername: string) => Promise<boolean>;
   removeFriend: (friendUserId: string) => void;
-  searchUser: (userId: string) => Promise<Friend | null>;
-  sendFriendRequest: (friendUserId: string) => Promise<boolean>;
+  searchUser: (username: string) => Promise<Friend | null>;
+  sendFriendRequest: (friendUsername: string) => Promise<boolean>;
   acceptFriendRequest: (requestId: string) => Promise<boolean>;
   declineFriendRequest: (requestId: string) => Promise<boolean>;
   loadFriendRequests: () => Promise<void>;
@@ -167,14 +175,15 @@ const RANK_STRUCTURE: RankInfo[] = [
 ];
 
 const defaultProfile: UserProfile = {
-  firstName: 'Bar',
-  lastName: 'Buddy',
-  email: 'user@barbuddy.com',
+  firstName: '',
+  lastName: '',
+  email: '',
   joinDate: new Date().toISOString(),
   nightsOut: 0,
   barsHit: 0,
   drunkScaleRatings: [],
   userId: 'default',
+  username: '',
   hasCustomizedProfile: false,
   hasCompletedOnboarding: false,
   friends: [],
@@ -540,14 +549,21 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       completeOnboarding: async (firstName: string, lastName: string): Promise<void> => {
-        const userId = get().generateUserId(firstName, lastName);
+        // Get current auth user
+        const authStore = useAuthStore.getState();
+        const { user } = authStore;
+        
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
         
         set((state) => ({
           profile: {
             ...state.profile,
             firstName: firstName.trim(),
             lastName: lastName.trim(),
-            userId,
+            username: user.username,
+            userId: user.id,
             hasCompletedOnboarding: true,
             hasCustomizedProfile: true
           }
@@ -557,13 +573,34 @@ export const useUserProfileStore = create<UserProfileState>()(
         await get().syncToSupabase();
       },
 
-      addFriend: async (friendUserId: string): Promise<boolean> => {
+      addFriend: async (friendUsername: string): Promise<boolean> => {
         try {
-          const friend = await get().searchUser(friendUserId);
+          const friend = await get().searchUser(friendUsername);
           if (!friend) return false;
 
           const { profile } = get();
-          if (profile.friends.some(f => f.userId === friendUserId)) {
+          if (profile.friends.some(f => f.userId === friend.userId)) {
+            return false;
+          }
+
+          // Get current auth user
+          const authStore = useAuthStore.getState();
+          const { user } = authStore;
+          
+          if (!user) {
+            throw new Error('User not authenticated');
+          }
+
+          // Add friend in Supabase
+          const { error } = await supabase
+            .from('friends')
+            .insert({
+              user_id: user.id,
+              friend_user_id: friend.userId
+            });
+
+          if (error) {
+            console.error('Error adding friend:', error);
             return false;
           }
 
@@ -576,68 +613,411 @@ export const useUserProfileStore = create<UserProfileState>()(
 
           get().awardXP('bring_friend', `Added ${friend.name} as a friend`);
           return true;
-        } catch {
+        } catch (error) {
+          console.error('Error adding friend:', error);
           return false;
         }
       },
 
-      removeFriend: (friendUserId: string) => {
-        set((state) => ({
-          profile: {
-            ...state.profile,
-            friends: state.profile.friends.filter(f => f.userId !== friendUserId)
+      removeFriend: async (friendUserId: string) => {
+        try {
+          // Get current auth user
+          const authStore = useAuthStore.getState();
+          const { user } = authStore;
+          
+          if (!user) {
+            throw new Error('User not authenticated');
           }
-        }));
+
+          // Remove friend in Supabase
+          const { error } = await supabase
+            .from('friends')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('friend_user_id', friendUserId);
+
+          if (error) {
+            console.error('Error removing friend:', error);
+          }
+
+          set((state) => ({
+            profile: {
+              ...state.profile,
+              friends: state.profile.friends.filter(f => f.userId !== friendUserId)
+            }
+          }));
+        } catch (error) {
+          console.error('Error removing friend:', error);
+        }
       },
 
-      searchUser: async (userId: string): Promise<Friend | null> => {
+      searchUser: async (username: string): Promise<Friend | null> => {
         try {
-          if (userId.startsWith('#')) {
-            return {
-              userId,
-              name: 'Test User',
-              nightsOut: Math.floor(Math.random() * 20),
-              barsHit: Math.floor(Math.random() * 50),
-              rankTitle: 'Tipsy Talent',
-              addedAt: new Date().toISOString(),
-              xp: Math.floor(Math.random() * 1500),
-            };
+          // Get current auth user
+          const authStore = useAuthStore.getState();
+          const { user } = authStore;
+          
+          if (!user) {
+            throw new Error('User not authenticated');
           }
-          return null;
-        } catch {
+
+          // Don't allow adding yourself
+          if (user.username.toLowerCase() === username.toLowerCase()) {
+            return null;
+          }
+
+          // Search for user in Supabase
+          const { data, error } = await supabase
+            .from('user_profiles')
+            .select(`
+              user_id,
+              username,
+              first_name,
+              last_name,
+              profile_pic,
+              total_nights_out,
+              total_bars_hit,
+              ranking,
+              xp,
+              total_shots,
+              total_beers,
+              total_beer_towers
+            `)
+            .ilike('username', username.toLowerCase())
+            .neq('user_id', user.id)
+            .limit(1)
+            .single();
+
+          if (error || !data) {
+            return null;
+          }
+
+          // Get rank info
+          const rankInfo = getRankByXP(data.xp || 0);
+
+          return {
+            userId: data.user_id,
+            username: data.username,
+            name: `${data.first_name} ${data.last_name}`,
+            profilePicture: data.profile_pic,
+            nightsOut: data.total_nights_out || 0,
+            barsHit: data.total_bars_hit || 0,
+            rankTitle: rankInfo.title,
+            addedAt: new Date().toISOString(),
+            xp: data.xp || 0,
+            totalShots: data.total_shots || 0,
+            totalBeers: data.total_beers || 0,
+            totalBeerTowers: data.total_beer_towers || 0
+          };
+        } catch (error) {
+          console.error('Error searching user:', error);
           return null;
         }
       },
 
-      sendFriendRequest: async (friendUserId: string): Promise<boolean> => {
+      sendFriendRequest: async (friendUsername: string): Promise<boolean> => {
         try {
+          // Get current auth user
+          const authStore = useAuthStore.getState();
+          const { user } = authStore;
+          
+          if (!user) {
+            throw new Error('User not authenticated');
+          }
+
+          // Search for user
+          const friendUser = await get().searchUser(friendUsername);
+          if (!friendUser) {
+            return false;
+          }
+
+          // Check if already friends
+          const { profile } = get();
+          if (profile.friends.some(f => f.userId === friendUser.userId)) {
+            return false;
+          }
+
+          // Check if request already sent
+          const { data: existingRequests, error: checkError } = await supabase
+            .from('friend_requests')
+            .select('id, status')
+            .eq('from_user_id', user.id)
+            .eq('to_user_id', friendUser.userId);
+
+          if (checkError) {
+            console.error('Error checking friend requests:', checkError);
+            return false;
+          }
+
+          if (existingRequests && existingRequests.length > 0) {
+            // Request already exists
+            const pendingRequest = existingRequests.find(r => r.status === 'pending');
+            if (pendingRequest) {
+              return false; // Already pending
+            }
+            
+            // Update existing declined request
+            const { error: updateError } = await supabase
+              .from('friend_requests')
+              .update({ status: 'pending', sent_at: new Date().toISOString() })
+              .eq('id', existingRequests[0].id);
+              
+            if (updateError) {
+              console.error('Error updating friend request:', updateError);
+              return false;
+            }
+            
+            return true;
+          }
+
+          // Send new friend request
+          const { error } = await supabase
+            .from('friend_requests')
+            .insert({
+              from_user_id: user.id,
+              to_user_id: friendUser.userId,
+              status: 'pending'
+            });
+
+          if (error) {
+            console.error('Error sending friend request:', error);
+            return false;
+          }
+
           return true;
-        } catch {
+        } catch (error) {
+          console.error('Error sending friend request:', error);
           return false;
         }
       },
 
       acceptFriendRequest: async (requestId: string): Promise<boolean> => {
         try {
+          // Get current auth user
+          const authStore = useAuthStore.getState();
+          const { user } = authStore;
+          
+          if (!user) {
+            throw new Error('User not authenticated');
+          }
+
+          // Get request details
+          const { data: requestData, error: requestError } = await supabase
+            .from('friend_requests')
+            .select('from_user_id, to_user_id')
+            .eq('id', requestId)
+            .eq('to_user_id', user.id)
+            .eq('status', 'pending')
+            .single();
+
+          if (requestError || !requestData) {
+            console.error('Error getting friend request:', requestError);
+            return false;
+          }
+
+          // Update request status
+          const { error: updateError } = await supabase
+            .from('friend_requests')
+            .update({ 
+              status: 'accepted',
+              responded_at: new Date().toISOString()
+            })
+            .eq('id', requestId);
+
+          if (updateError) {
+            console.error('Error updating friend request:', updateError);
+            return false;
+          }
+
+          // Create friend connections (both ways)
+          const { error: friendError1 } = await supabase
+            .from('friends')
+            .insert({
+              user_id: user.id,
+              friend_user_id: requestData.from_user_id
+            });
+
+          const { error: friendError2 } = await supabase
+            .from('friends')
+            .insert({
+              user_id: requestData.from_user_id,
+              friend_user_id: user.id
+            });
+
+          if (friendError1 || friendError2) {
+            console.error('Error creating friend connection:', friendError1 || friendError2);
+            return false;
+          }
+
+          // Get friend user details
+          const { data: friendData, error: friendDataError } = await supabase
+            .from('user_profiles')
+            .select(`
+              user_id,
+              username,
+              first_name,
+              last_name,
+              profile_pic,
+              total_nights_out,
+              total_bars_hit,
+              ranking,
+              xp,
+              total_shots,
+              total_beers,
+              total_beer_towers
+            `)
+            .eq('user_id', requestData.from_user_id)
+            .single();
+
+          if (friendDataError || !friendData) {
+            console.error('Error getting friend data:', friendDataError);
+            // Continue anyway, we'll refresh friends list later
+          } else {
+            // Get rank info
+            const rankInfo = getRankByXP(friendData.xp || 0);
+
+            // Add to friends list
+            const newFriend: Friend = {
+              userId: friendData.user_id,
+              username: friendData.username,
+              name: `${friendData.first_name} ${friendData.last_name}`,
+              profilePicture: friendData.profile_pic,
+              nightsOut: friendData.total_nights_out || 0,
+              barsHit: friendData.total_bars_hit || 0,
+              rankTitle: rankInfo.title,
+              addedAt: new Date().toISOString(),
+              xp: friendData.xp || 0,
+              totalShots: friendData.total_shots || 0,
+              totalBeers: friendData.total_beers || 0,
+              totalBeerTowers: friendData.total_beer_towers || 0
+            };
+
+            set((state) => ({
+              profile: {
+                ...state.profile,
+                friends: [...state.profile.friends, newFriend],
+                friendRequests: state.profile.friendRequests.filter(r => r.id !== requestId)
+              }
+            }));
+          }
+
+          // Reload friend requests to ensure UI is up to date
+          await get().loadFriendRequests();
+          
           return true;
-        } catch {
+        } catch (error) {
+          console.error('Error accepting friend request:', error);
           return false;
         }
       },
 
       declineFriendRequest: async (requestId: string): Promise<boolean> => {
         try {
+          // Get current auth user
+          const authStore = useAuthStore.getState();
+          const { user } = authStore;
+          
+          if (!user) {
+            throw new Error('User not authenticated');
+          }
+
+          // Update request status
+          const { error } = await supabase
+            .from('friend_requests')
+            .update({ 
+              status: 'declined',
+              responded_at: new Date().toISOString()
+            })
+            .eq('id', requestId)
+            .eq('to_user_id', user.id);
+
+          if (error) {
+            console.error('Error declining friend request:', error);
+            return false;
+          }
+
+          // Update local state
+          set((state) => ({
+            profile: {
+              ...state.profile,
+              friendRequests: state.profile.friendRequests.filter(r => r.id !== requestId)
+            }
+          }));
+
           return true;
-        } catch {
+        } catch (error) {
+          console.error('Error declining friend request:', error);
           return false;
         }
       },
 
       loadFriendRequests: async (): Promise<void> => {
         try {
-          // Mock implementation
+          // Get current auth user
+          const authStore = useAuthStore.getState();
+          const { user } = authStore;
+          
+          if (!user) {
+            throw new Error('User not authenticated');
+          }
+
+          // Get pending friend requests
+          const { data, error } = await supabase
+            .from('friend_requests')
+            .select(`
+              id,
+              from_user_id,
+              sent_at,
+              user_profiles!friend_requests_from_user_id_fkey (
+                username,
+                first_name,
+                last_name,
+                profile_pic,
+                xp
+              )
+            `)
+            .eq('to_user_id', user.id)
+            .eq('status', 'pending');
+
+          if (error) {
+            console.error('Error loading friend requests:', error);
+            return;
+          }
+
+          if (!data || data.length === 0) {
+            set((state) => ({
+              profile: {
+                ...state.profile,
+                friendRequests: []
+              }
+            }));
+            return;
+          }
+
+          // Transform data
+          const friendRequests: FriendRequest[] = data.map(request => {
+            const fromUser = request.user_profiles;
+            const rankInfo = getRankByXP(fromUser?.xp || 0);
+            
+            return {
+              id: request.id,
+              fromUserId: request.from_user_id,
+              fromUsername: fromUser?.username || '',
+              fromUserName: `${fromUser?.first_name || ''} ${fromUser?.last_name || ''}`,
+              fromUserProfilePicture: fromUser?.profile_pic,
+              fromUserRank: rankInfo.title,
+              sentAt: request.sent_at
+            };
+          });
+
+          set((state) => ({
+            profile: {
+              ...state.profile,
+              friendRequests
+            }
+          }));
         } catch (error) {
-          console.warn('Error loading friend requests:', error);
+          console.error('Error loading friend requests:', error);
         }
       },
 
@@ -686,7 +1066,54 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       syncToSupabase: async (): Promise<void> => {
         try {
-          // Mock implementation
+          // Get current auth user
+          const authStore = useAuthStore.getState();
+          const { user } = authStore;
+          
+          if (!user) {
+            console.warn('Cannot sync to Supabase: User not authenticated');
+            return;
+          }
+
+          const { profile } = get();
+          
+          // Update user profile in Supabase
+          const { error } = await supabase
+            .from('user_profiles')
+            .upsert({
+              user_id: user.id,
+              username: user.username,
+              first_name: profile.firstName,
+              last_name: profile.lastName,
+              email: user.email,
+              profile_pic: profile.profilePicture,
+              total_nights_out: profile.nightsOut,
+              total_bars_hit: profile.barsHit,
+              drunk_scale_ratings: profile.drunkScaleRatings,
+              last_night_out_date: profile.lastNightOutDate,
+              last_drunk_scale_date: profile.lastDrunkScaleDate,
+              has_completed_onboarding: profile.hasCompletedOnboarding,
+              xp: profile.xp,
+              xp_activities: profile.xpActivities,
+              visited_bars: profile.visitedBars,
+              events_attended: profile.eventsAttended,
+              friends_referred: profile.friendsReferred,
+              live_events_attended: profile.liveEventsAttended,
+              featured_drinks_tried: profile.featuredDrinksTried,
+              bar_games_played: profile.barGamesPlayed,
+              total_shots: profile.totalShots,
+              total_scoop_and_scores: profile.totalScoopAndScores,
+              total_beers: profile.totalBeers,
+              total_beer_towers: profile.totalBeerTowers,
+              total_funnels: profile.totalFunnels,
+              total_shotguns: profile.totalShotguns,
+              pool_games_won: profile.poolGamesWon,
+              dart_games_won: profile.dartGamesWon
+            });
+
+          if (error) {
+            console.error('Error syncing to Supabase:', error);
+          }
         } catch (error) {
           console.warn('Error syncing to Supabase:', error);
         }
@@ -694,9 +1121,125 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       loadFromSupabase: async (): Promise<void> => {
         try {
-          // Mock implementation
+          // Get current auth user
+          const authStore = useAuthStore.getState();
+          const { user } = authStore;
+          
+          if (!user) {
+            console.warn('Cannot load from Supabase: User not authenticated');
+            return;
+          }
+
+          set({ isLoading: true });
+
+          // Get user profile from Supabase
+          const { data, error } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+
+          if (error) {
+            console.error('Error loading from Supabase:', error);
+            set({ isLoading: false });
+            return;
+          }
+
+          if (!data) {
+            console.warn('No profile data found in Supabase');
+            set({ isLoading: false });
+            return;
+          }
+
+          // Load friends
+          const { data: friendsData, error: friendsError } = await supabase
+            .from('friends')
+            .select(`
+              friend_user_id,
+              user_profiles!friends_friend_user_id_fkey (
+                user_id,
+                username,
+                first_name,
+                last_name,
+                profile_pic,
+                total_nights_out,
+                total_bars_hit,
+                xp,
+                total_shots,
+                total_beers,
+                total_beer_towers
+              )
+            `)
+            .eq('user_id', user.id);
+
+          let friends: Friend[] = [];
+          if (!friendsError && friendsData) {
+            friends = friendsData.map(item => {
+              const friendProfile = item.user_profiles;
+              const rankInfo = getRankByXP(friendProfile?.xp || 0);
+              
+              return {
+                userId: friendProfile?.user_id || '',
+                username: friendProfile?.username || '',
+                name: `${friendProfile?.first_name || ''} ${friendProfile?.last_name || ''}`,
+                profilePicture: friendProfile?.profile_pic,
+                nightsOut: friendProfile?.total_nights_out || 0,
+                barsHit: friendProfile?.total_bars_hit || 0,
+                rankTitle: rankInfo.title,
+                addedAt: new Date().toISOString(),
+                xp: friendProfile?.xp || 0,
+                totalShots: friendProfile?.total_shots || 0,
+                totalBeers: friendProfile?.total_beers || 0,
+                totalBeerTowers: friendProfile?.total_beer_towers || 0
+              };
+            }).filter(friend => friend.userId);
+          }
+
+          // Load friend requests
+          await get().loadFriendRequests();
+
+          // Update profile with data from Supabase
+          set((state) => ({
+            profile: {
+              ...state.profile,
+              firstName: data.first_name,
+              lastName: data.last_name,
+              email: data.email || user.email,
+              joinDate: data.join_date || state.profile.joinDate,
+              nightsOut: data.total_nights_out || 0,
+              barsHit: data.total_bars_hit || 0,
+              drunkScaleRatings: data.drunk_scale_ratings || [],
+              lastNightOutDate: data.last_night_out_date,
+              lastDrunkScaleDate: data.last_drunk_scale_date,
+              profilePicture: data.profile_pic,
+              userId: data.user_id,
+              username: data.username,
+              hasCompletedOnboarding: data.has_completed_onboarding,
+              hasCustomizedProfile: true,
+              friends,
+              xp: data.xp || 0,
+              xpActivities: data.xp_activities || [],
+              visitedBars: data.visited_bars || [],
+              eventsAttended: data.events_attended || 0,
+              friendsReferred: data.friends_referred || 0,
+              liveEventsAttended: data.live_events_attended || 0,
+              featuredDrinksTried: data.featured_drinks_tried || 0,
+              barGamesPlayed: data.bar_games_played || 0,
+              photosTaken: data.photos_taken || 0,
+              totalShots: data.total_shots || 0,
+              totalScoopAndScores: data.total_scoop_and_scores || 0,
+              totalBeers: data.total_beers || 0,
+              totalBeerTowers: data.total_beer_towers || 0,
+              totalFunnels: data.total_funnels || 0,
+              totalShotguns: data.total_shotguns || 0,
+              poolGamesWon: data.pool_games_won || 0,
+              dartGamesWon: data.dart_games_won || 0,
+            },
+            isLoading: false
+          }));
         } catch (error) {
           console.warn('Error loading from Supabase:', error);
+          set({ isLoading: false });
         }
       }
     }),

@@ -1,86 +1,149 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { Link, router } from 'expo-router';
-import { supabase } from '@/lib/supabase';
+import { StyleSheet, View, Text, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, StatusBar, ScrollView, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Eye, EyeOff, User, Lock } from 'lucide-react-native';
+import { colors } from '@/constants/colors';
+import { useThemeStore } from '@/stores/themeStore';
+import { useAuthStore } from '@/stores/authStore';
+import BarBuddyLogo from '@/components/BarBuddyLogo';
+import { LinearGradient } from 'expo-linear-gradient';
 
-export default function SignIn() {
-  const [email, setEmail] = useState('');
+export default function SignInScreen() {
+  const router = useRouter();
+  const { theme } = useThemeStore();
+  const themeColors = colors[theme];
+  const { signIn, isLoading, error, clearError } = useAuthStore();
+  
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSignIn = async () => {
-    if (!email || !password) {
+    clearError();
+    
+    if (!username || !password) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        Alert.alert('Error', error.message);
-      } else {
-        router.replace('/(tabs)');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred');
-    } finally {
-      setLoading(false);
+    const success = await signIn(username, password);
+    
+    if (success) {
+      router.replace('/(tabs)');
     }
   };
 
+  const navigateToSignUp = () => {
+    router.push('/auth/sign-up');
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.formContainer}>
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>Sign in to your account</Text>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Enter your email"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Enter your password"
-            secureTextEntry
-            autoComplete="password"
-          />
-        </View>
-
-        <TouchableOpacity
-          style={[styles.signInButton, loading && styles.buttonDisabled]}
-          onPress={handleSignIn}
-          disabled={loading}
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <KeyboardAvoidingView 
+        style={styles.keyboardView} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.buttonText}>
-            {loading ? 'Signing In...' : 'Sign In'}
-          </Text>
-        </TouchableOpacity>
+          {/* Logo */}
+          <View style={styles.logoContainer}>
+            <BarBuddyLogo size="large" />
+            
+            <Text style={[styles.title, { color: themeColors.text }]}>
+              Welcome Back
+            </Text>
+            
+            <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
+              Sign in to your account
+            </Text>
+          </View>
 
-        <View style={styles.linkContainer}>
-          <Text style={styles.linkText}>Don't have an account? </Text>
-          <Link href="/auth/sign-up" style={styles.link}>
-            <Text style={styles.linkTextBold}>Sign Up</Text>
-          </Link>
-        </View>
-      </View>
+          {/* Error Message */}
+          {error && (
+            <View style={[styles.errorContainer, { backgroundColor: '#FF4444' + '20' }]}>
+              <Text style={[styles.errorText, { color: '#FF4444' }]}>{error}</Text>
+            </View>
+          )}
+
+          {/* Form */}
+          <View style={styles.form}>
+            <View style={styles.inputContainer}>
+              <View style={[styles.inputWrapper, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
+                <User size={20} color={themeColors.subtext} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, { color: themeColors.text }]}
+                  placeholder="Username"
+                  placeholderTextColor={themeColors.subtext}
+                  value={username}
+                  onChangeText={setUsername}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <View style={[styles.inputWrapper, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
+                <Lock size={20} color={themeColors.subtext} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, { color: themeColors.text }]}
+                  placeholder="Password"
+                  placeholderTextColor={themeColors.subtext}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <Pressable 
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeIcon}
+                >
+                  {showPassword ? (
+                    <EyeOff size={20} color={themeColors.subtext} />
+                  ) : (
+                    <Eye size={20} color={themeColors.subtext} />
+                  )}
+                </Pressable>
+              </View>
+            </View>
+
+            <LinearGradient
+              colors={['#FF6A00', '#FF4500']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[styles.signInButton, { opacity: isLoading ? 0.7 : 1 }]}
+            >
+              <Pressable
+                style={styles.signInButtonInner}
+                onPress={handleSignIn}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={styles.signInButtonText}>Sign In</Text>
+                )}
+              </Pressable>
+            </LinearGradient>
+
+            <View style={styles.signUpContainer}>
+              <Text style={[styles.signUpText, { color: themeColors.subtext }]}>
+                Don't have an account?{' '}
+              </Text>
+              <Pressable onPress={navigateToSignUp}>
+                <Text style={[styles.signUpLink, { color: themeColors.primary }]}>
+                  Sign Up
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -88,87 +151,99 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
-    justifyContent: 'center',
-    padding: 20,
   },
-  formContainer: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 40,
+    justifyContent: 'center',
+    minHeight: '100%',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
+    fontWeight: '700',
+    marginTop: 24,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#888',
     textAlign: 'center',
-    marginBottom: 32,
   },
-  inputContainer: {
+  errorContainer: {
+    padding: 12,
+    borderRadius: 8,
     marginBottom: 20,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 8,
+  errorText: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  form: {
+    width: '100%',
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  inputIcon: {
+    marginRight: 10,
   },
   input: {
-    backgroundColor: '#3a3a3a',
-    borderRadius: 12,
-    padding: 16,
+    flex: 1,
     fontSize: 16,
-    color: '#fff',
-    borderWidth: 1,
-    borderColor: '#4a4a4a',
+    fontWeight: '500',
+  },
+  eyeIcon: {
+    padding: 4,
   },
   signInButton: {
-    backgroundColor: '#FF6A00',
-    borderRadius: 16,
-    marginTop: 12,
-    marginBottom: 24,
+    borderRadius: 14,
+    marginTop: 8,
+    marginBottom: 20,
     shadowColor: '#FF6A00',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowRadius: 10,
+    elevation: 6,
   },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
+  signInButtonInner: {
     paddingVertical: 16,
+    alignItems: 'center',
   },
-  linkContainer: {
+  signInButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  signUpContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  linkText: {
-    color: '#888',
+  signUpText: {
     fontSize: 16,
   },
-  link: {
-    marginLeft: 4,
-  },
-  linkTextBold: {
-    color: '#FF6A00',
+  signUpLink: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
 });
