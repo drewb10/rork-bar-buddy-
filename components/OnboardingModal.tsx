@@ -1,30 +1,28 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, Pressable, TextInput, Alert } from 'react-native';
-import { User } from 'lucide-react-native';
+import { StyleSheet, View, Text, Pressable, Alert } from 'react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
-import BarBuddyLogo from '@/components/BarBuddyLogo';
 import { useAuthStore } from '@/stores/authStore';
+import BarBuddyLogo from '@/components/BarBuddyLogo';
+import { useRouter } from 'expo-router';
 
 interface OnboardingModalProps {
   visible: boolean;
-  onComplete: (firstName: string, lastName: string) => void;
+  onComplete?: () => void;
 }
 
 export default function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { user } = useAuthStore();
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const { isAuthenticated } = useAuthStore();
+  const router = useRouter();
 
-  const handleSubmit = () => {
-    if (!firstName.trim() || !lastName.trim()) {
-      Alert.alert('Required Fields', 'Please enter both your first and last name.');
-      return;
+  const handleGetStarted = () => {
+    if (!isAuthenticated) {
+      router.push('/auth/sign-up');
+    } else if (onComplete) {
+      onComplete();
     }
-
-    onComplete(firstName.trim(), lastName.trim());
   };
 
   if (!visible) return null;
@@ -41,59 +39,31 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
         </Text>
         
         <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
-          Let's get you set up with your profile
+          Your ultimate nightlife companion for discovering bars, tracking your adventures, and connecting with fellow bar enthusiasts.
         </Text>
 
-        <View style={styles.inputContainer}>
-          <Text style={[styles.inputLabel, { color: themeColors.text }]}>First Name</Text>
-          <TextInput
-            style={[styles.textInput, { 
-              backgroundColor: themeColors.background,
-              color: themeColors.text,
-              borderColor: themeColors.border
-            }]}
-            value={firstName}
-            onChangeText={setFirstName}
-            placeholder="Enter your first name"
-            placeholderTextColor={themeColors.subtext}
-            autoCapitalize="words"
-            autoCorrect={false}
-          />
+        <View style={styles.featureList}>
+          <Text style={[styles.feature, { color: themeColors.text }]}>
+            🍻 Discover the best bars in your area
+          </Text>
+          <Text style={[styles.feature, { color: themeColors.text }]}>
+            📊 Track your nightlife stats and achievements
+          </Text>
+          <Text style={[styles.feature, { color: themeColors.text }]}>
+            💬 Chat anonymously with other bar-goers
+          </Text>
+          <Text style={[styles.feature, { color: themeColors.text }]}>
+            🏆 Earn XP and unlock new ranks
+          </Text>
         </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={[styles.inputLabel, { color: themeColors.text }]}>Last Name</Text>
-          <TextInput
-            style={[styles.textInput, { 
-              backgroundColor: themeColors.background,
-              color: themeColors.text,
-              borderColor: themeColors.border
-            }]}
-            value={lastName}
-            onChangeText={setLastName}
-            placeholder="Enter your last name"
-            placeholderTextColor={themeColors.subtext}
-            autoCapitalize="words"
-            autoCorrect={false}
-          />
-        </View>
-
-        {user && (
-          <View style={styles.usernameContainer}>
-            <Text style={[styles.usernameLabel, { color: themeColors.subtext }]}>
-              Your Username:
-            </Text>
-            <Text style={[styles.username, { color: themeColors.primary }]}>
-              @{user.username}
-            </Text>
-          </View>
-        )}
         
         <Pressable 
-          style={[styles.submitButton, { backgroundColor: themeColors.primary }]} 
-          onPress={handleSubmit}
+          style={[styles.getStartedButton, { backgroundColor: themeColors.primary }]} 
+          onPress={handleGetStarted}
         >
-          <Text style={styles.submitButtonText}>Get Started</Text>
+          <Text style={styles.getStartedButtonText}>
+            Get Started
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -130,51 +100,32 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    marginBottom: 8,
+    marginBottom: 16,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
     lineHeight: 22,
   },
-  inputContainer: {
-    width: '100%',
-    marginBottom: 20,
+  featureList: {
+    alignSelf: 'stretch',
+    marginBottom: 32,
   },
-  inputLabel: {
+  feature: {
     fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 12,
+    lineHeight: 22,
   },
-  textInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    width: '100%',
-  },
-  usernameContainer: {
-    marginBottom: 24,
-    alignItems: 'center',
-  },
-  usernameLabel: {
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  username: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  submitButton: {
+  getStartedButton: {
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 25,
     width: '100%',
     alignItems: 'center',
   },
-  submitButtonText: {
+  getStartedButtonText: {
     color: 'white',
     fontSize: 18,
     fontWeight: '600',

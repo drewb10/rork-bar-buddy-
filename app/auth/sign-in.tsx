@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, StatusBar, ScrollView, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, StatusBar, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Eye, EyeOff, User, Lock } from 'lucide-react-native';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -14,22 +14,34 @@ export default function SignInScreen() {
   const themeColors = colors[theme];
   const { signIn, isLoading, error, clearError } = useAuthStore();
   
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSignIn = async () => {
     clearError();
-    
-    if (!username || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+
+    if (!email || !password) {
+      Alert.alert('Missing Information', 'Please enter both email and password');
       return;
     }
 
-    const success = await signIn(username, password);
+    if (!validateEmail(email)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address');
+      return;
+    }
+
+    const success = await signIn(email, password);
     
     if (success) {
       router.replace('/(tabs)');
+    } else if (error) {
+      Alert.alert('Sign In Failed', error);
     }
   };
 
@@ -52,40 +64,34 @@ export default function SignInScreen() {
           {/* Logo */}
           <View style={styles.logoContainer}>
             <BarBuddyLogo size="large" />
-            
             <Text style={[styles.title, { color: themeColors.text }]}>
               Welcome Back
             </Text>
-            
             <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
               Sign in to your account
             </Text>
           </View>
 
-          {/* Error Message */}
-          {error && (
-            <View style={[styles.errorContainer, { backgroundColor: '#FF4444' + '20' }]}>
-              <Text style={[styles.errorText, { color: '#FF4444' }]}>{error}</Text>
-            </View>
-          )}
-
           {/* Form */}
           <View style={styles.form}>
+            {/* Email Input */}
             <View style={styles.inputContainer}>
               <View style={[styles.inputWrapper, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
-                <User size={20} color={themeColors.subtext} style={styles.inputIcon} />
+                <Mail size={20} color={themeColors.subtext} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: themeColors.text }]}
-                  placeholder="Username"
+                  placeholder="Email"
                   placeholderTextColor={themeColors.subtext}
-                  value={username}
-                  onChangeText={setUsername}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
               </View>
             </View>
 
+            {/* Password Input */}
             <View style={styles.inputContainer}>
               <View style={[styles.inputWrapper, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
                 <Lock size={20} color={themeColors.subtext} style={styles.inputIcon} />
@@ -112,6 +118,7 @@ export default function SignInScreen() {
               </View>
             </View>
 
+            {/* Sign In Button */}
             <LinearGradient
               colors={['#FF6A00', '#FF4500']}
               start={{ x: 0, y: 0 }}
@@ -123,14 +130,13 @@ export default function SignInScreen() {
                 onPress={handleSignIn}
                 disabled={isLoading}
               >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <Text style={styles.signInButtonText}>Sign In</Text>
-                )}
+                <Text style={styles.signInButtonText}>
+                  {isLoading ? 'Signing In...' : 'Sign In'}
+                </Text>
               </Pressable>
             </LinearGradient>
 
+            {/* Sign Up Link */}
             <View style={styles.signUpContainer}>
               <Text style={[styles.signUpText, { color: themeColors.subtext }]}>
                 Don't have an account?{' '}
@@ -172,21 +178,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    marginTop: 24,
+    marginTop: 16,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    textAlign: 'center',
-  },
-  errorContainer: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  errorText: {
-    fontSize: 14,
-    fontWeight: '500',
     textAlign: 'center',
   },
   form: {

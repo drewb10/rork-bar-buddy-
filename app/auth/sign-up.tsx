@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, StatusBar, ScrollView, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, StatusBar, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Eye, EyeOff, User, Lock, Check, X } from 'lucide-react-native';
+import { Eye, EyeOff, Mail, Lock, User, Check, X } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -12,67 +12,78 @@ export default function SignUpScreen() {
   const router = useRouter();
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { signUp, isLoading, error, clearError, checkUsernameAvailability } = useAuthStore();
+  const { signUp, isLoading, error, clearError, checkUsernameAvailable } = useAuthStore();
   
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [username, setUsername] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
 
-  const checkUsername = async (usernameValue: string) => {
-    if (usernameValue.length < 3) {
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateUsername = (username: string): boolean => {
+    return username.length >= 3 && username.length <= 20 && /^[a-zA-Z0-9_]+$/.test(username);
+  };
+
+  const validatePassword = (password: string): boolean => {
+    return password.length >= 6;
+  };
+
+  const checkUsername = async (username: string) => {
+    if (!validateUsername(username)) {
       setUsernameStatus('idle');
       return;
     }
-    
+
     setUsernameStatus('checking');
-    const isAvailable = await checkUsernameAvailability(usernameValue);
+    const isAvailable = await checkUsernameAvailable(username);
     setUsernameStatus(isAvailable ? 'available' : 'taken');
   };
 
-  const handleUsernameChange = (value: string) => {
-    setUsername(value);
-    clearError();
+  const handleUsernameChange = (text: string) => {
+    setUsername(text);
     
     // Debounce username checking
     setTimeout(() => {
-      if (value === username) {
-        checkUsername(value);
+      if (text === username) {
+        checkUsername(text);
       }
     }, 500);
   };
 
   const handleSignUp = async () => {
     clearError();
-    
-    if (!username || !password || !confirmPassword || !firstName || !lastName) {
-      Alert.alert('Error', 'Please fill in all fields');
+
+    if (!validateEmail(email)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address');
       return;
     }
 
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+    if (!validateUsername(username)) {
+      Alert.alert('Invalid Username', 'Username must be 3-20 characters and contain only letters, numbers, and underscores');
       return;
     }
 
     if (usernameStatus === 'taken') {
-      Alert.alert('Error', 'Username is already taken. Please choose another.');
+      Alert.alert('Username Taken', 'This username is already taken. Please choose another.');
       return;
     }
 
-    const success = await signUp(username, password, firstName, lastName);
+    if (!validatePassword(password)) {
+      Alert.alert('Invalid Password', 'Password must be at least 6 characters long');
+      return;
+    }
+
+    const success = await signUp(email, password, username);
     
     if (success) {
       router.replace('/(tabs)');
+    } else if (error) {
+      Alert.alert('Sign Up Failed', error);
     }
   };
 
@@ -80,10 +91,10 @@ export default function SignUpScreen() {
     router.push('/auth/sign-in');
   };
 
-  const getUsernameStatusIcon = () => {
+  const getUsernameIcon = () => {
     switch (usernameStatus) {
       case 'checking':
-        return <ActivityIndicator size="small" color={themeColors.primary} />;
+        return <Text style={styles.statusIcon}>⏳</Text>;
       case 'available':
         return <Check size={20} color="#4CAF50" />;
       case 'taken':
@@ -93,14 +104,26 @@ export default function SignUpScreen() {
     }
   };
 
-  const getUsernameStatusColor = () => {
+  const getUsernameHelperText = () => {
+    if (!username) return null;
+    
+    if (!validateUsername(username)) {
+      return (
+        <Text style={[styles.helperText, { color: '#FF4444' }]}>
+          3-20 characters, letters, numbers, and underscores only
+        </Text>
+      );
+    }
+    
     switch (usernameStatus) {
+      case 'checking':
+        return <Text style={[styles.helperText, { color: themeColors.subtext }]}>Checking availability...</Text>;
       case 'available':
-        return '#4CAF50';
+        return <Text style={[styles.helperText, { color: '#4CAF50' }]}>Username is available!</Text>;
       case 'taken':
-        return '#FF4444';
+        return <Text style={[styles.helperText, { color: '#FF4444' }]}>Username is already taken</Text>;
       default:
-        return themeColors.border;
+        return null;
     }
   };
 
@@ -119,30 +142,33 @@ export default function SignUpScreen() {
           {/* Logo */}
           <View style={styles.logoContainer}>
             <BarBuddyLogo size="large" />
-            
             <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
               Join the best bar community
             </Text>
           </View>
 
-          {/* Error Message */}
-          {error && (
-            <View style={[styles.errorContainer, { backgroundColor: '#FF4444' + '20' }]}>
-              <Text style={[styles.errorText, { color: '#FF4444' }]}>{error}</Text>
-            </View>
-          )}
-
           {/* Form */}
           <View style={styles.form}>
-            {/* Username */}
+            {/* Email Input */}
             <View style={styles.inputContainer}>
-              <View style={[
-                styles.inputWrapper, 
-                { 
-                  backgroundColor: themeColors.card, 
-                  borderColor: getUsernameStatusColor()
-                }
-              ]}>
+              <View style={[styles.inputWrapper, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
+                <Mail size={20} color={themeColors.subtext} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, { color: themeColors.text }]}
+                  placeholder="Email"
+                  placeholderTextColor={themeColors.subtext}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+            </View>
+
+            {/* Username Input */}
+            <View style={styles.inputContainer}>
+              <View style={[styles.inputWrapper, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
                 <User size={20} color={themeColors.subtext} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: themeColors.text }]}
@@ -153,54 +179,14 @@ export default function SignUpScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
-                <View style={styles.statusIcon}>
-                  {getUsernameStatusIcon()}
+                <View style={styles.statusIconContainer}>
+                  {getUsernameIcon()}
                 </View>
               </View>
-              {usernameStatus === 'taken' && (
-                <Text style={[styles.helperText, { color: '#FF4444' }]}>
-                  Username is already taken
-                </Text>
-              )}
-              {usernameStatus === 'available' && (
-                <Text style={[styles.helperText, { color: '#4CAF50' }]}>
-                  Username is available
-                </Text>
-              )}
+              {getUsernameHelperText()}
             </View>
 
-            <View style={styles.nameRow}>
-              <View style={[styles.inputContainer, styles.halfWidth]}>
-                <View style={[styles.inputWrapper, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
-                  <User size={20} color={themeColors.subtext} style={styles.inputIcon} />
-                  <TextInput
-                    style={[styles.input, { color: themeColors.text }]}
-                    placeholder="First Name"
-                    placeholderTextColor={themeColors.subtext}
-                    value={firstName}
-                    onChangeText={setFirstName}
-                    autoCapitalize="words"
-                    autoCorrect={false}
-                  />
-                </View>
-              </View>
-
-              <View style={[styles.inputContainer, styles.halfWidth]}>
-                <View style={[styles.inputWrapper, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
-                  <User size={20} color={themeColors.subtext} style={styles.inputIcon} />
-                  <TextInput
-                    style={[styles.input, { color: themeColors.text }]}
-                    placeholder="Last Name"
-                    placeholderTextColor={themeColors.subtext}
-                    value={lastName}
-                    onChangeText={setLastName}
-                    autoCapitalize="words"
-                    autoCorrect={false}
-                  />
-                </View>
-              </View>
-            </View>
-
+            {/* Password Input */}
             <View style={styles.inputContainer}>
               <View style={[styles.inputWrapper, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
                 <Lock size={20} color={themeColors.subtext} style={styles.inputIcon} />
@@ -225,34 +211,14 @@ export default function SignUpScreen() {
                   )}
                 </Pressable>
               </View>
+              {password && !validatePassword(password) && (
+                <Text style={[styles.helperText, { color: '#FF4444' }]}>
+                  Password must be at least 6 characters
+                </Text>
+              )}
             </View>
 
-            <View style={styles.inputContainer}>
-              <View style={[styles.inputWrapper, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
-                <Lock size={20} color={themeColors.subtext} style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.input, { color: themeColors.text }]}
-                  placeholder="Confirm Password"
-                  placeholderTextColor={themeColors.subtext}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry={!showConfirmPassword}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                <Pressable 
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  style={styles.eyeIcon}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff size={20} color={themeColors.subtext} />
-                  ) : (
-                    <Eye size={20} color={themeColors.subtext} />
-                  )}
-                </Pressable>
-              </View>
-            </View>
-
+            {/* Sign Up Button */}
             <LinearGradient
               colors={['#FF6A00', '#FF4500']}
               start={{ x: 0, y: 0 }}
@@ -262,16 +228,15 @@ export default function SignUpScreen() {
               <Pressable
                 style={styles.signUpButtonInner}
                 onPress={handleSignUp}
-                disabled={isLoading}
+                disabled={isLoading || usernameStatus === 'taken' || usernameStatus === 'checking'}
               >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <Text style={styles.signUpButtonText}>Sign Up</Text>
-                )}
+                <Text style={styles.signUpButtonText}>
+                  {isLoading ? 'Creating Account...' : 'Sign Up'}
+                </Text>
               </Pressable>
             </LinearGradient>
 
+            {/* Sign In Link */}
             <View style={styles.signInContainer}>
               <Text style={[styles.signInText, { color: themeColors.subtext }]}>
                 Already have an account?{' '}
@@ -313,28 +278,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 16,
   },
-  errorContainer: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  errorText: {
-    fontSize: 14,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
   form: {
     width: '100%',
   },
-  nameRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
   inputContainer: {
     marginBottom: 16,
-  },
-  halfWidth: {
-    width: '48%',
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -352,9 +300,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
-  statusIcon: {
-    width: 20,
+  statusIconContainer: {
+    width: 24,
     alignItems: 'center',
+  },
+  statusIcon: {
+    fontSize: 16,
   },
   eyeIcon: {
     padding: 4,
@@ -362,7 +313,7 @@ const styles = StyleSheet.create({
   helperText: {
     fontSize: 12,
     marginTop: 4,
-    fontWeight: '500',
+    marginLeft: 14,
   },
   signUpButton: {
     borderRadius: 14,
