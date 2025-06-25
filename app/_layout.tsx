@@ -2,7 +2,7 @@ import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAgeVerificationStore } from "@/stores/ageVerificationStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useVenueInteractionStore } from "@/stores/venueInteractionStore";
@@ -30,6 +30,7 @@ export default function RootLayout() {
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [show3AMPopup, setShow3AMPopup] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const initializationRef = useRef(false);
 
   // Safe store access with fallbacks
   const ageVerificationStore = useAgeVerificationStore();
@@ -50,6 +51,8 @@ export default function RootLayout() {
   const resetChatOnAppReopen = chatStore?.resetChatOnAppReopen || (() => {});
 
   useEffect(() => {
+    if (initializationRef.current) return; // Prevent multiple initializations
+    
     try {
       // Reset chat messages on app start to ensure anonymous behavior
       if (resetChatOnAppReopen && typeof resetChatOnAppReopen === 'function') {
@@ -64,7 +67,8 @@ export default function RootLayout() {
       // Initialize authentication
       const initializeApp = async () => {
         try {
-          if (isInitialized) return;
+          if (initializationRef.current) return;
+          initializationRef.current = true;
           
           const initTimeout = setTimeout(() => {
             console.warn('App initialization timeout, continuing anyway');
@@ -100,7 +104,7 @@ export default function RootLayout() {
         setShowAgeVerification(true);
       } else {
         // Initialize app if verified
-        if (!isInitialized) {
+        if (!isInitialized && !initializationRef.current) {
           setTimeout(() => {
             initializeApp();
           }, 100);
@@ -110,9 +114,9 @@ export default function RootLayout() {
       console.warn('Error in main useEffect:', error);
       setIsInitialized(true);
     }
-  }, [isVerified, isAuthenticated, isInitialized]);
+  }, [isVerified]); // Only depend on isVerified
 
-  // 3 AM popup check
+  // 3 AM popup check - separate effect to avoid loops
   useEffect(() => {
     if (!isVerified || !isInitialized) return;
 
@@ -126,7 +130,7 @@ export default function RootLayout() {
       }
     };
 
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       checkFor3AMPopup();
     }, 1000);
 
@@ -138,7 +142,10 @@ export default function RootLayout() {
       }
     }, 60000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(timeoutId);
+      clearInterval(interval);
+    };
   }, [shouldShow3AMPopup, isVerified, isInitialized]);
 
   const handleAgeVerification = (verified: boolean) => {

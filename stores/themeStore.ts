@@ -1,22 +1,19 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { type Theme } from '@/constants/colors';
+
+export type Theme = 'light' | 'dark';
 
 interface ThemeState {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  toggleTheme: () => void;
 }
 
 export const useThemeStore = create<ThemeState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       theme: 'dark',
       setTheme: (theme: Theme) => set({ theme }),
-      toggleTheme: () => set((state) => ({ 
-        theme: state.theme === 'light' ? 'dark' : 'light' 
-      })),
     }),
     {
       name: 'theme-storage',
@@ -25,23 +22,16 @@ export const useThemeStore = create<ThemeState>()(
   )
 );
 
-// Safe hook that handles cases where the store might not be initialized
+// Safe hook that always returns valid state
 export const useThemeStoreSafe = () => {
   try {
     const store = useThemeStore();
-    
-    return {
-      theme: store?.theme || 'dark',
-      setTheme: store?.setTheme || (() => {}),
-      toggleTheme: store?.toggleTheme || (() => {}),
-    };
+    if (!store) {
+      return { theme: 'dark' as Theme, setTheme: () => {} };
+    }
+    return store;
   } catch (error) {
-    console.warn('Error accessing theme store safely:', error);
-    
-    return {
-      theme: 'dark' as Theme,
-      setTheme: () => {},
-      toggleTheme: () => {},
-    };
+    console.warn('Error accessing theme store:', error);
+    return { theme: 'dark' as Theme, setTheme: () => {} };
   }
 };

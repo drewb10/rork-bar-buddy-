@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal } from 'react-native';
 import { Trophy, Award, Star, Target, Users, Calendar, X, MapPin, TrendingUp, BarChart3 } from 'lucide-react-native';
 import { getThemeColorsSafe, type Theme, type ThemeColors } from '@/constants/colors';
@@ -10,30 +10,35 @@ import BarBuddyLogo from '@/components/BarBuddyLogo';
 export default function TrophiesScreen() {
   const [selectedAchievement, setSelectedAchievement] = useState<CompletedAchievement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const initializationRef = useRef(false);
   
   // Store access
   const themeStore = useThemeStoreSafe();
   const profileStore = useUserProfileStore();
   const achievementStore = useAchievementStoreSafe();
   
-  // Initialize stores
+  // Initialize stores only once
   useEffect(() => {
+    if (initializationRef.current) return;
+    
     const initializeStores = async () => {
       try {
+        initializationRef.current = true;
+        
         // Initialize achievement store if needed
-        if (!achievementStore.isInitialized) {
+        if (!achievementStore.isInitialized && typeof achievementStore.initializeAchievements === 'function') {
           achievementStore.initializeAchievements();
         }
         
-        // Load profile if needed
-        if (!profileStore.profile) {
+        // Load profile if needed (but don't force reload if already exists)
+        if (!profileStore.profile && typeof profileStore.loadProfile === 'function') {
           await profileStore.loadProfile();
         }
         
-        // Give stores time to initialize
+        // Set loading to false after a brief delay
         setTimeout(() => {
           setIsLoading(false);
-        }, 1000);
+        }, 500);
       } catch (error) {
         console.warn('Error initializing stores:', error);
         setIsLoading(false);
@@ -41,13 +46,13 @@ export default function TrophiesScreen() {
     };
 
     initializeStores();
-  }, []);
+  }, []); // Empty dependency array - only run once
 
   // Get theme safely
   const theme: Theme = themeStore?.theme || 'dark';
   const themeColors: ThemeColors = getThemeColorsSafe(theme);
   
-  // Get profile data safely
+  // Get profile data safely with fallbacks
   const profile = profileStore?.profile;
   const getRank = profileStore?.getRank || (() => ({ title: 'Newbie', subTitle: 'Just getting started', color: '#666666' }));
   const getAverageDrunkScale = profileStore?.getAverageDrunkScale || (() => 0);
@@ -92,7 +97,7 @@ export default function TrophiesScreen() {
   const totalCompletedAchievements = completedAchievements.length;
   const averageDrunkScale = getAverageDrunkScale();
 
-  // Calculate total drinks logged
+  // Calculate total drinks logged safely
   const totalDrinksLogged = (profile?.total_shots || 0) + 
                            (profile?.total_beers || 0) + 
                            (profile?.total_scoop_and_scores || 0) + 
