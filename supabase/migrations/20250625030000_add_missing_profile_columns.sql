@@ -1,15 +1,7 @@
 -- Add missing columns to profiles table
--- This migration adds the missing 'last_drunk_scale_reset' column and ensures all expected columns exist
+-- This migration adds the missing 'phone' column and ensures all expected columns exist
 
--- Add the missing last_drunk_scale_reset column
-ALTER TABLE public.profiles 
-ADD COLUMN IF NOT EXISTS last_drunk_scale_reset timestamptz;
-
--- Ensure last_drunk_scale_date exists (might already exist from previous migrations)
-ALTER TABLE public.profiles 
-ADD COLUMN IF NOT EXISTS last_drunk_scale_date timestamptz;
-
--- Add phone column if it doesn't exist (for phone auth support)
+-- Add the phone column if it doesn't exist (for phone auth support)
 ALTER TABLE public.profiles 
 ADD COLUMN IF NOT EXISTS phone text;
 
@@ -33,11 +25,6 @@ EXCEPTION
         NULL;
 END $$;
 
--- Update any existing records that have null values for the new columns
-UPDATE public.profiles 
-SET last_drunk_scale_reset = created_at 
-WHERE last_drunk_scale_reset IS NULL;
-
 -- Add index on phone for better performance
 CREATE INDEX IF NOT EXISTS idx_profiles_phone ON public.profiles(phone);
 
@@ -57,29 +44,23 @@ BEGIN
     username, 
     phone,
     email,
-    last_drunk_scale_reset,
-    last_drunk_scale_date,
     has_completed_onboarding
   ) VALUES (
     test_id,
     test_username,
     test_phone,
     null, -- email can be null now
-    now(),
-    now(),
     false
   );
   
   -- Test that we can select the new columns
-  PERFORM last_drunk_scale_reset, last_drunk_scale_date 
+  PERFORM phone 
   FROM public.profiles 
   WHERE id = test_id;
   
   -- Test update of the new columns
   UPDATE public.profiles 
-  SET 
-    last_drunk_scale_reset = now(),
-    last_drunk_scale_date = now()
+  SET phone = test_phone
   WHERE id = test_id;
   
   -- Clean up

@@ -34,6 +34,7 @@ interface AchievementState {
   achievements: Achievement[];
   completedAchievements: CompletedAchievement[];
   lastPopupDate?: string;
+  isInitialized: boolean;
   canShowPopup: () => boolean;
   shouldShow3AMPopup: () => boolean;
   mark3AMPopupShown: () => void;
@@ -317,6 +318,7 @@ export const useAchievementStore = create<AchievementState>()(
       achievements: [],
       completedAchievements: [],
       lastPopupDate: undefined,
+      isInitialized: false,
 
       canShowPopup: () => {
         const { lastPopupDate } = get();
@@ -349,7 +351,9 @@ export const useAchievementStore = create<AchievementState>()(
       initializeAchievements: () => {
         const { achievements } = get();
         if (achievements.length === 0) {
-          set({ achievements: defaultAchievements });
+          set({ achievements: defaultAchievements, isInitialized: true });
+        } else {
+          set({ isInitialized: true });
         }
       },
 
@@ -518,12 +522,38 @@ export const useAchievementStore = create<AchievementState>()(
           })),
           completedAchievements: [],
           lastPopupDate: undefined,
+          isInitialized: true,
         });
       },
     }),
     {
       name: 'achievement-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        // Ensure we always have valid state and mark as initialized
+        if (!state) {
+          return {
+            achievements: [],
+            completedAchievements: [],
+            lastPopupDate: undefined,
+            isInitialized: true,
+            canShowPopup: () => true,
+            shouldShow3AMPopup: () => false,
+            mark3AMPopupShown: () => {},
+            initializeAchievements: () => {},
+            completeAchievement: () => {},
+            markPopupShown: () => {},
+            getCompletedCount: () => 0,
+            getAchievementsByCategory: () => [],
+            getCompletedAchievementsByCategory: () => [],
+            resetAchievements: () => {},
+            updateAchievementProgress: () => {},
+            getCurrentLevelAchievements: () => [],
+            checkAndUpdateMultiLevelAchievements: () => {},
+          };
+        }
+        return { ...state, isInitialized: true };
+      },
     }
   )
 );

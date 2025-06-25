@@ -8,26 +8,29 @@ interface ThemeState {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
+  isInitialized: boolean;
 }
 
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
       theme: 'dark',
+      isInitialized: false,
       setTheme: (theme: Theme) => {
         try {
-          set({ theme });
+          set({ theme, isInitialized: true });
         } catch (error) {
           console.warn('Error setting theme:', error);
         }
       },
       toggleTheme: () => {
         try {
-          const currentTheme = get()?.theme || 'dark';
-          set({ theme: currentTheme === 'dark' ? 'light' : 'dark' });
+          const state = get();
+          const currentTheme = state?.theme || 'dark';
+          set({ theme: currentTheme === 'dark' ? 'light' : 'dark', isInitialized: true });
         } catch (error) {
           console.warn('Error toggling theme:', error);
-          set({ theme: 'dark' });
+          set({ theme: 'dark', isInitialized: true });
         }
       },
     }),
@@ -35,15 +38,16 @@ export const useThemeStore = create<ThemeState>()(
       name: 'theme-storage',
       storage: createJSONStorage(() => AsyncStorage),
       onRehydrateStorage: () => (state) => {
-        // Ensure we always have a valid theme
+        // Ensure we always have a valid theme and mark as initialized
         if (!state || !state.theme) {
           return { 
             theme: 'dark' as Theme, 
             setTheme: () => {}, 
-            toggleTheme: () => {} 
+            toggleTheme: () => {},
+            isInitialized: true
           };
         }
-        return state;
+        return { ...state, isInitialized: true };
       },
     }
   )

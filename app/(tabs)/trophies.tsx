@@ -1,55 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal } from 'react-native';
 import { Trophy, Award, Star, Target, Users, Calendar, X, MapPin, TrendingUp, ChartBar as BarChart3 } from 'lucide-react-native';
-import { colors, type Theme, type ThemeColors } from '@/constants/colors';
+import { colors, getThemeColors, type Theme, type ThemeColors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { useAchievementStore, CompletedAchievement } from '@/stores/achievementStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 
 export default function TrophiesScreen() {
-  // Safe store access with fallbacks and error handling
   const [selectedAchievement, setSelectedAchievement] = useState<CompletedAchievement | null>(null);
   
-  let themeStore, profileStore, achievementStore;
-  let theme: Theme = 'dark';
-  let themeColors: ThemeColors = colors.dark;
-  let profile = null;
-  let getRank = () => ({ title: 'Newbie', subTitle: 'Just getting started', color: '#666666' });
-  let getAverageDrunkScale = () => 0;
-  let completedAchievements: CompletedAchievement[] = [];
-  let getCompletedAchievementsByCategory = (category: 'bars' | 'activities' | 'social' | 'milestones'): CompletedAchievement[] => [];
+  // Safe store access with fallbacks and error handling
+  const themeStore = useThemeStore();
+  const profileStore = useUserProfileStore();
+  const achievementStore = useAchievementStore();
+  
+  // Initialize stores if needed
+  useEffect(() => {
+    if (!achievementStore.isInitialized) {
+      achievementStore.initializeAchievements();
+    }
+  }, [achievementStore.isInitialized]);
 
-  try {
-    themeStore = useThemeStore();
-    theme = (themeStore?.theme || 'dark') as Theme;
-    themeColors = colors[theme] as ThemeColors;
-  } catch (error) {
-    console.warn('Error accessing theme store:', error);
-  }
-
-  try {
-    profileStore = useUserProfileStore();
-    profile = profileStore?.profile;
-    getRank = profileStore?.getRank || (() => ({ title: 'Newbie', subTitle: 'Just getting started', color: '#666666' }));
-    getAverageDrunkScale = profileStore?.getAverageDrunkScale || (() => 0);
-  } catch (error) {
-    console.warn('Error accessing profile store:', error);
-  }
-
-  try {
-    achievementStore = useAchievementStore();
-    completedAchievements = achievementStore?.completedAchievements || [];
-    getCompletedAchievementsByCategory = achievementStore?.getCompletedAchievementsByCategory || ((category: 'bars' | 'activities' | 'social' | 'milestones') => []);
-  } catch (error) {
-    console.warn('Error accessing achievement store:', error);
-  }
+  // Get theme safely
+  const theme: Theme = themeStore?.theme || 'dark';
+  const themeColors: ThemeColors = getThemeColors(theme);
+  
+  // Get profile data safely
+  const profile = profileStore?.profile;
+  const getRank = profileStore?.getRank || (() => ({ title: 'Newbie', subTitle: 'Just getting started', color: '#666666' }));
+  const getAverageDrunkScale = profileStore?.getAverageDrunkScale || (() => 0);
+  
+  // Get achievement data safely
+  const completedAchievements = achievementStore?.completedAchievements || [];
+  const getCompletedAchievementsByCategory = achievementStore?.getCompletedAchievementsByCategory || (() => []);
   
   // Handle null profile gracefully
   if (!profile) {
     return (
-      <View style={[styles.container, { backgroundColor: '#000000' }]}>
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+        <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
         
         <ScrollView 
           style={styles.scrollView}
@@ -106,8 +96,8 @@ export default function TrophiesScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: '#000000' }]}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
       
       <ScrollView 
         style={styles.scrollView}

@@ -314,10 +314,13 @@ export const useUserProfileStore = create<UserProfileState>()(
         if (!profile) return;
 
         try {
+          // Remove the problematic field if it exists in updates
+          const { last_drunk_scale_reset, ...safeUpdates } = updates as any;
+          
           const { error } = await supabase
             .from('profiles')
             .update({
-              ...updates,
+              ...safeUpdates,
               updated_at: new Date().toISOString()
             })
             .eq('id', profile.id);
