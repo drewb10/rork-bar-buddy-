@@ -77,3 +77,32 @@ export const testSupabaseConnection = async () => {
     return { success: false, error: 'Connection failed' };
   }
 };
+
+// Refresh schema cache function
+export const refreshSchemaCache = async () => {
+  if (!isSupabaseConfigured()) {
+    console.warn('Supabase not configured, cannot refresh schema cache');
+    return { success: false, error: 'Supabase not configured' };
+  }
+  
+  try {
+    // Execute NOTIFY command to refresh schema cache
+    const { error } = await supabase.rpc('notify_schema_reload');
+    
+    if (error) {
+      console.warn('Error refreshing schema cache:', error);
+      return { success: false, error: error.message };
+    }
+    
+    console.log('Schema cache refreshed successfully');
+    return { success: true, message: 'Schema cache refreshed' };
+  } catch (error) {
+    console.warn('Error refreshing schema cache:', error);
+    return { success: false, error: 'Failed to refresh schema cache' };
+  }
+};
+
+// Initialize schema cache refresh on app start
+if (isSupabaseConfigured()) {
+  refreshSchemaCache();
+}

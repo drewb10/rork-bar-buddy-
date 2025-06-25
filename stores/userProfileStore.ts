@@ -55,6 +55,7 @@ interface UserProfile {
   drunk_scale_ratings: number[];
   last_night_out_date?: string;
   last_drunk_scale_date?: string;
+  last_drunk_scale_reset?: string;
   profile_picture?: string;
   friends: Friend[];
   friend_requests: FriendRequest[];
