@@ -16,7 +16,7 @@ import {
 import { X, Send, TriangleAlert as AlertTriangle, MessageCircle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
-import { useChatStore } from '@/stores/chatStore';
+import { useVenueChatStore } from '@/stores/venueChatStore';
 import { Venue } from '@/types/venue';
 
 interface ChatModalProps {
@@ -39,7 +39,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
     isLoading,
     error,
     clearError
-  } = useChatStore();
+  } = useVenueChatStore();
   const [inputText, setInputText] = useState('');
   const [showTerms, setShowTerms] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -340,26 +340,47 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               </Text>
               <ScrollView style={styles.termsScroll}>
                 <Text style={[styles.termsText, { color: themeColors.text }]}>
-                  Welcome to BarBuddy anonymous chat! To keep our community safe and fun:{"\n\n"}
+                  Welcome to BarBuddy anonymous chat! To keep our community safe and fun:{"
+
+"}
                   
-                  <Text style={{ fontWeight: 'bold' }}>✅ DO:</Text>{"\n"}
-                  • Be respectful and kind to others{"\n"}
-                  • Keep conversations venue-related and fun{"\n"}
-                  • Respect others' privacy and anonymity{"\n"}
-                  • Report inappropriate behavior{"\n\n"}
+                  <Text style={{ fontWeight: 'bold' }}>✅ DO:</Text>{"
+"}
+                  • Be respectful and kind to others{"
+"}
+                  • Keep conversations venue-related and fun{"
+"}
+                  • Respect others' privacy and anonymity{"
+"}
+                  • Report inappropriate behavior{"
+
+"}
                   
-                  <Text style={{ fontWeight: 'bold' }}>❌ DON'T:</Text>{"\n"}
-                  • Share personal information (phone, email, social media){"\n"}
-                  • Use hate speech, threats, or harassment{"\n"}
-                  • Send spam or promotional content{"\n"}
-                  • Engage in sexual harassment{"\n"}
-                  • Bully or target other users{"\n\n"}
+                  <Text style={{ fontWeight: 'bold' }}>❌ DON'T:</Text>{"
+"}
+                  • Share personal information (phone, email, social media){"
+"}
+                  • Use hate speech, threats, or harassment{"
+"}
+                  • Send spam or promotional content{"
+"}
+                  • Engage in sexual harassment{"
+"}
+                  • Bully or target other users{"
+
+"}
                   
-                  <Text style={{ fontWeight: 'bold' }}>🔒 Privacy & Safety:</Text>{"\n"}
-                  • Messages reset daily at 5:00 AM{"\n"}
-                  • All content is automatically moderated{"\n"}
-                  • Violations may result in chat restrictions{"\n"}
-                  • Your safety is our priority{"\n\n"}
+                  <Text style={{ fontWeight: 'bold' }}>🔒 Privacy & Safety:</Text>{"
+"}
+                  • Messages reset daily at 5:00 AM{"
+"}
+                  • All content is automatically moderated{"
+"}
+                  • Violations may result in chat restrictions{"
+"}
+                  • Your safety is our priority{"
+
+"}
                   
                   Have fun and stay safe! 🍻
                 </Text>
