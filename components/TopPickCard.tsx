@@ -16,13 +16,19 @@ export default function TopPickCard({ venue }: TopPickCardProps) {
   const router = useRouter();
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { getLikeCount } = useVenueInteractionStore();
+  const { getLikeCount, getHotTimeWithLikes } = useVenueInteractionStore();
   
   const likeCount = getLikeCount(venue.id);
+  const hotTimeData = getHotTimeWithLikes(venue.id);
 
   const handlePress = () => {
     router.push(`/venue/${venue.id}`);
   };
+
+  // Get today's specials
+  const todaySpecials = venue.specials.filter(
+    special => special.day === getCurrentDay()
+  );
 
   return (
     <Pressable 
@@ -61,15 +67,43 @@ export default function TopPickCard({ venue }: TopPickCardProps) {
             {venue.types[0]?.replace('-', ' ')}
           </Text>
         </View>
+
+        {/* Hot Time Display */}
+        {hotTimeData && (
+          <View style={[styles.hotTimeBadge, { backgroundColor: themeColors.primary + '20' }]}>
+            <Flame size={12} color={themeColors.primary} />
+            <Text style={[styles.hotTimeText, { color: themeColors.primary }]}>
+              Hot: {formatTimeSlot(hotTimeData.time)}
+            </Text>
+          </View>
+        )}
+
+        {/* Today's Special */}
+        {todaySpecials.length > 0 && (
+          <Text style={[styles.specialText, { color: themeColors.accent }]} numberOfLines={1}>
+            {todaySpecials[0].title}
+          </Text>
+        )}
       </View>
     </Pressable>
   );
 }
 
+function getCurrentDay(): string {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return days[new Date().getDay()];
+}
+
+function formatTimeSlot(timeSlot: string): string {
+  const [hours, minutes] = timeSlot.split(':');
+  const hour = parseInt(hours);
+  return `${hour % 12 || 12}${minutes !== '00' ? ':' + minutes : ''} ${hour >= 12 ? 'PM' : 'AM'}`;
+}
+
 const styles = StyleSheet.create({
   card: {
-    width: 280,
-    height: 120,
+    width: 160,
+    height: 220,
     borderRadius: 16,
     overflow: 'hidden',
     marginRight: 16,
@@ -81,18 +115,17 @@ const styles = StyleSheet.create({
     elevation: 8,
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    flexDirection: 'row',
   },
   image: {
-    width: 120,
-    height: '100%',
+    width: '100%',
+    height: 120,
   },
   gradient: {
     position: 'absolute',
     top: 0,
     left: 0,
-    width: 120,
-    height: '100%',
+    width: '100%',
+    height: 120,
   },
   flameBadge: {
     position: 'absolute',
@@ -119,19 +152,19 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 16,
-    justifyContent: 'center',
+    padding: 12,
   },
   venueName: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '700',
-    marginBottom: 8,
+    marginBottom: 4,
     letterSpacing: 0.3,
   },
   detailsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 8,
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -139,14 +172,32 @@ const styles = StyleSheet.create({
   },
   rating: {
     marginLeft: 4,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
   },
   venueType: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '500',
     textTransform: 'capitalize',
     flex: 1,
     textAlign: 'right',
+  },
+  hotTimeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    marginBottom: 6,
+    alignSelf: 'flex-start',
+  },
+  hotTimeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    marginLeft: 4,
+  },
+  specialText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
 });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, Modal, Pressable, ScrollView, Alert, Platform } from 'react-native';
+import { StyleSheet, View, Text, Pressable, ScrollView, Alert, Platform } from 'react-native';
 import { X, Plus, Minus, TrendingUp, Award, Target } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
