@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, Text, Pressable, Modal, ScrollView } from 'react-native';
 import { Plus, Minus, ChartBar as BarChart3, X } from 'lucide-react-native';
-import { colors } from '@/constants/colors';
-import { useThemeStore } from '@/stores/themeStore';
+import { getThemeColorsSafe } from '@/constants/colors';
+import { useThemeStoreSafe } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
 import { Platform } from 'react-native';
@@ -32,10 +32,18 @@ interface DailyTrackerProps {
 }
 
 export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
-  const { theme } = useThemeStore();
-  const themeColors = colors[theme];
-  const { addDrunkScaleRating, canSubmitDrunkScale, updateDailyTrackerTotals } = useUserProfileStore();
-  const { getDailyStats, updateDailyStats } = useDailyTrackerStore();
+  const themeStore = useThemeStoreSafe();
+  const theme = themeStore?.theme || 'dark';
+  const themeColors = getThemeColorsSafe(theme);
+  
+  const { updateDailyTrackerTotals } = useUserProfileStore();
+  const { 
+    getDailyStats, 
+    updateDailyStats, 
+    submitDrunkScale, 
+    canSubmitDrunkScale, 
+    hasDrunkScaleForToday 
+  } = useDailyTrackerStore();
   
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [isInitialized, setIsInitialized] = useState(false);
@@ -56,10 +64,16 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         poolGamesWon: dailyStats.poolGamesWon || 0,
         dartGamesWon: dailyStats.dartGamesWon || 0,
       });
+      
+      // Set drunk scale from daily stats if available
+      if (dailyStats.drunkScaleRating) {
+        setDrunkScale(dailyStats.drunkScaleRating);
+      }
+      
       setIsInitialized(true);
-      setHasSubmittedDrunkScale(!canSubmitDrunkScale());
+      setHasSubmittedDrunkScale(hasDrunkScaleForToday());
     }
-  }, [visible, isInitialized, getDailyStats, canSubmitDrunkScale]);
+  }, [visible, isInitialized, getDailyStats, hasDrunkScaleForToday]);
 
   // Reset initialization when modal closes
   useEffect(() => {
@@ -83,7 +97,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
 
   const handleDrunkScaleSubmit = async () => {
     if (canSubmitDrunkScale() && !hasSubmittedDrunkScale) {
-      await addDrunkScaleRating(drunkScale);
+      submitDrunkScale(drunkScale);
       setHasSubmittedDrunkScale(true);
       
       if (Platform.OS !== 'web') {

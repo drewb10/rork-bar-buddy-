@@ -58,7 +58,12 @@ export type Theme = keyof typeof colors;
 export type ThemeColors = typeof colors[Theme];
 
 // Helper function to get theme colors safely with proper typing
-export const getThemeColors = (theme?: Theme | null): ThemeColors => {
+export const getThemeColors = (theme: Theme): ThemeColors => {
+  return colors[theme];
+};
+
+// Safe helper that defaults to dark theme if theme is invalid
+export const getThemeColorsSafe = (theme?: Theme | null): ThemeColors => {
   if (!theme || !(theme in colors)) {
     return colors.dark;
   }

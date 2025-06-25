@@ -631,7 +631,7 @@ export const useAchievementStore = create<AchievementState>()(
 );
 
 // Safe hook that always returns valid state
-export const useAchievementStoreSafe = () => {
+export const useAchievementStoreSafe = (): AchievementState => {
   try {
     const store = useAchievementStore();
     if (!store || !store.isHydrated) {

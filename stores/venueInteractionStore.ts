@@ -15,6 +15,7 @@ interface VenueInteraction {
 interface VenueInteractionState {
   interactions: VenueInteraction[];
   incrementInteraction: (venueId: string, arrivalTime?: string) => void;
+  likeVenue: (venueId: string) => void;
   getInteractionCount: (venueId: string) => number;
   getLikeCount: (venueId: string) => number;
   resetInteractionsIfNeeded: () => void;
@@ -88,7 +89,6 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
                     ? { 
                         ...i, 
                         count: i.count + 1,
-                        likes: i.likes + 1,
                         lastInteraction: now,
                         arrivalTime: arrivalTime || i.arrivalTime,
                         timestamp: now
@@ -104,7 +104,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
                   { 
                     venueId, 
                     count: 1, 
-                    likes: 1,
+                    likes: 0,
                     lastReset: now,
                     lastInteraction: now,
                     arrivalTime,
@@ -120,8 +120,11 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           if (userProfileStore?.getState) {
             const { awardXP, profile } = userProfileStore.getState();
             
+            // Award XP for checking in
+            awardXP('check_in', `Checked in at venue`, venueId);
+            
             // Award XP for visiting a new bar
-            if (isNewBar || !profile.visitedBars.includes(venueId)) {
+            if (isNewBar || !profile?.visited_bars?.includes(venueId)) {
               awardXP('visit_new_bar', `Visited a new bar`, venueId);
             }
           }
@@ -130,6 +133,55 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           await get().syncToSupabase(venueId, arrivalTime);
         } catch (error) {
           console.warn('Error incrementing interaction:', error);
+        }
+      },
+
+      likeVenue: async (venueId) => {
+        try {
+          if (!venueId) return;
+          
+          const now = new Date().toISOString();
+          
+          set((state) => {
+            const existingInteraction = state.interactions.find(i => i && i.venueId === venueId);
+            
+            if (existingInteraction) {
+              return {
+                interactions: state.interactions.map(i => 
+                  i && i.venueId === venueId 
+                    ? { 
+                        ...i, 
+                        likes: i.likes + 1,
+                        timestamp: now
+                      } 
+                    : i
+                ).filter(Boolean)
+              };
+            } else {
+              return {
+                interactions: [
+                  ...state.interactions.filter(Boolean),
+                  { 
+                    venueId, 
+                    count: 0, 
+                    likes: 1,
+                    lastReset: now,
+                    lastInteraction: '',
+                    timestamp: now
+                  }
+                ]
+              };
+            }
+          });
+
+          // Award XP for liking a bar
+          const userProfileStore = (window as any).__userProfileStore;
+          if (userProfileStore?.getState) {
+            const { awardXP } = userProfileStore.getState();
+            awardXP('like_bar', `Liked a bar`, venueId);
+          }
+        } catch (error) {
+          console.warn('Error liking venue:', error);
         }
       },
       

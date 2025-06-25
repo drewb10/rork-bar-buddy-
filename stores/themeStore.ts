@@ -51,7 +51,7 @@ export const useThemeStore = create<ThemeState>()(
       onRehydrateStorage: () => (state, error) => {
         if (error) {
           console.warn('Error rehydrating theme store:', error);
-          return defaultState;
+          return { ...defaultState, isHydrated: true };
         }
         
         // Ensure we always have a valid theme and mark as initialized
@@ -68,7 +68,7 @@ export const useThemeStore = create<ThemeState>()(
 );
 
 // Safe hook that always returns valid state
-export const useThemeStoreSafe = () => {
+export const useThemeStoreSafe = (): ThemeState => {
   try {
     const store = useThemeStore();
     if (!store || !store.isHydrated) {

@@ -13,6 +13,9 @@ interface DailyStats {
   dartGamesWon: number;
   date: string;
   lastResetAt: string;
+  drunkScaleSubmitted: boolean;
+  drunkScaleRating?: number;
+  drunkScaleTimestamp?: string;
 }
 
 interface TotalStats {
@@ -29,11 +32,14 @@ interface TotalStats {
 interface DailyTrackerState {
   dailyStats: DailyStats;
   totalStats: TotalStats;
-  updateDailyStats: (stats: Partial<Omit<DailyStats, 'date' | 'lastResetAt'>>) => void;
+  updateDailyStats: (stats: Partial<Omit<DailyStats, 'date' | 'lastResetAt' | 'drunkScaleSubmitted' | 'drunkScaleTimestamp'>>) => void;
+  submitDrunkScale: (rating: number) => void;
   resetDailyStats: () => void;
   getDailyStats: () => DailyStats;
   getTotalStats: () => TotalStats;
   checkAndResetIfNeeded: () => void;
+  canSubmitDrunkScale: () => boolean;
+  hasDrunkScaleForToday: () => boolean;
 }
 
 const getTodayString = (): string => {
@@ -78,6 +84,7 @@ const defaultDailyStats: DailyStats = {
   dartGamesWon: 0,
   date: getTodayString(),
   lastResetAt: new Date().toISOString(),
+  drunkScaleSubmitted: false,
 };
 
 const defaultTotalStats: TotalStats = {
@@ -134,6 +141,9 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
             dartGamesWon: stats.dartGamesWon !== undefined ? stats.dartGamesWon : currentStats.dartGamesWon,
             date: today,
             lastResetAt: currentStats.lastResetAt,
+            drunkScaleSubmitted: currentStats.drunkScaleSubmitted,
+            drunkScaleRating: currentStats.drunkScaleRating,
+            drunkScaleTimestamp: currentStats.drunkScaleTimestamp,
           };
           
           const updatedTotalStats: TotalStats = {
@@ -174,6 +184,36 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
         });
       },
 
+      submitDrunkScale: (rating: number) => {
+        get().checkAndResetIfNeeded();
+        
+        const today = getTodayString();
+        const now = new Date().toISOString();
+        
+        set((state) => {
+          const updatedDailyStats: DailyStats = {
+            ...state.dailyStats,
+            date: today,
+            drunkScaleSubmitted: true,
+            drunkScaleRating: rating,
+            drunkScaleTimestamp: now,
+          };
+          
+          return {
+            dailyStats: updatedDailyStats,
+          };
+        });
+
+        // Update user profile store with drunk scale rating
+        if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
+          const userProfileStore = (window as any).__userProfileStore;
+          if (userProfileStore?.getState) {
+            const { addDrunkScaleRating } = userProfileStore.getState();
+            addDrunkScaleRating(rating);
+          }
+        }
+      },
+
       resetDailyStats: () => {
         set({
           dailyStats: { 
@@ -202,6 +242,22 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
 
       getTotalStats: () => {
         return get().totalStats;
+      },
+
+      canSubmitDrunkScale: () => {
+        get().checkAndResetIfNeeded();
+        const { dailyStats } = get();
+        const today = getTodayString();
+        
+        return dailyStats.date === today && !dailyStats.drunkScaleSubmitted;
+      },
+
+      hasDrunkScaleForToday: () => {
+        get().checkAndResetIfNeeded();
+        const { dailyStats } = get();
+        const today = getTodayString();
+        
+        return dailyStats.date === today && dailyStats.drunkScaleSubmitted;
       },
     }),
     {

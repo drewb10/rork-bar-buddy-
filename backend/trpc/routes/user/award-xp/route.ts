@@ -21,18 +21,35 @@ const XP_VALUES = {
   pool_games: 15,
   dart_games: 15,
   drunk_scale_submission: 25,
+  like_bar: 5,
+  check_in: 10,
+  new_member_bonus: 100,
 };
 
 export const awardXPProcedure = publicProcedure
   .input(z.object({ 
     userId: z.string(),
-    activityType: z.enum(['visit_new_bar', 'participate_event', 'bring_friend', 'complete_night_out', 'special_achievement', 'live_music', 'featured_drink', 'bar_game', 'photo_taken', 'shots', 'scoop_and_scores', 'beers', 'beer_towers', 'funnels', 'shotguns', 'pool_games', 'dart_games', 'drunk_scale_submission']),
+    activityType: z.enum([
+      'visit_new_bar', 'participate_event', 'bring_friend', 'complete_night_out', 
+      'special_achievement', 'live_music', 'featured_drink', 'bar_game', 'photo_taken', 
+      'shots', 'scoop_and_scores', 'beers', 'beer_towers', 'funnels', 'shotguns', 
+      'pool_games', 'dart_games', 'drunk_scale_submission', 'like_bar', 'check_in', 
+      'new_member_bonus'
+    ]),
     description: z.string(),
     venueId: z.string().optional(),
   }))
   .mutation(async ({ input }) => {
     try {
       const xpAmount = XP_VALUES[input.activityType];
+      
+      if (!xpAmount) {
+        return {
+          success: false,
+          error: 'Invalid activity type',
+          message: 'Failed to award XP'
+        };
+      }
       
       // Get current user profile
       const { data: currentProfile, error: fetchError } = await supabase
@@ -83,6 +100,30 @@ export const awardXPProcedure = publicProcedure
           break;
         case 'dart_games':
           updateData.dart_games_won = (currentProfile.dart_games_won || 0) + 1;
+          break;
+        case 'shots':
+          updateData.total_shots = (currentProfile.total_shots || 0) + 1;
+          break;
+        case 'scoop_and_scores':
+          updateData.total_scoop_and_scores = (currentProfile.total_scoop_and_scores || 0) + 1;
+          break;
+        case 'beers':
+          updateData.total_beers = (currentProfile.total_beers || 0) + 1;
+          break;
+        case 'beer_towers':
+          updateData.total_beer_towers = (currentProfile.total_beer_towers || 0) + 1;
+          break;
+        case 'funnels':
+          updateData.total_funnels = (currentProfile.total_funnels || 0) + 1;
+          break;
+        case 'shotguns':
+          updateData.total_shotguns = (currentProfile.total_shotguns || 0) + 1;
+          break;
+        case 'drunk_scale_submission':
+          // Add drunk scale rating to array
+          const currentRatings = currentProfile.drunk_scale_ratings || [];
+          updateData.drunk_scale_ratings = [...currentRatings];
+          updateData.last_drunk_scale_date = new Date().toISOString();
           break;
       }
 

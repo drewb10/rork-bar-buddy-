@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal } from 'react-native';
 import { Trophy, Award, Star, Target, Users, Calendar, X, MapPin, TrendingUp, ChartBar as BarChart3 } from 'lucide-react-native';
-import { getThemeColors, type Theme, type ThemeColors } from '@/constants/colors';
+import { getThemeColorsSafe, type Theme, type ThemeColors } from '@/constants/colors';
 import { useThemeStoreSafe } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { useAchievementStoreSafe, CompletedAchievement } from '@/stores/achievementStore';
@@ -39,7 +39,7 @@ export default function TrophiesScreen() {
 
   // Get theme safely
   const theme: Theme = themeStore?.theme || 'dark';
-  const themeColors: ThemeColors = getThemeColors(theme);
+  const themeColors: ThemeColors = getThemeColorsSafe(theme);
   
   // Get profile data safely
   const profile = profileStore?.profile;
