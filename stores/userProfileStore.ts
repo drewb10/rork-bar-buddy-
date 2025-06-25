@@ -228,6 +228,18 @@ const createDefaultProfile = (): UserProfile => ({
   pool_games_won: 0,
   dart_games_won: 0,
   photos_taken: 0,
+  daily_stats: {
+    shots: 0,
+    scoopAndScores: 0,
+    beers: 0,
+    beerTowers: 0,
+    funnels: 0,
+    shotguns: 0,
+    poolGamesWon: 0,
+    dartGamesWon: 0,
+    date: getTodayString(),
+    lastResetAt: new Date().toISOString(),
+  },
   has_completed_onboarding: true,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
@@ -299,7 +311,18 @@ export const useUserProfileStore = create<UserProfileState>()(
                 visited_bars: [],
                 xp_activities: [],
                 has_completed_onboarding: false,
-                daily_stats: {}
+                daily_stats: {
+                  shots: 0,
+                  scoopAndScores: 0,
+                  beers: 0,
+                  beerTowers: 0,
+                  funnels: 0,
+                  shotguns: 0,
+                  poolGamesWon: 0,
+                  dartGamesWon: 0,
+                  date: getTodayString(),
+                  lastResetAt: new Date().toISOString(),
+                }
               };
               
               const { data: newProfile, error: createError } = await supabase
@@ -583,134 +606,134 @@ export const useUserProfileStore = create<UserProfileState>()(
       
       updateDailyTrackerTotals: async (stats) => {
         const { profile } = get();
-        if (!profile) return;
+        if (!profile) {
+          console.error('❌ No profile available for updating daily tracker totals');
+          return;
+        }
 
-        const today = getTodayString();
-        const currentDailyStats = profile.daily_stats;
-        const isToday = currentDailyStats?.date === today;
-        
-        // Calculate the differences to avoid double counting
-        const shotsDiff = Math.max(0, stats.shots - (isToday ? currentDailyStats.shots : 0));
-        const scoopDiff = Math.max(0, stats.scoopAndScores - (isToday ? currentDailyStats.scoopAndScores : 0));
-        const beersDiff = Math.max(0, stats.beers - (isToday ? currentDailyStats.beers : 0));
-        const beerTowersDiff = Math.max(0, stats.beerTowers - (isToday ? currentDailyStats.beerTowers : 0));
-        const funnelsDiff = Math.max(0, stats.funnels - (isToday ? currentDailyStats.funnels : 0));
-        const shotgunsDiff = Math.max(0, stats.shotguns - (isToday ? currentDailyStats.shotguns : 0));
-        const poolDiff = Math.max(0, stats.poolGamesWon - (isToday ? currentDailyStats.poolGamesWon : 0));
-        const dartDiff = Math.max(0, stats.dartGamesWon - (isToday ? currentDailyStats.dartGamesWon : 0));
-        
-        const newDailyStats: DailyStats = {
-          shots: stats.shots,
-          scoopAndScores: stats.scoopAndScores,
-          beers: stats.beers,
-          beerTowers: stats.beerTowers,
-          funnels: stats.funnels,
-          shotguns: stats.shotguns,
-          poolGamesWon: stats.poolGamesWon,
-          dartGamesWon: stats.dartGamesWon,
-          date: today,
-          lastResetAt: currentDailyStats?.lastResetAt || new Date().toISOString(),
-        };
-        
-        // Award XP for each activity increase
-        if (shotsDiff > 0) {
-          for (let i = 0; i < shotsDiff; i++) {
-            await get().awardXP('shots', 'Took a shot');
+        try {
+          const today = getTodayString();
+          
+          // Get current daily stats safely
+          const currentDailyStats = get().getDailyStats();
+          const isToday = currentDailyStats.date === today;
+          
+          // Calculate the differences to avoid double counting
+          const shotsDiff = Math.max(0, stats.shots - (isToday ? currentDailyStats.shots : 0));
+          const scoopDiff = Math.max(0, stats.scoopAndScores - (isToday ? currentDailyStats.scoopAndScores : 0));
+          const beersDiff = Math.max(0, stats.beers - (isToday ? currentDailyStats.beers : 0));
+          const beerTowersDiff = Math.max(0, stats.beerTowers - (isToday ? currentDailyStats.beerTowers : 0));
+          const funnelsDiff = Math.max(0, stats.funnels - (isToday ? currentDailyStats.funnels : 0));
+          const shotgunsDiff = Math.max(0, stats.shotguns - (isToday ? currentDailyStats.shotguns : 0));
+          const poolDiff = Math.max(0, stats.poolGamesWon - (isToday ? currentDailyStats.poolGamesWon : 0));
+          const dartDiff = Math.max(0, stats.dartGamesWon - (isToday ? currentDailyStats.dartGamesWon : 0));
+          
+          console.log('🔄 Calculated differences:', {
+            shotsDiff, scoopDiff, beersDiff, beerTowersDiff, 
+            funnelsDiff, shotgunsDiff, poolDiff, dartDiff
+          });
+          
+          const newDailyStats: DailyStats = {
+            shots: stats.shots,
+            scoopAndScores: stats.scoopAndScores,
+            beers: stats.beers,
+            beerTowers: stats.beerTowers,
+            funnels: stats.funnels,
+            shotguns: stats.shotguns,
+            poolGamesWon: stats.poolGamesWon,
+            dartGamesWon: stats.dartGamesWon,
+            date: today,
+            lastResetAt: currentDailyStats.lastResetAt,
+          };
+          
+          // Award XP for each activity increase
+          if (shotsDiff > 0) {
+            for (let i = 0; i < shotsDiff; i++) {
+              await get().awardXP('shots', 'Took a shot');
+            }
           }
-        }
-        if (scoopDiff > 0) {
-          for (let i = 0; i < scoopDiff; i++) {
-            await get().awardXP('scoop_and_scores', 'Had a Scoop & Score');
+          if (scoopDiff > 0) {
+            for (let i = 0; i < scoopDiff; i++) {
+              await get().awardXP('scoop_and_scores', 'Had a Scoop & Score');
+            }
           }
-        }
-        if (beersDiff > 0) {
-          for (let i = 0; i < beersDiff; i++) {
-            await get().awardXP('beers', 'Had a beer');
+          if (beersDiff > 0) {
+            for (let i = 0; i < beersDiff; i++) {
+              await get().awardXP('beers', 'Had a beer');
+            }
           }
-        }
-        if (beerTowersDiff > 0) {
-          for (let i = 0; i < beerTowersDiff; i++) {
-            await get().awardXP('beer_towers', 'Finished a beer tower');
+          if (beerTowersDiff > 0) {
+            for (let i = 0; i < beerTowersDiff; i++) {
+              await get().awardXP('beer_towers', 'Finished a beer tower');
+            }
           }
-        }
-        if (funnelsDiff > 0) {
-          for (let i = 0; i < funnelsDiff; i++) {
-            await get().awardXP('funnels', 'Did a funnel');
+          if (funnelsDiff > 0) {
+            for (let i = 0; i < funnelsDiff; i++) {
+              await get().awardXP('funnels', 'Did a funnel');
+            }
           }
-        }
-        if (shotgunsDiff > 0) {
-          for (let i = 0; i < shotgunsDiff; i++) {
-            await get().awardXP('shotguns', 'Did a shotgun');
+          if (shotgunsDiff > 0) {
+            for (let i = 0; i < shotgunsDiff; i++) {
+              await get().awardXP('shotguns', 'Did a shotgun');
+            }
           }
-        }
-        if (poolDiff > 0) {
-          for (let i = 0; i < poolDiff; i++) {
-            await get().awardXP('pool_games', 'Won a pool game');
+          if (poolDiff > 0) {
+            for (let i = 0; i < poolDiff; i++) {
+              await get().awardXP('pool_games', 'Won a pool game');
+            }
           }
-        }
-        if (dartDiff > 0) {
-          for (let i = 0; i < dartDiff; i++) {
-            await get().awardXP('dart_games', 'Won a dart game');
+          if (dartDiff > 0) {
+            for (let i = 0; i < dartDiff; i++) {
+              await get().awardXP('dart_games', 'Won a dart game');
+            }
           }
-        }
-        
-        await get().updateProfile({
-          total_shots: profile.total_shots + shotsDiff,
-          total_scoop_and_scores: profile.total_scoop_and_scores + scoopDiff,
-          total_beers: profile.total_beers + beersDiff,
-          total_beer_towers: profile.total_beer_towers + beerTowersDiff,
-          total_funnels: profile.total_funnels + funnelsDiff,
-          total_shotguns: profile.total_shotguns + shotgunsDiff,
-          pool_games_won: profile.pool_games_won + poolDiff,
-          dart_games_won: profile.dart_games_won + dartDiff,
-          daily_stats: newDailyStats,
-        });
+          
+          // Update profile with new totals and daily stats
+          await get().updateProfile({
+            total_shots: profile.total_shots + shotsDiff,
+            total_scoop_and_scores: profile.total_scoop_and_scores + scoopDiff,
+            total_beers: profile.total_beers + beersDiff,
+            total_beer_towers: profile.total_beer_towers + beerTowersDiff,
+            total_funnels: profile.total_funnels + funnelsDiff,
+            total_shotguns: profile.total_shotguns + shotgunsDiff,
+            pool_games_won: profile.pool_games_won + poolDiff,
+            dart_games_won: profile.dart_games_won + dartDiff,
+            daily_stats: newDailyStats,
+          });
 
-        // Update achievements
-        if (typeof window !== 'undefined' && (window as any).__achievementStore) {
-          const achievementStore = (window as any).__achievementStore;
-          if (achievementStore?.getState) {
-            const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
-            checkAndUpdateMultiLevelAchievements({
-              totalBeers: profile.total_beers + beersDiff,
-              totalShots: profile.total_shots + shotsDiff,
-              totalBeerTowers: profile.total_beer_towers + beerTowersDiff,
-              totalScoopAndScores: profile.total_scoop_and_scores + scoopDiff,
-              totalFunnels: profile.total_funnels + funnelsDiff,
-              totalShotguns: profile.total_shotguns + shotgunsDiff,
-              poolGamesWon: profile.pool_games_won + poolDiff,
-              dartGamesWon: profile.dart_games_won + dartDiff,
-              barsHit: profile.bars_hit,
-              nightsOut: profile.nights_out,
-            });
+          // Update achievements
+          if (typeof window !== 'undefined' && (window as any).__achievementStore) {
+            const achievementStore = (window as any).__achievementStore;
+            if (achievementStore?.getState) {
+              const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
+              checkAndUpdateMultiLevelAchievements({
+                totalBeers: profile.total_beers + beersDiff,
+                totalShots: profile.total_shots + shotsDiff,
+                totalBeerTowers: profile.total_beer_towers + beerTowersDiff,
+                totalScoopAndScores: profile.total_scoop_and_scores + scoopDiff,
+                totalFunnels: profile.total_funnels + funnelsDiff,
+                totalShotguns: profile.total_shotguns + shotgunsDiff,
+                poolGamesWon: profile.pool_games_won + poolDiff,
+                dartGamesWon: profile.dart_games_won + dartDiff,
+                barsHit: profile.bars_hit,
+                nightsOut: profile.nights_out,
+              });
+            }
           }
+          
+          console.log('✅ Daily tracker totals updated successfully');
+        } catch (error) {
+          console.error('❌ Error updating daily tracker totals:', error);
+          throw error; // Re-throw to be caught by the calling function
         }
       },
 
       getDailyStats: () => {
         const { profile } = get();
-        if (!profile) {
-          return {
-            shots: 0,
-            scoopAndScores: 0,
-            beers: 0,
-            beerTowers: 0,
-            funnels: 0,
-            shotguns: 0,
-            poolGamesWon: 0,
-            dartGamesWon: 0,
-            date: getTodayString(),
-            lastResetAt: new Date().toISOString(),
-          };
-        }
-
         const today = getTodayString();
         
-        if (profile.daily_stats?.date === today) {
-          return profile.daily_stats;
-        }
-        
-        return {
+        // Default stats for when profile doesn't exist or daily_stats is undefined
+        const defaultStats: DailyStats = {
           shots: 0,
           scoopAndScores: 0,
           beers: 0,
@@ -722,6 +745,34 @@ export const useUserProfileStore = create<UserProfileState>()(
           date: today,
           lastResetAt: new Date().toISOString(),
         };
+
+        if (!profile) {
+          return defaultStats;
+        }
+
+        // If daily_stats doesn't exist or is not properly structured, return default
+        if (!profile.daily_stats || typeof profile.daily_stats !== 'object') {
+          return defaultStats;
+        }
+
+        // If the date matches today, return the existing stats
+        if (profile.daily_stats.date === today) {
+          return {
+            shots: profile.daily_stats.shots || 0,
+            scoopAndScores: profile.daily_stats.scoopAndScores || 0,
+            beers: profile.daily_stats.beers || 0,
+            beerTowers: profile.daily_stats.beerTowers || 0,
+            funnels: profile.daily_stats.funnels || 0,
+            shotguns: profile.daily_stats.shotguns || 0,
+            poolGamesWon: profile.daily_stats.poolGamesWon || 0,
+            dartGamesWon: profile.daily_stats.dartGamesWon || 0,
+            date: profile.daily_stats.date,
+            lastResetAt: profile.daily_stats.lastResetAt || new Date().toISOString(),
+          };
+        }
+        
+        // If it's a different day, return default stats for today
+        return defaultStats;
       },
       
       canIncrementNightsOut: () => {
@@ -1000,6 +1051,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           xp_activities: state.profile.xp_activities,
           visited_bars: state.profile.visited_bars,
           has_completed_onboarding: state.profile.has_completed_onboarding,
+          daily_stats: state.profile.daily_stats,
           created_at: state.profile.created_at,
           updated_at: state.profile.updated_at,
         } : null,
