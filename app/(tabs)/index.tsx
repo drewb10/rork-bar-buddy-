@@ -48,10 +48,9 @@ export default function HomeScreen() {
   const topPickIds = ['library-taphouse', 'late-night-library', 'jba-sports-bar'];
   const topPicks = venues.filter(venue => topPickIds.includes(venue.id)).slice(0, 3);
 
-  // Rest of venues sorted by daily likes (excluding top picks)
+  // Rest of venues sorted by daily likes (including top picks)
   const popularVenues = getMostPopularVenues();
   const maconBars = filteredVenues
-    .filter(venue => !topPickIds.includes(venue.id))
     .sort((a, b) => {
       const aLikes = popularVenues.find(p => p.venueId === a.id)?.likes || 0;
       const bLikes = popularVenues.find(p => p.venueId === b.id)?.likes || 0;
@@ -95,22 +94,22 @@ export default function HomeScreen() {
         </Pressable>
 
         {/* Bar Buddy's Top Picks Section */}
-        <SectionHeader 
-          title="Bar Buddy's Top Picks"
-          centered={true}
-          showSeeAll={false}
-        />
-        
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.topPicksScrollContent}
-          style={styles.topPicksScroll}
-        >
-          {topPicks.map((venue) => (
-            <TopPickCard key={venue.id} venue={venue} />
-          ))}
-        </ScrollView>
+        <View style={styles.topPicksSection}>
+          <Text style={[styles.topPicksTitle, { color: themeColors.primary }]}>
+            Bar Buddy's Top Picks
+          </Text>
+          
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.topPicksScrollContent}
+            style={styles.topPicksScroll}
+          >
+            {topPicks.map((venue) => (
+              <TopPickCard key={venue.id} venue={venue} />
+            ))}
+          </ScrollView>
+        </View>
 
         {/* Macon Bars Section */}
         <SectionHeader 
@@ -178,8 +177,18 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     letterSpacing: 0.3,
   },
-  topPicksScroll: {
+  topPicksSection: {
     marginBottom: 24,
+  },
+  topPicksTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 16,
+    letterSpacing: 0.5,
+  },
+  topPicksScroll: {
+    marginBottom: 0,
   },
   topPicksScrollContent: {
     paddingHorizontal: 16,
