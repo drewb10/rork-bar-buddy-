@@ -16,7 +16,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: themeColors.subtext,
         tabBarStyle: {
           backgroundColor: '#000000',
-          borderTopColor: 'transparent',
+          borderTopColor: themeColors.glass.border,
           paddingTop: Platform.OS === 'ios' ? 8 : 4,
           height: Platform.OS === 'ios' ? 88 : 64,
           // Enhanced shadow system for premium depth
@@ -27,7 +27,6 @@ export default function TabLayout() {
           elevation: 20,
           // Subtle border for definition
           borderTopWidth: 0.5,
-          borderTopColor: themeColors.glass.border,
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -39,9 +38,6 @@ export default function TabLayout() {
           marginTop: 2,
         },
         headerShown: false,
-        // Smooth animation for tab transitions
-        animation: 'shift',
-        animationDuration: 200,
       }}
     >
       <Tabs.Screen
