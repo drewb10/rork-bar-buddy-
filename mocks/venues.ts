@@ -2,59 +2,7 @@ import { Venue, Special, VenueType, SpecialType } from '@/types/venue';
 
 export const venues: Venue[] = [
   {
-    id: '1',
-    name: "The Hummingbird Stage & Taproom",
-    description: "Live music venue with a great selection of craft beers and regular performances.",
-    address: "430 Cherry St, Macon, GA 31201",
-    phone: "(478) 741-9130",
-    website: "https://www.thebirdstage.com/",
-    instagram: "hummingbirdmacon",
-    types: ['hangout'],
-    rating: 4.6,
-    priceLevel: 2,
-    openHours: [
-      { day: 'Monday', closed: true, open: '', close: '' },
-      { day: 'Tuesday', open: '16:00', close: '00:00' },
-      { day: 'Wednesday', open: '16:00', close: '00:00' },
-      { day: 'Thursday', open: '16:00', close: '00:00' },
-      { day: 'Friday', open: '16:00', close: '02:00' },
-      { day: 'Saturday', open: '16:00', close: '02:00' },
-      { day: 'Sunday', closed: true, open: '', close: '' }
-    ],
-    specials: [
-      {
-        id: '1-1',
-        title: "Open Mic Night",
-        description: "Show off your talent with $3 craft beer pints",
-        day: "Tuesday",
-        startTime: "20:00",
-        endTime: "23:00",
-        type: "live-music",
-        recurring: true
-      },
-      {
-        id: '1-2',
-        title: "Happy Hour",
-        description: "$2 off all drafts and appetizers",
-        day: "Wednesday",
-        startTime: "16:00",
-        endTime: "19:00",
-        type: "happy-hour",
-        recurring: true
-      }
-    ],
-    featuredImage: "https://images.unsplash.com/photo-1559519529-0936e4058364?q=80&w=1000",
-    images: [
-      "https://images.unsplash.com/photo-1559519529-0936e4058364?q=80&w=1000",
-      "https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?q=80&w=1000"
-    ],
-    location: {
-      latitude: 32.8370,
-      longitude: -83.6325
-    }
-  },
-  {
-    id: '2',
+    id: 'library-taphouse',
     name: "The Library Taphouse and Kitchen",
     description: "Casual bar with a wide selection of beers on tap and traditional pub fare.",
     address: "2644 Riverside Dr, Macon, GA 31204",
@@ -133,6 +81,164 @@ export const venues: Venue[] = [
     location: {
       latitude: 32.8365,
       longitude: -83.6320
+    }
+  },
+  {
+    id: 'late-night-library',
+    name: "Late Nite",
+    description: "Vibrant nightclub with DJs, dancing, and weekend events.",
+    address: "496 2nd St, Macon, GA 31201",
+    phone: "(478) 254-7009",
+    website: "https://thisweekendatlatenite.com/",
+    instagram: "latenitemacon",
+    types: ['club'],
+    rating: 4.1,
+    priceLevel: 3,
+    openHours: [
+      { day: 'Monday', closed: true, open: '', close: '' },
+      { day: 'Tuesday', closed: true, open: '', close: '' },
+      { day: 'Wednesday', closed: true, open: '', close: '' },
+      { day: 'Thursday', open: '22:00', close: '03:00' },
+      { day: 'Friday', open: '22:00', close: '03:00' },
+      { day: 'Saturday', open: '22:00', close: '03:00' },
+      { day: 'Sunday', closed: true, open: '', close: '' }
+    ],
+    specials: [
+      {
+        id: '5-1',
+        title: "College Night",
+        description: "No cover with college ID. $3 shots all night!",
+        day: "Thursday",
+        startTime: "22:00",
+        endTime: "03:00",
+        type: "college-night",
+        recurring: true
+      },
+      {
+        id: '5-2',
+        title: "Ladies Night",
+        description: "Ladies get in free before midnight",
+        day: "Friday",
+        startTime: "22:00",
+        endTime: "00:00",
+        type: "ladies-night",
+        recurring: true,
+        imageUrl: "https://images.unsplash.com/photo-1575444758702-4a6b9222336e?q=80&w=1000"
+      }
+    ],
+    featuredImage: "https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?q=80&w=1000",
+    images: [
+      "https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?q=80&w=1000",
+      "https://images.unsplash.com/photo-1543007630-9710e4a00a20?q=80&w=1000"
+    ],
+    location: {
+      latitude: 32.8406,
+      longitude: -83.6325
+    }
+  },
+  {
+    id: 'jba-sports-bar',
+    name: "JBA",
+    description: "Just Because Art Bar & Lounge offers craft cocktails in an upscale setting with regular live music and art exhibitions.",
+    address: "499 Martin Luther King Jr Blvd, Macon, GA 31201",
+    phone: "(478) 257-6456",
+    website: "https://www.jbamacon.com/",
+    instagram: "jbamacongeorgia",
+    types: ['club', 'hangout', 'pool'],
+    rating: 4.7,
+    priceLevel: 3,
+    openHours: [
+      { day: 'Monday', closed: true, open: '', close: '' },
+      { day: 'Tuesday', closed: true, open: '', close: '' },
+      { day: 'Wednesday', open: '17:00', close: '00:00' },
+      { day: 'Thursday', open: '17:00', close: '00:00' },
+      { day: 'Friday', open: '17:00', close: '02:00' },
+      { day: 'Saturday', open: '17:00', close: '02:00' },
+      { day: 'Sunday', open: '16:00', close: '22:00' }
+    ],
+    specials: [
+      {
+        id: '6-1',
+        title: "Karaoke Night",
+        description: "Sing your heart out every Wednesday with $5 signature cocktails",
+        day: "Wednesday",
+        startTime: "20:00",
+        endTime: "00:00",
+        type: "karaoke",
+        recurring: true
+      },
+      {
+        id: '6-2',
+        title: "Sunday Jazz",
+        description: "Live jazz and half-price wine bottles",
+        day: "Sunday",
+        startTime: "17:00",
+        endTime: "21:00",
+        type: "live-music",
+        recurring: true,
+        imageUrl: "https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?q=80&w=1000"
+      }
+    ],
+    featuredImage: "https://images.unsplash.com/photo-1470337458703-46ad1756a187?q=80&w=1000",
+    images: [
+      "https://images.unsplash.com/photo-1470337458703-46ad1756a187?q=80&w=1000",
+      "https://images.unsplash.com/photo-1572116469696-31de0f17cc34?q=80&w=1000"
+    ],
+    location: {
+      latitude: 32.8412,
+      longitude: -83.6330
+    }
+  },
+  {
+    id: '1',
+    name: "The Hummingbird Stage & Taproom",
+    description: "Live music venue with a great selection of craft beers and regular performances.",
+    address: "430 Cherry St, Macon, GA 31201",
+    phone: "(478) 741-9130",
+    website: "https://www.thebirdstage.com/",
+    instagram: "hummingbirdmacon",
+    types: ['hangout'],
+    rating: 4.6,
+    priceLevel: 2,
+    openHours: [
+      { day: 'Monday', closed: true, open: '', close: '' },
+      { day: 'Tuesday', open: '16:00', close: '00:00' },
+      { day: 'Wednesday', open: '16:00', close: '00:00' },
+      { day: 'Thursday', open: '16:00', close: '00:00' },
+      { day: 'Friday', open: '16:00', close: '02:00' },
+      { day: 'Saturday', open: '16:00', close: '02:00' },
+      { day: 'Sunday', closed: true, open: '', close: '' }
+    ],
+    specials: [
+      {
+        id: '1-1',
+        title: "Open Mic Night",
+        description: "Show off your talent with $3 craft beer pints",
+        day: "Tuesday",
+        startTime: "20:00",
+        endTime: "23:00",
+        type: "live-music",
+        recurring: true
+      },
+      {
+        id: '1-2',
+        title: "Happy Hour",
+        description: "$2 off all drafts and appetizers",
+        day: "Wednesday",
+        startTime: "16:00",
+        endTime: "19:00",
+        type: "happy-hour",
+        recurring: true
+      }
+    ],
+    featuredImage: "https://images.unsplash.com/photo-1559519529-0936e4058364?q=80&w=1000",
+    images: [
+      "https://images.unsplash.com/photo-1559519529-0936e4058364?q=80&w=1000",
+      "https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?q=80&w=1000"
+    ],
+    location: {
+      latitude: 32.8370,
+      longitude: -83.6325
     }
   },
   {
@@ -238,112 +344,6 @@ export const venues: Venue[] = [
     location: {
       latitude: 32.8380,
       longitude: -83.6315
-    }
-  },
-  {
-    id: '5',
-    name: "Late Nite",
-    description: "Vibrant nightclub with DJs, dancing, and weekend events.",
-    address: "496 2nd St, Macon, GA 31201",
-    phone: "(478) 254-7009",
-    website: "https://thisweekendatlatenite.com/",
-    instagram: "latenitemacon",
-    types: ['club'],
-    rating: 4.1,
-    priceLevel: 3,
-    openHours: [
-      { day: 'Monday', closed: true, open: '', close: '' },
-      { day: 'Tuesday', closed: true, open: '', close: '' },
-      { day: 'Wednesday', closed: true, open: '', close: '' },
-      { day: 'Thursday', open: '22:00', close: '03:00' },
-      { day: 'Friday', open: '22:00', close: '03:00' },
-      { day: 'Saturday', open: '22:00', close: '03:00' },
-      { day: 'Sunday', closed: true, open: '', close: '' }
-    ],
-    specials: [
-      {
-        id: '5-1',
-        title: "College Night",
-        description: "No cover with college ID. $3 shots all night!",
-        day: "Thursday",
-        startTime: "22:00",
-        endTime: "03:00",
-        type: "college-night",
-        recurring: true
-      },
-      {
-        id: '5-2',
-        title: "Ladies Night",
-        description: "Ladies get in free before midnight",
-        day: "Friday",
-        startTime: "22:00",
-        endTime: "00:00",
-        type: "ladies-night",
-        recurring: true,
-        imageUrl: "https://images.unsplash.com/photo-1575444758702-4a6b9222336e?q=80&w=1000"
-      }
-    ],
-    featuredImage: "https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?q=80&w=1000",
-    images: [
-      "https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?q=80&w=1000",
-      "https://images.unsplash.com/photo-1543007630-9710e4a00a20?q=80&w=1000"
-    ],
-    location: {
-      latitude: 32.8406,
-      longitude: -83.6325
-    }
-  },
-  {
-    id: '6',
-    name: "JBA",
-    description: "Just Because Art Bar & Lounge offers craft cocktails in an upscale setting with regular live music and art exhibitions.",
-    address: "499 Martin Luther King Jr Blvd, Macon, GA 31201",
-    phone: "(478) 257-6456",
-    website: "https://www.jbamacon.com/",
-    instagram: "jbamacongeorgia",
-    types: ['club', 'hangout', 'pool'],
-    rating: 4.7,
-    priceLevel: 3,
-    openHours: [
-      { day: 'Monday', closed: true, open: '', close: '' },
-      { day: 'Tuesday', closed: true, open: '', close: '' },
-      { day: 'Wednesday', open: '17:00', close: '00:00' },
-      { day: 'Thursday', open: '17:00', close: '00:00' },
-      { day: 'Friday', open: '17:00', close: '02:00' },
-      { day: 'Saturday', open: '17:00', close: '02:00' },
-      { day: 'Sunday', open: '16:00', close: '22:00' }
-    ],
-    specials: [
-      {
-        id: '6-1',
-        title: "Karaoke Night",
-        description: "Sing your heart out every Wednesday with $5 signature cocktails",
-        day: "Wednesday",
-        startTime: "20:00",
-        endTime: "00:00",
-        type: "karaoke",
-        recurring: true
-      },
-      {
-        id: '6-2',
-        title: "Sunday Jazz",
-        description: "Live jazz and half-price wine bottles",
-        day: "Sunday",
-        startTime: "17:00",
-        endTime: "21:00",
-        type: "live-music",
-        recurring: true,
-        imageUrl: "https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?q=80&w=1000"
-      }
-    ],
-    featuredImage: "https://images.unsplash.com/photo-1470337458703-46ad1756a187?q=80&w=1000",
-    images: [
-      "https://images.unsplash.com/photo-1470337458703-46ad1756a187?q=80&w=1000",
-      "https://images.unsplash.com/photo-1572116469696-31de0f17cc34?q=80&w=1000"
-    ],
-    location: {
-      latitude: 32.8412,
-      longitude: -83.6330
     }
   },
   {
