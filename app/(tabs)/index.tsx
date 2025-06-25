@@ -70,8 +70,10 @@ export default function HomeScreen() {
   });
 
   // Get the top bar (most liked venue)
-  const topBar = sortedVenues.length > 0 && interactions.find(i => i && i.venueId === sortedVenues[0].id)?.likes > 0 
-    ? sortedVenues[0] 
+  const topBar = sortedVenues.length > 0 && sortedVenues[0] 
+    ? (interactions.find(i => i && i.venueId === sortedVenues[0].id)?.likes || 0) > 0 
+      ? sortedVenues[0] 
+      : null
     : null;
 
   const dailyStats = getDailyStats();
