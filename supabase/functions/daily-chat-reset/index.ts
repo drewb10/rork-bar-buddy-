@@ -1,12 +1,20 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
+interface SessionData {
+  id: string;
+}
+
+interface MessageData {
+  session_id: string;
+}
+
+serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -62,7 +70,7 @@ serve(async (req) => {
       console.error('Error finding sessions to delete:', sessionsError)
     } else if (sessionsToDelete && sessionsToDelete.length > 0) {
       // Check which of these sessions have no messages
-      const sessionIds = sessionsToDelete.map(s => s.id)
+      const sessionIds = sessionsToDelete.map((s: SessionData) => s.id)
       
       const { data: sessionsWithMessages, error: messagesCheckError } = await supabaseAdmin
         .from('chat_messages')
@@ -70,8 +78,8 @@ serve(async (req) => {
         .in('session_id', sessionIds)
 
       if (!messagesCheckError) {
-        const sessionsWithMessagesIds = new Set(sessionsWithMessages?.map(m => m.session_id) || [])
-        const sessionsToDeleteIds = sessionIds.filter(id => !sessionsWithMessagesIds.has(id))
+        const sessionsWithMessagesIds = new Set(sessionsWithMessages?.map((m: MessageData) => m.session_id) || [])
+        const sessionsToDeleteIds = sessionIds.filter((id: string) => !sessionsWithMessagesIds.has(id))
 
         if (sessionsToDeleteIds.length > 0) {
           const { error: deleteSessionsError } = await supabaseAdmin
@@ -121,10 +129,12 @@ serve(async (req) => {
   } catch (error) {
     console.error('Daily chat reset failed:', error)
     
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: errorMessage,
         timestamp: new Date().toISOString()
       }),
       {
