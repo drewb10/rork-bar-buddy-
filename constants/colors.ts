@@ -1,73 +1,41 @@
-// Color palette for the app with enhanced shadows and glassmorphism
 export const colors = {
-  dark: {
-    background: '#000000', // Pure black background
-    gradient: ['#000000', '#000000'], // Pure black gradient
-    card: '#111111', // Very dark gray for cards to maintain some contrast
-    text: '#FFFFFF', // Pure white for better contrast
-    subtext: '#B3B3B3', // Lighter gray for better visibility
-    primary: '#FF6A00', // flame orange
-    secondary: '#FF944D',
-    accent: '#FF6A00',
-    border: '#222222', // Darker border
-    success: '#4CAF50',
-    error: '#F44336',
-    // Enhanced shadow system for depth
-    shadow: {
-      light: 'rgba(255, 255, 255, 0.05)',
-      medium: 'rgba(0, 0, 0, 0.3)',
-      heavy: 'rgba(0, 0, 0, 0.6)',
-      colored: 'rgba(255, 106, 0, 0.2)',
-    },
-    // Glassmorphism colors
-    glass: {
-      background: 'rgba(17, 17, 17, 0.8)',
-      border: 'rgba(255, 255, 255, 0.1)',
-      overlay: 'rgba(0, 0, 0, 0.4)',
-    }
-  },
   light: {
-    background: '#F8F8F8',
-    gradient: ['#F8F8F8', '#EEEEEE'],
-    card: '#FFFFFF',
-    text: '#121212',
-    subtext: '#666666',
-    primary: '#FF6A00', // flame orange
-    secondary: '#FF944D',
-    accent: '#FF6A00',
-    border: '#EEEEEE',
-    success: '#4CAF50',
-    error: '#F44336',
-    // Enhanced shadow system for depth
-    shadow: {
-      light: 'rgba(0, 0, 0, 0.05)',
-      medium: 'rgba(0, 0, 0, 0.15)',
-      heavy: 'rgba(0, 0, 0, 0.25)',
-      colored: 'rgba(255, 106, 0, 0.15)',
-    },
-    // Glassmorphism colors
-    glass: {
-      background: 'rgba(255, 255, 255, 0.9)',
-      border: 'rgba(0, 0, 0, 0.1)',
-      overlay: 'rgba(0, 0, 0, 0.3)',
-    }
-  }
-} as const;
-
-export type Theme = keyof typeof colors;
-export type ThemeColors = typeof colors[Theme];
-
-// Helper function to get theme colors safely with proper typing
-export const getThemeColors = (theme: Theme): ThemeColors => {
-  return colors[theme];
+    background: '#FFFFFF',
+    card: '#F8F9FA',
+    text: '#1A1A1A',
+    subtext: '#6B7280',
+    primary: '#FF6A00',
+    secondary: '#4F46E5',
+    border: '#E5E7EB',
+    success: '#10B981',
+    warning: '#F59E0B',
+    error: '#EF4444',
+    accent: '#8B5CF6',
+  },
+  dark: {
+    background: '#0A0A0A',
+    card: '#1A1A1A',
+    text: '#FFFFFF',
+    subtext: '#9CA3AF',
+    primary: '#FF6A00',
+    secondary: '#6366F1',
+    border: '#374151',
+    success: '#10B981',
+    warning: '#F59E0B',
+    error: '#EF4444',
+    accent: '#A855F7',
+  },
 };
 
-// Safe helper that defaults to dark theme if theme is invalid
-export const getThemeColorsSafe = (theme?: Theme | null): ThemeColors => {
-  if (!theme || !(theme in colors)) {
+export type Theme = 'light' | 'dark';
+export type ThemeColors = typeof colors.light;
+
+// Safe getter for theme colors
+export const getThemeColorsSafe = (theme: Theme): ThemeColors => {
+  try {
+    return colors[theme] || colors.dark;
+  } catch (error) {
+    console.warn('Error getting theme colors:', error);
     return colors.dark;
   }
-  return colors[theme];
 };
-
-export default colors;

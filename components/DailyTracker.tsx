@@ -46,6 +46,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     dartGamesWon: 0,
   });
   const [selectedDrunkScale, setSelectedDrunkScale] = useState<number | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -61,11 +62,14 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         dartGamesWon: 0,
       });
       setSelectedDrunkScale(null);
+      setIsSaving(false);
     }
   }, [visible]);
 
   const handleClose = () => {
-    onClose();
+    if (!isSaving) {
+      onClose();
+    }
   };
 
   const handleStatChange = (statKey: keyof typeof localStats, delta: number) => {
@@ -79,8 +83,24 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   };
 
   const handleSaveStats = async () => {
+    if (isSaving) return;
+    
     try {
+      setIsSaving(true);
       console.log('🔄 Saving daily tracker stats:', localStats);
+      
+      // Check if there are any stats to save
+      const hasStats = Object.values(localStats).some(value => value > 0);
+      
+      if (!hasStats) {
+        Alert.alert(
+          'No Stats to Save',
+          'Please add some activities before saving.',
+          [{ text: 'OK' }]
+        );
+        setIsSaving(false);
+        return;
+      }
       
       // Calculate new totals by adding current stats to existing totals
       const newTotals = {
@@ -94,7 +114,9 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         dartGamesWon: (profile?.dart_games_won || 0) + localStats.dartGamesWon,
       };
       
-      // Update user profile totals (this handles XP awarding)
+      console.log('🔄 New totals will be:', newTotals);
+      
+      // Update user profile totals (this handles XP awarding and achievement updates)
       await updateDailyTrackerTotals(newTotals);
       
       console.log('✅ Stats saved successfully');
@@ -111,13 +133,16 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         dartGamesWon: 0,
       });
       
+      setIsSaving(false);
+      
       Alert.alert(
         'Stats Saved! 🎉',
-        'Your stats have been updated and XP awarded!',
+        'Your stats have been updated and XP awarded! Check your trophies to see any new achievements.',
         [{ text: 'Awesome!', onPress: handleClose }]
       );
     } catch (error) {
       console.error('❌ Error saving stats:', error);
+      setIsSaving(false);
       Alert.alert(
         'Error',
         'Failed to save stats. Please try again.',
@@ -176,7 +201,11 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                 Daily Tracker
               </Text>
             </View>
-            <Pressable style={styles.closeButton} onPress={handleClose}>
+            <Pressable 
+              style={[styles.closeButton, { opacity: isSaving ? 0.5 : 1 }]} 
+              onPress={handleClose}
+              disabled={isSaving}
+            >
               <X size={28} color={themeColors.text} />
             </Pressable>
           </View>
@@ -211,6 +240,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                     <Pressable
                       style={[styles.controlButton, { backgroundColor: themeColors.border }]}
                       onPress={() => handleStatChange(item.key, -1)}
+                      disabled={isSaving}
                     >
                       <Minus size={18} color={themeColors.text} />
                     </Pressable>
@@ -222,6 +252,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                     <Pressable
                       style={[styles.controlButton, { backgroundColor: themeColors.primary }]}
                       onPress={() => handleStatChange(item.key, 1)}
+                      disabled={isSaving}
                     >
                       <Plus size={18} color="white" />
                     </Pressable>
@@ -262,6 +293,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                           }
                         ]}
                         onPress={() => setSelectedDrunkScale(option.value)}
+                        disabled={isSaving}
                       >
                         <Text style={styles.drunkScaleEmoji}>{option.emoji}</Text>
                         <Text style={[
@@ -295,11 +327,11 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                         backgroundColor: selectedDrunkScale !== null 
                           ? themeColors.primary 
                           : themeColors.border,
-                        opacity: selectedDrunkScale !== null ? 1 : 0.5,
+                        opacity: (selectedDrunkScale !== null && !isSaving) ? 1 : 0.5,
                       }
                     ]}
                     onPress={handleDrunkScaleSubmit}
-                    disabled={selectedDrunkScale === null}
+                    disabled={selectedDrunkScale === null || isSaving}
                   >
                     <Award size={22} color="white" />
                     <Text style={styles.submitDrunkScaleText}>
@@ -321,10 +353,19 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
           {/* Save Button */}
           <View style={[styles.footer, { borderTopColor: themeColors.border }]}>
             <Pressable
-              style={[styles.saveButton, { backgroundColor: themeColors.primary }]}
+              style={[
+                styles.saveButton, 
+                { 
+                  backgroundColor: themeColors.primary,
+                  opacity: isSaving ? 0.7 : 1,
+                }
+              ]}
               onPress={handleSaveStats}
+              disabled={isSaving}
             >
-              <Text style={styles.saveButtonText}>Save My Stats & Earn XP</Text>
+              <Text style={styles.saveButtonText}>
+                {isSaving ? 'Saving...' : 'Save My Stats & Earn XP'}
+              </Text>
             </Pressable>
           </View>
         </View>

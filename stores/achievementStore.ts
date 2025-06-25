@@ -578,6 +578,57 @@ export const useAchievementStore = create<AchievementState>()(
   )
 );
 
+// Safe hook that handles cases where the store might not be initialized
+export const useAchievementStoreSafe = () => {
+  try {
+    const store = useAchievementStore();
+    
+    // Return a safe version of the store with fallback values
+    return {
+      achievements: store?.achievements || [],
+      completedAchievements: store?.completedAchievements || [],
+      lastPopupDate: store?.lastPopupDate,
+      isInitialized: store?.isInitialized || false,
+      canShowPopup: store?.canShowPopup || (() => false),
+      shouldShow3AMPopup: store?.shouldShow3AMPopup || (() => false),
+      mark3AMPopupShown: store?.mark3AMPopupShown || (() => {}),
+      initializeAchievements: store?.initializeAchievements || (() => {}),
+      completeAchievement: store?.completeAchievement || (() => {}),
+      markPopupShown: store?.markPopupShown || (() => {}),
+      getCompletedCount: store?.getCompletedCount || (() => 0),
+      getAchievementsByCategory: store?.getAchievementsByCategory || (() => []),
+      getCompletedAchievementsByCategory: store?.getCompletedAchievementsByCategory || (() => []),
+      resetAchievements: store?.resetAchievements || (() => {}),
+      updateAchievementProgress: store?.updateAchievementProgress || (() => {}),
+      getCurrentLevelAchievements: store?.getCurrentLevelAchievements || (() => []),
+      checkAndUpdateMultiLevelAchievements: store?.checkAndUpdateMultiLevelAchievements || (() => {}),
+    };
+  } catch (error) {
+    console.warn('Error accessing achievement store safely:', error);
+    
+    // Return a completely safe fallback
+    return {
+      achievements: [],
+      completedAchievements: [],
+      lastPopupDate: undefined,
+      isInitialized: false,
+      canShowPopup: () => false,
+      shouldShow3AMPopup: () => false,
+      mark3AMPopupShown: () => {},
+      initializeAchievements: () => {},
+      completeAchievement: () => {},
+      markPopupShown: () => {},
+      getCompletedCount: () => 0,
+      getAchievementsByCategory: () => [],
+      getCompletedAchievementsByCategory: () => [],
+      resetAchievements: () => {},
+      updateAchievementProgress: () => {},
+      getCurrentLevelAchievements: () => [],
+      checkAndUpdateMultiLevelAchievements: () => {},
+    };
+  }
+};
+
 // Store reference for cross-store access
 if (typeof window !== 'undefined') {
   (window as any).__achievementStore = useAchievementStore;

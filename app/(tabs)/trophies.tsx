@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal } from 'react-native';
-import { Trophy, Award, Star, Target, Users, Calendar, X, MapPin, TrendingUp, ChartBar as BarChart3 } from 'lucide-react-native';
+import { Trophy, Award, Star, Target, Users, Calendar, X, MapPin, TrendingUp, BarChart3 } from 'lucide-react-native';
 import { getThemeColorsSafe, type Theme, type ThemeColors } from '@/constants/colors';
 import { useThemeStoreSafe } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
-import { useAchievementStore, CompletedAchievement } from '@/stores/achievementStore';
+import { useAchievementStoreSafe, CompletedAchievement } from '@/stores/achievementStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 
 export default function TrophiesScreen() {
@@ -14,7 +14,7 @@ export default function TrophiesScreen() {
   // Store access
   const themeStore = useThemeStoreSafe();
   const profileStore = useUserProfileStore();
-  const achievementStore = useAchievementStore();
+  const achievementStore = useAchievementStoreSafe();
   
   // Initialize stores
   useEffect(() => {
@@ -92,6 +92,14 @@ export default function TrophiesScreen() {
   const totalCompletedAchievements = completedAchievements.length;
   const averageDrunkScale = getAverageDrunkScale();
 
+  // Calculate total drinks logged
+  const totalDrinksLogged = (profile?.total_shots || 0) + 
+                           (profile?.total_beers || 0) + 
+                           (profile?.total_scoop_and_scores || 0) + 
+                           (profile?.total_beer_towers || 0) + 
+                           (profile?.total_funnels || 0) + 
+                           (profile?.total_shotguns || 0);
+
   const categories = [
     { key: 'bars', title: 'Bar Hopping', icon: Trophy, color: '#FF6A00' },
     { key: 'activities', title: 'Activities', icon: Target, color: '#4CAF50' },
@@ -159,6 +167,18 @@ export default function TrophiesScreen() {
             </View>
 
             <View style={styles.lifetimeStat}>
+              <BarChart3 size={20} color={themeColors.primary} />
+              <Text style={[styles.lifetimeStatNumber, { color: themeColors.text }]}>
+                {totalDrinksLogged}
+              </Text>
+              <Text style={[styles.lifetimeStatLabel, { color: themeColors.subtext }]}>
+                Drinks Logged
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.lifetimeStatsGrid}>
+            <View style={styles.lifetimeStat}>
               <Star size={20} color={themeColors.primary} />
               <Text style={[styles.lifetimeStatNumber, { color: themeColors.text }]}>
                 {averageDrunkScale > 0 ? averageDrunkScale.toFixed(1) : '0.0'}
@@ -167,9 +187,7 @@ export default function TrophiesScreen() {
                 Drunk Scale Avg
               </Text>
             </View>
-          </View>
 
-          <View style={styles.lifetimeStatsGrid}>
             <View style={styles.lifetimeStat}>
               <Text style={styles.lifetimeStatEmoji}>🥃</Text>
               <Text style={[styles.lifetimeStatNumber, { color: themeColors.text }]}>
@@ -187,16 +205,6 @@ export default function TrophiesScreen() {
               </Text>
               <Text style={[styles.lifetimeStatLabel, { color: themeColors.subtext }]}>
                 Avg. Shot Count
-              </Text>
-            </View>
-
-            <View style={styles.lifetimeStat}>
-              <Text style={styles.lifetimeStatEmoji}>🍻</Text>
-              <Text style={[styles.lifetimeStatNumber, { color: themeColors.text }]}>
-                {profile?.total_beers || 0}
-              </Text>
-              <Text style={[styles.lifetimeStatLabel, { color: themeColors.subtext }]}>
-                Total Beers
               </Text>
             </View>
           </View>
@@ -258,7 +266,7 @@ export default function TrophiesScreen() {
                 No Trophies Yet
               </Text>
               <Text style={[styles.emptyStateText, { color: themeColors.subtext }]}>
-                Complete achievements to earn your first trophy! Check the Tasks tab to see what you can work on.
+                Complete achievements to earn your first trophy! Use the Daily Tracker to log your activities and unlock achievements.
               </Text>
             </View>
           ) : (

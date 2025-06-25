@@ -1,87 +1,47 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-export type Theme = 'dark' | 'light';
+import { type Theme } from '@/constants/colors';
 
 interface ThemeState {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
-  isInitialized: boolean;
-  isHydrated: boolean;
 }
-
-// Default state for when store isn't ready
-const defaultState: ThemeState = {
-  theme: 'dark',
-  isInitialized: true,
-  isHydrated: true,
-  setTheme: () => {},
-  toggleTheme: () => {},
-};
 
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
       theme: 'dark',
-      isInitialized: false,
-      isHydrated: false,
-      setTheme: (theme: Theme) => {
-        try {
-          set({ theme, isInitialized: true });
-        } catch (error) {
-          console.warn('Error setting theme:', error);
-        }
-      },
-      toggleTheme: () => {
-        try {
-          const state = get();
-          const currentTheme = state?.theme || 'dark';
-          set({ theme: currentTheme === 'dark' ? 'light' : 'dark', isInitialized: true });
-        } catch (error) {
-          console.warn('Error toggling theme:', error);
-          set({ theme: 'dark', isInitialized: true });
-        }
-      },
+      setTheme: (theme: Theme) => set({ theme }),
+      toggleTheme: () => set((state) => ({ 
+        theme: state.theme === 'light' ? 'dark' : 'light' 
+      })),
     }),
     {
       name: 'theme-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      onRehydrateStorage: () => (state, error) => {
-        if (error) {
-          console.warn('Error rehydrating theme store:', error);
-          return { ...defaultState, isHydrated: true };
-        }
-        
-        // Ensure we always have a valid theme and mark as initialized
-        if (!state || !state.theme) {
-          return { 
-            ...defaultState,
-            isHydrated: true
-          };
-        }
-        return { ...state, isInitialized: true, isHydrated: true };
-      },
     }
   )
 );
 
-// Safe hook that always returns valid state
-export const useThemeStoreSafe = (): ThemeState => {
+// Safe hook that handles cases where the store might not be initialized
+export const useThemeStoreSafe = () => {
   try {
     const store = useThemeStore();
-    if (!store || !store.isHydrated) {
-      return defaultState;
-    }
-    return store;
+    
+    return {
+      theme: store?.theme || 'dark',
+      setTheme: store?.setTheme || (() => {}),
+      toggleTheme: store?.toggleTheme || (() => {}),
+    };
   } catch (error) {
-    console.warn('Error accessing theme store:', error);
-    return defaultState;
+    console.warn('Error accessing theme store safely:', error);
+    
+    return {
+      theme: 'dark' as Theme,
+      setTheme: () => {},
+      toggleTheme: () => {},
+    };
   }
 };
-
-// Store reference for cross-store access
-if (typeof window !== 'undefined') {
-  (window as any).__themeStore = useThemeStore;
-}
