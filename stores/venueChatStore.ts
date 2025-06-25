@@ -45,14 +45,14 @@ const generateAnonymousName = (): string => {
   return `${adjective}${noun}${number}`;
 };
 
-// Generate a simple user ID (in a real app, this would come from auth)
+// Generate a simple user ID for the session (in-memory only for anonymous chat)
+let sessionUserId: string | null = null;
+
 const getUserId = (): string => {
-  let userId = localStorage?.getItem?.('barbuddy_user_id');
-  if (!userId) {
-    userId = `user_${Math.random().toString(36).substr(2, 9)}`;
-    localStorage?.setItem?.('barbuddy_user_id', userId);
+  if (!sessionUserId) {
+    sessionUserId = `user_${Math.random().toString(36).substr(2, 9)}`;
   }
-  return userId;
+  return sessionUserId;
 };
 
 // Mock data for demonstration (in real app, this would come from Supabase)
