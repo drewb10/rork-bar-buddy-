@@ -66,11 +66,11 @@ export default function SignUpScreen() {
     if (!isConfigured) {
       Alert.alert(
         'Database Setup Required', 
-        'Your Supabase database needs to be configured. Please:
+        `Your Supabase database needs to be configured. Please:
 
 1. Run the latest migration (20250625004000_final_auth_fix.sql) in your Supabase dashboard
 2. Check your .env file has correct SUPABASE_URL and SUPABASE_ANON_KEY
-3. Or try Demo Mode to test the app',
+3. Or try Demo Mode to test the app`,
         [
           { text: 'Setup Instructions', onPress: () => console.log('Check SETUP_INSTRUCTIONS.md') },
           { text: 'Try Demo Mode', onPress: () => router.replace('/(tabs)') }
