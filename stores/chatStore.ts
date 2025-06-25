@@ -108,7 +108,7 @@ export const useChatStore = create<ChatState>()(
           // Add system message for context
           const systemMessage = {
             role: 'system',
-            content: 'You are BarBuddy, a friendly AI assistant for a bar and nightlife app. Help users with questions about bars, drinks, nightlife, and social activities. Keep responses conversational and fun.',
+            content: "You are BarBuddy, a friendly AI assistant for a bar and nightlife app. Help users with questions about bars, drinks, nightlife, and social activities. Keep responses conversational and fun.",
           };
 
           // Call AI API
@@ -224,6 +224,21 @@ export const useChatStore = create<ChatState>()(
       partialize: (state) => ({
         currentSession: state.currentSession,
       }),
+      onRehydrateStorage: () => (state) => {
+        // Ensure we always have the required functions
+        if (!state) {
+          return {
+            currentSession: null,
+            isLoading: false,
+            error: null,
+            sendMessage: async () => {},
+            likeMessage: () => {},
+            resetChatOnAppReopen: () => {},
+            checkAndResetDaily: () => {},
+            clearError: () => {},
+          };
+        }
+      },
     }
   )
 );

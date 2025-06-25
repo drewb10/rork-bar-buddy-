@@ -8,10 +8,20 @@ import { useAchievementStore, CompletedAchievement } from '@/stores/achievementS
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 
 export default function TrophiesScreen() {
-  const { theme } = useThemeStore();
-  const themeColors = colors[theme];
-  const { profile, getRank, getAverageDrunkScale } = useUserProfileStore();
-  const { completedAchievements, getCompletedAchievementsByCategory } = useAchievementStore();
+  // Safe store access with fallbacks
+  const themeStore = useThemeStore();
+  const theme = themeStore?.theme || 'dark';
+  const themeColors = colors[theme] || colors.dark;
+  
+  const profileStore = useUserProfileStore();
+  const profile = profileStore?.profile;
+  const getRank = profileStore?.getRank || (() => ({ title: 'Newbie', subTitle: 'Just getting started', color: '#666666' }));
+  const getAverageDrunkScale = profileStore?.getAverageDrunkScale || (() => 0);
+  
+  const achievementStore = useAchievementStore();
+  const completedAchievements = achievementStore?.completedAchievements || [];
+  const getCompletedAchievementsByCategory = achievementStore?.getCompletedAchievementsByCategory || (() => []);
+  
   const [selectedAchievement, setSelectedAchievement] = useState<CompletedAchievement | null>(null);
   
   // Handle null profile gracefully
