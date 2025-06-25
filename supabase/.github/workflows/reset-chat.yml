@@ -1,1 +1,14 @@
+name: Daily Chat Reset
+
+on:
+  schedule:
+    - cron: '0 9 * * *'  # 5AM New York (9AM UTC)
+  workflow_dispatch:
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Supabase Function
+        run: curl -X POST https://fxumtfryjehzsdfqgeis.functions.supabase.co/daily-chat-reset
 
