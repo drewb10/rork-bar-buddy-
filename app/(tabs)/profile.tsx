@@ -30,7 +30,8 @@ export default function ProfileScreen() {
     getXPForNextRank,
     getProgressToNextRank,
     setProfilePicture,
-    isLoading: profileLoading
+    isLoading: profileLoading,
+    initializeDefaultProfile
   } = useUserProfileStore();
   const router = useRouter();
   
@@ -42,11 +43,15 @@ export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState<'profile' | 'chatbot'>('profile');
 
   useEffect(() => {
-    // Load profile when component mounts
+    // Load profile when component mounts or initialize default if none exists
     if (authProfile && !profile) {
       loadProfile();
+    } else if (!authProfile && !profile) {
+      // For debugging - create a default profile if no auth profile exists
+      console.log('🔄 No auth profile, initializing default profile for debugging...');
+      initializeDefaultProfile();
     }
-  }, [authProfile, profile, loadProfile]);
+  }, [authProfile, profile, loadProfile, initializeDefaultProfile]);
 
   useEffect(() => {
     // Show onboarding if user hasn't completed it
@@ -179,13 +184,13 @@ export default function ProfileScreen() {
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
           <Text style={[styles.loadingText, { color: themeColors.text }]}>
-            No profile found. Please sign in.
+            No profile found. Creating default profile...
           </Text>
           <Pressable 
             style={[styles.signInButton, { backgroundColor: themeColors.primary, marginTop: 20 }]}
-            onPress={() => router.replace('/auth/sign-in')}
+            onPress={() => initializeDefaultProfile()}
           >
-            <Text style={styles.signInButtonText}>Sign In</Text>
+            <Text style={styles.signInButtonText}>Initialize Profile</Text>
           </Pressable>
         </View>
       </View>
@@ -204,9 +209,11 @@ export default function ProfileScreen() {
             Your Bar Buddy Profile
           </Text>
         </View>
-        <Pressable style={styles.signOutButton} onPress={handleSignOut}>
-          <LogOut size={20} color={themeColors.error} />
-        </Pressable>
+        {authProfile && (
+          <Pressable style={styles.signOutButton} onPress={handleSignOut}>
+            <LogOut size={20} color={themeColors.error} />
+          </Pressable>
+        )}
       </View>
 
       {/* Tab Navigation */}
@@ -272,9 +279,11 @@ export default function ProfileScreen() {
               Member since {formatJoinDate(profile.created_at)}
             </Text>
 
-            <Text style={[styles.email, { color: themeColors.subtext }]}>
-              {profile.email}
-            </Text>
+            {profile.email && (
+              <Text style={[styles.email, { color: themeColors.subtext }]}>
+                {profile.email}
+              </Text>
+            )}
           </View>
 
           {/* XP and Ranking Card */}
@@ -289,7 +298,7 @@ export default function ProfileScreen() {
                   {profile.xp || 0} XP
                 </Text>
                 <Text style={[styles.nextRankText, { color: themeColors.subtext }]}>
-                  {nextRankXP - profile.xp} XP to next rank
+                  {Math.max(0, nextRankXP - (profile.xp || 0))} XP to next rank
                 </Text>
               </View>
             </View>
@@ -310,7 +319,7 @@ export default function ProfileScreen() {
                   styles.progressBar, 
                   { 
                     backgroundColor: rankInfo.color,
-                    width: `${progressToNextRank}%`
+                    width: `${Math.min(progressToNextRank, 100)}%`
                   }
                 ]} 
               />

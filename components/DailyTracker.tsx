@@ -37,7 +37,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     canSubmitDrunkScale, 
     hasDrunkScaleForToday 
   } = useDailyTrackerStore();
-  const { awardXP } = useUserProfileStore();
+  const { updateDailyTrackerTotals } = useUserProfileStore();
 
   const [localStats, setLocalStats] = useState(getDailyStats());
   const [selectedDrunkScale, setSelectedDrunkScale] = useState<number | null>(null);
@@ -70,14 +70,40 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     }));
   };
 
-  const handleSaveStats = () => {
-    updateDailyStats(localStats);
-    
-    Alert.alert(
-      'Stats Saved! 🎉',
-      'Your daily stats have been updated and XP awarded!',
-      [{ text: 'Awesome!', onPress: handleClose }]
-    );
+  const handleSaveStats = async () => {
+    try {
+      console.log('🔄 Saving daily tracker stats:', localStats);
+      
+      // Update daily tracker store (for local state)
+      updateDailyStats(localStats);
+      
+      // Update user profile totals (this handles XP awarding and prevents double-counting)
+      await updateDailyTrackerTotals({
+        shots: localStats.shots,
+        scoopAndScores: localStats.scoopAndScores,
+        beers: localStats.beers,
+        beerTowers: localStats.beerTowers,
+        funnels: localStats.funnels,
+        shotguns: localStats.shotguns,
+        poolGamesWon: localStats.poolGamesWon,
+        dartGamesWon: localStats.dartGamesWon,
+      });
+      
+      console.log('✅ Stats saved successfully');
+      
+      Alert.alert(
+        'Stats Saved! 🎉',
+        'Your daily stats have been updated and XP awarded!',
+        [{ text: 'Awesome!', onPress: handleClose }]
+      );
+    } catch (error) {
+      console.error('❌ Error saving stats:', error);
+      Alert.alert(
+        'Error',
+        'Failed to save stats. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const handleDrunkScaleSubmit = () => {
@@ -87,7 +113,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     }
 
     submitDrunkScale(selectedDrunkScale);
-    awardXP('drunk_scale_submission', 'Submitted drunk scale rating');
     
     Alert.alert(
       'Thanks for sharing! 🍻',
@@ -102,12 +127,12 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const statItems = [
     { key: 'shots' as const, label: 'Shots', emoji: '🥃', xp: 5 },
     { key: 'scoopAndScores' as const, label: 'Scoop & Scores', emoji: '🍺', xp: 10 },
-    { key: 'beers' as const, label: 'Beers', emoji: '🍻', xp: 8 },
-    { key: 'beerTowers' as const, label: 'Beer Towers', emoji: '🗼', xp: 25 },
-    { key: 'funnels' as const, label: 'Funnels', emoji: '🌪️', xp: 15 },
-    { key: 'shotguns' as const, label: 'Shotguns', emoji: '💥', xp: 12 },
-    { key: 'poolGamesWon' as const, label: 'Pool Games Won', emoji: '🎱', xp: 20 },
-    { key: 'dartGamesWon' as const, label: 'Dart Games Won', emoji: '🎯', xp: 20 },
+    { key: 'beers' as const, label: 'Beers', emoji: '🍻', xp: 5 },
+    { key: 'beerTowers' as const, label: 'Beer Towers', emoji: '🗼', xp: 15 },
+    { key: 'funnels' as const, label: 'Funnels', emoji: '🌪️', xp: 10 },
+    { key: 'shotguns' as const, label: 'Shotguns', emoji: '💥', xp: 10 },
+    { key: 'poolGamesWon' as const, label: 'Pool Games Won', emoji: '🎱', xp: 15 },
+    { key: 'dartGamesWon' as const, label: 'Dart Games Won', emoji: '🎯', xp: 15 },
   ];
 
   return (
@@ -186,7 +211,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                   {hasSubmittedToday 
                     ? 'Already submitted today (resets in 24h)'
                     : canSubmitScale 
-                      ? 'Submit once every 24 hours (+50 XP)'
+                      ? 'Submit once every 24 hours (+25 XP)'
                       : 'Can submit again in a few hours'
                   }
                 </Text>
@@ -251,7 +276,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                   >
                     <Award size={20} color="white" />
                     <Text style={styles.submitDrunkScaleText}>
-                      Submit Rating (+50 XP)
+                      Submit Rating (+25 XP)
                     </Text>
                   </Pressable>
                 </>

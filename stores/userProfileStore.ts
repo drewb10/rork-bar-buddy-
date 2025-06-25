@@ -25,7 +25,7 @@ interface FriendRequest {
 
 interface XPActivity {
   id: string;
-  type: 'visit_new_bar' | 'participate_event' | 'bring_friend' | 'complete_night_out' | 'special_achievement' | 'live_music' | 'featured_drink' | 'bar_game' | 'photo_taken' | 'shots' | 'scoop_and_scores' | 'beers' | 'beer_towers' | 'funnels' | 'shotguns' | 'pool_games' | 'dart_games' | 'drunk_scale_submission';
+  type: 'visit_new_bar' | 'participate_event' | 'bring_friend' | 'complete_night_out' | 'special_achievement' | 'live_music' | 'featured_drink' | 'bar_game' | 'photo_taken' | 'shots' | 'scoop_and_scores' | 'beers' | 'beer_towers' | 'funnels' | 'shotguns' | 'pool_games' | 'dart_games' | 'drunk_scale_submission' | 'like_bar' | 'check_in';
   xpAwarded: number;
   timestamp: string;
   description: string;
@@ -111,6 +111,7 @@ interface UserProfileState {
   loadFriendRequests: () => Promise<void>;
   loadFriends: () => Promise<void>;
   checkAndResetDrunkScaleIfNeeded: () => void;
+  initializeDefaultProfile: () => void; // New function for debugging
 }
 
 const XP_VALUES = {
@@ -132,6 +133,8 @@ const XP_VALUES = {
   pool_games: 15,
   dart_games: 15,
   drunk_scale_submission: 25,
+  like_bar: 5,
+  check_in: 10,
 };
 
 const RANK_STRUCTURE: RankInfo[] = [
@@ -202,11 +205,47 @@ const getTodayString = (): string => {
   return new Date().toISOString().split('T')[0];
 };
 
+// Create a default profile for testing/debugging
+const createDefaultProfile = (): UserProfile => ({
+  id: 'debug-user-' + Date.now(),
+  username: 'DebugUser',
+  phone: '+1234567890',
+  email: 'debug@barbuddy.com',
+  xp: 0,
+  nights_out: 0,
+  bars_hit: 0,
+  drunk_scale_ratings: [],
+  friends: [],
+  friend_requests: [],
+  xp_activities: [],
+  visited_bars: [],
+  total_shots: 0,
+  total_scoop_and_scores: 0,
+  total_beers: 0,
+  total_beer_towers: 0,
+  total_funnels: 0,
+  total_shotguns: 0,
+  pool_games_won: 0,
+  dart_games_won: 0,
+  photos_taken: 0,
+  has_completed_onboarding: true,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+});
+
 export const useUserProfileStore = create<UserProfileState>()(
   persist(
     (set, get) => ({
       profile: null,
       isLoading: false,
+      
+      // NEW: Initialize default profile for debugging
+      initializeDefaultProfile: () => {
+        console.log('🔄 Initializing default profile for debugging...');
+        const defaultProfile = createDefaultProfile();
+        set({ profile: defaultProfile });
+        console.log('✅ Default profile initialized:', defaultProfile);
+      },
       
       loadProfile: async () => {
         try {
@@ -214,7 +253,10 @@ export const useUserProfileStore = create<UserProfileState>()(
           
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) {
-            set({ profile: null, isLoading: false });
+            // If no user, create a default profile for debugging
+            console.log('🔄 No authenticated user, creating default profile...');
+            get().initializeDefaultProfile();
+            set({ isLoading: false });
             return;
           }
 
@@ -305,6 +347,8 @@ export const useUserProfileStore = create<UserProfileState>()(
           });
         } catch (error) {
           console.error('Error loading profile:', error);
+          // Fallback to default profile for debugging
+          get().initializeDefaultProfile();
           set({ isLoading: false });
         }
       },
@@ -317,22 +361,28 @@ export const useUserProfileStore = create<UserProfileState>()(
           // Remove the problematic field if it exists in updates
           const { last_drunk_scale_reset, ...safeUpdates } = updates as any;
           
-          const { error } = await supabase
-            .from('profiles')
-            .update({
-              ...safeUpdates,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', profile.id);
-
-          if (error) {
-            console.error('Error updating profile:', error);
-            return;
-          }
-
+          // Update local state immediately for better UX
           set((state) => ({
             profile: state.profile ? { ...state.profile, ...updates } : null
           }));
+
+          // Try to update in Supabase if available
+          try {
+            const { error } = await supabase
+              .from('profiles')
+              .update({
+                ...safeUpdates,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', profile.id);
+
+            if (error) {
+              console.warn('Error updating profile in Supabase:', error);
+              // Don't revert local changes - keep them for offline functionality
+            }
+          } catch (supabaseError) {
+            console.warn('Supabase not available, keeping local changes:', supabaseError);
+          }
         } catch (error) {
           console.error('Error updating profile:', error);
         }
@@ -482,9 +532,19 @@ export const useUserProfileStore = create<UserProfileState>()(
       
       awardXP: async (type, description, venueId) => {
         const { profile } = get();
-        if (!profile) return;
+        if (!profile) {
+          console.warn('No profile available for XP award');
+          return;
+        }
 
         const xpAmount = XP_VALUES[type];
+        if (!xpAmount) {
+          console.warn('Invalid XP type:', type);
+          return;
+        }
+
+        console.log(`🎯 Awarding ${xpAmount} XP for ${type}: ${description}`);
+        
         const activityId = Math.random().toString(36).substr(2, 9);
         
         const newActivity: XPActivity = {
@@ -518,6 +578,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         }
         
         await get().updateProfile(updates);
+        console.log(`✅ XP awarded successfully. New total: ${profile.xp + xpAmount}`);
       },
       
       updateDailyTrackerTotals: async (stats) => {
@@ -925,6 +986,22 @@ export const useUserProfileStore = create<UserProfileState>()(
           id: state.profile.id,
           username: state.profile.username,
           phone: state.profile.phone,
+          xp: state.profile.xp,
+          nights_out: state.profile.nights_out,
+          bars_hit: state.profile.bars_hit,
+          total_shots: state.profile.total_shots,
+          total_scoop_and_scores: state.profile.total_scoop_and_scores,
+          total_beers: state.profile.total_beers,
+          total_beer_towers: state.profile.total_beer_towers,
+          total_funnels: state.profile.total_funnels,
+          total_shotguns: state.profile.total_shotguns,
+          pool_games_won: state.profile.pool_games_won,
+          dart_games_won: state.profile.dart_games_won,
+          xp_activities: state.profile.xp_activities,
+          visited_bars: state.profile.visited_bars,
+          has_completed_onboarding: state.profile.has_completed_onboarding,
+          created_at: state.profile.created_at,
+          updated_at: state.profile.updated_at,
         } : null,
       }),
       onRehydrateStorage: () => (state) => {
@@ -967,6 +1044,7 @@ export const useUserProfileStore = create<UserProfileState>()(
             loadFriendRequests: async () => {},
             loadFriends: async () => {},
             checkAndResetDrunkScaleIfNeeded: () => {},
+            initializeDefaultProfile: () => {},
           };
         }
         return state;
