@@ -13,7 +13,8 @@ export interface Database {
         Row: {
           id: string
           username: string
-          email: string
+          phone: string
+          email: string | null
           xp: number
           nights_out: number
           bars_hit: number
@@ -40,7 +41,8 @@ export interface Database {
         Insert: {
           id: string
           username: string
-          email: string
+          phone: string
+          email?: string | null
           xp?: number
           nights_out?: number
           bars_hit?: number
@@ -67,7 +69,8 @@ export interface Database {
         Update: {
           id?: string
           username?: string
-          email?: string
+          phone?: string
+          email?: string | null
           xp?: number
           nights_out?: number
           bars_hit?: number

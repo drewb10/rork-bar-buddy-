@@ -23,7 +23,8 @@ export const useThemeStore = create<ThemeState>()(
       },
       toggleTheme: () => {
         try {
-          const currentTheme = get()?.theme || 'dark';
+          const currentState = get();
+          const currentTheme = currentState?.theme || 'dark';
           set({ theme: currentTheme === 'dark' ? 'light' : 'dark' });
         } catch (error) {
           console.warn('Error toggling theme:', error);

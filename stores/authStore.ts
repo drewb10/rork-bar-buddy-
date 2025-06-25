@@ -35,6 +35,11 @@ export const useAuthStore = create<AuthState>()(
       isConfigured: isSupabaseConfigured(),
 
       signUp: async (phone: string, password: string, username: string): Promise<boolean> => {
+        if (!isSupabaseConfigured()) {
+          set({ error: 'Authentication not configured' });
+          return false;
+        }
+
         set({ isLoading: true, error: null });
         
         try {
@@ -67,6 +72,11 @@ export const useAuthStore = create<AuthState>()(
       },
 
       signIn: async (phone: string, password: string): Promise<boolean> => {
+        if (!isSupabaseConfigured()) {
+          set({ error: 'Authentication not configured' });
+          return false;
+        }
+
         set({ isLoading: true, error: null });
         
         try {
@@ -103,7 +113,9 @@ export const useAuthStore = create<AuthState>()(
         
         try {
           console.log('🎯 AuthStore: Starting signout process...');
-          await authService.signOut();
+          if (isSupabaseConfigured()) {
+            await authService.signOut();
+          }
           set({
             user: null,
             profile: null,
@@ -130,6 +142,8 @@ export const useAuthStore = create<AuthState>()(
       },
 
       checkUsernameAvailable: async (username: string): Promise<boolean> => {
+        if (!isSupabaseConfigured()) return true;
+
         try {
           return await authService.checkUsernameAvailable(username);
         } catch (error) {
@@ -139,6 +153,8 @@ export const useAuthStore = create<AuthState>()(
       },
 
       updateProfile: async (updates: Partial<UserProfile>): Promise<boolean> => {
+        if (!isSupabaseConfigured()) return false;
+
         set({ isLoading: true, error: null });
         
         try {
@@ -160,6 +176,8 @@ export const useAuthStore = create<AuthState>()(
       },
 
       searchUser: async (username: string): Promise<UserProfile | null> => {
+        if (!isSupabaseConfigured()) return null;
+
         try {
           return await authService.searchUserByUsername(username);
         } catch (error) {
@@ -169,8 +187,6 @@ export const useAuthStore = create<AuthState>()(
       },
 
       initialize: async (): Promise<void> => {
-        const currentState = get();
-        
         // Check configuration first
         const configured = isSupabaseConfigured();
         set({ isConfigured: configured });

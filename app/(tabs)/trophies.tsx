@@ -27,8 +27,8 @@ export default function TrophiesScreen() {
   // Handle null profile gracefully
   if (!profile) {
     return (
-      <View style={[styles.container, { backgroundColor: '#000000' }]}>
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+        <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
         
         <ScrollView 
           style={styles.scrollView}

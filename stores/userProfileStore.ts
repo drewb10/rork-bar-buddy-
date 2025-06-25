@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 interface Friend {
   id: string;
@@ -209,6 +209,11 @@ export const useUserProfileStore = create<UserProfileState>()(
       isLoading: false,
       
       loadProfile: async () => {
+        if (!isSupabaseConfigured()) {
+          console.log('Supabase not configured, skipping profile load');
+          return;
+        }
+
         try {
           set({ isLoading: true });
           
@@ -311,7 +316,7 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       updateProfile: async (updates) => {
         const { profile } = get();
-        if (!profile) return;
+        if (!profile || !isSupabaseConfigured()) return;
 
         try {
           // Remove any fields that don't exist in the database schema
@@ -373,18 +378,20 @@ export const useUserProfileStore = create<UserProfileState>()(
             const achievementStore = (window as any).__achievementStore;
             if (achievementStore?.getState) {
               const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
-              checkAndUpdateMultiLevelAchievements({
-                totalBeers: profile.total_beers,
-                totalShots: profile.total_shots,
-                totalBeerTowers: profile.total_beer_towers,
-                totalScoopAndScores: profile.total_scoop_and_scores,
-                totalFunnels: profile.total_funnels,
-                totalShotguns: profile.total_shotguns,
-                poolGamesWon: profile.pool_games_won,
-                dartGamesWon: profile.dart_games_won,
-                barsHit: profile.bars_hit,
-                nightsOut: newNightsOut,
-              });
+              if (checkAndUpdateMultiLevelAchievements) {
+                checkAndUpdateMultiLevelAchievements({
+                  totalBeers: profile.total_beers,
+                  totalShots: profile.total_shots,
+                  totalBeerTowers: profile.total_beer_towers,
+                  totalScoopAndScores: profile.total_scoop_and_scores,
+                  totalFunnels: profile.total_funnels,
+                  totalShotguns: profile.total_shotguns,
+                  poolGamesWon: profile.pool_games_won,
+                  dartGamesWon: profile.dart_games_won,
+                  barsHit: profile.bars_hit,
+                  nightsOut: newNightsOut,
+                });
+              }
             }
           }
         }
@@ -408,18 +415,20 @@ export const useUserProfileStore = create<UserProfileState>()(
           const achievementStore = (window as any).__achievementStore;
           if (achievementStore?.getState) {
             const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
-            checkAndUpdateMultiLevelAchievements({
-              totalBeers: profile.total_beers,
-              totalShots: profile.total_shots,
-              totalBeerTowers: profile.total_beer_towers,
-              totalScoopAndScores: profile.total_scoop_and_scores,
-              totalFunnels: profile.total_funnels,
-              totalShotguns: profile.total_shotguns,
-              poolGamesWon: profile.pool_games_won,
-              dartGamesWon: profile.dart_games_won,
-              barsHit: newBarsHit,
-              nightsOut: profile.nights_out,
-            });
+            if (checkAndUpdateMultiLevelAchievements) {
+              checkAndUpdateMultiLevelAchievements({
+                totalBeers: profile.total_beers,
+                totalShots: profile.total_shots,
+                totalBeerTowers: profile.total_beer_towers,
+                totalScoopAndScores: profile.total_scoop_and_scores,
+                totalFunnels: profile.total_funnels,
+                totalShotguns: profile.total_shotguns,
+                poolGamesWon: profile.pool_games_won,
+                dartGamesWon: profile.dart_games_won,
+                barsHit: newBarsHit,
+                nightsOut: profile.nights_out,
+              });
+            }
           }
         }
       },
@@ -611,18 +620,20 @@ export const useUserProfileStore = create<UserProfileState>()(
           const achievementStore = (window as any).__achievementStore;
           if (achievementStore?.getState) {
             const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
-            checkAndUpdateMultiLevelAchievements({
-              totalBeers: profile.total_beers + beersDiff,
-              totalShots: profile.total_shots + shotsDiff,
-              totalBeerTowers: profile.total_beer_towers + beerTowersDiff,
-              totalScoopAndScores: profile.total_scoop_and_scores + scoopDiff,
-              totalFunnels: profile.total_funnels + funnelsDiff,
-              totalShotguns: profile.total_shotguns + shotgunsDiff,
-              poolGamesWon: profile.pool_games_won + poolDiff,
-              dartGamesWon: profile.dart_games_won + dartDiff,
-              barsHit: profile.bars_hit,
-              nightsOut: profile.nights_out,
-            });
+            if (checkAndUpdateMultiLevelAchievements) {
+              checkAndUpdateMultiLevelAchievements({
+                totalBeers: profile.total_beers + beersDiff,
+                totalShots: profile.total_shots + shotsDiff,
+                totalBeerTowers: profile.total_beer_towers + beerTowersDiff,
+                totalScoopAndScores: profile.total_scoop_and_scores + scoopDiff,
+                totalFunnels: profile.total_funnels + funnelsDiff,
+                totalShotguns: profile.total_shotguns + shotgunsDiff,
+                poolGamesWon: profile.pool_games_won + poolDiff,
+                dartGamesWon: profile.dart_games_won + dartDiff,
+                barsHit: profile.bars_hit,
+                nightsOut: profile.nights_out,
+              });
+            }
           }
         }
       },
@@ -688,6 +699,8 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       searchUserByUsername: async (username: string): Promise<Friend | null> => {
+        if (!isSupabaseConfigured()) return null;
+
         try {
           const { data, error } = await supabase
             .from('profiles')
@@ -719,6 +732,8 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       sendFriendRequest: async (username: string): Promise<boolean> => {
+        if (!isSupabaseConfigured()) return false;
+
         const { profile } = get();
         if (!profile) return false;
 
@@ -761,6 +776,8 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       acceptFriendRequest: async (requestId: string): Promise<boolean> => {
+        if (!isSupabaseConfigured()) return false;
+
         const { profile } = get();
         if (!profile) return false;
 
@@ -807,6 +824,8 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       declineFriendRequest: async (requestId: string): Promise<boolean> => {
+        if (!isSupabaseConfigured()) return false;
+
         const { profile } = get();
         if (!profile) return false;
 
@@ -828,6 +847,8 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       loadFriendRequests: async () => {
+        if (!isSupabaseConfigured()) return;
+
         const { profile } = get();
         if (!profile) return;
 
@@ -871,6 +892,8 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       loadFriends: async () => {
+        if (!isSupabaseConfigured()) return;
+
         const { profile } = get();
         if (!profile) return;
 
