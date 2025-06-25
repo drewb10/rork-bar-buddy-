@@ -59,13 +59,13 @@ export const authService = {
         .maybeSingle();
       
       if (error) {
-        console.error('Error checking username availability:', error);
+        console.error('❌ Error checking username availability:', error);
         return false;
       }
       
       return !data;
     } catch (error) {
-      console.error('Error checking username availability:', error);
+      console.error('❌ Error checking username availability:', error);
       return false;
     }
   },
@@ -75,13 +75,15 @@ export const authService = {
       console.log('🚀 Starting signup process for:', { email, username });
       
       // First check if username is available
+      console.log('📝 Checking username availability...');
       const isAvailable = await this.checkUsernameAvailable(username);
       if (!isAvailable) {
         throw new AuthError('Username is already taken', 'USERNAME_TAKEN');
       }
+      console.log('✅ Username is available');
 
-      // Step 1: Sign up with Supabase Auth (trigger will create profile automatically)
-      console.log('📝 Creating auth user with trigger-based profile creation...');
+      // Step 1: Create auth user WITHOUT trigger dependency
+      console.log('📝 Creating auth user...');
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -97,6 +99,9 @@ export const authService = {
         if (authError.message.includes('already registered')) {
           throw new AuthError('An account with this email already exists', 'EMAIL_TAKEN');
         }
+        if (authError.message.includes('Database error')) {
+          throw new AuthError('Database connection issue. Please try again in a moment.', 'DATABASE_ERROR');
+        }
         throw new AuthError(authError.message, authError.message);
       }
 
@@ -107,42 +112,15 @@ export const authService = {
 
       console.log('✅ Auth user created successfully:', authData.user.id);
 
-      // Step 2: Wait a moment for the trigger to create the profile, then fetch it
-      console.log('📝 Waiting for profile creation via trigger...');
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-
-      // Try to get the profile created by the trigger
-      let profile = null;
-      let retries = 3;
+      // Step 2: Create profile manually (don't rely on trigger)
+      console.log('📝 Creating user profile...');
       
-      while (retries > 0 && !profile) {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', authData.user.id)
-          .maybeSingle();
-
-        if (profileData) {
-          profile = profileData;
-          break;
-        }
-
-        if (profileError && profileError.code !== 'PGRST116') {
-          console.error('❌ Error fetching profile:', profileError);
-          break;
-        }
-
-        retries--;
-        if (retries > 0) {
-          console.log(`⏳ Profile not found, retrying... (${retries} attempts left)`);
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      }
-
-      // If trigger didn't create profile, create it manually
-      if (!profile) {
-        console.log('📝 Trigger didn\'t create profile, creating manually...');
-        const { data: manualProfile, error: manualError } = await supabase
+      let profile = null;
+      let profileCreated = false;
+      
+      // Try to create profile directly
+      try {
+        const { data: newProfile, error: profileError } = await supabase
           .from('profiles')
           .insert({
             id: authData.user.id,
@@ -168,27 +146,55 @@ export const authService = {
           .select('*')
           .single();
 
-        if (manualError) {
-          console.error('❌ Manual profile creation error:', manualError);
+        if (profileError) {
+          console.error('❌ Profile creation error:', profileError);
           
-          // Clean up the auth user
-          console.log('🧹 Cleaning up auth user due to profile creation failure...');
-          try {
-            const { error: deleteError } = await supabase.auth.admin.deleteUser(authData.user.id);
-            if (deleteError) {
-              console.error('❌ Failed to cleanup auth user:', deleteError);
+          // If it's a duplicate key error, the trigger might have created it
+          if (profileError.code === '23505') {
+            console.log('📝 Profile already exists (created by trigger), fetching it...');
+            const { data: existingProfile, error: fetchError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', authData.user.id)
+              .single();
+              
+            if (existingProfile && !fetchError) {
+              profile = existingProfile;
+              profileCreated = true;
             }
-          } catch (cleanupError) {
-            console.error('❌ Exception during auth user cleanup:', cleanupError);
           }
           
-          throw new AuthError('Failed to create user profile. Please try again.', 'PROFILE_CREATION_FAILED');
+          if (!profileCreated) {
+            throw profileError;
+          }
+        } else {
+          profile = newProfile;
+          profileCreated = true;
         }
-
-        profile = manualProfile;
+      } catch (profileError) {
+        console.error('❌ Failed to create profile:', profileError);
+        
+        // Clean up the auth user since profile creation failed
+        console.log('🧹 Cleaning up auth user due to profile creation failure...');
+        try {
+          const { error: deleteError } = await supabase.auth.admin.deleteUser(authData.user.id);
+          if (deleteError) {
+            console.error('❌ Failed to cleanup auth user:', deleteError);
+          } else {
+            console.log('✅ Auth user cleaned up successfully');
+          }
+        } catch (cleanupError) {
+          console.error('❌ Exception during auth user cleanup:', cleanupError);
+        }
+        
+        throw new AuthError('Failed to create user profile. Please try again.', 'PROFILE_CREATION_FAILED');
       }
 
-      console.log('✅ Profile ready:', profile.id);
+      if (!profile) {
+        throw new AuthError('Profile creation failed unexpectedly', 'PROFILE_CREATION_FAILED');
+      }
+
+      console.log('✅ Profile created successfully:', profile.id);
       console.log('🎉 Signup completed successfully for user:', authData.user.id);
 
       return { user: authData.user, profile };
