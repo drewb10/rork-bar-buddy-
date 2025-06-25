@@ -122,7 +122,7 @@ export default function VenueDetailScreen() {
             styles.likeButton, 
             { 
               backgroundColor: canLikeThisVenue ? themeColors.primary : themeColors.border,
-              opacity: canLikeThisVenue ? 1 : 0.5
+              opacity: canLikeThisVenue ? 1 : 0.3
             }
           ]}
           onPress={handleLikePress}

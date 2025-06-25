@@ -26,6 +26,7 @@ interface VenueInteractionState {
   canInteract: (venueId: string) => boolean;
   canLikeVenue: (venueId: string) => boolean;
   getPopularArrivalTime: (venueId: string) => string | null;
+  getHotTimeWithLikes: (venueId: string) => { time: string; likes: number } | null;
   syncToSupabase: (venueId: string, arrivalTime?: string) => Promise<void>;
   loadPopularTimesFromSupabase: () => Promise<void>;
   getMostPopularVenues: () => { venueId: string; likes: number }[];
@@ -152,16 +153,18 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           });
 
           // Award XP through user profile store
-          const userProfileStore = (window as any).__userProfileStore;
-          if (userProfileStore?.getState) {
-            const { awardXP, profile } = userProfileStore.getState();
-            
-            // Award XP for checking in
-            awardXP('check_in', `Checked in at venue`, venueId);
-            
-            // Award XP for visiting a new bar
-            if (isNewBar || !profile?.visited_bars?.includes(venueId)) {
-              awardXP('visit_new_bar', `Visited a new bar`, venueId);
+          if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
+            const userProfileStore = (window as any).__userProfileStore;
+            if (userProfileStore?.getState) {
+              const { awardXP, profile } = userProfileStore.getState();
+              
+              // Award XP for checking in
+              awardXP('check_in', `Checked in at venue`, venueId);
+              
+              // Award XP for visiting a new bar
+              if (isNewBar || !profile?.visited_bars?.includes(venueId)) {
+                awardXP('visit_new_bar', `Visited a new bar`, venueId);
+              }
             }
           }
 
@@ -225,10 +228,12 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           });
 
           // Award XP for liking a bar
-          const userProfileStore = (window as any).__userProfileStore;
-          if (userProfileStore?.getState) {
-            const { awardXP } = userProfileStore.getState();
-            awardXP('like_bar', `Liked a bar`, venueId);
+          if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
+            const userProfileStore = (window as any).__userProfileStore;
+            if (userProfileStore?.getState) {
+              const { awardXP } = userProfileStore.getState();
+              awardXP('like_bar', `Liked a bar`, venueId);
+            }
           }
         } catch (error) {
           console.warn('Error liking venue:', error);
@@ -480,6 +485,40 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
             .sort();
           
           return popularTimes.join('/');
+        } catch {
+          return null;
+        }
+      },
+
+      // New function to get hot time with like count for display
+      getHotTimeWithLikes: (venueId) => {
+        try {
+          if (!venueId) return null;
+          
+          const { interactions } = get();
+          const venueInteractions = interactions.filter(i => i && i.venueId === venueId);
+          
+          // Count likes by time slot
+          const timeSlotLikes: Record<string, number> = {};
+          
+          venueInteractions.forEach(interaction => {
+            if (interaction && interaction.likeTimeSlot && interaction.likes > 0) {
+              timeSlotLikes[interaction.likeTimeSlot] = (timeSlotLikes[interaction.likeTimeSlot] || 0) + interaction.likes;
+            }
+          });
+          
+          if (Object.keys(timeSlotLikes).length === 0) return null;
+          
+          // Find the time slot with the most likes
+          const maxLikes = Math.max(...Object.values(timeSlotLikes));
+          const hotTimeEntry = Object.entries(timeSlotLikes).find(([time, likes]) => likes === maxLikes);
+          
+          if (!hotTimeEntry) return null;
+          
+          return {
+            time: hotTimeEntry[0],
+            likes: hotTimeEntry[1]
+          };
         } catch {
           return null;
         }

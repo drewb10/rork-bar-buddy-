@@ -24,20 +24,26 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     getInteractionCount, 
     getLikeCount, 
     canInteract, 
-    getPopularArrivalTime 
+    getHotTimeWithLikes,
+    likeVenue,
+    canLikeVenue
   } = useVenueInteractionStore();
   const { incrementNightsOut, incrementBarsHit, canIncrementNightsOut } = useUserProfileStore();
   const interactionCount = getInteractionCount(venue.id);
   const likeCount = getLikeCount(venue.id);
-  const popularTime = getPopularArrivalTime(venue.id);
+  const hotTimeData = getHotTimeWithLikes(venue.id);
   const [rsvpModalVisible, setRsvpModalVisible] = useState(false);
+  const [likeModalVisible, setLikeModalVisible] = useState(false);
   const [chatModalVisible, setChatModalVisible] = useState(false);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedLikeTime, setSelectedLikeTime] = useState<string | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
   const canInteractWithVenue = canInteract(venue.id);
+  const canLikeThisVenue = canLikeVenue(venue.id);
 
   const handlePress = () => {
-    if (isInteracting) return; // Prevent multiple clicks
+    if (isInteracting || isLiking) return; // Prevent multiple clicks
     router.push(`/venue/${venue.id}`);
   };
 
@@ -53,6 +59,14 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     
     // Show RSVP modal
     setRsvpModalVisible(true);
+  };
+
+  const handleLikePress = (e: any) => {
+    e.stopPropagation(); // Prevent venue navigation
+    if (!canLikeThisVenue || isLiking) return;
+    
+    setIsLiking(true);
+    setLikeModalVisible(true);
   };
 
   const handleRsvpSubmit = async () => {
@@ -73,10 +87,25 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     }
   };
 
+  const handleLikeSubmit = async () => {
+    if (selectedLikeTime) {
+      likeVenue(venue.id, selectedLikeTime);
+      setLikeModalVisible(false);
+      setSelectedLikeTime(null);
+      setIsLiking(false);
+    }
+  };
+
   const handleRsvpCancel = () => {
     setRsvpModalVisible(false);
     setSelectedTime(null);
     setIsInteracting(false);
+  };
+
+  const handleLikeCancel = () => {
+    setLikeModalVisible(false);
+    setSelectedLikeTime(null);
+    setIsLiking(false);
   };
 
   const renderPriceLevel = () => {
@@ -92,7 +121,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     special => special.day === getCurrentDay()
   );
 
-  // Generate time slots for RSVP
+  // Generate time slots for RSVP and likes
   const generateTimeSlots = () => {
     const slots = [];
     const now = new Date();
@@ -128,7 +157,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
       <Pressable 
         style={[styles.compactCard, { backgroundColor: themeColors.card }]} 
         onPress={handlePress}
-        disabled={isInteracting}
+        disabled={isInteracting || isLiking}
       >
         <Image source={{ uri: venue.featuredImage }} style={styles.compactImage} />
         <LinearGradient
@@ -136,15 +165,30 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           style={styles.compactGradient}
         />
         
-        {/* Like count display for compact cards */}
+        {/* Total likes display - top left */}
         {likeCount > 0 && (
-          <View style={[styles.compactFlameDisplay, { backgroundColor: themeColors.primary }]}>
+          <View style={[styles.compactTotalLikes, { backgroundColor: themeColors.primary }]}>
             <Flame size={12} color="white" fill="white" />
-            <Text style={styles.compactFlameText}>{likeCount}</Text>
+            <Text style={styles.compactTotalLikesText}>{likeCount}</Text>
           </View>
         )}
 
-        {/* Chat Button for Compact Cards */}
+        {/* Like button - top right */}
+        <Pressable 
+          style={[
+            styles.compactLikeButton, 
+            { 
+              backgroundColor: canLikeThisVenue ? themeColors.primary : themeColors.border,
+              opacity: canLikeThisVenue ? 1 : 0.3
+            }
+          ]}
+          onPress={handleLikePress}
+          disabled={!canLikeThisVenue || isLiking}
+        >
+          <Flame size={12} color="white" fill={canLikeThisVenue ? "transparent" : "white"} />
+        </Pressable>
+
+        {/* Chat Button */}
         <Pressable 
           style={[styles.compactChatButton, { backgroundColor: themeColors.primary }]}
           onPress={handleChatPress}
@@ -167,6 +211,76 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           </View>
         </View>
 
+        {/* Like Time Slot Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={likeModalVisible}
+          onRequestClose={handleLikeCancel}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { 
+              backgroundColor: themeColors.glass?.background || themeColors.card,
+              borderColor: themeColors.glass?.border || themeColors.border,
+            }]}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
+                What time are you most likely to visit {venue.name}?
+              </Text>
+              
+              <View style={styles.timeSlotContainer}>
+                {timeSlots.map((time, index) => (
+                  <Pressable
+                    key={index}
+                    style={[
+                      styles.timeSlot,
+                      { 
+                        backgroundColor: selectedLikeTime === time 
+                          ? themeColors.primary 
+                          : 'transparent',
+                        borderColor: themeColors.primary
+                      }
+                    ]}
+                    onPress={() => setSelectedLikeTime(time)}
+                  >
+                    <Text 
+                      style={[
+                        styles.timeSlotText, 
+                        { color: selectedLikeTime === time ? 'white' : themeColors.primary }
+                      ]}
+                    >
+                      {formatTimeSlot(time)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              
+              <View style={styles.modalActions}>
+                <Pressable 
+                  style={[styles.modalButton, styles.cancelButton]} 
+                  onPress={handleLikeCancel}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </Pressable>
+                
+                <Pressable 
+                  style={[
+                    styles.modalButton, 
+                    styles.submitButton, 
+                    { 
+                      backgroundColor: selectedLikeTime ? themeColors.primary : themeColors.card,
+                      opacity: selectedLikeTime ? 1 : 0.5
+                    }
+                  ]} 
+                  onPress={handleLikeSubmit}
+                  disabled={!selectedLikeTime}
+                >
+                  <Text style={styles.submitButtonText}>Like This Bar 🔥</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
         {/* Chat Modal for Compact Cards */}
         <ChatModal
           visible={chatModalVisible}
@@ -181,7 +295,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     <Pressable 
       style={[styles.card, { backgroundColor: themeColors.card }]} 
       onPress={handlePress}
-      disabled={isInteracting}
+      disabled={isInteracting || isLiking}
     >
       <Image source={{ uri: venue.featuredImage }} style={styles.image} />
       <LinearGradient
@@ -189,13 +303,32 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         style={styles.imageGradient}
       />
       
-      {/* Like count display */}
+      {/* Total likes display - top left */}
       {likeCount > 0 && (
-        <View style={[styles.flameDisplay, { backgroundColor: themeColors.primary }]}>
+        <View style={[styles.totalLikesDisplay, { backgroundColor: themeColors.primary }]}>
           <Flame size={18} color="white" fill="white" />
-          <Text style={styles.flameDisplayText}>{likeCount}</Text>
+          <Text style={styles.totalLikesText}>{likeCount}</Text>
         </View>
       )}
+
+      {/* Like button - top right */}
+      <Pressable 
+        style={[
+          styles.likeButton, 
+          { 
+            backgroundColor: canLikeThisVenue ? themeColors.primary : themeColors.border,
+            opacity: canLikeThisVenue ? 1 : 0.3
+          }
+        ]}
+        onPress={handleLikePress}
+        disabled={!canLikeThisVenue || isLiking}
+      >
+        <Flame 
+          size={18} 
+          color="white"
+          fill={canLikeThisVenue ? "transparent" : "white"}
+        />
+      </Pressable>
 
       {/* Chat Button */}
       <Pressable 
@@ -237,24 +370,13 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           </Text>
         </View>
 
-        {/* Enhanced Hot Time Badge with likes info */}
-        {popularTime && (
+        {/* Hot Time Display with like count */}
+        {hotTimeData && (
           <View style={[styles.hotTimeBadge, { backgroundColor: themeColors.primary + '20' }]}>
             <Flame size={14} color={themeColors.primary} />
             <Text style={[styles.hotTimeText, { color: themeColors.primary }]}>
-              Hot Time: {popularTime.includes('/') 
-                ? popularTime.split('/').map(time => formatTimeSlot(time)).join('/')
-                : formatTimeSlot(popularTime)
-              }
+              Hot Time: {formatTimeSlot(hotTimeData.time)} — {hotTimeData.likes} Likes
             </Text>
-            {likeCount > 0 && (
-              <View style={styles.hotTimeLikes}>
-                <Flame size={10} color={themeColors.primary} fill={themeColors.primary} />
-                <Text style={[styles.hotTimeLikesText, { color: themeColors.primary }]}>
-                  {likeCount}
-                </Text>
-              </View>
-            )}
           </View>
         )}
         
@@ -358,6 +480,76 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         </View>
       </Modal>
 
+      {/* Like Time Slot Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={likeModalVisible}
+        onRequestClose={handleLikeCancel}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { 
+            backgroundColor: themeColors.glass?.background || themeColors.card,
+            borderColor: themeColors.glass?.border || themeColors.border,
+          }]}>
+            <Text style={[styles.modalTitle, { color: themeColors.text }]}>
+              What time are you most likely to visit {venue.name}?
+            </Text>
+            
+            <View style={styles.timeSlotContainer}>
+              {timeSlots.map((time, index) => (
+                <Pressable
+                  key={index}
+                  style={[
+                    styles.timeSlot,
+                    { 
+                      backgroundColor: selectedLikeTime === time 
+                        ? themeColors.primary 
+                        : 'transparent',
+                      borderColor: themeColors.primary
+                    }
+                  ]}
+                  onPress={() => setSelectedLikeTime(time)}
+                >
+                  <Text 
+                    style={[
+                      styles.timeSlotText, 
+                      { color: selectedLikeTime === time ? 'white' : themeColors.primary }
+                    ]}
+                  >
+                    {formatTimeSlot(time)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            
+            <View style={styles.modalActions}>
+              <Pressable 
+                style={[styles.modalButton, styles.cancelButton]} 
+                onPress={handleLikeCancel}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
+              
+              <Pressable 
+                style={[
+                  styles.modalButton, 
+                  styles.submitButton, 
+                  { 
+                    backgroundColor: selectedLikeTime ? themeColors.primary : themeColors.card,
+                    opacity: selectedLikeTime ? 1 : 0.5
+                  }
+                ]} 
+                onPress={handleLikeSubmit}
+                disabled={!selectedLikeTime}
+              >
+                <Text style={styles.submitButtonText}>Like This Bar 🔥</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Chat Modal */}
       <ChatModal
         visible={chatModalVisible}
@@ -410,10 +602,10 @@ const styles = StyleSheet.create({
     right: 0,
     height: 180,
   },
-  flameDisplay: {
+  totalLikesDisplay: {
     position: 'absolute',
     top: 12,
-    right: 12,
+    left: 12,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
@@ -427,11 +619,28 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  flameDisplayText: {
+  totalLikesText: {
     color: 'white',
     fontSize: 12,
     fontWeight: '700',
     marginLeft: 4,
+  },
+  likeButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   chatButton: {
     position: 'absolute',
@@ -536,20 +745,6 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     letterSpacing: 0.2,
   },
-  hotTimeLikes: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  hotTimeLikesText: {
-    fontSize: 10,
-    fontWeight: '700',
-    marginLeft: 2,
-  },
   specialsContainer: {
     marginBottom: 16,
     padding: 12,
@@ -607,10 +802,10 @@ const styles = StyleSheet.create({
     right: 0,
     height: 100,
   },
-  compactFlameDisplay: {
+  compactTotalLikes: {
     position: 'absolute',
     top: 8,
-    right: 8,
+    left: 8,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
@@ -622,19 +817,34 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  compactFlameText: {
+  compactTotalLikesText: {
     color: 'white',
     fontSize: 10,
     fontWeight: '700',
     marginLeft: 3,
   },
+  compactLikeButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
   compactChatButton: {
     position: 'absolute',
     top: 8,
-    left: 8,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    right: 44,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',

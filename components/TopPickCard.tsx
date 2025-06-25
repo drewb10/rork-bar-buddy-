@@ -17,9 +17,10 @@ export default function TopPickCard({ venue, todaySpecial }: TopPickCardProps) {
   const router = useRouter();
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { getLikeCount } = useVenueInteractionStore();
+  const { getLikeCount, getHotTimeWithLikes } = useVenueInteractionStore();
   
   const likeCount = getLikeCount(venue.id);
+  const hotTimeData = getHotTimeWithLikes(venue.id);
 
   const handlePress = () => {
     router.push(`/venue/${venue.id}${todaySpecial ? `?specialId=${todaySpecial.id}` : ''}`);
@@ -29,6 +30,12 @@ export default function TopPickCard({ venue, todaySpecial }: TopPickCardProps) {
     const [hours, minutes] = time.split(':');
     const hour = parseInt(hours);
     return `${hour % 12 || 12}${minutes !== '00' ? ':' + minutes : ''} ${hour >= 12 ? 'PM' : 'AM'}`;
+  };
+
+  const formatTimeSlot = (timeSlot: string) => {
+    const [hours, minutes] = timeSlot.split(':');
+    const hour = parseInt(hours);
+    return `${hour % 12 || 12}:${minutes} ${hour >= 12 ? 'PM' : 'AM'}`;
   };
 
   return (
@@ -62,6 +69,15 @@ export default function TopPickCard({ venue, todaySpecial }: TopPickCardProps) {
           <Star size={12} color={themeColors.accent} fill={themeColors.accent} />
           <Text style={[styles.rating, { color: themeColors.subtext }]}>{venue.rating}</Text>
         </View>
+
+        {/* Hot Time Display */}
+        {hotTimeData && (
+          <View style={styles.hotTimeContainer}>
+            <Text style={[styles.hotTimeText, { color: themeColors.primary }]} numberOfLines={1}>
+              Hot Time: {formatTimeSlot(hotTimeData.time)} — {hotTimeData.likes} Likes
+            </Text>
+          </View>
+        )}
 
         {todaySpecial ? (
           <View style={styles.specialContainer}>
@@ -149,12 +165,20 @@ const styles = StyleSheet.create({
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   rating: {
     marginLeft: 4,
     fontSize: 12,
     fontWeight: '700',
+  },
+  hotTimeContainer: {
+    marginBottom: 8,
+  },
+  hotTimeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   specialContainer: {
     marginTop: 4,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable, StatusBar, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ChartBar as BarChart3, Flame } from 'lucide-react-native';
+import { ChartBar as BarChart3 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { venues, getSpecialsByDay } from '@/mocks/venues';
@@ -22,23 +22,18 @@ export default function HomeScreen() {
   const [venueFilters, setVenueFilters] = useState<string[]>([]);
   const [topPickVenues, setTopPickVenues] = useState<TopPickItem[]>([]);
   const [showDailyTracker, setShowDailyTracker] = useState(false);
-  const { interactions, resetInteractionsIfNeeded, getTotalLikes, getMostPopularVenues } = useVenueInteractionStore();
+  const { interactions, resetInteractionsIfNeeded } = useVenueInteractionStore();
   const { getDailyStats } = useUserProfileStore();
 
   useEffect(() => {
     const day = getCurrentDay();
     const allSpecials = getSpecialsByDay(day);
     
-    // Get top picks based on likes (most liked venues)
-    const mostPopularVenues = getMostPopularVenues();
-    
-    // If no venues have likes, fall back to specific venues
-    const finalTopPicks = mostPopularVenues.length > 0 
-      ? mostPopularVenues.slice(0, 3).map(item => venues.find(v => v.id === item.venueId)).filter(Boolean)
-      : venues.filter(v => ['2', '5', '6'].includes(v.id)); // The Library, Late Nite, JBA
+    // Static top picks - The Library, Late Nite, JBA
+    const staticTopPicks = venues.filter(v => ['2', '5', '6'].includes(v.id));
     
     // Create TopPickItem objects
-    const validTopPicks: TopPickItem[] = finalTopPicks
+    const validTopPicks: TopPickItem[] = staticTopPicks
       .map(venue => {
         if (!venue) return null;
         // Find today's special for this venue
@@ -52,7 +47,7 @@ export default function HomeScreen() {
         
         return topPickItem;
       })
-      .filter(Boolean) as TopPickItem[];
+      .filter((item): item is TopPickItem => item !== null);
     
     setTopPickVenues(validTopPicks);
     resetInteractionsIfNeeded();
@@ -62,23 +57,8 @@ export default function HomeScreen() {
     ? venues.filter(venue => venue.types.some(type => venueFilters.includes(type)))
     : venues;
 
-  // Sort venues by like count (most likes first)
-  const sortedVenues = [...filteredVenues].sort((a, b) => {
-    const aCount = interactions.find(i => i && i.venueId === a.id)?.likes || 0;
-    const bCount = interactions.find(i => i && i.venueId === b.id)?.likes || 0;
-    return bCount - aCount;
-  });
-
-  // Get the top bar (most liked venue)
-  const topBar = sortedVenues.length > 0 && sortedVenues[0] 
-    ? (interactions.find(i => i && i.venueId === sortedVenues[0].id)?.likes || 0) > 0 
-      ? sortedVenues[0] 
-      : null
-    : null;
-
   const dailyStats = getDailyStats();
   const totalDailyActivities = Object.values(dailyStats).reduce((sum, count) => sum + count, 0);
-  const totalLikes = getTotalLikes();
 
   return (
     <View style={[styles.container, { backgroundColor: '#000000' }]}>
@@ -88,15 +68,9 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Header with Logo and Total Likes Counter */}
+        {/* Header with Logo Only */}
         <View style={styles.headerContainer}>
           <BarBuddyLogo size="large" />
-          
-          {/* Total Likes Counter - Top Left */}
-          <View style={[styles.totalLikesContainer, { backgroundColor: themeColors.primary }]}>
-            <Flame size={16} color="white" fill="white" />
-            <Text style={styles.totalLikesText}>{totalLikes}</Text>
-          </View>
         </View>
 
         <FilterBar 
@@ -124,7 +98,7 @@ export default function HomeScreen() {
         {topPickVenues.length > 0 && (
           <View style={styles.section}>
             <SectionHeader 
-              title="Most Liked Venues" 
+              title="BarBuddy's Top Picks" 
               centered={true}
               showSeeAll={false}
             />
@@ -150,17 +124,8 @@ export default function HomeScreen() {
             showSeeAll={false}
           />
           <View style={styles.venueList}>
-            {sortedVenues.map((venue, index) => (
-              <View key={venue.id}>
-                {/* Top Bar Label */}
-                {topBar && venue.id === topBar.id && index === 0 && (
-                  <View style={[styles.topBarLabel, { backgroundColor: themeColors.primary }]}>
-                    <Flame size={16} color="white" fill="white" />
-                    <Text style={styles.topBarText}>🔥 Top Bar</Text>
-                  </View>
-                )}
-                <VenueCard venue={venue} />
-              </View>
+            {filteredVenues.map((venue) => (
+              <VenueCard key={venue.id} venue={venue} />
             ))}
           </View>
         </View>
@@ -196,30 +161,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 12,
     paddingHorizontal: 16,
-    position: 'relative',
-  },
-  totalLikesContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  totalLikesText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '700',
-    marginLeft: 6,
   },
   dailyTrackerContainer: {
     paddingHorizontal: 16,
@@ -271,27 +212,6 @@ const styles = StyleSheet.create({
   },
   venueList: {
     paddingHorizontal: 16,
-  },
-  topBarLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 12,
-    alignSelf: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  topBarText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '700',
-    marginLeft: 8,
   },
   footer: {
     height: 32,
