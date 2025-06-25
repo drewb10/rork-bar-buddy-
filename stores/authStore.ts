@@ -13,8 +13,8 @@ interface AuthState {
   isConfigured: boolean;
   
   // Actions
-  signUp: (email: string, password: string, username: string) => Promise<boolean>;
-  signIn: (email: string, password: string) => Promise<boolean>;
+  signUp: (phone: string, password: string, username: string) => Promise<boolean>;
+  signIn: (phone: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
   clearError: () => void;
   checkUsernameAvailable: (username: string) => Promise<boolean>;
@@ -34,12 +34,12 @@ export const useAuthStore = create<AuthState>()(
       error: null,
       isConfigured: isSupabaseConfigured(),
 
-      signUp: async (email: string, password: string, username: string): Promise<boolean> => {
+      signUp: async (phone: string, password: string, username: string): Promise<boolean> => {
         set({ isLoading: true, error: null });
         
         try {
           console.log('🎯 AuthStore: Starting signup process...');
-          const { user, profile } = await authService.signUp({ email, password, username });
+          const { user, profile } = await authService.signUp({ phone, password, username });
           
           console.log('🎯 AuthStore: Signup successful, updating state...');
           set({
@@ -66,12 +66,12 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      signIn: async (email: string, password: string): Promise<boolean> => {
+      signIn: async (phone: string, password: string): Promise<boolean> => {
         set({ isLoading: true, error: null });
         
         try {
           console.log('🎯 AuthStore: Starting signin process...');
-          const { user, profile } = await authService.signIn({ email, password });
+          const { user, profile } = await authService.signIn({ phone, password });
           
           console.log('🎯 AuthStore: Signin successful, updating state...');
           set({

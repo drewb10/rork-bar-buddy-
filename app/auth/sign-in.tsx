@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, StatusBar, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react-native';
+import { Eye, EyeOff, Phone, Lock, AlertCircle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -14,13 +14,20 @@ export default function SignInScreen() {
   const themeColors = colors[theme];
   const { signIn, isLoading, error, clearError, isConfigured } = useAuthStore();
   
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  const validatePhone = (phone: string): boolean => {
+    // Basic phone validation - accepts various formats
+    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+    return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
+  };
+
+  const formatPhoneNumber = (text: string) => {
+    // Remove all non-numeric characters except +
+    const cleaned = text.replace(/[^\d\+]/g, '');
+    setPhone(cleaned);
   };
 
   const handleSignIn = async () => {
@@ -38,17 +45,17 @@ export default function SignInScreen() {
       return;
     }
 
-    if (!email || !password) {
-      Alert.alert('Missing Information', 'Please enter both email and password');
+    if (!phone || !password) {
+      Alert.alert('Missing Information', 'Please enter both phone number and password');
       return;
     }
 
-    if (!validateEmail(email)) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address');
+    if (!validatePhone(phone)) {
+      Alert.alert('Invalid Phone Number', 'Please enter a valid phone number');
       return;
     }
 
-    const success = await signIn(email, password);
+    const success = await signIn(phone, password);
     
     if (success) {
       router.replace('/(tabs)');
@@ -100,21 +107,26 @@ export default function SignInScreen() {
 
           {/* Form */}
           <View style={styles.form}>
-            {/* Email Input */}
+            {/* Phone Input */}
             <View style={styles.inputContainer}>
               <View style={[styles.inputWrapper, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
-                <Mail size={20} color={themeColors.subtext} style={styles.inputIcon} />
+                <Phone size={20} color={themeColors.subtext} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: themeColors.text }]}
-                  placeholder="Email"
+                  placeholder="Phone Number"
                   placeholderTextColor={themeColors.subtext}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
+                  value={phone}
+                  onChangeText={formatPhoneNumber}
+                  keyboardType="phone-pad"
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
               </View>
+              {phone && !validatePhone(phone) && (
+                <Text style={[styles.helperText, { color: '#FF4444' }]}>
+                  Please enter a valid phone number
+                </Text>
+              )}
             </View>
 
             {/* Password Input */}
@@ -261,6 +273,11 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     padding: 4,
+  },
+  helperText: {
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 14,
   },
   signInButton: {
     borderRadius: 14,

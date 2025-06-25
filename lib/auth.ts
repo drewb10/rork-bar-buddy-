@@ -1,20 +1,20 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 
 export interface SignUpData {
-  email: string;
+  phone: string;
   password: string;
   username: string;
 }
 
 export interface SignInData {
-  email: string;
+  phone: string;
   password: string;
 }
 
 export interface UserProfile {
   id: string;
   username: string;
-  email: string;
+  phone: string;
   xp: number;
   nights_out: number;
   bars_hit: number;
@@ -76,13 +76,13 @@ export const authService = {
     }
   },
 
-  async signUp({ email, password, username }: SignUpData): Promise<{ user: any; profile: UserProfile | null }> {
+  async signUp({ phone, password, username }: SignUpData): Promise<{ user: any; profile: UserProfile | null }> {
     try {
       if (!isSupabaseConfigured()) {
         throw new AuthError('Database not configured. Please check your setup instructions.', 'NOT_CONFIGURED');
       }
 
-      console.log('🚀 AuthService: Starting signup process for:', { email, username });
+      console.log('🚀 AuthService: Starting signup process for:', { phone, username });
       
       // Step 1: Check username availability
       console.log('📝 AuthService: Checking username availability...');
@@ -92,10 +92,10 @@ export const authService = {
       }
       console.log('✅ AuthService: Username is available');
 
-      // Step 2: Create auth user
+      // Step 2: Create auth user with phone
       console.log('📝 AuthService: Creating auth user...');
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
+        phone,
         password,
         options: {
           data: {
@@ -108,13 +108,13 @@ export const authService = {
         console.error('❌ AuthService: Auth signup error:', authError);
         
         if (authError.message.includes('User already registered')) {
-          throw new AuthError('An account with this email already exists', 'EMAIL_TAKEN');
+          throw new AuthError('An account with this phone number already exists', 'PHONE_TAKEN');
         }
         if (authError.message.includes('Database error saving new user')) {
           throw new AuthError('Database setup issue. Please run the latest migration (20250625013000_fix_schema_cache_final.sql) in your Supabase dashboard.', 'DATABASE_ERROR');
         }
-        if (authError.message.includes('Invalid email')) {
-          throw new AuthError('Please enter a valid email address', 'INVALID_EMAIL');
+        if (authError.message.includes('Invalid phone')) {
+          throw new AuthError('Please enter a valid phone number', 'INVALID_PHONE');
         }
         if (authError.message.includes('Password should be at least')) {
           throw new AuthError('Password must be at least 6 characters long', 'WEAK_PASSWORD');
@@ -139,7 +139,7 @@ export const authService = {
       const profileData = {
         id: authData.user.id,
         username,
-        email,
+        phone,
         xp: 0,
         nights_out: 0,
         bars_hit: 0,
@@ -228,26 +228,26 @@ export const authService = {
     }
   },
 
-  async signIn({ email, password }: SignInData): Promise<{ user: any; profile: UserProfile | null }> {
+  async signIn({ phone, password }: SignInData): Promise<{ user: any; profile: UserProfile | null }> {
     try {
       if (!isSupabaseConfigured()) {
         throw new AuthError('Database not configured. Please check your setup instructions.', 'NOT_CONFIGURED');
       }
 
-      console.log('🚀 AuthService: Starting signin process for:', email);
+      console.log('🚀 AuthService: Starting signin process for:', phone);
       
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
+        phone,
         password
       });
 
       if (authError) {
         console.error('❌ AuthService: Auth signin error:', authError);
         if (authError.message.includes('Invalid login credentials')) {
-          throw new AuthError('Invalid email or password', 'INVALID_CREDENTIALS');
+          throw new AuthError('Invalid phone number or password', 'INVALID_CREDENTIALS');
         }
-        if (authError.message.includes('Email not confirmed')) {
-          throw new AuthError('Please check your email and confirm your account', 'EMAIL_NOT_CONFIRMED');
+        if (authError.message.includes('Phone not confirmed')) {
+          throw new AuthError('Please check your phone and confirm your account', 'PHONE_NOT_CONFIRMED');
         }
         throw new AuthError(authError.message, authError.message);
       }
@@ -281,7 +281,7 @@ export const authService = {
               const profileData = {
                 id: authData.user.id,
                 username: authData.user.user_metadata?.username || `user_${authData.user.id.slice(0, 8)}`,
-                email: authData.user.email || email,
+                phone: authData.user.phone || phone,
                 xp: 0,
                 nights_out: 0,
                 bars_hit: 0,

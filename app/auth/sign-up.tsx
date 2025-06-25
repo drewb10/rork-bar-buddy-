@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, StatusBar, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Eye, EyeOff, Mail, Lock, User, Check, X, AlertCircle, Database } from 'lucide-react-native';
+import { Eye, EyeOff, Phone, Lock, User, Check, X, AlertCircle, Database } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -14,15 +14,16 @@ export default function SignUpScreen() {
   const themeColors = colors[theme];
   const { signUp, isLoading, error, clearError, checkUsernameAvailable, isConfigured } = useAuthStore();
   
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
 
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  const validatePhone = (phone: string): boolean => {
+    // Basic phone validation - accepts various formats
+    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+    return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
   };
 
   const validateUsername = (username: string): boolean => {
@@ -60,6 +61,12 @@ export default function SignUpScreen() {
     }, 500);
   };
 
+  const formatPhoneNumber = (text: string) => {
+    // Remove all non-numeric characters except +
+    const cleaned = text.replace(/[^\d\+]/g, '');
+    setPhone(cleaned);
+  };
+
   const handleSignUp = async () => {
     clearError();
 
@@ -79,8 +86,8 @@ export default function SignUpScreen() {
       return;
     }
 
-    if (!validateEmail(email)) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address');
+    if (!validatePhone(phone)) {
+      Alert.alert('Invalid Phone Number', 'Please enter a valid phone number (e.g., +1234567890)');
       return;
     }
 
@@ -99,10 +106,10 @@ export default function SignUpScreen() {
       return;
     }
 
-    console.log('🎯 SignUp: Starting signup with:', { email, username });
+    console.log('🎯 SignUp: Starting signup with:', { phone, username });
     
     try {
-      const success = await signUp(email, password, username);
+      const success = await signUp(phone, password, username);
       
       if (success) {
         console.log('🎯 SignUp: Success! Redirecting to tabs...');
@@ -136,20 +143,20 @@ export default function SignUpScreen() {
         } else if (error.includes('Username is already taken')) {
           errorTitle = 'Username Taken';
           errorMessage = 'This username is already taken. Please choose a different one.';
-        } else if (error.includes('email already exists')) {
-          errorTitle = 'Email Already Registered';
-          errorMessage = 'An account with this email already exists. Please sign in instead.';
+        } else if (error.includes('phone number already exists')) {
+          errorTitle = 'Phone Already Registered';
+          errorMessage = 'An account with this phone number already exists. Please sign in instead.';
         } else if (error.includes('Password must be at least')) {
           errorTitle = 'Weak Password';
           errorMessage = 'Your password must be at least 6 characters long.';
-        } else if (error.includes('Invalid email')) {
-          errorTitle = 'Invalid Email';
-          errorMessage = 'Please enter a valid email address.';
+        } else if (error.includes('Invalid phone')) {
+          errorTitle = 'Invalid Phone Number';
+          errorMessage = 'Please enter a valid phone number.';
         }
         
         const buttons = [
           { text: 'Try Again' },
-          ...(error.includes('email already exists') ? [
+          ...(error.includes('phone number already exists') ? [
             { text: 'Sign In Instead', onPress: () => router.push('/auth/sign-in') }
           ] : []),
           ...(showMigrationButton ? [
@@ -263,21 +270,26 @@ export default function SignUpScreen() {
 
           {/* Form */}
           <View style={styles.form}>
-            {/* Email Input */}
+            {/* Phone Input */}
             <View style={styles.inputContainer}>
               <View style={[styles.inputWrapper, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
-                <Mail size={20} color={themeColors.subtext} style={styles.inputIcon} />
+                <Phone size={20} color={themeColors.subtext} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: themeColors.text }]}
-                  placeholder="Email"
+                  placeholder="Phone Number (e.g., +1234567890)"
                   placeholderTextColor={themeColors.subtext}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
+                  value={phone}
+                  onChangeText={formatPhoneNumber}
+                  keyboardType="phone-pad"
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
               </View>
+              {phone && !validatePhone(phone) && (
+                <Text style={[styles.helperText, { color: '#FF4444' }]}>
+                  Please enter a valid phone number
+                </Text>
+              )}
             </View>
 
             {/* Username Input */}
