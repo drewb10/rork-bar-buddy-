@@ -10,6 +10,8 @@ interface VenueInteraction {
   arrivalTime?: string;
   likes: number;
   timestamp: string;
+  lastLikeReset: string;
+  dailyLikesUsed: number;
 }
 
 interface VenueInteractionState {
@@ -20,6 +22,7 @@ interface VenueInteractionState {
   getLikeCount: (venueId: string) => number;
   resetInteractionsIfNeeded: () => void;
   canInteract: (venueId: string) => boolean;
+  canLikeVenue: (venueId: string) => boolean;
   getPopularArrivalTime: (venueId: string) => string | null;
   syncToSupabase: (venueId: string, arrivalTime?: string) => Promise<void>;
   loadPopularTimesFromSupabase: () => Promise<void>;
@@ -31,7 +34,10 @@ interface VenueInteractionState {
 }
 
 const RESET_HOUR = 5;
-const INTERACTION_COOLDOWN_HOURS = 2; // Reduced from 24 hours to 2 hours
+const LIKE_RESET_HOUR = 4;
+const LIKE_RESET_MINUTE = 59;
+const INTERACTION_COOLDOWN_HOURS = 2;
+const DAILY_LIKE_LIMIT = 1; // 1 like per bar per day
 
 const shouldReset = (lastReset: string): boolean => {
   try {
@@ -42,6 +48,33 @@ const shouldReset = (lastReset: string): boolean => {
     resetTime.setHours(RESET_HOUR, 0, 0, 0);
     
     return now >= resetTime && lastResetDate < resetTime;
+  } catch {
+    return false;
+  }
+};
+
+const shouldResetLikes = (lastLikeReset: string): boolean => {
+  try {
+    const lastResetDate = new Date(lastLikeReset);
+    const now = new Date();
+    
+    // Reset at 4:59 AM
+    const resetTime = new Date(now);
+    resetTime.setHours(LIKE_RESET_HOUR, LIKE_RESET_MINUTE, 0, 0);
+    
+    // If it's past 4:59 AM today and last reset was before today's 4:59 AM, reset
+    if (now >= resetTime && lastResetDate < resetTime) {
+      return true;
+    }
+    
+    // If it's before 4:59 AM today, check if last reset was before yesterday's 4:59 AM
+    if (now < resetTime) {
+      const yesterdayResetTime = new Date(resetTime);
+      yesterdayResetTime.setDate(yesterdayResetTime.getDate() - 1);
+      return lastResetDate < yesterdayResetTime;
+    }
+    
+    return false;
   } catch {
     return false;
   }
@@ -94,13 +127,13 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
                         timestamp: now
                       } 
                     : i
-                ).filter(Boolean) // Remove any null/undefined entries
+                ).filter(Boolean)
               };
             } else {
               isNewBar = true;
               return {
                 interactions: [
-                  ...state.interactions.filter(Boolean), // Remove any null/undefined entries
+                  ...state.interactions.filter(Boolean),
                   { 
                     venueId, 
                     count: 1, 
@@ -108,7 +141,9 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
                     lastReset: now,
                     lastInteraction: now,
                     arrivalTime,
-                    timestamp: now
+                    timestamp: now,
+                    lastLikeReset: now,
+                    dailyLikesUsed: 0,
                   }
                 ]
               };
@@ -140,19 +175,28 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
         try {
           if (!venueId) return;
           
+          // Check if user can like this venue today
+          if (!get().canLikeVenue(venueId)) return;
+          
           const now = new Date().toISOString();
           
           set((state) => {
             const existingInteraction = state.interactions.find(i => i && i.venueId === venueId);
             
             if (existingInteraction) {
+              // Reset daily likes if needed
+              const shouldResetLikesForVenue = shouldResetLikes(existingInteraction.lastLikeReset);
+              const dailyLikesUsed = shouldResetLikesForVenue ? 0 : existingInteraction.dailyLikesUsed;
+              
               return {
                 interactions: state.interactions.map(i => 
                   i && i.venueId === venueId 
                     ? { 
                         ...i, 
                         likes: i.likes + 1,
-                        timestamp: now
+                        timestamp: now,
+                        lastLikeReset: shouldResetLikesForVenue ? now : i.lastLikeReset,
+                        dailyLikesUsed: dailyLikesUsed + 1,
                       } 
                     : i
                 ).filter(Boolean)
@@ -167,7 +211,9 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
                     likes: 1,
                     lastReset: now,
                     lastInteraction: '',
-                    timestamp: now
+                    timestamp: now,
+                    lastLikeReset: now,
+                    dailyLikesUsed: 1,
                   }
                 ]
               };
@@ -210,7 +256,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
         try {
           const { interactions } = get();
           return interactions
-            .filter(Boolean) // Remove null/undefined entries
+            .filter(Boolean)
             .reduce((total, interaction) => total + (interaction?.likes || 0), 0);
         } catch {
           return 0;
@@ -237,7 +283,6 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           const { interactions } = get();
           const venueInteractions = interactions.filter(i => i && i.venueId === venueId);
           
-          // Create time slot counts
           const timeSlotCounts: Record<string, { count: number; likes: number }> = {};
           
           venueInteractions.forEach(interaction => {
@@ -250,7 +295,6 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
             }
           });
           
-          // Convert to array format
           return Object.entries(timeSlotCounts).map(([time, data]) => ({
             time: time || '',
             count: data?.count || 0,
@@ -284,13 +328,11 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
             '01:00', '01:30', '02:00'
           ];
 
-          // Get current time info
           const now = new Date();
           const currentHour = now.getHours();
           const currentMinutes = now.getMinutes();
           const currentTimeSlot = `${currentHour.toString().padStart(2, '0')}:${currentMinutes >= 30 ? '30' : '00'}`;
 
-          // Process each time slot
           const timeSlotData = TIME_SLOTS.map(timeSlot => {
             if (!timeSlot) {
               return {
@@ -311,11 +353,10 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
               visits,
               likes,
               isCurrentHour: timeSlot === currentTimeSlot,
-              isPeak: false // Will be calculated below
+              isPeak: false
             };
           });
 
-          // Mark peak times (top 3 by visits)
           const sortedByVisits = [...timeSlotData]
             .filter(slot => slot && slot.time)
             .sort((a, b) => b.visits - a.visits);
@@ -340,18 +381,32 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
               i => i && shouldReset(i.lastReset)
             );
             
-            if (needsReset) {
+            const needsLikeReset = state.interactions.some(
+              i => i && shouldResetLikes(i.lastLikeReset || i.lastReset)
+            );
+            
+            if (needsReset || needsLikeReset) {
+              const now = new Date().toISOString();
+              
               return {
                 interactions: state.interactions
-                  .filter(Boolean) // Remove null/undefined entries
-                  .map(i => i ? ({
-                    ...i,
-                    count: 0,
-                    lastReset: new Date().toISOString(),
-                    arrivalTime: undefined
-                    // Keep likes - they don't reset daily
-                  }) : i)
-                  .filter(Boolean) // Remove any null/undefined entries again
+                  .filter(Boolean)
+                  .map(i => {
+                    if (!i) return i;
+                    
+                    const shouldResetInteraction = shouldReset(i.lastReset);
+                    const shouldResetLikesForVenue = shouldResetLikes(i.lastLikeReset || i.lastReset);
+                    
+                    return {
+                      ...i,
+                      count: shouldResetInteraction ? 0 : i.count,
+                      lastReset: shouldResetInteraction ? now : i.lastReset,
+                      arrivalTime: shouldResetInteraction ? undefined : i.arrivalTime,
+                      lastLikeReset: shouldResetLikesForVenue ? now : (i.lastLikeReset || i.lastReset),
+                      dailyLikesUsed: shouldResetLikesForVenue ? 0 : (i.dailyLikesUsed || 0),
+                    };
+                  })
+                  .filter(Boolean)
               };
             }
             
@@ -368,6 +423,26 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           get().resetInteractionsIfNeeded();
           const interaction = get().interactions.find(i => i && i.venueId === venueId);
           return canInteractWithVenue(interaction?.lastInteraction);
+        } catch {
+          return true;
+        }
+      },
+
+      canLikeVenue: (venueId) => {
+        try {
+          if (!venueId) return false;
+          
+          get().resetInteractionsIfNeeded();
+          
+          const interaction = get().interactions.find(i => i && i.venueId === venueId);
+          
+          if (!interaction) return true; // Can like if no interaction exists
+          
+          // Check if likes have been reset today
+          const shouldResetLikesForVenue = shouldResetLikes(interaction.lastLikeReset || interaction.lastReset);
+          const dailyLikesUsed = shouldResetLikesForVenue ? 0 : (interaction.dailyLikesUsed || 0);
+          
+          return dailyLikesUsed < DAILY_LIKE_LIMIT;
         } catch {
           return true;
         }

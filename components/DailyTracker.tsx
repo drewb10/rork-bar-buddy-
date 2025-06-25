@@ -46,6 +46,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   } = useDailyTrackerStore();
   
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [originalCounts, setOriginalCounts] = useState<Record<string, number>>({});
   const [isInitialized, setIsInitialized] = useState(false);
   const [drunkScale, setDrunkScale] = useState(1);
   const [hasSubmittedDrunkScale, setHasSubmittedDrunkScale] = useState(false);
@@ -54,7 +55,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   useEffect(() => {
     if (visible && !isInitialized) {
       const dailyStats = getDailyStats();
-      setCounts({
+      const initialCounts = {
         shots: dailyStats.shots || 0,
         scoopAndScores: dailyStats.scoopAndScores || 0,
         beers: dailyStats.beers || 0,
@@ -63,7 +64,10 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         shotguns: dailyStats.shotguns || 0,
         poolGamesWon: dailyStats.poolGamesWon || 0,
         dartGamesWon: dailyStats.dartGamesWon || 0,
-      });
+      };
+      
+      setCounts(initialCounts);
+      setOriginalCounts(initialCounts); // Store original values for cancel functionality
       
       // Set drunk scale from daily stats if available
       if (dailyStats.drunkScaleRating) {
@@ -106,7 +110,16 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     }
   };
 
-  const handleClose = async () => {
+  // Cancel function - closes without saving any changes
+  const handleCancel = () => {
+    // Reset counts to original values
+    setCounts(originalCounts);
+    setIsInitialized(false);
+    onClose();
+  };
+
+  // Save function - saves progress and closes
+  const handleSave = async () => {
     // Save current progress before closing
     const statsToUpdate = {
       shots: counts.shots,
@@ -123,6 +136,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     updateDailyStats(statsToUpdate);
     await updateDailyTrackerTotals(statsToUpdate);
 
+    setIsInitialized(false);
     onClose();
   };
 
@@ -134,12 +148,17 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     return labels[value] || '';
   };
 
+  // Check if there are unsaved changes
+  const hasUnsavedChanges = () => {
+    return Object.keys(counts).some(key => counts[key] !== originalCounts[key]);
+  };
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={handleClose}
+      onRequestClose={handleCancel}
     >
       <View style={[styles.container, { backgroundColor: themeColors.background }]}>
         <View style={[styles.header, { borderBottomColor: themeColors.border }]}>
@@ -149,9 +168,16 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
               Daily Tracker
             </Text>
           </View>
-          <Pressable onPress={handleClose} style={styles.closeButton}>
-            <X size={24} color={themeColors.text} />
-          </Pressable>
+          <View style={styles.headerActions}>
+            {hasUnsavedChanges() && (
+              <Pressable onPress={handleSave} style={[styles.saveButton, { backgroundColor: themeColors.primary }]}>
+                <Text style={styles.saveButtonText}>Save</Text>
+              </Pressable>
+            )}
+            <Pressable onPress={handleCancel} style={styles.closeButton}>
+              <X size={24} color={themeColors.text} />
+            </Pressable>
+          </View>
         </View>
         
         <ScrollView 
@@ -246,11 +272,27 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
     marginLeft: 12,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  saveButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
   closeButton: {
     padding: 8,

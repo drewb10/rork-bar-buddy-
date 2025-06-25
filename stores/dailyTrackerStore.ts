@@ -16,6 +16,7 @@ interface DailyStats {
   drunkScaleSubmitted: boolean;
   drunkScaleRating?: number;
   drunkScaleTimestamp?: string;
+  lastDrunkScaleSubmission?: string;
 }
 
 interface TotalStats {
@@ -70,6 +71,23 @@ const shouldResetAt3AM = (lastResetAt: string): boolean => {
     return false;
   } catch {
     return true; // Reset if there's any error parsing dates
+  }
+};
+
+const canSubmitDrunkScaleToday = (lastSubmission?: string): boolean => {
+  if (!lastSubmission) return true;
+  
+  try {
+    const lastSubmissionDate = new Date(lastSubmission);
+    const now = new Date();
+    
+    // Check if 24 hours have passed since last submission
+    const timeDiff = now.getTime() - lastSubmissionDate.getTime();
+    const hoursDiff = timeDiff / (1000 * 60 * 60);
+    
+    return hoursDiff >= 24;
+  } catch {
+    return true; // Allow submission if there's an error parsing the date
   }
 };
 
@@ -144,6 +162,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
             drunkScaleSubmitted: currentStats.drunkScaleSubmitted,
             drunkScaleRating: currentStats.drunkScaleRating,
             drunkScaleTimestamp: currentStats.drunkScaleTimestamp,
+            lastDrunkScaleSubmission: currentStats.lastDrunkScaleSubmission,
           };
           
           const updatedTotalStats: TotalStats = {
@@ -197,6 +216,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
             drunkScaleSubmitted: true,
             drunkScaleRating: rating,
             drunkScaleTimestamp: now,
+            lastDrunkScaleSubmission: now,
           };
           
           return {
@@ -215,11 +235,17 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
       },
 
       resetDailyStats: () => {
+        const { dailyStats } = get();
         set({
           dailyStats: { 
             ...defaultDailyStats, 
             date: getTodayString(),
             lastResetAt: new Date().toISOString(),
+            // Preserve drunk scale submission status if it was submitted today
+            drunkScaleSubmitted: canSubmitDrunkScaleToday(dailyStats.lastDrunkScaleSubmission) ? false : dailyStats.drunkScaleSubmitted,
+            drunkScaleRating: canSubmitDrunkScaleToday(dailyStats.lastDrunkScaleSubmission) ? undefined : dailyStats.drunkScaleRating,
+            drunkScaleTimestamp: canSubmitDrunkScaleToday(dailyStats.lastDrunkScaleSubmission) ? undefined : dailyStats.drunkScaleTimestamp,
+            lastDrunkScaleSubmission: dailyStats.lastDrunkScaleSubmission,
           },
         });
       },
@@ -247,17 +273,17 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
       canSubmitDrunkScale: () => {
         get().checkAndResetIfNeeded();
         const { dailyStats } = get();
-        const today = getTodayString();
         
-        return dailyStats.date === today && !dailyStats.drunkScaleSubmitted;
+        // Check if 24 hours have passed since last submission
+        return canSubmitDrunkScaleToday(dailyStats.lastDrunkScaleSubmission);
       },
 
       hasDrunkScaleForToday: () => {
         get().checkAndResetIfNeeded();
         const { dailyStats } = get();
-        const today = getTodayString();
         
-        return dailyStats.date === today && dailyStats.drunkScaleSubmitted;
+        // Check if user has submitted today and 24 hours haven't passed
+        return !canSubmitDrunkScaleToday(dailyStats.lastDrunkScaleSubmission);
       },
     }),
     {

@@ -16,6 +16,7 @@ import {
 import { X, Send, TriangleAlert as AlertTriangle, MessageCircle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
+import { useChatStore } from '@/stores/chatStore';
 import { Venue } from '@/types/venue';
 
 interface ChatModalProps {
@@ -29,13 +30,21 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
   const theme = themeStore?.theme || 'dark';
   const themeColors = colors[theme] || colors.dark;
   
+  const { 
+    currentSession, 
+    sendMessage, 
+    isLoading, 
+    error, 
+    clearError,
+    resetChatOnAppReopen,
+    checkAndResetDaily,
+    generateAnonymousIdentity 
+  } = useChatStore();
+  
   const [inputText, setInputText] = useState('');
   const [showTerms, setShowTerms] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Animation values for premium interactions
@@ -45,7 +54,6 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
     if (visible && venue?.id && !isInitialized) {
       initializeChat();
     } else if (!visible) {
-      // Clean up when modal closes
       cleanup();
       setIsInitialized(false);
     }
@@ -57,9 +65,16 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
     };
   }, [visible, venue?.id]);
 
+  // Check for daily reset when modal opens
+  useEffect(() => {
+    if (visible) {
+      checkAndResetDaily();
+    }
+  }, [visible, checkAndResetDaily]);
+
   const initializeChat = async () => {
     try {
-      setError(null);
+      clearError();
       
       if (!venue?.id || venue.id.trim() === '') {
         console.error('Invalid venue ID:', venue?.id);
@@ -71,8 +86,12 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
         return;
       }
 
+      // Ensure we have a session with anonymous identity
+      if (!currentSession) {
+        resetChatOnAppReopen();
+      }
+
       setIsInitialized(true);
-      setIsLoading(false);
     } catch (error) {
       console.error('Failed to initialize chat:', error);
       setIsInitialized(false);
@@ -80,22 +99,16 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
   };
 
   const cleanup = () => {
-    setMessages([]);
-    setError(null);
-    setIsLoading(false);
-  };
-
-  const clearError = () => {
-    setError(null);
+    clearError();
   };
 
   useEffect(() => {
-    if (messages && messages.length > 0) {
+    if (currentSession?.messages && currentSession.messages.length > 0) {
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
-  }, [messages]);
+  }, [currentSession?.messages]);
 
   const handleSendMessage = async () => {
     if (!inputText || !inputText.trim() || isSending) return;
@@ -138,14 +151,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
     setInputText('');
 
     try {
-      // Mock message sending - replace with actual implementation
-      const newMessage = {
-        id: Math.random().toString(),
-        content: messageToSend,
-        anonymous_name: 'You',
-        timestamp: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, newMessage]);
+      await sendMessage(messageToSend);
     } catch (error) {
       setInputText(messageToSend);
       const errorMessage = error instanceof Error ? error.message : 'Could not send your message. Please try again.';
@@ -160,9 +166,9 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
     }
   };
 
-  const formatTime = (timestamp: string) => {
+  const formatTime = (timestamp: string | Date) => {
     try {
-      const date = new Date(timestamp);
+      const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } catch (error) {
       return '';
@@ -177,6 +183,9 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
   };
 
   if (!venue) return null;
+
+  const messages = currentSession?.messages || [];
+  const anonymousName = currentSession?.anonymousName || 'Anonymous';
 
   return (
     <Modal
@@ -202,7 +211,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               </Text>
             </View>
             <Text style={[styles.headerSubtitle, { color: themeColors.subtext }]}>
-              Anonymous Chat • {messages?.length || 0} messages
+              Anonymous Chat • You are: {anonymousName} • {messages.length} messages
             </Text>
           </View>
           <View style={styles.headerActions}>
@@ -238,14 +247,14 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}
         >
-          {isLoading && (!messages || messages.length === 0) ? (
+          {isLoading && messages.length === 0 ? (
             <View style={styles.loadingState}>
               <ActivityIndicator size="large" color={themeColors.primary} />
               <Text style={[styles.loadingText, { color: themeColors.subtext }]}>
                 Loading chat...
               </Text>
             </View>
-          ) : (!messages || messages.length === 0) ? (
+          ) : messages.length === 0 ? (
             <View style={styles.emptyState}>
               <MessageCircle size={48} color={themeColors.subtext} />
               <Text style={[styles.emptyStateTitle, { color: themeColors.text }]}>
@@ -254,13 +263,16 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               <Text style={[styles.emptyStateText, { color: themeColors.subtext }]}>
                 Be the first to say hello in {venue.name} chat
               </Text>
+              <Text style={[styles.anonymousNote, { color: themeColors.subtext }]}>
+                💡 All chats are anonymous and reset daily at 5:00 AM
+              </Text>
             </View>
           ) : (
             messages.map((message) => (
               <View key={message.id} style={styles.messageContainer}>
                 <View style={styles.messageHeader}>
                   <Text style={[styles.messageSender, { color: themeColors.primary }]}>
-                    {message.anonymous_name}
+                    {message.anonymousName || (message.isUser ? anonymousName : 'BarBuddy')}
                   </Text>
                   <Text style={[styles.messageTime, { color: themeColors.subtext }]}>
                     {formatTime(message.timestamp)}
@@ -271,7 +283,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
                   borderColor: themeColors.glass?.border || themeColors.border,
                 }]}>
                   <Text style={[styles.messageText, { color: themeColors.text }]}>
-                    {message.content}
+                    {message.text}
                   </Text>
                 </View>
               </View>
@@ -337,11 +349,21 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               borderColor: themeColors.glass?.border || themeColors.border,
             }]}>
               <Text style={[styles.termsTitle, { color: themeColors.text }]}>
-                Chat Guidelines & Safety
+                Anonymous Chat Guidelines & Safety
               </Text>
               <ScrollView style={styles.termsScroll}>
                 <Text style={[styles.termsText, { color: themeColors.text }]}>
                   {`Welcome to BarBuddy anonymous chat! To keep our community safe and fun:
+
+🎭 ANONYMITY:
+• You appear as "${anonymousName}" in this session
+• No personal information is stored or shared
+• New anonymous identity assigned daily
+
+⏰ DAILY RESET:
+• All chats reset automatically at 5:00 AM
+• Fresh start every day for privacy
+• Messages are not stored permanently
 
 ✅ DO:
 • Be respectful and kind to others
@@ -475,6 +497,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
     fontWeight: '500',
+    marginBottom: 16,
+  },
+  anonymousNote: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    fontWeight: '500',
+    fontStyle: 'italic',
   },
   messageContainer: {
     marginBottom: 20,

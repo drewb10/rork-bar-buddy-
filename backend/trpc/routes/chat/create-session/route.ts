@@ -7,37 +7,54 @@ interface LocalSessionData {
   user_id: string;
   venue_id: string;
   anonymous_name: string;
+  anonymous_id: string;
   created_at: string;
   last_active: string;
 }
 
+const generateAnonymousIdentity = (): { id: string; name: string } => {
+  const adjectives = [
+    'Cool', 'Wild', 'Epic', 'Chill', 'Rad', 'Smooth', 'Fresh', 'Bold',
+    'Swift', 'Bright', 'Sharp', 'Quick', 'Clever', 'Witty', 'Brave', 'Lucky'
+  ];
+  
+  const nouns = [
+    'Tiger', 'Eagle', 'Wolf', 'Fox', 'Bear', 'Lion', 'Hawk', 'Shark',
+    'Phoenix', 'Dragon', 'Falcon', 'Panther', 'Viper', 'Raven', 'Lynx', 'Cobra'
+  ];
+  
+  const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+  const randomNumber = Math.floor(Math.random() * 999) + 1;
+  
+  const anonymousId = `anon-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+  const anonymousName = `${randomAdjective}${randomNoun}${randomNumber}`;
+  
+  return { id: anonymousId, name: anonymousName };
+};
+
 export const createSessionProcedure = publicProcedure
   .input(z.object({
-    userId: z.string().min(1, "User ID is required"),
     venueId: z.string().min(1, "Venue ID is required"),
-    anonymousName: z.string().min(1, "Anonymous name is required"),
+    deviceId: z.string().optional(),
   }))
   .mutation(async ({ input }) => {
-    const { userId, venueId, anonymousName } = input;
+    const { venueId, deviceId } = input;
 
     try {
-      if (!userId || userId.trim() === '') {
-        throw new Error('User ID is required and cannot be empty');
-      }
-      
       if (!venueId || venueId.trim() === '') {
         throw new Error('Venue ID is required and cannot be empty');
       }
-      
-      if (!anonymousName || anonymousName.trim() === '') {
-        throw new Error('Anonymous name is required and cannot be empty');
-      }
 
-      // Check for existing session
+      // Generate anonymous identity
+      const identity = generateAnonymousIdentity();
+      const anonymousUserId = deviceId || identity.id;
+
+      // Check for existing session for this device/venue combination
       const { data: existingSession, error: fetchError } = await supabase
         .from('chat_sessions')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', anonymousUserId)
         .eq('venue_id', venueId)
         .maybeSingle();
 
@@ -63,13 +80,14 @@ export const createSessionProcedure = publicProcedure
         return { success: true, session: updatedSession as LocalSessionData };
       }
 
-      // Create new session
+      // Create new anonymous session
       const { data: newSession, error: createError } = await supabase
         .from('chat_sessions')
         .insert({
-          user_id: userId.trim(),
+          user_id: anonymousUserId,
           venue_id: venueId.trim(),
-          anonymous_name: anonymousName.trim(),
+          anonymous_name: identity.name,
+          anonymous_id: identity.id,
         })
         .select()
         .single();

@@ -88,10 +88,23 @@ serve(async (req) => {
       }
     }
 
+    // Reset daily like limits at 4:59 AM
+    const likeCutoffTime = new Date()
+    likeCutoffTime.setHours(4, 59, 0, 0)
+    
+    // If current time is before 4:59 AM, use yesterday's 4:59 AM
+    if (now.getHours() < 5 || (now.getHours() === 4 && now.getMinutes() < 59)) {
+      likeCutoffTime.setDate(likeCutoffTime.getDate() - 1)
+    }
+
+    // Note: In a real implementation, you might want to reset like counters here
+    // For now, the client-side logic handles this
+
     const result = {
       success: true,
       message: 'Daily chat reset completed successfully',
       cutoffTime: cutoffTime.toISOString(),
+      likeCutoffTime: likeCutoffTime.toISOString(),
       timestamp: now.toISOString()
     }
 

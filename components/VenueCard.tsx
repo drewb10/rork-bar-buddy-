@@ -19,7 +19,15 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const router = useRouter();
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { incrementInteraction, getInteractionCount, getLikeCount, canInteract, getPopularArrivalTime } = useVenueInteractionStore();
+  const { 
+    incrementInteraction, 
+    getInteractionCount, 
+    getLikeCount, 
+    canInteract, 
+    canLikeVenue,
+    likeVenue,
+    getPopularArrivalTime 
+  } = useVenueInteractionStore();
   const { incrementNightsOut, incrementBarsHit, canIncrementNightsOut } = useUserProfileStore();
   const interactionCount = getInteractionCount(venue.id);
   const likeCount = getLikeCount(venue.id);
@@ -29,6 +37,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
   const canInteractWithVenue = canInteract(venue.id);
+  const canLikeThisVenue = canLikeVenue(venue.id);
 
   const handlePress = () => {
     if (isInteracting) return; // Prevent multiple clicks
@@ -38,6 +47,17 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const handleChatPress = (e: any) => {
     e.stopPropagation(); // Prevent venue navigation
     setChatModalVisible(true);
+  };
+
+  const handleLikePress = (e: any) => {
+    e.stopPropagation(); // Prevent venue navigation
+    
+    if (!canLikeThisVenue) {
+      // Show message about daily limit
+      return;
+    }
+    
+    likeVenue(venue.id);
   };
 
   const handleInteraction = () => {
@@ -130,13 +150,23 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           style={styles.compactGradient}
         />
         
-        {/* Like count badge for compact cards */}
-        {likeCount > 0 && (
-          <View style={[styles.compactLikeBadge, { backgroundColor: themeColors.primary }]}>
-            <Heart size={10} color="white" fill="white" />
+        {/* Like Button for compact cards */}
+        <Pressable 
+          style={[
+            styles.compactLikeButton, 
+            { 
+              backgroundColor: canLikeThisVenue ? themeColors.primary : themeColors.border,
+              opacity: canLikeThisVenue ? 1 : 0.5
+            }
+          ]}
+          onPress={handleLikePress}
+          disabled={!canLikeThisVenue}
+        >
+          <Heart size={12} color="white" fill={likeCount > 0 ? "white" : "transparent"} />
+          {likeCount > 0 && (
             <Text style={styles.compactLikeText}>{likeCount}</Text>
-          </View>
-        )}
+          )}
+        </Pressable>
 
         {/* Chat Button for Compact Cards */}
         <Pressable 
@@ -209,13 +239,23 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         <MessageCircle size={18} color="white" />
       </Pressable>
 
-      {/* Like count badge with enhanced styling */}
-      {likeCount > 0 && (
-        <View style={[styles.likeBadge, { backgroundColor: themeColors.primary }]}>
-          <Heart size={14} color="white" fill="white" />
-          <Text style={styles.likeText}>{likeCount}</Text>
-        </View>
-      )}
+      {/* Like Button with daily limit indicator */}
+      <Pressable 
+        style={[
+          styles.likeButton, 
+          { 
+            backgroundColor: canLikeThisVenue ? themeColors.primary : themeColors.border,
+            opacity: canLikeThisVenue ? 1 : 0.5
+          }
+        ]}
+        onPress={handleLikePress}
+        disabled={!canLikeThisVenue}
+      >
+        <Heart size={16} color="white" fill={likeCount > 0 ? "white" : "transparent"} />
+        {likeCount > 0 && (
+          <Text style={styles.likeButtonText}>{likeCount}</Text>
+        )}
+      </Pressable>
 
       {/* Analytics indicator for venues with data */}
       {likeCount > 5 && (
@@ -267,6 +307,15 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
                 </Text>
               </View>
             )}
+          </View>
+        )}
+
+        {/* Daily like limit indicator */}
+        {!canLikeThisVenue && (
+          <View style={[styles.limitBadge, { backgroundColor: themeColors.border + '40' }]}>
+            <Text style={[styles.limitText, { color: themeColors.subtext }]}>
+              💡 Daily like used • Resets at 4:59 AM
+            </Text>
           </View>
         )}
         
@@ -456,15 +505,15 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  likeBadge: {
+  likeButton: {
     position: 'absolute',
     top: 12,
     left: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -473,7 +522,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  likeText: {
+  likeButtonText: {
     color: 'white',
     fontSize: 12,
     fontWeight: '700',
@@ -579,6 +628,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginLeft: 2,
   },
+  limitBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginBottom: 16,
+    alignSelf: 'flex-start',
+  },
+  limitText: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
   specialsContainer: {
     marginBottom: 16,
     padding: 12,
@@ -636,7 +697,7 @@ const styles = StyleSheet.create({
     right: 0,
     height: 100,
   },
-  compactLikeBadge: {
+  compactLikeButton: {
     position: 'absolute',
     top: 8,
     right: 8,

@@ -6,6 +6,7 @@ interface LocalSessionInfo {
   id: string;
   venue_id: string;
   anonymous_name: string;
+  anonymous_id: string;
 }
 
 export const sendMessageProcedure = publicProcedure
@@ -13,9 +14,10 @@ export const sendMessageProcedure = publicProcedure
     sessionId: z.string().min(1, "Session ID is required"),
     venueId: z.string().min(1, "Venue ID is required"),
     content: z.string().min(1, "Message content is required").max(500, "Message too long"),
+    anonymousId: z.string().optional(),
   }))
   .mutation(async ({ input }) => {
-    const { sessionId, venueId, content } = input;
+    const { sessionId, venueId, content, anonymousId } = input;
 
     try {
       if (!sessionId || sessionId.trim() === '') {
@@ -38,7 +40,7 @@ export const sendMessageProcedure = publicProcedure
       // Verify session exists and belongs to the venue
       const { data: session, error: sessionError } = await supabase
         .from('chat_sessions')
-        .select('id, venue_id, anonymous_name')
+        .select('id, venue_id, anonymous_name, anonymous_id')
         .eq('id', sessionId)
         .eq('venue_id', venueId)
         .single();
@@ -49,19 +51,26 @@ export const sendMessageProcedure = publicProcedure
 
       const typedSession = session as LocalSessionInfo;
 
+      // Verify anonymous ID matches if provided
+      if (anonymousId && typedSession.anonymous_id !== anonymousId) {
+        throw new Error('Anonymous ID mismatch');
+      }
+
       // Insert message with correct column name 'message' instead of 'content'
       const { data: newMessage, error: insertError } = await supabase
         .from('chat_messages')
         .insert({
           session_id: sessionId,
           message: trimmedContent,  // Changed from 'content' to 'message'
+          anonymous_id: typedSession.anonymous_id,
         })
         .select(`
           id,
           session_id,
           message,
           timestamp,
-          created_at
+          created_at,
+          anonymous_id
         `)
         .single();
 
