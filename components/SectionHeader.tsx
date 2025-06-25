@@ -41,7 +41,7 @@ export default function SectionHeader({
           </Text>
         </View>
         {subtitle && (
-          <Text style={[styles.subtitle, { color: themeColors.textSecondary }]}>
+          <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
             {subtitle}
           </Text>
         )}
