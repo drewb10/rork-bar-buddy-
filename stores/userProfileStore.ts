@@ -314,13 +314,10 @@ export const useUserProfileStore = create<UserProfileState>()(
         if (!profile) return;
 
         try {
-          // Remove the problematic field from updates
-          const { last_drunk_scale_reset, ...safeUpdates } = updates as any;
-          
           const { error } = await supabase
             .from('profiles')
             .update({
-              ...safeUpdates,
+              ...updates,
               updated_at: new Date().toISOString()
             })
             .eq('id', profile.id);
@@ -331,7 +328,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           }
 
           set((state) => ({
-            profile: state.profile ? { ...state.profile, ...safeUpdates } : null
+            profile: state.profile ? { ...state.profile, ...updates } : null
           }));
         } catch (error) {
           console.error('Error updating profile:', error);

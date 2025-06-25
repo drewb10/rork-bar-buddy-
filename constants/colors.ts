@@ -52,6 +52,9 @@ export const colors = {
       overlay: 'rgba(0, 0, 0, 0.3)',
     }
   }
-};
+} as const;
+
+export type Theme = 'dark' | 'light';
+export type ThemeColors = typeof colors[Theme];
 
 export default colors;

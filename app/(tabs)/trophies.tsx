@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal } from 'react-native';
 import { Trophy, Award, Star, Target, Users, Calendar, X, MapPin, TrendingUp, ChartBar as BarChart3 } from 'lucide-react-native';
-import { colors } from '@/constants/colors';
+import { colors, type Theme } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { useAchievementStore, CompletedAchievement } from '@/stores/achievementStore';
@@ -12,18 +12,18 @@ export default function TrophiesScreen() {
   const [selectedAchievement, setSelectedAchievement] = useState<CompletedAchievement | null>(null);
   
   let themeStore, profileStore, achievementStore;
-  let theme = 'dark';
+  let theme: Theme = 'dark';
   let themeColors = colors.dark;
   let profile = null;
   let getRank = () => ({ title: 'Newbie', subTitle: 'Just getting started', color: '#666666' });
   let getAverageDrunkScale = () => 0;
   let completedAchievements: CompletedAchievement[] = [];
-  let getCompletedAchievementsByCategory = () => [];
+  let getCompletedAchievementsByCategory = (category: 'bars' | 'activities' | 'social' | 'milestones'): CompletedAchievement[] => [];
 
   try {
     themeStore = useThemeStore();
-    theme = themeStore?.theme || 'dark';
-    themeColors = colors[theme] || colors.dark;
+    theme = (themeStore?.theme || 'dark') as Theme;
+    themeColors = colors[theme];
   } catch (error) {
     console.warn('Error accessing theme store:', error);
   }
@@ -40,7 +40,7 @@ export default function TrophiesScreen() {
   try {
     achievementStore = useAchievementStore();
     completedAchievements = achievementStore?.completedAchievements || [];
-    getCompletedAchievementsByCategory = achievementStore?.getCompletedAchievementsByCategory || (() => []);
+    getCompletedAchievementsByCategory = achievementStore?.getCompletedAchievementsByCategory || ((category: 'bars' | 'activities' | 'social' | 'milestones') => []);
   } catch (error) {
     console.warn('Error accessing achievement store:', error);
   }
