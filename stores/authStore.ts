@@ -11,6 +11,7 @@ interface AuthState {
   isAuthenticated: boolean;
   error: string | null;
   isConfigured: boolean;
+  isHydrated: boolean;
   
   // Actions
   signUp: (phone: string, password: string, username: string) => Promise<boolean>;
@@ -24,6 +25,26 @@ interface AuthState {
   checkConfiguration: () => void;
 }
 
+// Default state for when store isn't ready
+const defaultState: AuthState = {
+  user: null,
+  profile: null,
+  isLoading: false,
+  isAuthenticated: false,
+  error: null,
+  isConfigured: false,
+  isHydrated: false,
+  signUp: async () => false,
+  signIn: async () => false,
+  signOut: async () => {},
+  clearError: () => {},
+  checkUsernameAvailable: async () => false,
+  updateProfile: async () => false,
+  searchUser: async () => null,
+  initialize: async () => {},
+  checkConfiguration: () => {},
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -33,6 +54,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       error: null,
       isConfigured: isSupabaseConfigured(),
+      isHydrated: false,
 
       signUp: async (phone: string, password: string, username: string): Promise<boolean> => {
         set({ isLoading: true, error: null });
@@ -237,9 +259,35 @@ export const useAuthStore = create<AuthState>()(
         profile: state.profile,
         isAuthenticated: state.isAuthenticated,
       }),
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.warn('Error rehydrating auth store:', error);
+          return { ...defaultState, isHydrated: true };
+        }
+        
+        if (!state) {
+          return { ...defaultState, isHydrated: true };
+        }
+        
+        return { ...state, isHydrated: true };
+      },
     }
   )
 );
+
+// Safe hook that always returns valid state
+export const useAuthStoreSafe = () => {
+  try {
+    const store = useAuthStore();
+    if (!store || !store.isHydrated) {
+      return defaultState;
+    }
+    return store;
+  } catch (error) {
+    console.warn('Error accessing auth store:', error);
+    return defaultState;
+  }
+};
 
 // Set up auth state listener only if configured
 if (isSupabaseConfigured()) {

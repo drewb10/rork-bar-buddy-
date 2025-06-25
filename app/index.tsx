@@ -4,8 +4,13 @@ import { useAuthStore } from '@/stores/authStore';
 import { useAgeVerificationStore } from '@/stores/ageVerificationStore';
 
 export default function Index() {
-  const { isAuthenticated, isConfigured } = useAuthStore();
-  const { isVerified } = useAgeVerificationStore();
+  const authStore = useAuthStore();
+  const ageVerificationStore = useAgeVerificationStore();
+
+  // Safe access to store properties
+  const isAuthenticated = authStore?.isAuthenticated || false;
+  const isConfigured = authStore?.isConfigured || false;
+  const isVerified = ageVerificationStore?.isVerified || false;
 
   // If not age verified, go to tabs to show age verification modal
   if (!isVerified) {

@@ -1,25 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal } from 'react-native';
 import { Trophy, Award, Star, Target, Users, Calendar, X, MapPin, TrendingUp, ChartBar as BarChart3 } from 'lucide-react-native';
-import { colors, getThemeColors, type Theme, type ThemeColors } from '@/constants/colors';
-import { useThemeStore } from '@/stores/themeStore';
+import { getThemeColors, type Theme, type ThemeColors } from '@/constants/colors';
+import { useThemeStoreSafe } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
-import { useAchievementStore, CompletedAchievement } from '@/stores/achievementStore';
+import { useAchievementStoreSafe, CompletedAchievement } from '@/stores/achievementStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 
 export default function TrophiesScreen() {
   const [selectedAchievement, setSelectedAchievement] = useState<CompletedAchievement | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Safe store access with fallbacks and error handling
-  const themeStore = useThemeStore();
+  const themeStore = useThemeStoreSafe();
   const profileStore = useUserProfileStore();
-  const achievementStore = useAchievementStore();
+  const achievementStore = useAchievementStoreSafe();
   
   // Initialize stores if needed
   useEffect(() => {
-    if (!achievementStore.isInitialized) {
-      achievementStore.initializeAchievements();
-    }
+    const initializeStores = async () => {
+      try {
+        if (!achievementStore.isInitialized) {
+          achievementStore.initializeAchievements();
+        }
+        
+        // Give stores time to initialize
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 500);
+      } catch (error) {
+        console.warn('Error initializing stores:', error);
+        setIsLoading(false);
+      }
+    };
+
+    initializeStores();
   }, [achievementStore.isInitialized]);
 
   // Get theme safely
@@ -35,6 +50,38 @@ export default function TrophiesScreen() {
   const completedAchievements = achievementStore?.completedAchievements || [];
   const getCompletedAchievementsByCategory = achievementStore?.getCompletedAchievementsByCategory || (() => []);
   
+  // Show loading state while stores are initializing
+  if (isLoading || !themeStore.isHydrated || !achievementStore.isHydrated) {
+    return (
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+        <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+        
+        <ScrollView 
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.header}>
+            <BarBuddyLogo size="small" />
+            <Text style={[styles.headerTitle, { color: themeColors.text }]}>
+              Your Trophies
+            </Text>
+          </View>
+
+          <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
+            <Trophy size={48} color={themeColors.subtext} />
+            <Text style={[styles.emptyStateTitle, { color: themeColors.text }]}>
+              Loading Trophies
+            </Text>
+            <Text style={[styles.emptyStateText, { color: themeColors.subtext }]}>
+              Please wait while we load your achievements...
+            </Text>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   // Handle null profile gracefully
   if (!profile) {
     return (

@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useAgeVerificationStore } from "@/stores/ageVerificationStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useVenueInteractionStore } from "@/stores/venueInteractionStore";
-import { useAchievementStore } from "@/stores/achievementStore";
+import { useAchievementStoreSafe } from "@/stores/achievementStore";
 import { useChatStore } from "@/stores/chatStore";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
 import AchievementPopup from "@/components/AchievementPopup";
@@ -27,14 +27,27 @@ export default function RootLayout() {
   // CRITICAL: This hook must be called first and never removed
   useFrameworkReady();
 
-  const { isVerified, setVerified } = useAgeVerificationStore();
-  const { isAuthenticated, initialize: initializeAuth, isConfigured, checkConfiguration } = useAuthStore();
-  const { loadPopularTimesFromSupabase } = useVenueInteractionStore();
-  const { shouldShow3AMPopup, mark3AMPopupShown } = useAchievementStore();
-  const { resetChatOnAppReopen } = useChatStore();
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [show3AMPopup, setShow3AMPopup] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Safe store access with fallbacks
+  const ageVerificationStore = useAgeVerificationStore();
+  const authStore = useAuthStore();
+  const venueInteractionStore = useVenueInteractionStore();
+  const achievementStore = useAchievementStoreSafe();
+  const chatStore = useChatStore();
+
+  const isVerified = ageVerificationStore?.isVerified || false;
+  const setVerified = ageVerificationStore?.setVerified || (() => {});
+  const isAuthenticated = authStore?.isAuthenticated || false;
+  const isConfigured = authStore?.isConfigured || false;
+  const initializeAuth = authStore?.initialize || (() => Promise.resolve());
+  const checkConfiguration = authStore?.checkConfiguration || (() => {});
+  const loadPopularTimesFromSupabase = venueInteractionStore?.loadPopularTimesFromSupabase || (() => Promise.resolve());
+  const shouldShow3AMPopup = achievementStore?.shouldShow3AMPopup || (() => false);
+  const mark3AMPopupShown = achievementStore?.mark3AMPopupShown || (() => {});
+  const resetChatOnAppReopen = chatStore?.resetChatOnAppReopen || (() => {});
 
   useEffect(() => {
     try {
@@ -97,7 +110,7 @@ export default function RootLayout() {
       console.warn('Error in main useEffect:', error);
       setIsInitialized(true);
     }
-  }, [isVerified, isAuthenticated, isInitialized, resetChatOnAppReopen, initializeAuth, loadPopularTimesFromSupabase, checkConfiguration]);
+  }, [isVerified, isAuthenticated, isInitialized]);
 
   // 3 AM popup check
   useEffect(() => {

@@ -35,6 +35,7 @@ interface AchievementState {
   completedAchievements: CompletedAchievement[];
   lastPopupDate?: string;
   isInitialized: boolean;
+  isHydrated: boolean;
   canShowPopup: () => boolean;
   shouldShow3AMPopup: () => boolean;
   mark3AMPopupShown: () => void;
@@ -312,6 +313,28 @@ const isThreeAM = (): boolean => {
   return hour === 3;
 };
 
+// Default state for when store isn't ready
+const defaultState: AchievementState = {
+  achievements: [],
+  completedAchievements: [],
+  lastPopupDate: undefined,
+  isInitialized: false,
+  isHydrated: false,
+  canShowPopup: () => false,
+  shouldShow3AMPopup: () => false,
+  mark3AMPopupShown: () => {},
+  initializeAchievements: () => {},
+  completeAchievement: () => {},
+  markPopupShown: () => {},
+  getCompletedCount: () => 0,
+  getAchievementsByCategory: () => [],
+  getCompletedAchievementsByCategory: () => [],
+  resetAchievements: () => {},
+  updateAchievementProgress: () => {},
+  getCurrentLevelAchievements: () => [],
+  checkAndUpdateMultiLevelAchievements: () => {},
+};
+
 export const useAchievementStore = create<AchievementState>()(
   persist(
     (set, get) => ({
@@ -319,244 +342,307 @@ export const useAchievementStore = create<AchievementState>()(
       completedAchievements: [],
       lastPopupDate: undefined,
       isInitialized: false,
+      isHydrated: false,
 
       canShowPopup: () => {
-        const { lastPopupDate } = get();
-        const today = new Date().toISOString();
-        
-        if (lastPopupDate && isSameDay(lastPopupDate, today)) {
+        try {
+          const { lastPopupDate } = get();
+          const today = new Date().toISOString();
+          
+          if (lastPopupDate && isSameDay(lastPopupDate, today)) {
+            return false;
+          }
+          
+          return true;
+        } catch (error) {
+          console.warn('Error checking popup availability:', error);
           return false;
         }
-        
-        return true;
       },
 
       shouldShow3AMPopup: () => {
-        const { lastPopupDate } = get();
-        const today = new Date().toISOString();
-        
-        if (!isThreeAM()) return false;
-        
-        if (lastPopupDate && isSameDay(lastPopupDate, today)) {
+        try {
+          const { lastPopupDate } = get();
+          const today = new Date().toISOString();
+          
+          if (!isThreeAM()) return false;
+          
+          if (lastPopupDate && isSameDay(lastPopupDate, today)) {
+            return false;
+          }
+          
+          return true;
+        } catch (error) {
+          console.warn('Error checking 3AM popup:', error);
           return false;
         }
-        
-        return true;
       },
 
       mark3AMPopupShown: () => {
-        set({ lastPopupDate: new Date().toISOString() });
+        try {
+          set({ lastPopupDate: new Date().toISOString() });
+        } catch (error) {
+          console.warn('Error marking 3AM popup shown:', error);
+        }
       },
 
       initializeAchievements: () => {
-        const { achievements } = get();
-        if (achievements.length === 0) {
+        try {
+          const { achievements } = get();
+          if (achievements.length === 0) {
+            set({ achievements: defaultAchievements, isInitialized: true });
+          } else {
+            set({ isInitialized: true });
+          }
+        } catch (error) {
+          console.warn('Error initializing achievements:', error);
           set({ achievements: defaultAchievements, isInitialized: true });
-        } else {
-          set({ isInitialized: true });
         }
       },
 
       completeAchievement: (id: string) => {
-        set((state) => {
-          const achievement = state.achievements.find(a => a.id === id);
-          if (!achievement || achievement.completed) return state;
+        try {
+          set((state) => {
+            const achievement = state.achievements.find(a => a.id === id);
+            if (!achievement || achievement.completed) return state;
 
-          const completedAchievement: CompletedAchievement = {
-            id: achievement.id,
-            title: achievement.title,
-            description: achievement.description,
-            icon: achievement.icon,
-            category: achievement.category,
-            completedAt: new Date().toISOString(),
-            level: achievement.level,
-            baseId: achievement.baseId,
-          };
-
-          // Remove any lower level completed achievements of the same type
-          const filteredCompletedAchievements = state.completedAchievements.filter(
-            ca => ca.baseId !== achievement.baseId
-          );
-
-          // Mark current achievement as completed
-          const updatedAchievements = state.achievements.map(a =>
-            a.id === id ? { ...a, completed: true, completedAt: new Date().toISOString() } : a
-          );
-
-          return {
-            achievements: updatedAchievements,
-            completedAchievements: [...filteredCompletedAchievements, completedAchievement],
-          };
-        });
-      },
-
-      updateAchievementProgress: (baseId: string, progress: number) => {
-        set((state) => {
-          // Find the current level achievement for this baseId
-          const currentAchievement = state.achievements.find(a => 
-            a.baseId === baseId && !a.completed
-          );
-
-          if (!currentAchievement) return state;
-
-          const updatedAchievements = state.achievements.map(achievement => {
-            if (achievement.id === currentAchievement.id) {
-              const newProgress = Math.min(progress, achievement.maxProgress || 0);
-              const shouldComplete = achievement.maxProgress && newProgress >= achievement.maxProgress;
-              
-              return {
-                ...achievement,
-                progress: newProgress,
-                completed: shouldComplete || false,
-                completedAt: shouldComplete ? new Date().toISOString() : achievement.completedAt,
-              };
-            }
-            return achievement;
-          });
-
-          // Check if we completed the current level
-          const completedAchievement = updatedAchievements.find(a => 
-            a.id === currentAchievement.id && a.completed && !currentAchievement.completed
-          );
-
-          let newCompletedAchievements = state.completedAchievements;
-
-          if (completedAchievement) {
-            const completedAchievementData: CompletedAchievement = {
-              id: completedAchievement.id,
-              title: completedAchievement.title,
-              description: completedAchievement.description,
-              icon: completedAchievement.icon,
-              category: completedAchievement.category,
-              completedAt: completedAchievement.completedAt!,
-              level: completedAchievement.level,
-              baseId: completedAchievement.baseId,
+            const completedAchievement: CompletedAchievement = {
+              id: achievement.id,
+              title: achievement.title,
+              description: achievement.description,
+              icon: achievement.icon,
+              category: achievement.category,
+              completedAt: new Date().toISOString(),
+              level: achievement.level,
+              baseId: achievement.baseId,
             };
 
             // Remove any lower level completed achievements of the same type
             const filteredCompletedAchievements = state.completedAchievements.filter(
-              ca => ca.baseId !== baseId
+              ca => ca.baseId !== achievement.baseId
             );
 
-            newCompletedAchievements = [...filteredCompletedAchievements, completedAchievementData];
-          }
+            // Mark current achievement as completed
+            const updatedAchievements = state.achievements.map(a =>
+              a.id === id ? { ...a, completed: true, completedAt: new Date().toISOString() } : a
+            );
 
-          return {
-            achievements: updatedAchievements,
-            completedAchievements: newCompletedAchievements,
-          };
-        });
+            return {
+              achievements: updatedAchievements,
+              completedAchievements: [...filteredCompletedAchievements, completedAchievement],
+            };
+          });
+        } catch (error) {
+          console.warn('Error completing achievement:', error);
+        }
+      },
+
+      updateAchievementProgress: (baseId: string, progress: number) => {
+        try {
+          set((state) => {
+            // Find the current level achievement for this baseId
+            const currentAchievement = state.achievements.find(a => 
+              a.baseId === baseId && !a.completed
+            );
+
+            if (!currentAchievement) return state;
+
+            const updatedAchievements = state.achievements.map(achievement => {
+              if (achievement.id === currentAchievement.id) {
+                const newProgress = Math.min(progress, achievement.maxProgress || 0);
+                const shouldComplete = achievement.maxProgress && newProgress >= achievement.maxProgress;
+                
+                return {
+                  ...achievement,
+                  progress: newProgress,
+                  completed: shouldComplete || false,
+                  completedAt: shouldComplete ? new Date().toISOString() : achievement.completedAt,
+                };
+              }
+              return achievement;
+            });
+
+            // Check if we completed the current level
+            const completedAchievement = updatedAchievements.find(a => 
+              a.id === currentAchievement.id && a.completed && !currentAchievement.completed
+            );
+
+            let newCompletedAchievements = state.completedAchievements;
+
+            if (completedAchievement) {
+              const completedAchievementData: CompletedAchievement = {
+                id: completedAchievement.id,
+                title: completedAchievement.title,
+                description: completedAchievement.description,
+                icon: completedAchievement.icon,
+                category: completedAchievement.category,
+                completedAt: completedAchievement.completedAt!,
+                level: completedAchievement.level,
+                baseId: completedAchievement.baseId,
+              };
+
+              // Remove any lower level completed achievements of the same type
+              const filteredCompletedAchievements = state.completedAchievements.filter(
+                ca => ca.baseId !== baseId
+              );
+
+              newCompletedAchievements = [...filteredCompletedAchievements, completedAchievementData];
+            }
+
+            return {
+              achievements: updatedAchievements,
+              completedAchievements: newCompletedAchievements,
+            };
+          });
+        } catch (error) {
+          console.warn('Error updating achievement progress:', error);
+        }
       },
 
       checkAndUpdateMultiLevelAchievements: (stats) => {
-        const { updateAchievementProgress } = get();
-        
-        // Update all achievement progress
-        updateAchievementProgress('bars-visited', stats.barsHit);
-        updateAchievementProgress('nights-out', stats.nightsOut);
-        updateAchievementProgress('beers', stats.totalBeers);
-        updateAchievementProgress('shots', stats.totalShots);
-        updateAchievementProgress('beer-towers', stats.totalBeerTowers);
-        updateAchievementProgress('scoop-and-scores', stats.totalScoopAndScores);
-        updateAchievementProgress('funnels', stats.totalFunnels);
-        updateAchievementProgress('shotguns', stats.totalShotguns);
-        updateAchievementProgress('pool-games', stats.poolGamesWon);
-        updateAchievementProgress('dart-games', stats.dartGamesWon);
+        try {
+          const { updateAchievementProgress } = get();
+          
+          // Update all achievement progress
+          updateAchievementProgress('bars-visited', stats.barsHit);
+          updateAchievementProgress('nights-out', stats.nightsOut);
+          updateAchievementProgress('beers', stats.totalBeers);
+          updateAchievementProgress('shots', stats.totalShots);
+          updateAchievementProgress('beer-towers', stats.totalBeerTowers);
+          updateAchievementProgress('scoop-and-scores', stats.totalScoopAndScores);
+          updateAchievementProgress('funnels', stats.totalFunnels);
+          updateAchievementProgress('shotguns', stats.totalShotguns);
+          updateAchievementProgress('pool-games', stats.poolGamesWon);
+          updateAchievementProgress('dart-games', stats.dartGamesWon);
+        } catch (error) {
+          console.warn('Error checking and updating achievements:', error);
+        }
       },
 
       markPopupShown: () => {
-        set({ lastPopupDate: new Date().toISOString() });
+        try {
+          set({ lastPopupDate: new Date().toISOString() });
+        } catch (error) {
+          console.warn('Error marking popup shown:', error);
+        }
       },
 
       getCompletedCount: () => {
-        const { completedAchievements } = get();
-        return completedAchievements.length;
+        try {
+          const { completedAchievements } = get();
+          return completedAchievements?.length || 0;
+        } catch (error) {
+          console.warn('Error getting completed count:', error);
+          return 0;
+        }
       },
 
       getAchievementsByCategory: (category: Achievement['category']) => {
-        const { achievements } = get();
-        return achievements
-          .filter(a => a.category === category && !a.completed)
-          .sort((a, b) => a.order - b.order);
+        try {
+          const { achievements } = get();
+          return (achievements || [])
+            .filter(a => a.category === category && !a.completed)
+            .sort((a, b) => a.order - b.order);
+        } catch (error) {
+          console.warn('Error getting achievements by category:', error);
+          return [];
+        }
       },
 
       getCompletedAchievementsByCategory: (category: Achievement['category']) => {
-        const { completedAchievements } = get();
-        return completedAchievements
-          .filter(a => a.category === category)
-          .sort((a, b) => a.level - b.level);
+        try {
+          const { completedAchievements } = get();
+          return (completedAchievements || [])
+            .filter(a => a.category === category)
+            .sort((a, b) => a.level - b.level);
+        } catch (error) {
+          console.warn('Error getting completed achievements by category:', error);
+          return [];
+        }
       },
 
       getCurrentLevelAchievements: () => {
-        const { achievements } = get();
-        
-        // Get all unique baseIds
-        const allBaseIds = [...new Set(achievements.map(a => a.baseId))];
-        
-        // For each baseId, find the current level (lowest incomplete level)
-        const currentLevelAchievements: Achievement[] = [];
-        
-        allBaseIds.forEach(baseId => {
-          const achievementsForBase = achievements
-            .filter(a => a.baseId === baseId)
-            .sort((a, b) => a.level - b.level);
+        try {
+          const { achievements } = get();
           
-          // Find the first incomplete achievement for this base
-          const currentLevel = achievementsForBase.find(a => !a.completed);
+          if (!achievements || achievements.length === 0) return [];
           
-          if (currentLevel) {
-            currentLevelAchievements.push(currentLevel);
-          }
-        });
-        
-        return currentLevelAchievements.sort((a, b) => a.order - b.order);
+          // Get all unique baseIds
+          const allBaseIds = [...new Set(achievements.map(a => a.baseId))];
+          
+          // For each baseId, find the current level (lowest incomplete level)
+          const currentLevelAchievements: Achievement[] = [];
+          
+          allBaseIds.forEach(baseId => {
+            const achievementsForBase = achievements
+              .filter(a => a.baseId === baseId)
+              .sort((a, b) => a.level - b.level);
+            
+            // Find the first incomplete achievement for this base
+            const currentLevel = achievementsForBase.find(a => !a.completed);
+            
+            if (currentLevel) {
+              currentLevelAchievements.push(currentLevel);
+            }
+          });
+          
+          return currentLevelAchievements.sort((a, b) => a.order - b.order);
+        } catch (error) {
+          console.warn('Error getting current level achievements:', error);
+          return [];
+        }
       },
 
       resetAchievements: () => {
-        set({
-          achievements: defaultAchievements.map(a => ({ 
-            ...a, 
-            completed: false, 
-            completedAt: undefined,
-            progress: a.maxProgress ? 0 : undefined
-          })),
-          completedAchievements: [],
-          lastPopupDate: undefined,
-          isInitialized: true,
-        });
+        try {
+          set({
+            achievements: defaultAchievements.map(a => ({ 
+              ...a, 
+              completed: false, 
+              completedAt: undefined,
+              progress: a.maxProgress ? 0 : undefined
+            })),
+            completedAchievements: [],
+            lastPopupDate: undefined,
+            isInitialized: true,
+          });
+        } catch (error) {
+          console.warn('Error resetting achievements:', error);
+        }
       },
     }),
     {
       name: 'achievement-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      onRehydrateStorage: () => (state) => {
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.warn('Error rehydrating achievement store:', error);
+          return { ...defaultState, isHydrated: true };
+        }
+        
         // Ensure we always have valid state and mark as initialized
         if (!state) {
-          return {
-            achievements: [],
-            completedAchievements: [],
-            lastPopupDate: undefined,
-            isInitialized: true,
-            canShowPopup: () => true,
-            shouldShow3AMPopup: () => false,
-            mark3AMPopupShown: () => {},
-            initializeAchievements: () => {},
-            completeAchievement: () => {},
-            markPopupShown: () => {},
-            getCompletedCount: () => 0,
-            getAchievementsByCategory: () => [],
-            getCompletedAchievementsByCategory: () => [],
-            resetAchievements: () => {},
-            updateAchievementProgress: () => {},
-            getCurrentLevelAchievements: () => [],
-            checkAndUpdateMultiLevelAchievements: () => {},
-          };
+          return { ...defaultState, isHydrated: true };
         }
-        return { ...state, isInitialized: true };
+        return { ...state, isInitialized: true, isHydrated: true };
       },
     }
   )
 );
+
+// Safe hook that always returns valid state
+export const useAchievementStoreSafe = () => {
+  try {
+    const store = useAchievementStore();
+    if (!store || !store.isHydrated) {
+      return defaultState;
+    }
+    return store;
+  } catch (error) {
+    console.warn('Error accessing achievement store:', error);
+    return defaultState;
+  }
+};
 
 // Store reference for cross-store access
 if (typeof window !== 'undefined') {
