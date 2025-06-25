@@ -32,6 +32,9 @@ export interface UserProfile {
   visited_bars: string[];
   xp_activities: any[];
   has_completed_onboarding: boolean;
+  daily_stats: any;
+  last_night_out_date?: string;
+  last_drunk_scale_date?: string;
   created_at: string;
   updated_at: string;
 }
@@ -91,7 +94,7 @@ export const authService = {
       }
       console.log('✅ AuthService: Username is available');
 
-      // Step 2: Create auth user with better error handling
+      // Step 2: Create auth user
       console.log('📝 AuthService: Creating auth user...');
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -110,8 +113,8 @@ export const authService = {
         if (authError.message.includes('User already registered')) {
           throw new AuthError('An account with this email already exists', 'EMAIL_TAKEN');
         }
-        if (authError.message.includes('Database error')) {
-          throw new AuthError('Database connection issue. Please check your Supabase configuration.', 'DATABASE_ERROR');
+        if (authError.message.includes('Database error saving new user')) {
+          throw new AuthError('Database setup issue. Please run the RLS policy fix migration in your Supabase dashboard.', 'DATABASE_ERROR');
         }
         if (authError.message.includes('Invalid email')) {
           throw new AuthError('Please enter a valid email address', 'INVALID_EMAIL');
@@ -139,10 +142,15 @@ export const authService = {
       
       let profile = null;
       let retryCount = 0;
-      const maxRetries = 3;
+      const maxRetries = 5;
       
       while (retryCount < maxRetries && !profile) {
         try {
+          // Wait a bit between retries
+          if (retryCount > 0) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          }
+          
           const { data: newProfile, error: profileError } = await supabase
             .from('profiles')
             .insert({
@@ -164,7 +172,8 @@ export const authService = {
               photos_taken: 0,
               visited_bars: [],
               xp_activities: [],
-              has_completed_onboarding: false
+              has_completed_onboarding: false,
+              daily_stats: {}
             })
             .select('*')
             .single();
@@ -177,11 +186,10 @@ export const authService = {
             }
             
             if (retryCount === maxRetries - 1) {
-              throw new AuthError('Failed to create user profile. Please try again.', 'PROFILE_CREATION_FAILED');
+              throw new AuthError('Failed to create user profile. Please check your RLS policies in Supabase.', 'PROFILE_CREATION_FAILED');
             }
             
             retryCount++;
-            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
             continue;
           }
 
@@ -192,11 +200,10 @@ export const authService = {
           console.error(`❌ AuthService: Exception during profile creation (attempt ${retryCount + 1}):`, profileError);
           
           if (retryCount === maxRetries - 1) {
-            throw new AuthError('Failed to create user profile. Please try again.', 'PROFILE_CREATION_FAILED');
+            throw new AuthError('Failed to create user profile. Please check your RLS policies in Supabase.', 'PROFILE_CREATION_FAILED');
           }
           
           retryCount++;
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
         }
       }
 
@@ -281,7 +288,8 @@ export const authService = {
                   photos_taken: 0,
                   visited_bars: [],
                   xp_activities: [],
-                  has_completed_onboarding: false
+                  has_completed_onboarding: false,
+                  daily_stats: {}
                 })
                 .select('*')
                 .single();

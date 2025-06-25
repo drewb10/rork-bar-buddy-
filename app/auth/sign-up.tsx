@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, StatusBar, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Eye, EyeOff, Mail, Lock, User, Check, X, AlertCircle } from 'lucide-react-native';
+import { Eye, EyeOff, Mail, Lock, User, Check, X, AlertCircle, Database } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -65,11 +65,11 @@ export default function SignUpScreen() {
 
     if (!isConfigured) {
       Alert.alert(
-        'Setup Required', 
-        'Please configure your Supabase database first. Check the setup instructions in your project.',
+        'Database Setup Required', 
+        'Your Supabase database needs to be configured. Please:\n\n1. Run the latest migration in your Supabase dashboard\n2. Check your .env file\n3. Or try Demo Mode to test the app',
         [
-          { text: 'OK' },
-          { text: 'Go to Demo', onPress: () => router.replace('/(tabs)') }
+          { text: 'Setup Instructions', onPress: () => console.log('Check SETUP_INSTRUCTIONS.md') },
+          { text: 'Try Demo Mode', onPress: () => router.replace('/(tabs)') }
         ]
       );
       return;
@@ -115,10 +115,15 @@ export default function SignUpScreen() {
         // Show more user-friendly error messages
         let errorTitle = 'Sign Up Failed';
         let errorMessage = error;
+        let showMigrationButton = false;
         
-        if (error.includes('Database connection issue')) {
+        if (error.includes('Database setup issue') || error.includes('Database error saving new user')) {
+          errorTitle = 'Database Setup Required';
+          errorMessage = 'Your database needs the latest migration. Please run the migration file in your Supabase dashboard SQL Editor.';
+          showMigrationButton = true;
+        } else if (error.includes('Database connection issue')) {
           errorTitle = 'Connection Issue';
-          errorMessage = 'Unable to connect to the database. Please check your internet connection and try again.';
+          errorMessage = 'Unable to connect to the database. Please check your internet connection and Supabase configuration.';
         } else if (error.includes('Username is already taken')) {
           errorTitle = 'Username Taken';
           errorMessage = 'This username is already taken. Please choose a different one.';
@@ -133,19 +138,27 @@ export default function SignUpScreen() {
           errorMessage = 'Please enter a valid email address.';
         }
         
-        Alert.alert(errorTitle, errorMessage, [
+        const buttons = [
           { text: 'Try Again' },
           ...(error.includes('email already exists') ? [
             { text: 'Sign In Instead', onPress: () => router.push('/auth/sign-in') }
+          ] : []),
+          ...(showMigrationButton ? [
+            { text: 'Setup Help', onPress: () => console.log('Check SETUP_INSTRUCTIONS.md for migration steps') }
           ] : [])
-        ]);
+        ];
+        
+        Alert.alert(errorTitle, errorMessage, buttons);
       }
     } catch (unexpectedError) {
       console.error('🎯 SignUp: Unexpected error:', unexpectedError);
       Alert.alert(
         'Unexpected Error',
-        'Something went wrong. Please try again later.',
-        [{ text: 'OK' }]
+        'Something went wrong. Please check your database setup and try again.',
+        [
+          { text: 'OK' },
+          { text: 'Setup Help', onPress: () => console.log('Check SETUP_INSTRUCTIONS.md') }
+        ]
       );
     }
   };
@@ -217,16 +230,22 @@ export default function SignUpScreen() {
           {/* Configuration Warning */}
           {!isConfigured && (
             <View style={[styles.warningContainer, { backgroundColor: '#FFA500' + '20', borderColor: '#FFA500' }]}>
-              <AlertCircle size={20} color="#FFA500" />
-              <Text style={[styles.warningText, { color: '#FFA500' }]}>
-                Database not configured. Check setup instructions or try demo mode.
-              </Text>
+              <Database size={20} color="#FFA500" />
+              <View style={styles.warningTextContainer}>
+                <Text style={[styles.warningTitle, { color: '#FFA500' }]}>
+                  Database Setup Required
+                </Text>
+                <Text style={[styles.warningText, { color: '#FFA500' }]}>
+                  Run the latest migration in Supabase or try demo mode
+                </Text>
+              </View>
             </View>
           )}
 
           {/* Error Display */}
           {error && (
             <View style={[styles.errorContainer, { backgroundColor: '#FF4444' + '20', borderColor: '#FF4444' }]}>
+              <AlertCircle size={20} color="#FF4444" />
               <Text style={[styles.errorText, { color: '#FF4444' }]}>
                 {error}
               </Text>
@@ -323,16 +342,14 @@ export default function SignUpScreen() {
             </LinearGradient>
 
             {/* Demo Mode Button */}
-            {!isConfigured && (
-              <Pressable
-                style={[styles.demoButton, { borderColor: themeColors.border }]}
-                onPress={navigateToDemo}
-              >
-                <Text style={[styles.demoButtonText, { color: themeColors.text }]}>
-                  Try Demo Mode
-                </Text>
-              </Pressable>
-            )}
+            <Pressable
+              style={[styles.demoButton, { borderColor: themeColors.border }]}
+              onPress={navigateToDemo}
+            >
+              <Text style={[styles.demoButtonText, { color: themeColors.text }]}>
+                Try Demo Mode
+              </Text>
+            </Pressable>
 
             {/* Sign In Link */}
             <View style={styles.signInContainer}>
@@ -378,6 +395,27 @@ const styles = StyleSheet.create({
   },
   warningContainer: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 20,
+    gap: 12,
+  },
+  warningTextContainer: {
+    flex: 1,
+  },
+  warningTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  warningText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     borderRadius: 12,
@@ -385,21 +423,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     gap: 12,
   },
-  warningText: {
-    fontSize: 14,
-    fontWeight: '600',
-    flex: 1,
-  },
-  errorContainer: {
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 20,
-  },
   errorText: {
     fontSize: 14,
     fontWeight: '600',
-    textAlign: 'center',
+    flex: 1,
   },
   form: {
     width: '100%',
