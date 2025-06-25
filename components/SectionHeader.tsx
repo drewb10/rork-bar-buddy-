@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     paddingHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   centeredContainer: {
     justifyContent: 'center',
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   centeredTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
     textAlign: 'center',
   },

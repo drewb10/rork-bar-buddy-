@@ -33,7 +33,7 @@ interface TotalStats {
 interface DailyTrackerState {
   dailyStats: DailyStats;
   totalStats: TotalStats;
-  updateDailyStats: (stats: Partial<Omit<DailyStats, 'date' | 'lastResetAt' | 'drunkScaleSubmitted' | 'drunkScaleTimestamp'>>) => void;
+  updateDailyStats: (stats: Partial<DailyStats>) => void;
   submitDrunkScale: (rating: number) => void;
   resetDailyStats: () => void;
   getDailyStats: () => DailyStats;
@@ -138,17 +138,8 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
         set((state) => {
           const currentStats = state.dailyStats;
           
-          // Calculate the differences to avoid double counting
-          const shotsDiff = Math.max(0, (stats.shots || 0) - currentStats.shots);
-          const scoopDiff = Math.max(0, (stats.scoopAndScores || 0) - currentStats.scoopAndScores);
-          const beersDiff = Math.max(0, (stats.beers || 0) - currentStats.beers);
-          const beerTowersDiff = Math.max(0, (stats.beerTowers || 0) - currentStats.beerTowers);
-          const funnelsDiff = Math.max(0, (stats.funnels || 0) - currentStats.funnels);
-          const shotgunsDiff = Math.max(0, (stats.shotguns || 0) - currentStats.shotguns);
-          const poolDiff = Math.max(0, (stats.poolGamesWon || 0) - currentStats.poolGamesWon);
-          const dartDiff = Math.max(0, (stats.dartGamesWon || 0) - currentStats.dartGamesWon);
-          
-          const updatedDailyStats: DailyStats = {
+          // Safely handle stats updates with proper defaults
+          const newStats: DailyStats = {
             shots: stats.shots !== undefined ? stats.shots : currentStats.shots,
             scoopAndScores: stats.scoopAndScores !== undefined ? stats.scoopAndScores : currentStats.scoopAndScores,
             beers: stats.beers !== undefined ? stats.beers : currentStats.beers,
@@ -164,6 +155,16 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
             drunkScaleTimestamp: currentStats.drunkScaleTimestamp,
             lastDrunkScaleSubmission: currentStats.lastDrunkScaleSubmission,
           };
+          
+          // Calculate the differences to avoid double counting
+          const shotsDiff = Math.max(0, newStats.shots - currentStats.shots);
+          const scoopDiff = Math.max(0, newStats.scoopAndScores - currentStats.scoopAndScores);
+          const beersDiff = Math.max(0, newStats.beers - currentStats.beers);
+          const beerTowersDiff = Math.max(0, newStats.beerTowers - currentStats.beerTowers);
+          const funnelsDiff = Math.max(0, newStats.funnels - currentStats.funnels);
+          const shotgunsDiff = Math.max(0, newStats.shotguns - currentStats.shotguns);
+          const poolDiff = Math.max(0, newStats.poolGamesWon - currentStats.poolGamesWon);
+          const dartDiff = Math.max(0, newStats.dartGamesWon - currentStats.dartGamesWon);
           
           const updatedTotalStats: TotalStats = {
             shots: state.totalStats.shots + shotsDiff,
@@ -197,7 +198,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
           }
           
           return {
-            dailyStats: updatedDailyStats,
+            dailyStats: newStats,
             totalStats: updatedTotalStats,
           };
         });

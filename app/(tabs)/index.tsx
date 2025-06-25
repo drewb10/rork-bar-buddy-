@@ -41,7 +41,7 @@ export default function HomeScreen() {
 
   // Filter venues based on selected filters
   const filteredVenues = selectedFilters.length > 0 
-    ? venues.filter(venue => venue.types && venue.types.some(type => selectedFilters.includes(type)))
+    ? venues.filter(venue => venue.types && venue.types.some(venueType => selectedFilters.includes(venueType)))
     : venues;
 
   // Top picks - exactly 3 specific venues for promo placement
@@ -67,14 +67,14 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Header */}
+        {/* Header with Logo */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
             <BarBuddyLogo size="large" />
           </View>
         </View>
 
-        {/* Filter Bar */}
+        {/* Category Filter Bar */}
         <View style={styles.filterContainer}>
           <FilterBar 
             filters={selectedFilters}
@@ -147,8 +147,8 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 12,
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingBottom: 8,
     paddingHorizontal: 16,
   },
   logoContainer: {

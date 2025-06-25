@@ -38,7 +38,7 @@ export default function TopPickCard({ venue }: TopPickCardProps) {
         style={styles.gradient}
       />
       
-      {/* Flame count badge */}
+      {/* Flame count badge - top left */}
       {likeCount > 0 && (
         <View style={[styles.flameBadge, { backgroundColor: themeColors.primary }]}>
           <Flame size={12} color="white" fill="white" />
