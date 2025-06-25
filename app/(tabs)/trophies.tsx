@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal } from 'react-native';
 import { Trophy, Award, Star, Target, Users, Calendar, X, MapPin, TrendingUp, ChartBar as BarChart3 } from 'lucide-react-native';
-import { colors, type Theme, type ThemeColors } from '@/constants/colors';
+import { getThemeColors, type Theme, type ThemeColors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { useAchievementStore, CompletedAchievement } from '@/stores/achievementStore';
@@ -13,7 +13,7 @@ export default function TrophiesScreen() {
   // Safe store access with proper error handling
   const themeStore = useThemeStore();
   const theme: Theme = themeStore?.theme || 'dark';
-  const themeColors: ThemeColors = colors[theme];
+  const themeColors: ThemeColors = getThemeColors(theme);
   
   const profileStore = useUserProfileStore();
   const profile = profileStore?.profile;
@@ -22,7 +22,7 @@ export default function TrophiesScreen() {
   
   const achievementStore = useAchievementStore();
   const completedAchievements = achievementStore?.completedAchievements || [];
-  const getCompletedAchievementsByCategory = achievementStore?.getCompletedAchievementsByCategory || (() => []);
+  const getCompletedAchievementsByCategory = achievementStore?.getCompletedAchievementsByCategory || ((category: 'bars' | 'activities' | 'social' | 'milestones') => []);
 
   // Handle null profile gracefully
   if (!profile) {

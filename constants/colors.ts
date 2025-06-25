@@ -55,6 +55,11 @@ export const colors = {
 } as const;
 
 export type Theme = 'dark' | 'light';
-export type ThemeColors = typeof colors['dark']; // Use dark as the base type since both have same structure
+export type ThemeColors = typeof colors['dark'] | typeof colors['light'];
+
+// Helper function to get theme colors with proper typing
+export const getThemeColors = (theme: Theme): ThemeColors => {
+  return colors[theme];
+};
 
 export default colors;
