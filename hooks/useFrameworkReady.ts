@@ -2,17 +2,21 @@ import { useEffect } from 'react';
 import { useChatStore } from '@/stores/chatStore';
 
 export function useFrameworkReady() {
-  const { resetChatOnAppReopen, checkAndResetDaily } = useChatStore();
+  const chatStore = useChatStore();
 
   useEffect(() => {
-    // Initialize chat system when app opens
-    if (resetChatOnAppReopen) {
-      resetChatOnAppReopen();
+    try {
+      // Initialize chat system when app opens
+      if (chatStore?.resetChatOnAppReopen && typeof chatStore.resetChatOnAppReopen === 'function') {
+        chatStore.resetChatOnAppReopen();
+      }
+      
+      // Check for daily reset
+      if (chatStore?.checkAndResetDaily && typeof chatStore.checkAndResetDaily === 'function') {
+        chatStore.checkAndResetDaily();
+      }
+    } catch (error) {
+      console.warn('Error in useFrameworkReady:', error);
     }
-    
-    // Check for daily reset
-    if (checkAndResetDaily) {
-      checkAndResetDaily();
-    }
-  }, [resetChatOnAppReopen, checkAndResetDaily]);
+  }, [chatStore]);
 }

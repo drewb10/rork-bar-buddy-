@@ -95,7 +95,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
   };
 
   useEffect(() => {
-    if (messages.length > 0) {
+    if (messages && messages.length > 0) {
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -201,7 +201,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               </Text>
             </View>
             <Text style={[styles.headerSubtitle, { color: themeColors.subtext }]}>
-              Anonymous Chat • {messages.length} messages
+              Anonymous Chat • {messages?.length || 0} messages
             </Text>
           </View>
           <View style={styles.headerActions}>
@@ -237,14 +237,14 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}
         >
-          {isLoading && messages.length === 0 ? (
+          {isLoading && (!messages || messages.length === 0) ? (
             <View style={styles.loadingState}>
               <ActivityIndicator size="large" color={themeColors.primary} />
               <Text style={[styles.loadingText, { color: themeColors.subtext }]}>
                 Loading chat...
               </Text>
             </View>
-          ) : messages.length === 0 ? (
+          ) : (!messages || messages.length === 0) ? (
             <View style={styles.emptyState}>
               <MessageCircle size={48} color={themeColors.subtext} />
               <Text style={[styles.emptyStateTitle, { color: themeColors.text }]}>
@@ -340,49 +340,28 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               </Text>
               <ScrollView style={styles.termsScroll}>
                 <Text style={[styles.termsText, { color: themeColors.text }]}>
-                  Welcome to BarBuddy anonymous chat! To keep our community safe and fun:{"
+                  {`Welcome to BarBuddy anonymous chat! To keep our community safe and fun:
 
-"}
-                  
-                  <Text style={{ fontWeight: 'bold' }}>✅ DO:</Text>{"
-"}
-                  • Be respectful and kind to others{"
-"}
-                  • Keep conversations venue-related and fun{"
-"}
-                  • Respect others' privacy and anonymity{"
-"}
-                  • Report inappropriate behavior{"
+✅ DO:
+• Be respectful and kind to others
+• Keep conversations venue-related and fun
+• Respect others' privacy and anonymity
+• Report inappropriate behavior
 
-"}
-                  
-                  <Text style={{ fontWeight: 'bold' }}>❌ DON'T:</Text>{"
-"}
-                  • Share personal information (phone, email, social media){"
-"}
-                  • Use hate speech, threats, or harassment{"
-"}
-                  • Send spam or promotional content{"
-"}
-                  • Engage in sexual harassment{"
-"}
-                  • Bully or target other users{"
+❌ DON'T:
+• Share personal information (phone, email, social media)
+• Use hate speech, threats, or harassment
+• Send spam or promotional content
+• Engage in sexual harassment
+• Bully or target other users
 
-"}
-                  
-                  <Text style={{ fontWeight: 'bold' }}>🔒 Privacy & Safety:</Text>{"
-"}
-                  • Messages reset daily at 5:00 AM{"
-"}
-                  • All content is automatically moderated{"
-"}
-                  • Violations may result in chat restrictions{"
-"}
-                  • Your safety is our priority{"
+🔒 Privacy & Safety:
+• Messages reset daily at 5:00 AM
+• All content is automatically moderated
+• Violations may result in chat restrictions
+• Your safety is our priority
 
-"}
-                  
-                  Have fun and stay safe! 🍻
+Have fun and stay safe! 🍻`}
                 </Text>
               </ScrollView>
               <Pressable
@@ -409,9 +388,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 20, // More padding
+    paddingBottom: 20,
     borderBottomWidth: 1,
-    // Enhanced shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -426,26 +404,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 16, // REDUCED from 18 to 16
-    fontWeight: '700', // Bolder
+    fontSize: 16,
+    fontWeight: '700',
     marginLeft: 8,
     letterSpacing: 0.3,
   },
   headerSubtitle: {
-    fontSize: 12, // REDUCED from 14 to 12
-    marginTop: 4, // More spacing
-    fontWeight: '500', // Slightly bolder
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '500',
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   termsButton: {
-    padding: 12, // More padding
+    padding: 12,
     marginRight: 8,
   },
   closeButton: {
-    padding: 12, // More padding
+    padding: 12,
   },
   errorBanner: {
     flexDirection: 'row',
@@ -458,13 +436,13 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     flex: 1,
-    fontWeight: '500', // Slightly bolder
+    fontWeight: '500',
   },
   messagesContainer: {
     flex: 1,
   },
   messagesContent: {
-    padding: 20, // More padding
+    padding: 20,
     flexGrow: 1,
   },
   loadingState: {
@@ -476,7 +454,7 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     marginTop: 12,
-    fontWeight: '500', // Slightly bolder
+    fontWeight: '500',
   },
   emptyState: {
     flex: 1,
@@ -486,7 +464,7 @@ const styles = StyleSheet.create({
   },
   emptyStateTitle: {
     fontSize: 18,
-    fontWeight: '700', // Bolder
+    fontWeight: '700',
     marginTop: 16,
     marginBottom: 8,
     letterSpacing: 0.3,
@@ -495,32 +473,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 22,
-    fontWeight: '500', // Slightly bolder
+    fontWeight: '500',
   },
   messageContainer: {
-    marginBottom: 20, // More spacing
+    marginBottom: 20,
   },
   messageHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6, // More spacing
+    marginBottom: 6,
   },
   messageSender: {
     fontSize: 14,
-    fontWeight: '700', // Bolder
+    fontWeight: '700',
     letterSpacing: 0.2,
   },
   messageTime: {
     fontSize: 12,
-    fontWeight: '500', // Slightly bolder
+    fontWeight: '500',
   },
   messageBubble: {
-    padding: 16, // More padding
-    borderRadius: 16, // More rounded
+    padding: 16,
+    borderRadius: 16,
     borderTopLeftRadius: 6,
     borderWidth: 0.5,
-    // Enhanced shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -530,14 +507,13 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 16,
     lineHeight: 20,
-    fontWeight: '500', // Slightly bolder
+    fontWeight: '500',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    padding: 20, // More padding
+    padding: 20,
     borderTopWidth: 1,
-    // Enhanced shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
@@ -546,42 +522,39 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    borderWidth: 1.5, // Thicker border
-    borderRadius: 24, // More rounded
-    paddingHorizontal: 20, // More padding
+    borderWidth: 1.5,
+    borderRadius: 24,
+    paddingHorizontal: 20,
     paddingVertical: 14,
-    marginRight: 16, // More spacing
+    marginRight: 16,
     maxHeight: 100,
     fontSize: 16,
-    fontWeight: '500', // Slightly bolder
+    fontWeight: '500',
   },
   sendButton: {
-    width: 48, // Larger
+    width: 48,
     height: 48,
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    // Enhanced shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
   },
-  // Enhanced terms modal with glassmorphism
   termsOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)', // Darker overlay
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
   },
   termsContent: {
     width: '90%',
     maxHeight: '80%',
-    borderRadius: 24, // More rounded
-    padding: 28, // More padding
+    borderRadius: 24,
+    padding: 28,
     borderWidth: 1,
-    // Enhanced shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.3,
@@ -590,8 +563,8 @@ const styles = StyleSheet.create({
   },
   termsTitle: {
     fontSize: 20,
-    fontWeight: '800', // Bolder
-    marginBottom: 20, // More spacing
+    fontWeight: '800',
+    marginBottom: 20,
     textAlign: 'center',
     letterSpacing: 0.3,
   },
@@ -601,15 +574,14 @@ const styles = StyleSheet.create({
   termsText: {
     fontSize: 16,
     lineHeight: 24,
-    fontWeight: '500', // Slightly bolder
+    fontWeight: '500',
   },
   termsCloseButton: {
-    marginTop: 24, // More spacing
-    paddingVertical: 16, // More padding
+    marginTop: 24,
+    paddingVertical: 16,
     paddingHorizontal: 28,
-    borderRadius: 28, // More rounded
+    borderRadius: 28,
     alignItems: 'center',
-    // Enhanced shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -619,7 +591,7 @@ const styles = StyleSheet.create({
   termsCloseText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '700', // Bolder
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
 });

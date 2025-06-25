@@ -37,52 +37,65 @@ export default function RootLayout() {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // Reset chat messages on app start to ensure anonymous behavior
-    resetChatOnAppReopen();
-    
-    // Check Supabase configuration
-    checkConfiguration();
-    
-    // Initialize authentication
-    const initializeApp = async () => {
-      try {
-        if (isInitialized) return;
-        
-        const initTimeout = setTimeout(() => {
-          console.warn('App initialization timeout, continuing anyway');
-          setIsInitialized(true);
-        }, 5000);
+    try {
+      // Reset chat messages on app start to ensure anonymous behavior
+      if (resetChatOnAppReopen && typeof resetChatOnAppReopen === 'function') {
+        resetChatOnAppReopen();
+      }
+      
+      // Check Supabase configuration
+      if (checkConfiguration && typeof checkConfiguration === 'function') {
+        checkConfiguration();
+      }
+      
+      // Initialize authentication
+      const initializeApp = async () => {
+        try {
+          if (isInitialized) return;
+          
+          const initTimeout = setTimeout(() => {
+            console.warn('App initialization timeout, continuing anyway');
+            setIsInitialized(true);
+          }, 5000);
 
-        // Initialize auth (will handle unconfigured state gracefully)
-        await initializeAuth();
-        
-        // Load venue data if authenticated and configured
-        if (isAuthenticated && isSupabaseConfigured()) {
-          try {
-            await loadPopularTimesFromSupabase();
-          } catch (error) {
-            console.warn('Failed to load venue data:', error);
+          // Initialize auth (will handle unconfigured state gracefully)
+          if (initializeAuth && typeof initializeAuth === 'function') {
+            await initializeAuth();
           }
+          
+          // Load venue data if authenticated and configured
+          if (isAuthenticated && isSupabaseConfigured()) {
+            try {
+              if (loadPopularTimesFromSupabase && typeof loadPopularTimesFromSupabase === 'function') {
+                await loadPopularTimesFromSupabase();
+              }
+            } catch (error) {
+              console.warn('Failed to load venue data:', error);
+            }
+          }
+          
+          clearTimeout(initTimeout);
+          setIsInitialized(true);
+        } catch (error) {
+          console.warn('Error initializing app:', error);
+          setIsInitialized(true);
         }
-        
-        clearTimeout(initTimeout);
-        setIsInitialized(true);
-      } catch (error) {
-        console.warn('Error initializing app:', error);
-        setIsInitialized(true);
-      }
-    };
+      };
 
-    // Show age verification if not verified
-    if (!isVerified) {
-      setShowAgeVerification(true);
-    } else {
-      // Initialize app if verified
-      if (!isInitialized) {
-        setTimeout(() => {
-          initializeApp();
-        }, 100);
+      // Show age verification if not verified
+      if (!isVerified) {
+        setShowAgeVerification(true);
+      } else {
+        // Initialize app if verified
+        if (!isInitialized) {
+          setTimeout(() => {
+            initializeApp();
+          }, 100);
+        }
       }
+    } catch (error) {
+      console.warn('Error in main useEffect:', error);
+      setIsInitialized(true);
     }
   }, [isVerified, isAuthenticated, isInitialized, resetChatOnAppReopen, initializeAuth, loadPopularTimesFromSupabase, checkConfiguration]);
 
@@ -92,7 +105,7 @@ export default function RootLayout() {
 
     const checkFor3AMPopup = () => {
       try {
-        if (shouldShow3AMPopup()) {
+        if (shouldShow3AMPopup && typeof shouldShow3AMPopup === 'function' && shouldShow3AMPopup()) {
           setShow3AMPopup(true);
         }
       } catch (error) {
@@ -117,7 +130,9 @@ export default function RootLayout() {
 
   const handleAgeVerification = (verified: boolean) => {
     try {
-      setVerified(verified);
+      if (setVerified && typeof setVerified === 'function') {
+        setVerified(verified);
+      }
       setShowAgeVerification(false);
     } catch (error) {
       console.warn('Error handling age verification:', error);
@@ -127,7 +142,9 @@ export default function RootLayout() {
 
   const handle3AMPopupClose = () => {
     try {
-      mark3AMPopupShown();
+      if (mark3AMPopupShown && typeof mark3AMPopupShown === 'function') {
+        mark3AMPopupShown();
+      }
       setShow3AMPopup(false);
     } catch (error) {
       console.warn('Error closing 3AM popup:', error);

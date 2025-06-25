@@ -39,23 +39,28 @@ const createNewSession = (): ChatSession => ({
 });
 
 const shouldResetAt5AM = (lastResetAt: Date): boolean => {
-  const now = new Date();
-  const resetTime = new Date(now);
-  resetTime.setHours(5, 0, 0, 0);
-  
-  // If it's past 5 AM today and last reset was before today's 5 AM, reset
-  if (now >= resetTime && lastResetAt < resetTime) {
-    return true;
+  try {
+    const now = new Date();
+    const resetTime = new Date(now);
+    resetTime.setHours(5, 0, 0, 0);
+    
+    // If it's past 5 AM today and last reset was before today's 5 AM, reset
+    if (now >= resetTime && lastResetAt < resetTime) {
+      return true;
+    }
+    
+    // If it's before 5 AM today, check if last reset was before yesterday's 5 AM
+    if (now < resetTime) {
+      const yesterdayResetTime = new Date(resetTime);
+      yesterdayResetTime.setDate(yesterdayResetTime.getDate() - 1);
+      return lastResetAt < yesterdayResetTime;
+    }
+    
+    return false;
+  } catch (error) {
+    console.warn('Error in shouldResetAt5AM:', error);
+    return false;
   }
-  
-  // If it's before 5 AM today, check if last reset was before yesterday's 5 AM
-  if (now < resetTime) {
-    const yesterdayResetTime = new Date(resetTime);
-    yesterdayResetTime.setDate(yesterdayResetTime.getDate() - 1);
-    return lastResetAt < yesterdayResetTime;
-  }
-  
-  return false;
 };
 
 export const useChatStore = create<ChatState>()(
@@ -153,44 +158,59 @@ export const useChatStore = create<ChatState>()(
       },
 
       likeMessage: (messageId: string) => {
-        const { currentSession } = get();
-        if (!currentSession) return;
+        try {
+          const { currentSession } = get();
+          if (!currentSession) return;
 
-        const updatedMessages = currentSession.messages.map(msg => {
-          if (msg.id === messageId && !msg.isUser) {
-            return {
-              ...msg,
-              isLiked: !msg.isLiked,
-              likes: (msg.likes || 0) + (msg.isLiked ? -1 : 1),
-            };
-          }
-          return msg;
-        });
+          const updatedMessages = currentSession.messages.map(msg => {
+            if (msg.id === messageId && !msg.isUser) {
+              return {
+                ...msg,
+                isLiked: !msg.isLiked,
+                likes: (msg.likes || 0) + (msg.isLiked ? -1 : 1),
+              };
+            }
+            return msg;
+          });
 
-        set({
-          currentSession: {
-            ...currentSession,
-            messages: updatedMessages,
-          },
-        });
+          set({
+            currentSession: {
+              ...currentSession,
+              messages: updatedMessages,
+            },
+          });
+        } catch (error) {
+          console.warn('Error liking message:', error);
+        }
       },
 
       resetChatOnAppReopen: () => {
-        const { currentSession } = get();
-        
-        // Check if we need to reset based on 5 AM rule
-        if (!currentSession || shouldResetAt5AM(currentSession.lastResetAt)) {
+        try {
+          const { currentSession } = get();
+          
+          // Check if we need to reset based on 5 AM rule
+          if (!currentSession || shouldResetAt5AM(currentSession.lastResetAt)) {
+            const newSession = createNewSession();
+            set({ currentSession: newSession });
+          }
+        } catch (error) {
+          console.warn('Error in resetChatOnAppReopen:', error);
+          // Create new session as fallback
           const newSession = createNewSession();
           set({ currentSession: newSession });
         }
       },
 
       checkAndResetDaily: () => {
-        const { currentSession } = get();
-        
-        if (currentSession && shouldResetAt5AM(currentSession.lastResetAt)) {
-          const newSession = createNewSession();
-          set({ currentSession: newSession });
+        try {
+          const { currentSession } = get();
+          
+          if (currentSession && shouldResetAt5AM(currentSession.lastResetAt)) {
+            const newSession = createNewSession();
+            set({ currentSession: newSession });
+          }
+        } catch (error) {
+          console.warn('Error in checkAndResetDaily:', error);
         }
       },
 
