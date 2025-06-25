@@ -60,7 +60,7 @@ export default function HomeScreen() {
 
   // Filter venues based on selected filters
   const filteredVenues = selectedFilters.length > 0 
-    ? venues.filter(venue => selectedFilters.includes(venue.type))
+    ? venues.filter(venue => venue.types && venue.types.some(type => selectedFilters.includes(type)))
     : venues;
 
   // Top picks - specific venues as requested
@@ -118,7 +118,6 @@ export default function HomeScreen() {
         {/* Top Picks Section */}
         <SectionHeader 
           title="BarBuddy's Top Picks"
-          subtitle="Discover the best bars in your area"
           onViewAll={handleViewAllVenues}
         />
         
@@ -144,7 +143,6 @@ export default function HomeScreen() {
           <>
             <SectionHeader 
               title="Today's Specials"
-              subtitle={`${getCurrentDay()} deals you don't want to miss`}
               onViewAll={handleViewAllSpecials}
               icon={<Calendar size={20} color={themeColors.primary} />}
             />
