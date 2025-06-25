@@ -4,6 +4,7 @@ import { Plus, Minus, ChartBar as BarChart3, X } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
+import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
 import { Platform } from 'react-native';
 import Slider from '@react-native-community/slider';
 
@@ -33,7 +34,8 @@ interface DailyTrackerProps {
 export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { awardXP, updateDailyTrackerTotals, getDailyStats, addDrunkScaleRating, canSubmitDrunkScale } = useUserProfileStore();
+  const { awardXP, updateDailyTrackerTotals, addDrunkScaleRating, canSubmitDrunkScale } = useUserProfileStore();
+  const { getDailyStats, updateDailyStats } = useDailyTrackerStore();
   
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [isInitialized, setIsInitialized] = useState(false);
@@ -109,7 +111,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
 
   const handleClose = () => {
     // Save current progress before closing
-    updateDailyTrackerTotals({
+    const statsToUpdate = {
       shots: counts.shots,
       scoopAndScores: counts.scoopAndScores,
       beers: counts.beers,
@@ -118,7 +120,11 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       shotguns: counts.shotguns,
       poolGamesWon: counts.poolGamesWon,
       dartGamesWon: counts.dartGamesWon,
-    });
+    };
+
+    // Update both stores
+    updateDailyStats(statsToUpdate);
+    updateDailyTrackerTotals(statsToUpdate);
 
     onClose();
   };

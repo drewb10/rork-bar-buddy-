@@ -79,35 +79,41 @@ export default function CameraScreen() {
       });
 
       if (photo?.uri) {
-        // Save photo locally
-        const fileName = `barbuddy_${Date.now()}.jpg`;
-        const localUri = `${FileSystem.documentDirectory}${fileName}`;
-        
-        await FileSystem.copyAsync({
-          from: photo.uri,
-          to: localUri,
-        });
+        try {
+          // Save photo locally
+          const fileName = `barbuddy_${Date.now()}.jpg`;
+          const localUri = `${FileSystem.documentDirectory}${fileName}`;
+          
+          await FileSystem.copyAsync({
+            from: photo.uri,
+            to: localUri,
+          });
 
-        // Add to camera roll store
-        addPhoto(localUri);
-        
-        setCapturedPhoto(localUri);
-        
-        // Award XP for taking a photo (10 XP)
-        awardXP('photo_taken', 'Captured a nightlife moment!');
-        
-        // Update photo achievements
-        const newPhotoCount = profile.photosTaken + 1;
-        updateAchievementProgress('photo-enthusiast', newPhotoCount);
-        updateAchievementProgress('photo-master', newPhotoCount);
-        
-        setShowSuccessModal(true);
-        
-        // Auto-hide success modal after 2 seconds
-        setTimeout(() => {
-          setShowSuccessModal(false);
-          setCapturedPhoto(null);
-        }, 2000);
+          // Add to camera roll store
+          addPhoto(localUri);
+          
+          setCapturedPhoto(localUri);
+          
+          // Award XP for taking a photo (10 XP)
+          awardXP('photo_taken', 'Captured a nightlife moment!');
+          
+          // Update photo achievements
+          const newPhotoCount = (profile?.photos_taken || 0) + 1;
+          updateAchievementProgress('photos-taken', newPhotoCount);
+          
+          setShowSuccessModal(true);
+          
+          // Auto-hide success modal after 2 seconds
+          setTimeout(() => {
+            setShowSuccessModal(false);
+            setCapturedPhoto(null);
+          }, 2000);
+        } catch (saveError) {
+          console.warn('Error saving photo:', saveError);
+          Alert.alert('Error', 'Failed to save photo. Please try again.');
+        }
+      } else {
+        Alert.alert('Error', 'Failed to capture photo. Please try again.');
       }
     } catch (error) {
       console.warn('Error taking picture:', error);

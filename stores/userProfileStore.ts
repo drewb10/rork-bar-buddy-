@@ -40,6 +40,7 @@ interface DailyStats {
   poolGamesWon: number;
   dartGamesWon: number;
   date: string;
+  lastResetAt: string;
 }
 
 interface UserProfile {
@@ -52,6 +53,7 @@ interface UserProfile {
   drunk_scale_ratings: number[];
   last_night_out_date?: string;
   last_drunk_scale_date?: string;
+  last_drunk_scale_reset?: string;
   profile_picture?: string;
   friends: Friend[];
   friend_requests: FriendRequest[];
@@ -106,6 +108,7 @@ interface UserProfileState {
   declineFriendRequest: (requestId: string) => Promise<boolean>;
   loadFriendRequests: () => Promise<void>;
   loadFriends: () => Promise<void>;
+  checkAndResetDrunkScaleIfNeeded: () => void;
 }
 
 const XP_VALUES = {
@@ -169,6 +172,35 @@ const isSameDay = (date1: string, date2: string): boolean => {
            d1.getDate() === d2.getDate();
   } catch {
     return false;
+  }
+};
+
+const shouldResetDrunkScaleAt3AM = (lastResetAt?: string): boolean => {
+  try {
+    if (!lastResetAt) return true;
+    
+    const lastReset = new Date(lastResetAt);
+    const now = new Date();
+    
+    // Create 3 AM reset time for today
+    const resetTime = new Date(now);
+    resetTime.setHours(3, 0, 0, 0);
+    
+    // If it's past 3 AM today and last reset was before today's 3 AM, reset
+    if (now >= resetTime && lastReset < resetTime) {
+      return true;
+    }
+    
+    // If it's before 3 AM today, check if last reset was before yesterday's 3 AM
+    if (now < resetTime) {
+      const yesterdayResetTime = new Date(resetTime);
+      yesterdayResetTime.setDate(yesterdayResetTime.getDate() - 1);
+      return lastReset < yesterdayResetTime;
+    }
+    
+    return false;
+  } catch {
+    return true;
   }
 };
 
@@ -244,6 +276,18 @@ export const useUserProfileStore = create<UserProfileState>()(
           }));
         } catch (error) {
           console.error('Error updating profile:', error);
+        }
+      },
+
+      checkAndResetDrunkScaleIfNeeded: () => {
+        const { profile } = get();
+        if (!profile) return;
+
+        if (shouldResetDrunkScaleAt3AM(profile.last_drunk_scale_reset)) {
+          get().updateProfile({
+            last_drunk_scale_date: undefined,
+            last_drunk_scale_reset: new Date().toISOString(),
+          });
         }
       },
       
@@ -396,6 +440,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           poolGamesWon: stats.poolGamesWon,
           dartGamesWon: stats.dartGamesWon,
           date: today,
+          lastResetAt: currentDailyStats?.lastResetAt || new Date().toISOString(),
         };
         
         await get().updateProfile({
@@ -409,6 +454,26 @@ export const useUserProfileStore = create<UserProfileState>()(
           dart_games_won: profile.dart_games_won + dartDiff,
           daily_stats: newDailyStats,
         });
+
+        // Update achievements
+        if (typeof window !== 'undefined' && (window as any).__achievementStore) {
+          const achievementStore = (window as any).__achievementStore;
+          if (achievementStore?.getState) {
+            const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
+            checkAndUpdateMultiLevelAchievements({
+              totalBeers: profile.total_beers + beersDiff,
+              totalShots: profile.total_shots + shotsDiff,
+              totalBeerTowers: profile.total_beer_towers + beerTowersDiff,
+              totalScoopAndScores: profile.total_scoop_and_scores + scoopDiff,
+              totalFunnels: profile.total_funnels + funnelsDiff,
+              totalShotguns: profile.total_shotguns + shotgunsDiff,
+              poolGamesWon: profile.pool_games_won + poolDiff,
+              dartGamesWon: profile.dart_games_won + dartDiff,
+              barsHit: profile.bars_hit,
+              nightsOut: profile.nights_out,
+            });
+          }
+        }
       },
 
       getDailyStats: () => {
@@ -424,6 +489,7 @@ export const useUserProfileStore = create<UserProfileState>()(
             poolGamesWon: 0,
             dartGamesWon: 0,
             date: getTodayString(),
+            lastResetAt: new Date().toISOString(),
           };
         }
 
@@ -443,6 +509,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           poolGamesWon: 0,
           dartGamesWon: 0,
           date: today,
+          lastResetAt: new Date().toISOString(),
         };
       },
       
@@ -457,6 +524,9 @@ export const useUserProfileStore = create<UserProfileState>()(
       canSubmitDrunkScale: () => {
         const { profile } = get();
         if (!profile) return true;
+        
+        // Check if we need to reset first
+        get().checkAndResetDrunkScaleIfNeeded();
         
         const today = new Date().toISOString();
         return !profile.last_drunk_scale_date || !isSameDay(profile.last_drunk_scale_date, today);
@@ -708,3 +778,8 @@ export const useUserProfileStore = create<UserProfileState>()(
     }
   )
 );
+
+// Store reference for cross-store access
+if (typeof window !== 'undefined') {
+  (window as any).__userProfileStore = useUserProfileStore;
+}

@@ -528,7 +528,7 @@ export const useAchievementStore = create<AchievementState>()(
   )
 );
 
-// Update photo achievements when photos are taken
+// Store reference for cross-store access
 if (typeof window !== 'undefined') {
   (window as any).__achievementStore = useAchievementStore;
 }

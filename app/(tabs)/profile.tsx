@@ -193,12 +193,14 @@ export default function ProfileScreen() {
     <View style={[styles.container, { backgroundColor: '#000000' }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
-      {/* Header */}
+      {/* Header with Logo and Title */}
       <View style={styles.header}>
-        <BarBuddyLogo size="small" />
-        <Text style={[styles.headerTitle, { color: themeColors.text }]}>
-          Your Bar Buddy Profile
-        </Text>
+        <View style={styles.headerContent}>
+          <BarBuddyLogo size="small" />
+          <Text style={[styles.headerTitle, { color: themeColors.text }]}>
+            Your Bar Buddy Profile
+          </Text>
+        </View>
         <Pressable style={styles.signOutButton} onPress={handleSignOut}>
           <LogOut size={20} color={themeColors.error} />
         </Pressable>
@@ -374,9 +376,15 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingHorizontal: 16,
   },
+  headerContent: {
+    alignItems: 'flex-start',
+    flex: 1,
+  },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
+    marginTop: 8,
+    marginLeft: 4,
   },
   signOutButton: {
     padding: 8,

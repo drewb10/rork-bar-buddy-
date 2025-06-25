@@ -12,6 +12,7 @@ interface DailyStats {
   poolGamesWon: number;
   dartGamesWon: number;
   date: string;
+  lastResetAt: string;
 }
 
 interface TotalStats {
@@ -28,14 +29,42 @@ interface TotalStats {
 interface DailyTrackerState {
   dailyStats: DailyStats;
   totalStats: TotalStats;
-  updateDailyStats: (stats: Partial<Omit<DailyStats, 'date'>>) => void;
+  updateDailyStats: (stats: Partial<Omit<DailyStats, 'date' | 'lastResetAt'>>) => void;
   resetDailyStats: () => void;
   getDailyStats: () => DailyStats;
   getTotalStats: () => TotalStats;
+  checkAndResetIfNeeded: () => void;
 }
 
 const getTodayString = (): string => {
   return new Date().toISOString().split('T')[0];
+};
+
+const shouldResetAt3AM = (lastResetAt: string): boolean => {
+  try {
+    const lastReset = new Date(lastResetAt);
+    const now = new Date();
+    
+    // Create 3 AM reset time for today
+    const resetTime = new Date(now);
+    resetTime.setHours(3, 0, 0, 0);
+    
+    // If it's past 3 AM today and last reset was before today's 3 AM, reset
+    if (now >= resetTime && lastReset < resetTime) {
+      return true;
+    }
+    
+    // If it's before 3 AM today, check if last reset was before yesterday's 3 AM
+    if (now < resetTime) {
+      const yesterdayResetTime = new Date(resetTime);
+      yesterdayResetTime.setDate(yesterdayResetTime.getDate() - 1);
+      return lastReset < yesterdayResetTime;
+    }
+    
+    return false;
+  } catch {
+    return true; // Reset if there's any error parsing dates
+  }
 };
 
 const defaultDailyStats: DailyStats = {
@@ -48,6 +77,7 @@ const defaultDailyStats: DailyStats = {
   poolGamesWon: 0,
   dartGamesWon: 0,
   date: getTodayString(),
+  lastResetAt: new Date().toISOString(),
 };
 
 const defaultTotalStats: TotalStats = {
@@ -67,91 +97,95 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
       dailyStats: defaultDailyStats,
       totalStats: defaultTotalStats,
 
+      checkAndResetIfNeeded: () => {
+        const { dailyStats } = get();
+        if (shouldResetAt3AM(dailyStats.lastResetAt)) {
+          get().resetDailyStats();
+        }
+      },
+
       updateDailyStats: (stats) => {
+        // Check for reset before updating
+        get().checkAndResetIfNeeded();
+        
         const today = getTodayString();
         
         set((state) => {
-          const isToday = state.dailyStats.date === today;
+          const currentStats = state.dailyStats;
           
-          if (!isToday) {
-            // Reset daily stats for new day
-            const newDailyStats: DailyStats = {
-              shots: stats.shots || 0,
-              scoopAndScores: stats.scoopAndScores || 0,
-              beers: stats.beers || 0,
-              beerTowers: stats.beerTowers || 0,
-              funnels: stats.funnels || 0,
-              shotguns: stats.shotguns || 0,
-              poolGamesWon: stats.poolGamesWon || 0,
-              dartGamesWon: stats.dartGamesWon || 0,
-              date: today,
-            };
-            
-            const newTotalStats: TotalStats = {
-              shots: state.totalStats.shots + (stats.shots || 0),
-              scoopAndScores: state.totalStats.scoopAndScores + (stats.scoopAndScores || 0),
-              beers: state.totalStats.beers + (stats.beers || 0),
-              beerTowers: state.totalStats.beerTowers + (stats.beerTowers || 0),
-              funnels: state.totalStats.funnels + (stats.funnels || 0),
-              shotguns: state.totalStats.shotguns + (stats.shotguns || 0),
-              poolGamesWon: state.totalStats.poolGamesWon + (stats.poolGamesWon || 0),
-              dartGamesWon: state.totalStats.dartGamesWon + (stats.dartGamesWon || 0),
-            };
-            
-            return {
-              dailyStats: newDailyStats,
-              totalStats: newTotalStats,
-            };
-          } else {
-            // Update existing daily stats
-            const updatedDailyStats: DailyStats = {
-              ...state.dailyStats,
-              shots: stats.shots !== undefined ? stats.shots : state.dailyStats.shots,
-              scoopAndScores: stats.scoopAndScores !== undefined ? stats.scoopAndScores : state.dailyStats.scoopAndScores,
-              beers: stats.beers !== undefined ? stats.beers : state.dailyStats.beers,
-              beerTowers: stats.beerTowers !== undefined ? stats.beerTowers : state.dailyStats.beerTowers,
-              funnels: stats.funnels !== undefined ? stats.funnels : state.dailyStats.funnels,
-              shotguns: stats.shotguns !== undefined ? stats.shotguns : state.dailyStats.shotguns,
-              poolGamesWon: stats.poolGamesWon !== undefined ? stats.poolGamesWon : state.dailyStats.poolGamesWon,
-              dartGamesWon: stats.dartGamesWon !== undefined ? stats.dartGamesWon : state.dailyStats.dartGamesWon,
-            };
-            
-            // Calculate the difference for total stats
-            const shotsDiff = (stats.shots !== undefined) ? Math.max(0, stats.shots - state.dailyStats.shots) : 0;
-            const scoopDiff = (stats.scoopAndScores !== undefined) ? Math.max(0, stats.scoopAndScores - state.dailyStats.scoopAndScores) : 0;
-            const beersDiff = (stats.beers !== undefined) ? Math.max(0, stats.beers - state.dailyStats.beers) : 0;
-            const beerTowersDiff = (stats.beerTowers !== undefined) ? Math.max(0, stats.beerTowers - state.dailyStats.beerTowers) : 0;
-            const funnelsDiff = (stats.funnels !== undefined) ? Math.max(0, stats.funnels - state.dailyStats.funnels) : 0;
-            const shotgunsDiff = (stats.shotguns !== undefined) ? Math.max(0, stats.shotguns - state.dailyStats.shotguns) : 0;
-            const poolDiff = (stats.poolGamesWon !== undefined) ? Math.max(0, stats.poolGamesWon - state.dailyStats.poolGamesWon) : 0;
-            const dartDiff = (stats.dartGamesWon !== undefined) ? Math.max(0, stats.dartGamesWon - state.dailyStats.dartGamesWon) : 0;
-            
-            const updatedTotalStats: TotalStats = {
-              shots: state.totalStats.shots + shotsDiff,
-              scoopAndScores: state.totalStats.scoopAndScores + scoopDiff,
-              beers: state.totalStats.beers + beersDiff,
-              beerTowers: state.totalStats.beerTowers + beerTowersDiff,
-              funnels: state.totalStats.funnels + funnelsDiff,
-              shotguns: state.totalStats.shotguns + shotgunsDiff,
-              poolGamesWon: state.totalStats.poolGamesWon + poolDiff,
-              dartGamesWon: state.totalStats.dartGamesWon + dartDiff,
-            };
-            
-            return {
-              dailyStats: updatedDailyStats,
-              totalStats: updatedTotalStats,
-            };
+          // Calculate the differences to avoid double counting
+          const shotsDiff = Math.max(0, (stats.shots || 0) - currentStats.shots);
+          const scoopDiff = Math.max(0, (stats.scoopAndScores || 0) - currentStats.scoopAndScores);
+          const beersDiff = Math.max(0, (stats.beers || 0) - currentStats.beers);
+          const beerTowersDiff = Math.max(0, (stats.beerTowers || 0) - currentStats.beerTowers);
+          const funnelsDiff = Math.max(0, (stats.funnels || 0) - currentStats.funnels);
+          const shotgunsDiff = Math.max(0, (stats.shotguns || 0) - currentStats.shotguns);
+          const poolDiff = Math.max(0, (stats.poolGamesWon || 0) - currentStats.poolGamesWon);
+          const dartDiff = Math.max(0, (stats.dartGamesWon || 0) - currentStats.dartGamesWon);
+          
+          const updatedDailyStats: DailyStats = {
+            shots: stats.shots !== undefined ? stats.shots : currentStats.shots,
+            scoopAndScores: stats.scoopAndScores !== undefined ? stats.scoopAndScores : currentStats.scoopAndScores,
+            beers: stats.beers !== undefined ? stats.beers : currentStats.beers,
+            beerTowers: stats.beerTowers !== undefined ? stats.beerTowers : currentStats.beerTowers,
+            funnels: stats.funnels !== undefined ? stats.funnels : currentStats.funnels,
+            shotguns: stats.shotguns !== undefined ? stats.shotguns : currentStats.shotguns,
+            poolGamesWon: stats.poolGamesWon !== undefined ? stats.poolGamesWon : currentStats.poolGamesWon,
+            dartGamesWon: stats.dartGamesWon !== undefined ? stats.dartGamesWon : currentStats.dartGamesWon,
+            date: today,
+            lastResetAt: currentStats.lastResetAt,
+          };
+          
+          const updatedTotalStats: TotalStats = {
+            shots: state.totalStats.shots + shotsDiff,
+            scoopAndScores: state.totalStats.scoopAndScores + scoopDiff,
+            beers: state.totalStats.beers + beersDiff,
+            beerTowers: state.totalStats.beerTowers + beerTowersDiff,
+            funnels: state.totalStats.funnels + funnelsDiff,
+            shotguns: state.totalStats.shotguns + shotgunsDiff,
+            poolGamesWon: state.totalStats.poolGamesWon + poolDiff,
+            dartGamesWon: state.totalStats.dartGamesWon + dartDiff,
+          };
+          
+          // Update achievements if there are any increases
+          if (typeof window !== 'undefined' && (window as any).__achievementStore) {
+            const achievementStore = (window as any).__achievementStore;
+            if (achievementStore?.getState) {
+              const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
+              checkAndUpdateMultiLevelAchievements({
+                totalBeers: updatedTotalStats.beers,
+                totalShots: updatedTotalStats.shots,
+                totalBeerTowers: updatedTotalStats.beerTowers,
+                totalScoopAndScores: updatedTotalStats.scoopAndScores,
+                totalFunnels: updatedTotalStats.funnels,
+                totalShotguns: updatedTotalStats.shotguns,
+                poolGamesWon: updatedTotalStats.poolGamesWon,
+                dartGamesWon: updatedTotalStats.dartGamesWon,
+                barsHit: 0, // This comes from user profile
+                nightsOut: 0, // This comes from user profile
+              });
+            }
           }
+          
+          return {
+            dailyStats: updatedDailyStats,
+            totalStats: updatedTotalStats,
+          };
         });
       },
 
       resetDailyStats: () => {
         set({
-          dailyStats: { ...defaultDailyStats, date: getTodayString() },
+          dailyStats: { 
+            ...defaultDailyStats, 
+            date: getTodayString(),
+            lastResetAt: new Date().toISOString(),
+          },
         });
       },
 
       getDailyStats: () => {
+        get().checkAndResetIfNeeded();
         const { dailyStats } = get();
         const today = getTodayString();
         
@@ -159,7 +193,11 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
           return dailyStats;
         }
         
-        return { ...defaultDailyStats, date: today };
+        return { 
+          ...defaultDailyStats, 
+          date: today,
+          lastResetAt: new Date().toISOString(),
+        };
       },
 
       getTotalStats: () => {
