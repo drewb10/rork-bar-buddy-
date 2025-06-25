@@ -1,8 +1,8 @@
 import React from 'react';
 import { StyleSheet, View, Text, Pressable, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Clock, Star, Flame } from 'lucide-react-native';
-import { Venue, Special } from '@/types/venue';
+import { Star, Flame } from 'lucide-react-native';
+import { Venue } from '@/types/venue';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
@@ -10,32 +10,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 interface TopPickCardProps {
   venue: Venue;
-  todaySpecial?: Special;
 }
 
-export default function TopPickCard({ venue, todaySpecial }: TopPickCardProps) {
+export default function TopPickCard({ venue }: TopPickCardProps) {
   const router = useRouter();
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { getLikeCount, getHotTimeWithLikes } = useVenueInteractionStore();
+  const { getLikeCount } = useVenueInteractionStore();
   
   const likeCount = getLikeCount(venue.id);
-  const hotTimeData = getHotTimeWithLikes(venue.id);
 
   const handlePress = () => {
-    router.push(`/venue/${venue.id}${todaySpecial ? `?specialId=${todaySpecial.id}` : ''}`);
-  };
-
-  const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':');
-    const hour = parseInt(hours);
-    return `${hour % 12 || 12}${minutes !== '00' ? ':' + minutes : ''} ${hour >= 12 ? 'PM' : 'AM'}`;
-  };
-
-  const formatTimeSlot = (timeSlot: string) => {
-    const [hours, minutes] = timeSlot.split(':');
-    const hour = parseInt(hours);
-    return `${hour % 12 || 12}:${minutes} ${hour >= 12 ? 'PM' : 'AM'}`;
+    router.push(`/venue/${venue.id}`);
   };
 
   return (
@@ -48,14 +34,14 @@ export default function TopPickCard({ venue, todaySpecial }: TopPickCardProps) {
         style={styles.image} 
       />
       <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.7)']}
+        colors={['transparent', 'rgba(0,0,0,0.8)']}
         style={styles.gradient}
       />
       
-      {/* Flame count badge with enhanced styling */}
+      {/* Flame count badge */}
       {likeCount > 0 && (
         <View style={[styles.flameBadge, { backgroundColor: themeColors.primary }]}>
-          <Flame size={10} color="white" fill="white" />
+          <Flame size={12} color="white" fill="white" />
           <Text style={styles.flameText}>{likeCount}</Text>
         </View>
       )}
@@ -65,40 +51,16 @@ export default function TopPickCard({ venue, todaySpecial }: TopPickCardProps) {
           {venue.name}
         </Text>
         
-        <View style={styles.ratingContainer}>
-          <Star size={12} color={themeColors.accent} fill={themeColors.accent} />
-          <Text style={[styles.rating, { color: themeColors.subtext }]}>{venue.rating}</Text>
-        </View>
-
-        {/* Hot Time Display */}
-        {hotTimeData && (
-          <View style={styles.hotTimeContainer}>
-            <Text style={[styles.hotTimeText, { color: themeColors.primary }]} numberOfLines={1}>
-              Hot Time: {formatTimeSlot(hotTimeData.time)} — {hotTimeData.likes} Likes
-            </Text>
+        <View style={styles.detailsRow}>
+          <View style={styles.ratingContainer}>
+            <Star size={14} color={themeColors.accent} fill={themeColors.accent} />
+            <Text style={[styles.rating, { color: themeColors.subtext }]}>{venue.rating}</Text>
           </View>
-        )}
-
-        {todaySpecial ? (
-          <View style={styles.specialContainer}>
-            <Text style={[styles.specialTitle, { color: themeColors.primary }]} numberOfLines={1}>
-              {todaySpecial.title}
-            </Text>
-            <Text style={[styles.specialDescription, { color: themeColors.subtext }]} numberOfLines={2}>
-              {todaySpecial.description}
-            </Text>
-            <View style={styles.timeContainer}>
-              <Clock size={10} color={themeColors.subtext} />
-              <Text style={[styles.timeText, { color: themeColors.subtext }]}>
-                {formatTime(todaySpecial.startTime)} - {formatTime(todaySpecial.endTime)}
-              </Text>
-            </View>
-          </View>
-        ) : (
-          <Text style={[styles.noSpecial, { color: themeColors.subtext }]}>
-            No specials today
+          
+          <Text style={[styles.venueType, { color: themeColors.subtext }]} numberOfLines={1}>
+            {venue.types[0]?.replace('-', ' ')}
           </Text>
-        )}
+        </View>
       </View>
     </Pressable>
   );
@@ -106,10 +68,11 @@ export default function TopPickCard({ venue, todaySpecial }: TopPickCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    width: 160,
+    width: 280,
+    height: 120,
     borderRadius: 16,
     overflow: 'hidden',
-    marginRight: 12,
+    marginRight: 16,
     position: 'relative',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
@@ -118,22 +81,23 @@ const styles = StyleSheet.create({
     elevation: 8,
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+    flexDirection: 'row',
   },
   image: {
-    width: '100%',
-    height: 100,
+    width: 120,
+    height: '100%',
   },
   gradient: {
     position: 'absolute',
     top: 0,
     left: 0,
-    right: 0,
-    height: 100,
+    width: 120,
+    height: '100%',
   },
   flameBadge: {
     position: 'absolute',
     top: 8,
-    right: 8,
+    left: 8,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
@@ -154,60 +118,35 @@ const styles = StyleSheet.create({
     marginLeft: 3,
   },
   content: {
-    padding: 12,
+    flex: 1,
+    padding: 16,
+    justifyContent: 'center',
   },
   venueName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
-    marginBottom: 6,
+    marginBottom: 8,
     letterSpacing: 0.3,
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
   },
   rating: {
     marginLeft: 4,
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
   },
-  hotTimeContainer: {
-    marginBottom: 8,
-  },
-  hotTimeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
-  specialContainer: {
-    marginTop: 4,
-  },
-  specialTitle: {
+  venueType: {
     fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 4,
-    letterSpacing: 0.2,
-  },
-  specialDescription: {
-    fontSize: 11,
-    lineHeight: 14,
-    marginBottom: 6,
     fontWeight: '500',
-  },
-  timeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  timeText: {
-    marginLeft: 4,
-    fontSize: 10,
-    fontWeight: '500',
-  },
-  noSpecial: {
-    fontSize: 12,
-    fontStyle: 'italic',
-    marginTop: 4,
-    fontWeight: '500',
+    textTransform: 'capitalize',
+    flex: 1,
+    textAlign: 'right',
   },
 });

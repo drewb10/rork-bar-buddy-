@@ -16,8 +16,8 @@ export default function BarBuddyLogo({ size = 'medium' }: BarBuddyLogoProps) {
       height: 140,
     },
     large: {
-      width: 180,
-      height: 180,
+      width: 200,
+      height: 200,
     },
   };
 

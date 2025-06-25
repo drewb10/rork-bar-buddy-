@@ -6,7 +6,6 @@ import { useThemeStore } from '@/stores/themeStore';
 
 interface SectionHeaderProps {
   title: string;
-  subtitle?: string;
   icon?: React.ReactNode;
   onViewAll?: () => void;
   centered?: boolean;
@@ -15,7 +14,6 @@ interface SectionHeaderProps {
 
 export default function SectionHeader({ 
   title,
-  subtitle,
   icon,
   onViewAll, 
   centered = false,
@@ -40,11 +38,6 @@ export default function SectionHeader({
             {title}
           </Text>
         </View>
-        {subtitle && (
-          <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
-            {subtitle}
-          </Text>
-        )}
       </View>
       
       {showSeeAll && onViewAll && !centered && (
@@ -89,12 +82,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 14,
-    fontWeight: '400',
-    marginTop: 2,
-    lineHeight: 18,
   },
   seeAllButton: {
     flexDirection: 'row',

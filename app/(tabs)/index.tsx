@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MapPin, TrendingUp, Calendar } from 'lucide-react-native';
+import { TrendingUp } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { venues } from '@/mocks/venues';
 import VenueCard from '@/components/VenueCard';
+import TopPickCard from '@/components/TopPickCard';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import DailyTracker from '@/components/DailyTracker';
 import SectionHeader from '@/components/SectionHeader';
@@ -34,42 +35,22 @@ export default function HomeScreen() {
     router.push('/all-venues');
   };
 
-  const handleViewAllSpecials = () => {
-    router.push('/all-specials');
-  };
-
-  const handleLocationPress = () => {
-    // TODO: Implement location selection
-    Alert.alert('Location', 'Location selection coming soon!');
-  };
-
   const handleDailyTrackerPress = () => {
     setDailyTrackerVisible(true);
   };
-
-  // Get today's day for filtering specials
-  const getCurrentDay = () => {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    return days[new Date().getDay()];
-  };
-
-  // Get venues with today's specials
-  const venuesWithSpecials = venues.filter(venue => 
-    venue.specials && venue.specials.some(special => special.day === getCurrentDay())
-  );
 
   // Filter venues based on selected filters
   const filteredVenues = selectedFilters.length > 0 
     ? venues.filter(venue => venue.types && venue.types.some(type => selectedFilters.includes(type)))
     : venues;
 
-  // Top picks - specific venues as requested
+  // Top picks - exactly 3 specific venues for promo placement
   const topPickIds = ['library-taphouse', 'late-night-library', 'jba-sports-bar'];
-  const topPicks = venues.filter(venue => topPickIds.includes(venue.id));
+  const topPicks = venues.filter(venue => topPickIds.includes(venue.id)).slice(0, 3);
 
   // Rest of venues sorted by daily likes (excluding top picks)
   const popularVenues = getMostPopularVenues();
-  const restOfVenues = filteredVenues
+  const maconBars = filteredVenues
     .filter(venue => !topPickIds.includes(venue.id))
     .sort((a, b) => {
       const aLikes = popularVenues.find(p => p.venueId === a.id)?.likes || 0;
@@ -83,24 +64,9 @@ export default function HomeScreen() {
       
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View style={styles.logoContainer}>
-            <BarBuddyLogo size="medium" />
-          </View>
-          <Pressable 
-            style={[styles.trackerButton, { backgroundColor: themeColors.primary }]}
-            onPress={handleDailyTrackerPress}
-          >
-            <TrendingUp size={18} color="white" />
-          </Pressable>
+        <View style={styles.logoContainer}>
+          <BarBuddyLogo size="large" />
         </View>
-        
-        <Pressable style={styles.locationContainer} onPress={handleLocationPress}>
-          <MapPin size={16} color={themeColors.primary} />
-          <Text style={[styles.locationText, { color: themeColors.text }]}>
-            Downtown Madison
-          </Text>
-        </Pressable>
       </View>
 
       {/* Filter Bar */}
@@ -110,55 +76,51 @@ export default function HomeScreen() {
         filterType="venue"
       />
 
+      {/* Daily Stat Tracker Tab */}
+      <Pressable 
+        style={[styles.dailyTrackerTab, { backgroundColor: '#111111' }]}
+        onPress={handleDailyTrackerPress}
+      >
+        <TrendingUp size={20} color={themeColors.primary} />
+        <Text style={[styles.dailyTrackerText, { color: '#FFFFFF' }]}>
+          Daily Stat Tracker
+        </Text>
+      </Pressable>
+
       <ScrollView 
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Top Picks Section */}
+        {/* Bar Buddy's Top Picks Section */}
         <SectionHeader 
-          title="BarBuddy's Top Picks"
+          title="Bar Buddy's Top Picks"
+          centered={true}
+          showSeeAll={false}
+        />
+        
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.topPicksScrollContent}
+          style={styles.topPicksScroll}
+        >
+          {topPicks.map((venue) => (
+            <TopPickCard key={venue.id} venue={venue} />
+          ))}
+        </ScrollView>
+
+        {/* Macon Bars Section */}
+        <SectionHeader 
+          title="Macon Bars"
           onViewAll={handleViewAllVenues}
         />
         
         <View style={styles.venueList}>
-          {topPicks.map((venue) => (
+          {maconBars.map((venue) => (
             <VenueCard key={venue.id} venue={venue} />
           ))}
         </View>
-
-        {/* Rest of Venues (sorted by likes) */}
-        {restOfVenues.length > 0 && (
-          <>
-            <View style={styles.venueList}>
-              {restOfVenues.map((venue) => (
-                <VenueCard key={venue.id} venue={venue} />
-              ))}
-            </View>
-          </>
-        )}
-
-        {/* Today's Specials Section */}
-        {venuesWithSpecials.length > 0 && (
-          <>
-            <SectionHeader 
-              title="Today's Specials"
-              onViewAll={handleViewAllSpecials}
-              icon={<Calendar size={20} color={themeColors.primary} />}
-            />
-            
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalScrollContent}
-              style={styles.horizontalScroll}
-            >
-              {venuesWithSpecials.map((venue) => (
-                <VenueCard key={`special-${venue.id}`} venue={venue} compact />
-              ))}
-            </ScrollView>
-          </>
-        )}
 
         <View style={styles.footer} />
       </ScrollView>
@@ -178,40 +140,32 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 16,
+    paddingBottom: 20,
     paddingHorizontal: 16,
   },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
   logoContainer: {
-    flex: 1,
     alignItems: 'center',
-  },
-  trackerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
   },
-  locationContainer: {
+  dailyTrackerTab: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  locationText: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 6,
+  dailyTrackerText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+    letterSpacing: 0.3,
   },
   scrollView: {
     flex: 1,
@@ -219,15 +173,15 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 40,
   },
+  topPicksScroll: {
+    marginBottom: 32,
+  },
+  topPicksScrollContent: {
+    paddingHorizontal: 16,
+  },
   venueList: {
     paddingHorizontal: 16,
     marginBottom: 32,
-  },
-  horizontalScroll: {
-    marginBottom: 32,
-  },
-  horizontalScrollContent: {
-    paddingHorizontal: 16,
   },
   footer: {
     height: 24,
