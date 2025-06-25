@@ -94,22 +94,22 @@ export default function HomeScreen() {
         </Pressable>
 
         {/* Bar Buddy's Top Picks Section */}
-        <SectionHeader 
-          title="Bar Buddy's Top Picks"
-          centered={true}
-          showSeeAll={false}
-        />
-        
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.topPicksScrollContent}
-          style={styles.topPicksScroll}
-        >
-          {topPicks.map((venue) => (
-            <TopPickCard key={venue.id} venue={venue} />
-          ))}
-        </ScrollView>
+        <View style={styles.topPicksSection}>
+          <Text style={[styles.topPicksTitle, { color: themeColors.primary }]}>
+            Bar Buddy's Top Picks
+          </Text>
+          
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.topPicksScrollContent}
+            style={styles.topPicksScroll}
+          >
+            {topPicks.map((venue) => (
+              <TopPickCard key={venue.id} venue={venue} />
+            ))}
+          </ScrollView>
+        </View>
 
         {/* Macon Bars Section */}
         <SectionHeader 
@@ -177,8 +177,18 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     letterSpacing: 0.3,
   },
-  topPicksScroll: {
+  topPicksSection: {
     marginBottom: 24,
+  },
+  topPicksTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 16,
+    letterSpacing: 0.5,
+  },
+  topPicksScroll: {
+    marginBottom: 0,
   },
   topPicksScrollContent: {
     paddingHorizontal: 16,

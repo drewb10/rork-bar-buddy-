@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Text, Pressable, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Star, Flame } from 'lucide-react-native';
+import { Flame } from 'lucide-react-native';
 import { Venue } from '@/types/venue';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
@@ -57,16 +57,9 @@ export default function TopPickCard({ venue }: TopPickCardProps) {
           {venue.name}
         </Text>
         
-        <View style={styles.detailsRow}>
-          <View style={styles.ratingContainer}>
-            <Star size={12} color={themeColors.accent} fill={themeColors.accent} />
-            <Text style={[styles.rating, { color: themeColors.subtext }]}>{venue.rating}</Text>
-          </View>
-          
-          <Text style={[styles.venueType, { color: themeColors.subtext }]} numberOfLines={1}>
-            {venue.types[0]?.replace('-', ' ')}
-          </Text>
-        </View>
+        <Text style={[styles.venueType, { color: themeColors.subtext }]} numberOfLines={1}>
+          {venue.types[0]?.replace('-', ' ')}
+        </Text>
 
         {/* Hot Time Display */}
         {hotTimeData && (
@@ -102,7 +95,7 @@ function formatTimeSlot(timeSlot: string): string {
 
 const styles = StyleSheet.create({
   card: {
-    width: 120,
+    width: 150, // Increased from 120 to 150 (25% increase)
     height: 180,
     borderRadius: 12,
     overflow: 'hidden',
@@ -155,33 +148,17 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   venueName: {
-    fontSize: 11,
+    fontSize: 12, // Slightly increased for better readability with wider card
     fontWeight: '700',
     marginBottom: 4,
     letterSpacing: 0.2,
-    lineHeight: 14,
-  },
-  detailsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  rating: {
-    marginLeft: 3,
-    fontSize: 10,
-    fontWeight: '700',
+    lineHeight: 15,
   },
   venueType: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '500',
     textTransform: 'capitalize',
-    flex: 1,
-    textAlign: 'right',
+    marginBottom: 6,
   },
   hotTimeBadge: {
     flexDirection: 'row',
