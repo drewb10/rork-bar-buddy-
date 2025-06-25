@@ -72,18 +72,18 @@ export const authService = {
 
   async signUp({ email, password, username }: SignUpData): Promise<{ user: any; profile: UserProfile | null }> {
     try {
-      console.log('🚀 Starting signup process for:', { email, username });
+      console.log('🚀 AuthService: Starting signup process for:', { email, username });
       
-      // First check if username is available
-      console.log('📝 Checking username availability...');
+      // Step 1: Check username availability
+      console.log('📝 AuthService: Checking username availability...');
       const isAvailable = await this.checkUsernameAvailable(username);
       if (!isAvailable) {
         throw new AuthError('Username is already taken', 'USERNAME_TAKEN');
       }
-      console.log('✅ Username is available');
+      console.log('✅ AuthService: Username is available');
 
-      // Step 1: Create auth user WITHOUT trigger dependency
-      console.log('📝 Creating auth user...');
+      // Step 2: Create auth user (this should now work without trigger interference)
+      console.log('📝 AuthService: Creating auth user (no triggers)...');
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -95,30 +95,35 @@ export const authService = {
       });
 
       if (authError) {
-        console.error('❌ Auth signup error:', authError);
+        console.error('❌ AuthService: Auth signup error:', authError);
+        
+        // Provide more specific error messages
         if (authError.message.includes('already registered')) {
           throw new AuthError('An account with this email already exists', 'EMAIL_TAKEN');
         }
         if (authError.message.includes('Database error')) {
-          throw new AuthError('Database connection issue. Please try again in a moment.', 'DATABASE_ERROR');
+          throw new AuthError('Database connection issue. Please try again.', 'DATABASE_ERROR');
         }
+        if (authError.message.includes('Invalid email')) {
+          throw new AuthError('Please enter a valid email address', 'INVALID_EMAIL');
+        }
+        if (authError.message.includes('Password')) {
+          throw new AuthError('Password must be at least 6 characters long', 'WEAK_PASSWORD');
+        }
+        
         throw new AuthError(authError.message, authError.message);
       }
 
       if (!authData.user) {
-        console.error('❌ No user returned from auth signup');
+        console.error('❌ AuthService: No user returned from auth signup');
         throw new AuthError('Failed to create user account', 'SIGNUP_FAILED');
       }
 
-      console.log('✅ Auth user created successfully:', authData.user.id);
+      console.log('✅ AuthService: Auth user created successfully:', authData.user.id);
 
-      // Step 2: Create profile manually (don't rely on trigger)
-      console.log('📝 Creating user profile...');
+      // Step 3: Create profile manually (completely separate from auth)
+      console.log('📝 AuthService: Creating user profile manually...');
       
-      let profile = null;
-      let profileCreated = false;
-      
-      // Try to create profile directly
       try {
         const { data: newProfile, error: profileError } = await supabase
           .from('profiles')
@@ -147,69 +152,56 @@ export const authService = {
           .single();
 
         if (profileError) {
-          console.error('❌ Profile creation error:', profileError);
+          console.error('❌ AuthService: Profile creation error:', profileError);
           
-          // If it's a duplicate key error, the trigger might have created it
-          if (profileError.code === '23505') {
-            console.log('📝 Profile already exists (created by trigger), fetching it...');
-            const { data: existingProfile, error: fetchError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', authData.user.id)
-              .single();
-              
-            if (existingProfile && !fetchError) {
-              profile = existingProfile;
-              profileCreated = true;
+          // Clean up the auth user since profile creation failed
+          console.log('🧹 AuthService: Cleaning up auth user due to profile creation failure...');
+          try {
+            const { error: deleteError } = await supabase.auth.admin.deleteUser(authData.user.id);
+            if (deleteError) {
+              console.error('❌ AuthService: Failed to cleanup auth user:', deleteError);
+            } else {
+              console.log('✅ AuthService: Auth user cleaned up successfully');
             }
+          } catch (cleanupError) {
+            console.error('❌ AuthService: Exception during auth user cleanup:', cleanupError);
           }
           
-          if (!profileCreated) {
-            throw profileError;
-          }
-        } else {
-          profile = newProfile;
-          profileCreated = true;
+          throw new AuthError('Failed to create user profile. Please try again.', 'PROFILE_CREATION_FAILED');
         }
+
+        console.log('✅ AuthService: Profile created successfully:', newProfile.id);
+        console.log('🎉 AuthService: Signup completed successfully for user:', authData.user.id);
+
+        return { user: authData.user, profile: newProfile };
       } catch (profileError) {
-        console.error('❌ Failed to create profile:', profileError);
+        console.error('❌ AuthService: Exception during profile creation:', profileError);
         
-        // Clean up the auth user since profile creation failed
-        console.log('🧹 Cleaning up auth user due to profile creation failure...');
+        // Clean up the auth user
+        console.log('🧹 AuthService: Cleaning up auth user due to profile creation exception...');
         try {
           const { error: deleteError } = await supabase.auth.admin.deleteUser(authData.user.id);
           if (deleteError) {
-            console.error('❌ Failed to cleanup auth user:', deleteError);
-          } else {
-            console.log('✅ Auth user cleaned up successfully');
+            console.error('❌ AuthService: Failed to cleanup auth user:', deleteError);
           }
         } catch (cleanupError) {
-          console.error('❌ Exception during auth user cleanup:', cleanupError);
+          console.error('❌ AuthService: Exception during auth user cleanup:', cleanupError);
         }
         
         throw new AuthError('Failed to create user profile. Please try again.', 'PROFILE_CREATION_FAILED');
       }
-
-      if (!profile) {
-        throw new AuthError('Profile creation failed unexpectedly', 'PROFILE_CREATION_FAILED');
-      }
-
-      console.log('✅ Profile created successfully:', profile.id);
-      console.log('🎉 Signup completed successfully for user:', authData.user.id);
-
-      return { user: authData.user, profile };
     } catch (error) {
       if (error instanceof AuthError) {
         throw error;
       }
-      console.error('❌ Unexpected signup error:', error);
+      console.error('❌ AuthService: Unexpected signup error:', error);
       throw new AuthError('Failed to create account. Please try again.', 'SIGNUP_FAILED');
     }
   },
 
   async signIn({ email, password }: SignInData): Promise<{ user: any; profile: UserProfile | null }> {
     try {
-      console.log('🚀 Starting signin process for:', email);
+      console.log('🚀 AuthService: Starting signin process for:', email);
       
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
@@ -217,7 +209,7 @@ export const authService = {
       });
 
       if (authError) {
-        console.error('❌ Auth signin error:', authError);
+        console.error('❌ AuthService: Auth signin error:', authError);
         if (authError.message.includes('Invalid login credentials')) {
           throw new AuthError('Invalid email or password', 'INVALID_CREDENTIALS');
         }
@@ -225,14 +217,14 @@ export const authService = {
       }
 
       if (!authData.user) {
-        console.error('❌ No user returned from auth signin');
+        console.error('❌ AuthService: No user returned from auth signin');
         throw new AuthError('Failed to sign in', 'SIGNIN_FAILED');
       }
 
-      console.log('✅ Auth signin successful:', authData.user.id);
+      console.log('✅ AuthService: Auth signin successful:', authData.user.id);
 
       // Get user profile
-      console.log('📝 Loading user profile...');
+      console.log('📝 AuthService: Loading user profile...');
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -240,34 +232,34 @@ export const authService = {
         .single();
 
       if (profileError) {
-        console.error('❌ Profile load error:', profileError);
+        console.error('❌ AuthService: Profile load error:', profileError);
         throw new AuthError('Failed to load user profile', 'PROFILE_LOAD_FAILED');
       }
 
-      console.log('✅ Profile loaded successfully:', profile.id);
-      console.log('🎉 Signin completed successfully for user:', authData.user.id);
+      console.log('✅ AuthService: Profile loaded successfully:', profile.id);
+      console.log('🎉 AuthService: Signin completed successfully for user:', authData.user.id);
 
       return { user: authData.user, profile };
     } catch (error) {
       if (error instanceof AuthError) {
         throw error;
       }
-      console.error('❌ Unexpected signin error:', error);
+      console.error('❌ AuthService: Unexpected signin error:', error);
       throw new AuthError('Failed to sign in. Please try again.', 'SIGNIN_FAILED');
     }
   },
 
   async signOut(): Promise<void> {
     try {
-      console.log('🚀 Starting signout process...');
+      console.log('🚀 AuthService: Starting signout process...');
       const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error('❌ Signout error:', error);
+        console.error('❌ AuthService: Signout error:', error);
         throw new AuthError(error.message, error.message);
       }
-      console.log('✅ Signout successful');
+      console.log('✅ AuthService: Signout successful');
     } catch (error) {
-      console.error('❌ Signout error:', error);
+      console.error('❌ AuthService: Signout error:', error);
       throw new AuthError('Failed to sign out', 'SIGNOUT_FAILED');
     }
   },
