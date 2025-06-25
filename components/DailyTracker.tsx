@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, Pressable, ScrollView, Alert, Platform, Modal } from 'react-native';
+import { StyleSheet, View, Text, Modal, Pressable, ScrollView, Alert, Platform } from 'react-native';
 import { X, Plus, Minus, TrendingUp, Award, Target } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
@@ -34,8 +34,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     updateDailyStats, 
     submitDrunkScale, 
     canSubmitDrunkScale, 
-    hasDrunkScaleForToday,
-    resetDailyStats
+    hasDrunkScaleForToday 
   } = useDailyTrackerStore();
   const { updateDailyTrackerTotals } = useUserProfileStore();
 
@@ -71,6 +70,9 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     try {
       console.log('🔄 Saving daily tracker stats:', localStats);
       
+      // Update daily tracker store (for local state)
+      updateDailyStats(localStats);
+      
       // Update user profile totals (this handles XP awarding and prevents double-counting)
       await updateDailyTrackerTotals({
         shots: localStats.shots,
@@ -85,12 +87,9 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       
       console.log('✅ Stats saved successfully');
       
-      // Reset the daily stats to zero after saving
-      resetDailyStats();
-      
-      // Reset local state to zero
-      const resetStats = {
-        ...localStats,
+      // Reset local stats to zero after saving
+      setLocalStats(prev => ({
+        ...prev,
         shots: 0,
         scoopAndScores: 0,
         beers: 0,
@@ -99,12 +98,11 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         shotguns: 0,
         poolGamesWon: 0,
         dartGamesWon: 0
-      };
-      setLocalStats(resetStats);
+      }));
       
       Alert.alert(
         'Stats Saved! 🎉',
-        'Your daily stats have been updated, XP awarded, and trackers reset!',
+        'Your daily stats have been updated and XP awarded!',
         [{ text: 'Awesome!', onPress: handleClose }]
       );
     } catch (error) {
@@ -225,7 +223,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                 </Text>
                 <Text style={[styles.sectionSubtitle, { color: themeColors.subtext }]}>
                   {hasSubmittedToday 
-                    ? 'Level Submitted for Today (resets in 24h)'
+                    ? 'Already submitted today (resets in 24h)'
                     : canSubmitScale 
                       ? 'Submit once every 24 hours (+25 XP)'
                       : 'Can submit again in a few hours'
