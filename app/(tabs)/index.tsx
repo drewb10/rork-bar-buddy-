@@ -62,36 +62,38 @@ export default function HomeScreen() {
     <View style={[styles.container, { backgroundColor: '#000000' }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.logoContainer}>
-          <BarBuddyLogo size="large" />
-        </View>
-      </View>
-
-      {/* Filter Bar */}
-      <FilterBar 
-        filters={selectedFilters}
-        onFilterChange={setSelectedFilters}
-        filterType="venue"
-      />
-
-      {/* Daily Stat Tracker Tab */}
-      <Pressable 
-        style={[styles.dailyTrackerTab, { backgroundColor: '#111111' }]}
-        onPress={handleDailyTrackerPress}
-      >
-        <TrendingUp size={20} color={themeColors.primary} />
-        <Text style={[styles.dailyTrackerText, { color: '#FFFFFF' }]}>
-          Daily Stat Tracker
-        </Text>
-      </Pressable>
-
       <ScrollView 
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.logoContainer}>
+            <BarBuddyLogo size="large" />
+          </View>
+        </View>
+
+        {/* Filter Bar */}
+        <View style={styles.filterContainer}>
+          <FilterBar 
+            filters={selectedFilters}
+            onFilterChange={setSelectedFilters}
+            filterType="venue"
+          />
+        </View>
+
+        {/* Daily Stat Tracker Tab */}
+        <Pressable 
+          style={[styles.dailyTrackerTab, { backgroundColor: '#111111' }]}
+          onPress={handleDailyTrackerPress}
+        >
+          <TrendingUp size={20} color={themeColors.primary} />
+          <Text style={[styles.dailyTrackerText, { color: '#FFFFFF' }]}>
+            Daily Stat Tracker
+          </Text>
+        </Pressable>
+
         {/* Bar Buddy's Top Picks Section */}
         <SectionHeader 
           title="Bar Buddy's Top Picks"
@@ -138,14 +140,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
   header: {
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 20,
+    paddingBottom: 12,
     paddingHorizontal: 16,
   },
   logoContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  filterContainer: {
+    marginBottom: 8,
   },
   dailyTrackerTab: {
     flexDirection: 'row',
@@ -153,7 +164,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 16,
     marginHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 20,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -167,14 +178,8 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     letterSpacing: 0.3,
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 40,
-  },
   topPicksScroll: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   topPicksScrollContent: {
     paddingHorizontal: 16,
