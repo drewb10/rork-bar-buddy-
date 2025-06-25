@@ -118,12 +118,11 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           // Award XP through user profile store
           const userProfileStore = (window as any).__userProfileStore;
           if (userProfileStore?.getState) {
-            const { awardXP, profile, incrementBarsHit } = userProfileStore.getState();
+            const { awardXP, profile } = userProfileStore.getState();
             
-            // Award XP for visiting a new bar and increment bars hit
-            if (isNewBar || !profile?.visited_bars?.includes(venueId)) {
-              await awardXP('visit_new_bar', `Visited a new bar`, venueId);
-              await incrementBarsHit();
+            // Award XP for visiting a new bar
+            if (isNewBar || !profile.visitedBars.includes(venueId)) {
+              awardXP('visit_new_bar', `Visited a new bar`, venueId);
             }
           }
 

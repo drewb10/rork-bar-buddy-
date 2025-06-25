@@ -1,34 +1,55 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal } from 'react-native';
 import { Trophy, Award, Star, Target, Users, Calendar, X, MapPin, TrendingUp, ChartBar as BarChart3 } from 'lucide-react-native';
-import { getThemeColors, type Theme } from '@/constants/colors';
+import { colors, type Theme, type ThemeColors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { useAchievementStore, CompletedAchievement } from '@/stores/achievementStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 
 export default function TrophiesScreen() {
+  // Safe store access with fallbacks and error handling
   const [selectedAchievement, setSelectedAchievement] = useState<CompletedAchievement | null>(null);
   
-  // Safe store access with proper error handling
-  const themeStore = useThemeStore();
-  const theme: Theme = themeStore?.theme || 'dark';
-  const themeColors = getThemeColors(theme);
-  
-  const profileStore = useUserProfileStore();
-  const profile = profileStore?.profile;
-  const getRank = profileStore?.getRank || (() => ({ title: 'Newbie', subTitle: 'Just getting started', color: '#666666' }));
-  const getAverageDrunkScale = profileStore?.getAverageDrunkScale || (() => 0);
-  
-  const achievementStore = useAchievementStore();
-  const completedAchievements = achievementStore?.completedAchievements || [];
-  const getCompletedAchievementsByCategory = achievementStore?.getCompletedAchievementsByCategory || (() => []);
+  let themeStore, profileStore, achievementStore;
+  let theme: Theme = 'dark';
+  let themeColors: ThemeColors = colors.dark;
+  let profile = null;
+  let getRank = () => ({ title: 'Newbie', subTitle: 'Just getting started', color: '#666666' });
+  let getAverageDrunkScale = () => 0;
+  let completedAchievements: CompletedAchievement[] = [];
+  let getCompletedAchievementsByCategory = (category: 'bars' | 'activities' | 'social' | 'milestones'): CompletedAchievement[] => [];
 
+  try {
+    themeStore = useThemeStore();
+    theme = (themeStore?.theme || 'dark') as Theme;
+    themeColors = colors[theme] as ThemeColors;
+  } catch (error) {
+    console.warn('Error accessing theme store:', error);
+  }
+
+  try {
+    profileStore = useUserProfileStore();
+    profile = profileStore?.profile;
+    getRank = profileStore?.getRank || (() => ({ title: 'Newbie', subTitle: 'Just getting started', color: '#666666' }));
+    getAverageDrunkScale = profileStore?.getAverageDrunkScale || (() => 0);
+  } catch (error) {
+    console.warn('Error accessing profile store:', error);
+  }
+
+  try {
+    achievementStore = useAchievementStore();
+    completedAchievements = achievementStore?.completedAchievements || [];
+    getCompletedAchievementsByCategory = achievementStore?.getCompletedAchievementsByCategory || ((category: 'bars' | 'activities' | 'social' | 'milestones') => []);
+  } catch (error) {
+    console.warn('Error accessing achievement store:', error);
+  }
+  
   // Handle null profile gracefully
   if (!profile) {
     return (
-      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-        <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         
         <ScrollView 
           style={styles.scrollView}
@@ -61,11 +82,11 @@ export default function TrophiesScreen() {
   const averageDrunkScale = getAverageDrunkScale();
 
   const categories = [
-    { key: 'bars' as const, title: 'Bar Hopping', icon: Trophy, color: '#FF6A00' },
-    { key: 'activities' as const, title: 'Activities', icon: Target, color: '#4CAF50' },
-    { key: 'social' as const, title: 'Social', icon: Users, color: '#2196F3' },
-    { key: 'milestones' as const, title: 'Milestones', icon: Star, color: '#9C27B0' },
-  ];
+    { key: 'bars', title: 'Bar Hopping', icon: Trophy, color: '#FF6A00' },
+    { key: 'activities', title: 'Activities', icon: Target, color: '#4CAF50' },
+    { key: 'social', title: 'Social', icon: Users, color: '#2196F3' },
+    { key: 'milestones', title: 'Milestones', icon: Star, color: '#9C27B0' },
+  ] as const;
 
   const formatDate = (dateString: string) => {
     try {
@@ -85,8 +106,8 @@ export default function TrophiesScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+    <View style={[styles.container, { backgroundColor: '#000000' }]}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       <ScrollView 
         style={styles.scrollView}
@@ -124,7 +145,7 @@ export default function TrophiesScreen() {
           </View>
         </View>
 
-        {/* Current Rank */}
+        {/* Redesigned Current Rank with enhanced styling */}
         <View style={[styles.rankCard, { backgroundColor: themeColors.card }]}>
           <View style={styles.rankContent}>
             <Award size={40} color={rankInfo.color} />
@@ -142,7 +163,7 @@ export default function TrophiesScreen() {
           </View>
         </View>
 
-        {/* Total Tracker Stats */}
+        {/* Total Tracker Stats - Enhanced styling */}
         <View style={[styles.trackerStatsCard, { backgroundColor: themeColors.card }]}>
           <View style={styles.trackerStatsHeader}>
             <BarChart3 size={20} color={themeColors.primary} />
@@ -226,7 +247,7 @@ export default function TrophiesScreen() {
           </View>
         </View>
 
-        {/* Lifetime Stats Section */}
+        {/* Lifetime Stats Section with enhanced styling */}
         <View style={[styles.lifetimeStatsCard, { backgroundColor: themeColors.card }]}>
           <Text style={[styles.lifetimeStatsTitle, { color: themeColors.text }]}>
             Lifetime Stats
@@ -347,7 +368,7 @@ export default function TrophiesScreen() {
         <View style={styles.footer} />
       </ScrollView>
 
-      {/* Modal */}
+      {/* Enhanced Modal with glassmorphism */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -356,8 +377,8 @@ export default function TrophiesScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { 
-            backgroundColor: themeColors.card,
-            borderColor: themeColors.border,
+            backgroundColor: themeColors.glass?.background || themeColors.card,
+            borderColor: themeColors.glass?.border || themeColors.border,
           }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: themeColors.text }]}>

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 interface Friend {
   id: string;
@@ -55,7 +55,6 @@ interface UserProfile {
   drunk_scale_ratings: number[];
   last_night_out_date?: string;
   last_drunk_scale_date?: string;
-  last_drunk_scale_reset?: string;
   profile_picture?: string;
   friends: Friend[];
   friend_requests: FriendRequest[];
@@ -210,11 +209,6 @@ export const useUserProfileStore = create<UserProfileState>()(
       isLoading: false,
       
       loadProfile: async () => {
-        if (!isSupabaseConfigured()) {
-          console.log('Supabase not configured, skipping profile load');
-          return;
-        }
-
         try {
           set({ isLoading: true });
           
@@ -317,7 +311,7 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       updateProfile: async (updates) => {
         const { profile } = get();
-        if (!profile || !isSupabaseConfigured()) return;
+        if (!profile) return;
 
         try {
           const { error } = await supabase
@@ -342,6 +336,7 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       checkAndResetDrunkScaleIfNeeded: () => {
+        // Simplified - just check if it's a new day
         const { profile } = get();
         if (!profile) return;
 
@@ -368,6 +363,26 @@ export const useUserProfileStore = create<UserProfileState>()(
           
           // Award XP for night out
           await get().awardXP('complete_night_out', 'Completed a night out');
+          
+          // Update achievements
+          if (typeof window !== 'undefined' && (window as any).__achievementStore) {
+            const achievementStore = (window as any).__achievementStore;
+            if (achievementStore?.getState) {
+              const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
+              checkAndUpdateMultiLevelAchievements({
+                totalBeers: profile.total_beers,
+                totalShots: profile.total_shots,
+                totalBeerTowers: profile.total_beer_towers,
+                totalScoopAndScores: profile.total_scoop_and_scores,
+                totalFunnels: profile.total_funnels,
+                totalShotguns: profile.total_shotguns,
+                poolGamesWon: profile.pool_games_won,
+                dartGamesWon: profile.dart_games_won,
+                barsHit: profile.bars_hit,
+                nightsOut: newNightsOut,
+              });
+            }
+          }
         }
       },
       
@@ -383,6 +398,26 @@ export const useUserProfileStore = create<UserProfileState>()(
         
         // Award XP for bar visit
         await get().awardXP('visit_new_bar', 'Visited a new bar');
+        
+        // Update achievements
+        if (typeof window !== 'undefined' && (window as any).__achievementStore) {
+          const achievementStore = (window as any).__achievementStore;
+          if (achievementStore?.getState) {
+            const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
+            checkAndUpdateMultiLevelAchievements({
+              totalBeers: profile.total_beers,
+              totalShots: profile.total_shots,
+              totalBeerTowers: profile.total_beer_towers,
+              totalScoopAndScores: profile.total_scoop_and_scores,
+              totalFunnels: profile.total_funnels,
+              totalShotguns: profile.total_shotguns,
+              poolGamesWon: profile.pool_games_won,
+              dartGamesWon: profile.dart_games_won,
+              barsHit: newBarsHit,
+              nightsOut: profile.nights_out,
+            });
+          }
+        }
       },
       
       addDrunkScaleRating: async (rating) => {
@@ -566,6 +601,26 @@ export const useUserProfileStore = create<UserProfileState>()(
           dart_games_won: profile.dart_games_won + dartDiff,
           daily_stats: newDailyStats,
         });
+
+        // Update achievements
+        if (typeof window !== 'undefined' && (window as any).__achievementStore) {
+          const achievementStore = (window as any).__achievementStore;
+          if (achievementStore?.getState) {
+            const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
+            checkAndUpdateMultiLevelAchievements({
+              totalBeers: profile.total_beers + beersDiff,
+              totalShots: profile.total_shots + shotsDiff,
+              totalBeerTowers: profile.total_beer_towers + beerTowersDiff,
+              totalScoopAndScores: profile.total_scoop_and_scores + scoopDiff,
+              totalFunnels: profile.total_funnels + funnelsDiff,
+              totalShotguns: profile.total_shotguns + shotgunsDiff,
+              poolGamesWon: profile.pool_games_won + poolDiff,
+              dartGamesWon: profile.dart_games_won + dartDiff,
+              barsHit: profile.bars_hit,
+              nightsOut: profile.nights_out,
+            });
+          }
+        }
       },
 
       getDailyStats: () => {
@@ -629,8 +684,6 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       searchUserByUsername: async (username: string): Promise<Friend | null> => {
-        if (!isSupabaseConfigured()) return null;
-
         try {
           const { data, error } = await supabase
             .from('profiles')
@@ -662,8 +715,6 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       sendFriendRequest: async (username: string): Promise<boolean> => {
-        if (!isSupabaseConfigured()) return false;
-
         const { profile } = get();
         if (!profile) return false;
 
@@ -706,8 +757,6 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       acceptFriendRequest: async (requestId: string): Promise<boolean> => {
-        if (!isSupabaseConfigured()) return false;
-
         const { profile } = get();
         if (!profile) return false;
 
@@ -754,8 +803,6 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       declineFriendRequest: async (requestId: string): Promise<boolean> => {
-        if (!isSupabaseConfigured()) return false;
-
         const { profile } = get();
         if (!profile) return false;
 
@@ -777,8 +824,6 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       loadFriendRequests: async () => {
-        if (!isSupabaseConfigured()) return;
-
         const { profile } = get();
         if (!profile) return;
 
@@ -822,8 +867,6 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       loadFriends: async () => {
-        if (!isSupabaseConfigured()) return;
-
         const { profile } = get();
         if (!profile) return;
 
@@ -881,6 +924,55 @@ export const useUserProfileStore = create<UserProfileState>()(
           phone: state.profile.phone,
         } : null,
       }),
+      onRehydrateStorage: () => (state) => {
+        // Ensure we always have valid state
+        if (!state) {
+          return {
+            profile: null,
+            isLoading: false,
+            loadProfile: async () => {},
+            updateProfile: async () => {},
+            incrementNightsOut: async () => {},
+            incrementBarsHit: async () => {},
+            addDrunkScaleRating: async () => {},
+            getAverageDrunkScale: () => 0,
+            getRank: () => RANK_STRUCTURE[0],
+            canIncrementNightsOut: () => true,
+            canSubmitDrunkScale: () => true,
+            setProfilePicture: async () => {},
+            awardXP: async () => {},
+            getAllRanks: () => RANK_STRUCTURE,
+            getXPForNextRank: () => 0,
+            getProgressToNextRank: () => 0,
+            updateDailyTrackerTotals: async () => {},
+            getDailyStats: () => ({
+              shots: 0,
+              scoopAndScores: 0,
+              beers: 0,
+              beerTowers: 0,
+              funnels: 0,
+              shotguns: 0,
+              poolGamesWon: 0,
+              dartGamesWon: 0,
+              date: getTodayString(),
+              lastResetAt: new Date().toISOString(),
+            }),
+            searchUserByUsername: async () => null,
+            sendFriendRequest: async () => false,
+            acceptFriendRequest: async () => false,
+            declineFriendRequest: async () => false,
+            loadFriendRequests: async () => {},
+            loadFriends: async () => {},
+            checkAndResetDrunkScaleIfNeeded: () => {},
+          };
+        }
+        return state;
+      },
     }
   )
 );
+
+// Store reference for cross-store access
+if (typeof window !== 'undefined') {
+  (window as any).__userProfileStore = useUserProfileStore;
+}

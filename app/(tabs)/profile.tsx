@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, Image, ActivityIndicator } from 'react-native';
-import { User, Award, Camera, Users, LogOut } from 'lucide-react-native';
-import { getThemeColors } from '@/constants/colors';
+import { User, Award, Camera, Users, Info, LogOut } from 'lucide-react-native';
+import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
+import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import FriendsModal from '@/components/FriendsModal';
 import BarBuddyChatbot from '@/components/BarBuddyChatbot';
@@ -14,7 +15,7 @@ import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
   const { theme } = useThemeStore();
-  const themeColors = getThemeColors(theme);
+  const themeColors = colors[theme];
   const { 
     profile: authProfile, 
     signOut,
@@ -23,6 +24,7 @@ export default function ProfileScreen() {
   const {
     profile,
     loadProfile,
+    updateProfile,
     getRank,
     getAllRanks,
     getXPForNextRank,
@@ -31,6 +33,8 @@ export default function ProfileScreen() {
     isLoading: profileLoading
   } = useUserProfileStore();
   const router = useRouter();
+  
+  const { interactions } = useVenueInteractionStore();
   
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
   const [rankDetailsModalVisible, setRankDetailsModalVisible] = useState(false);
@@ -54,9 +58,6 @@ export default function ProfileScreen() {
   const formatJoinDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        return 'Recently';
-      }
       return date.toLocaleDateString('en-US', { 
         month: 'long', 
         year: 'numeric' 
@@ -160,10 +161,10 @@ export default function ProfileScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-        <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={themeColors.primary} />
+          <ActivityIndicator size="large" color="#FF6A00" />
           <Text style={[styles.loadingText, { color: themeColors.text, marginTop: 16 }]}>
             Loading profile...
           </Text>
@@ -174,8 +175,8 @@ export default function ProfileScreen() {
 
   if (!profile) {
     return (
-      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-        <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
           <Text style={[styles.loadingText, { color: themeColors.text }]}>
             No profile found. Please sign in.
@@ -192,8 +193,8 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+    <View style={[styles.container, { backgroundColor: '#000000' }]}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       {/* Header with Logo and Title */}
       <View style={styles.header}>
@@ -271,11 +272,9 @@ export default function ProfileScreen() {
               Member since {formatJoinDate(profile.created_at)}
             </Text>
 
-            {profile.email && (
-              <Text style={[styles.email, { color: themeColors.subtext }]}>
-                {profile.email}
-              </Text>
-            )}
+            <Text style={[styles.email, { color: themeColors.subtext }]}>
+              {profile.email}
+            </Text>
           </View>
 
           {/* XP and Ranking Card */}
@@ -290,7 +289,7 @@ export default function ProfileScreen() {
                   {profile.xp || 0} XP
                 </Text>
                 <Text style={[styles.nextRankText, { color: themeColors.subtext }]}>
-                  {Math.max(0, nextRankXP - (profile.xp || 0))} XP to next rank
+                  {nextRankXP - profile.xp} XP to next rank
                 </Text>
               </View>
             </View>
@@ -343,27 +342,6 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Additional Stats Grid */}
-          <View style={styles.statsGrid}>
-            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
-              <Text style={[styles.statNumber, { color: themeColors.text }]}>
-                {profile.total_beers || 0}
-              </Text>
-              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                Total Beers
-              </Text>
-            </View>
-
-            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
-              <Text style={[styles.statNumber, { color: themeColors.text }]}>
-                {profile.total_shots || 0}
-              </Text>
-              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                Total Shots
-              </Text>
-            </View>
-          </View>
-
           {/* Friends Button */}
           <Pressable 
             style={[styles.friendsButton, { backgroundColor: themeColors.card }]}
@@ -371,7 +349,7 @@ export default function ProfileScreen() {
           >
             <Users size={20} color={themeColors.primary} />
             <Text style={[styles.friendsButtonText, { color: themeColors.primary }]}>
-              Friends ({profile.friends?.length || 0})
+              Friends
             </Text>
           </Pressable>
 

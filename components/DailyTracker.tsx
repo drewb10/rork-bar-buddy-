@@ -41,7 +41,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [drunkScale, setDrunkScale] = useState(1);
   const [hasSubmittedDrunkScale, setHasSubmittedDrunkScale] = useState(false);
-  const [showDrunkScaleModal, setShowDrunkScaleModal] = useState(false);
 
   // Initialize counts when modal becomes visible
   useEffect(() => {
@@ -66,7 +65,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   useEffect(() => {
     if (!visible) {
       setIsInitialized(false);
-      setShowDrunkScaleModal(false);
     }
   }, [visible]);
 
@@ -83,26 +81,15 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     });
   };
 
-  const handleDrunkScalePress = () => {
-    if (canSubmitDrunkScale() && !hasSubmittedDrunkScale) {
-      setShowDrunkScaleModal(true);
-    }
-  };
-
   const handleDrunkScaleSubmit = async () => {
     if (canSubmitDrunkScale() && !hasSubmittedDrunkScale) {
       await addDrunkScaleRating(drunkScale);
       setHasSubmittedDrunkScale(true);
-      setShowDrunkScaleModal(false);
       
       if (Platform.OS !== 'web') {
         // Haptics would go here for native platforms
       }
     }
-  };
-
-  const handleDrunkScaleClose = () => {
-    setShowDrunkScaleModal(false);
   };
 
   const handleClose = async () => {
@@ -158,22 +145,39 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {/* Drunk Scale Button */}
-          <Pressable 
-            style={[
-              styles.drunkScaleButton, 
-              { 
-                backgroundColor: hasSubmittedDrunkScale ? themeColors.border : themeColors.primary,
-                opacity: hasSubmittedDrunkScale ? 0.6 : 1
-              }
-            ]}
-            onPress={handleDrunkScalePress}
-            disabled={hasSubmittedDrunkScale}
-          >
-            <Text style={[styles.drunkScaleButtonText, { color: 'white' }]}>
-              🍻 {hasSubmittedDrunkScale ? 'Drunk Level Submitted for Today' : 'Submit Drunk Level (+25 XP)'}
+          {/* Drunk Scale Slider */}
+          <View style={[styles.drunkScaleContainer, { backgroundColor: themeColors.card }]}>
+            <Text style={[styles.drunkScaleTitle, { color: themeColors.text }]}>
+              How drunk are you? 🍻
             </Text>
-          </Pressable>
+            <Text style={[styles.drunkScaleValue, { color: themeColors.primary }]}>
+              {drunkScale}/10 - {getDrunkScaleLabel(drunkScale)}
+            </Text>
+            <Slider
+              style={styles.slider}
+              minimumValue={1}
+              maximumValue={10}
+              step={1}
+              value={drunkScale}
+              onValueChange={setDrunkScale}
+              minimumTrackTintColor={themeColors.primary}
+              maximumTrackTintColor={themeColors.border}
+              thumbTintColor={themeColors.primary}
+              disabled={hasSubmittedDrunkScale}
+            />
+            {!hasSubmittedDrunkScale ? (
+              <Pressable
+                style={[styles.submitButton, { backgroundColor: themeColors.primary }]}
+                onPress={handleDrunkScaleSubmit}
+              >
+                <Text style={styles.submitButtonText}>Submit Level (+25 XP)</Text>
+              </Pressable>
+            ) : (
+              <Text style={[styles.submittedText, { color: themeColors.subtext }]}>
+                ✓ Level submitted for today. Come back tomorrow.
+              </Text>
+            )}
+          </View>
 
           <View style={styles.itemsGrid}>
             {drinkItems.map((item) => (
@@ -208,61 +212,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
           </View>
         </ScrollView>
       </View>
-
-      {/* Drunk Scale Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={showDrunkScaleModal}
-        onRequestClose={handleDrunkScaleClose}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-                How drunk are you? 🍻
-              </Text>
-              <Pressable onPress={handleDrunkScaleClose} style={styles.modalCloseButton}>
-                <X size={24} color={themeColors.subtext} />
-              </Pressable>
-            </View>
-            
-            <View style={styles.modalBody}>
-              <Text style={[styles.drunkScaleValue, { color: themeColors.primary }]}>
-                {drunkScale}/10 - {getDrunkScaleLabel(drunkScale)}
-              </Text>
-              
-              <Slider
-                style={styles.slider}
-                minimumValue={1}
-                maximumValue={10}
-                step={1}
-                value={drunkScale}
-                onValueChange={setDrunkScale}
-                minimumTrackTintColor={themeColors.primary}
-                maximumTrackTintColor={themeColors.border}
-                thumbTintColor={themeColors.primary}
-              />
-              
-              <View style={styles.modalButtons}>
-                <Pressable
-                  style={[styles.modalButton, styles.cancelButton, { backgroundColor: themeColors.border }]}
-                  onPress={handleDrunkScaleClose}
-                >
-                  <Text style={[styles.modalButtonText, { color: themeColors.text }]}>Cancel</Text>
-                </Pressable>
-                
-                <Pressable
-                  style={[styles.modalButton, styles.submitButton, { backgroundColor: themeColors.primary }]}
-                  onPress={handleDrunkScaleSubmit}
-                >
-                  <Text style={[styles.modalButtonText, { color: 'white' }]}>Submit (+25 XP)</Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </Modal>
   );
 }
@@ -299,7 +248,7 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
   },
-  drunkScaleButton: {
+  drunkScaleContainer: {
     borderRadius: 16,
     padding: 20,
     marginBottom: 24,
@@ -310,9 +259,35 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  drunkScaleButtonText: {
+  drunkScaleTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  drunkScaleValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+    marginBottom: 16,
+  },
+  submitButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  submittedText: {
+    fontSize: 14,
+    fontWeight: '500',
     textAlign: 'center',
   },
   itemsGrid: {
@@ -359,71 +334,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     minWidth: 24,
     textAlign: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-  },
-  modalContent: {
-    width: '90%',
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 16,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    flex: 1,
-  },
-  modalCloseButton: {
-    padding: 8,
-  },
-  modalBody: {
-    alignItems: 'center',
-  },
-  drunkScaleValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  slider: {
-    width: '100%',
-    height: 40,
-    marginBottom: 24,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '100%',
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    // Additional styles for cancel button
-  },
-  submitButton: {
-    // Additional styles for submit button
-  },
-  modalButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

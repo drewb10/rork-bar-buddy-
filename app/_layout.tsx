@@ -5,10 +5,13 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { useAgeVerificationStore } from "@/stores/ageVerificationStore";
 import { useAuthStore } from "@/stores/authStore";
+import { useVenueInteractionStore } from "@/stores/venueInteractionStore";
+import { useAchievementStore } from "@/stores/achievementStore";
 import { useChatStore } from "@/stores/chatStore";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
 import AchievementPopup from "@/components/AchievementPopup";
 import { useFrameworkReady } from "@/hooks/useFrameworkReady";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,69 +24,132 @@ const queryClient = new QueryClient({
 });
 
 export default function RootLayout() {
+  // CRITICAL: This hook must be called first and never removed
   useFrameworkReady();
 
-  const [isInitialized, setIsInitialized] = useState(false);
+  const { isVerified, setVerified } = useAgeVerificationStore();
+  const { isAuthenticated, initialize: initializeAuth, isConfigured, checkConfiguration } = useAuthStore();
+  const { loadPopularTimesFromSupabase } = useVenueInteractionStore();
+  const { shouldShow3AMPopup, mark3AMPopupShown } = useAchievementStore();
+  const { resetChatOnAppReopen } = useChatStore();
   const [showAgeVerification, setShowAgeVerification] = useState(false);
-
-  const ageVerificationStore = useAgeVerificationStore();
-  const isVerified = ageVerificationStore?.isVerified || false;
-  const setVerified = ageVerificationStore?.setVerified || (() => {});
-
-  const authStore = useAuthStore();
-  const isAuthenticated = authStore?.isAuthenticated || false;
-  const initializeAuth = authStore?.initialize || (async () => {});
-
-  const chatStore = useChatStore();
-  const resetChatOnAppReopen = chatStore?.resetChatOnAppReopen || (() => {});
+  const [show3AMPopup, setShow3AMPopup] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        if (isInitialized) return;
+    try {
+      // Reset chat messages on app start to ensure anonymous behavior
+      if (resetChatOnAppReopen && typeof resetChatOnAppReopen === 'function') {
+        resetChatOnAppReopen();
+      }
+      
+      // Check Supabase configuration
+      if (checkConfiguration && typeof checkConfiguration === 'function') {
+        checkConfiguration();
+      }
+      
+      // Initialize authentication
+      const initializeApp = async () => {
+        try {
+          if (isInitialized) return;
+          
+          const initTimeout = setTimeout(() => {
+            console.warn('App initialization timeout, continuing anyway');
+            setIsInitialized(true);
+          }, 5000);
 
-        console.log('🚀 Starting app initialization...');
-
-        // Reset chat messages on app start
-        if (resetChatOnAppReopen) {
-          resetChatOnAppReopen();
-        }
-        
-        // Show age verification if not verified
-        if (!isVerified) {
-          console.log('🔞 Age not verified, showing verification modal');
-          setShowAgeVerification(true);
+          // Initialize auth (will handle unconfigured state gracefully)
+          if (initializeAuth && typeof initializeAuth === 'function') {
+            await initializeAuth();
+          }
+          
+          // Load venue data if authenticated and configured
+          if (isAuthenticated && isSupabaseConfigured()) {
+            try {
+              if (loadPopularTimesFromSupabase && typeof loadPopularTimesFromSupabase === 'function') {
+                await loadPopularTimesFromSupabase();
+              }
+            } catch (error) {
+              console.warn('Failed to load venue data:', error);
+            }
+          }
+          
+          clearTimeout(initTimeout);
           setIsInitialized(true);
-          return;
+        } catch (error) {
+          console.warn('Error initializing app:', error);
+          setIsInitialized(true);
         }
+      };
 
-        console.log('✅ Age verified, continuing initialization...');
-
-        // Initialize authentication
-        if (initializeAuth) {
-          await initializeAuth();
+      // Show age verification if not verified
+      if (!isVerified) {
+        setShowAgeVerification(true);
+      } else {
+        // Initialize app if verified
+        if (!isInitialized) {
+          setTimeout(() => {
+            initializeApp();
+          }, 100);
         }
-        
-        console.log('🎉 App initialization complete');
-        setIsInitialized(true);
+      }
+    } catch (error) {
+      console.warn('Error in main useEffect:', error);
+      setIsInitialized(true);
+    }
+  }, [isVerified, isAuthenticated, isInitialized, resetChatOnAppReopen, initializeAuth, loadPopularTimesFromSupabase, checkConfiguration]);
+
+  // 3 AM popup check
+  useEffect(() => {
+    if (!isVerified || !isInitialized) return;
+
+    const checkFor3AMPopup = () => {
+      try {
+        if (shouldShow3AMPopup && typeof shouldShow3AMPopup === 'function' && shouldShow3AMPopup()) {
+          setShow3AMPopup(true);
+        }
       } catch (error) {
-        console.error('💥 Error during app initialization:', error);
-        setIsInitialized(true); // Continue anyway
+        console.warn('Error checking 3AM popup:', error);
       }
     };
 
-    const timer = setTimeout(() => {
-      initializeApp();
-    }, 100);
+    setTimeout(() => {
+      checkFor3AMPopup();
+    }, 1000);
 
-    return () => clearTimeout(timer);
-  }, [isVerified, isAuthenticated, isInitialized]);
+    const interval = setInterval(() => {
+      try {
+        checkFor3AMPopup();
+      } catch (error) {
+        console.warn('Error in 3AM popup interval:', error);
+      }
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [shouldShow3AMPopup, isVerified, isInitialized]);
 
   const handleAgeVerification = (verified: boolean) => {
-    if (setVerified) {
-      setVerified(verified);
+    try {
+      if (setVerified && typeof setVerified === 'function') {
+        setVerified(verified);
+      }
+      setShowAgeVerification(false);
+    } catch (error) {
+      console.warn('Error handling age verification:', error);
+      setShowAgeVerification(false);
     }
-    setShowAgeVerification(false);
+  };
+
+  const handle3AMPopupClose = () => {
+    try {
+      if (mark3AMPopupShown && typeof mark3AMPopupShown === 'function') {
+        mark3AMPopupShown();
+      }
+      setShow3AMPopup(false);
+    } catch (error) {
+      console.warn('Error closing 3AM popup:', error);
+      setShow3AMPopup(false);
+    }
   };
 
   return (
@@ -134,6 +200,12 @@ export default function RootLayout() {
         <AgeVerificationModal
           visible={showAgeVerification}
           onVerify={handleAgeVerification}
+        />
+
+        <AchievementPopup
+          visible={show3AMPopup}
+          onClose={handle3AMPopupClose}
+          is3AMPopup={true}
         />
       </QueryClientProvider>
     </trpc.Provider>
