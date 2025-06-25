@@ -95,7 +95,7 @@ export default function CameraScreen() {
           setCapturedPhoto(localUri);
           
           // Award XP for taking a photo (10 XP)
-          awardXP('photo_taken', 'Captured a nightlife moment!');
+          await awardXP('photo_taken', 'Captured a nightlife moment!');
           
           // Update photo achievements
           const newPhotoCount = (profile?.photos_taken || 0) + 1;
@@ -109,14 +109,14 @@ export default function CameraScreen() {
             setCapturedPhoto(null);
           }, 2000);
         } catch (saveError) {
-          console.warn('Error saving photo:', saveError);
+          console.error('Error saving photo:', saveError);
           Alert.alert('Error', 'Failed to save photo. Please try again.');
         }
       } else {
         Alert.alert('Error', 'Failed to capture photo. Please try again.');
       }
     } catch (error) {
-      console.warn('Error taking picture:', error);
+      console.error('Error taking picture:', error);
       Alert.alert('Error', 'Failed to take picture. Please try again.');
     } finally {
       setIsCapturing(false);
@@ -149,7 +149,7 @@ export default function CameraScreen() {
               Great Shot! 📸
             </Text>
             <Text style={[styles.successSubtitle, { color: themeColors.subtext }]}>
-              Photo saved to your camera roll!
+              Photo saved! +10 XP earned
             </Text>
           </View>
         </View>

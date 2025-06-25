@@ -24,7 +24,7 @@ interface FriendRequest {
 
 interface XPActivity {
   id: string;
-  type: 'visit_new_bar' | 'participate_event' | 'bring_friend' | 'complete_night_out' | 'special_achievement' | 'live_music' | 'featured_drink' | 'bar_game' | 'photo_taken' | 'shots' | 'scoop_and_scores' | 'beers' | 'beer_towers' | 'funnels' | 'shotguns' | 'pool_games' | 'dart_games';
+  type: 'visit_new_bar' | 'participate_event' | 'bring_friend' | 'complete_night_out' | 'special_achievement' | 'live_music' | 'featured_drink' | 'bar_game' | 'photo_taken' | 'shots' | 'scoop_and_scores' | 'beers' | 'beer_towers' | 'funnels' | 'shotguns' | 'pool_games' | 'dart_games' | 'drunk_scale_submission';
   xpAwarded: number;
   timestamp: string;
   description: string;
@@ -112,23 +112,24 @@ interface UserProfileState {
 }
 
 const XP_VALUES = {
-  visit_new_bar: 25,
+  visit_new_bar: 15,
   participate_event: 50,
   bring_friend: 30,
-  complete_night_out: 100,
+  complete_night_out: 20,
   special_achievement: 75,
   live_music: 40,
   featured_drink: 20,
   bar_game: 35,
   photo_taken: 10,
   shots: 5,
-  scoop_and_scores: 4,
-  beers: 2,
-  beer_towers: 5,
-  funnels: 3,
-  shotguns: 3,
-  pool_games: 10,
-  dart_games: 10,
+  scoop_and_scores: 10,
+  beers: 5,
+  beer_towers: 15,
+  funnels: 10,
+  shotguns: 10,
+  pool_games: 15,
+  dart_games: 15,
+  drunk_scale_submission: 25,
 };
 
 const RANK_STRUCTURE: RankInfo[] = [
@@ -172,6 +173,26 @@ const isSameDay = (date1: string, date2: string): boolean => {
            d1.getDate() === d2.getDate();
   } catch {
     return false;
+  }
+};
+
+const hasPassedMidnight = (lastSubmissionDate?: string): boolean => {
+  if (!lastSubmissionDate) return true;
+  
+  try {
+    const lastSubmission = new Date(lastSubmissionDate);
+    const now = new Date();
+    
+    // Check if it's a different day
+    if (lastSubmission.getDate() !== now.getDate() || 
+        lastSubmission.getMonth() !== now.getMonth() || 
+        lastSubmission.getFullYear() !== now.getFullYear()) {
+      return true;
+    }
+    
+    return false;
+  } catch {
+    return true;
   }
 };
 
@@ -263,7 +284,10 @@ export const useUserProfileStore = create<UserProfileState>()(
         try {
           const { error } = await supabase
             .from('profiles')
-            .update(updates)
+            .update({
+              ...updates,
+              updated_at: new Date().toISOString()
+            })
             .eq('id', profile.id);
 
           if (error) {
@@ -298,13 +322,34 @@ export const useUserProfileStore = create<UserProfileState>()(
         const today = new Date().toISOString();
         
         if (!profile.last_night_out_date || !isSameDay(profile.last_night_out_date, today)) {
+          const newNightsOut = profile.nights_out + 1;
+          
           await get().updateProfile({
-            nights_out: profile.nights_out + 1,
+            nights_out: newNightsOut,
             last_night_out_date: today
           });
           
-          if (profile.bars_hit >= 3) {
-            await get().awardXP('complete_night_out', 'Completed a night out with 3+ bars');
+          // Award XP for night out
+          await get().awardXP('complete_night_out', 'Completed a night out');
+          
+          // Update achievements
+          if (typeof window !== 'undefined' && (window as any).__achievementStore) {
+            const achievementStore = (window as any).__achievementStore;
+            if (achievementStore?.getState) {
+              const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
+              checkAndUpdateMultiLevelAchievements({
+                totalBeers: profile.total_beers,
+                totalShots: profile.total_shots,
+                totalBeerTowers: profile.total_beer_towers,
+                totalScoopAndScores: profile.total_scoop_and_scores,
+                totalFunnels: profile.total_funnels,
+                totalShotguns: profile.total_shotguns,
+                poolGamesWon: profile.pool_games_won,
+                dartGamesWon: profile.dart_games_won,
+                barsHit: profile.bars_hit,
+                nightsOut: newNightsOut,
+              });
+            }
           }
         }
       },
@@ -313,9 +358,34 @@ export const useUserProfileStore = create<UserProfileState>()(
         const { profile } = get();
         if (!profile) return;
 
+        const newBarsHit = profile.bars_hit + 1;
+        
         await get().updateProfile({
-          bars_hit: profile.bars_hit + 1
+          bars_hit: newBarsHit
         });
+        
+        // Award XP for bar visit
+        await get().awardXP('visit_new_bar', 'Visited a new bar');
+        
+        // Update achievements
+        if (typeof window !== 'undefined' && (window as any).__achievementStore) {
+          const achievementStore = (window as any).__achievementStore;
+          if (achievementStore?.getState) {
+            const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
+            checkAndUpdateMultiLevelAchievements({
+              totalBeers: profile.total_beers,
+              totalShots: profile.total_shots,
+              totalBeerTowers: profile.total_beer_towers,
+              totalScoopAndScores: profile.total_scoop_and_scores,
+              totalFunnels: profile.total_funnels,
+              totalShotguns: profile.total_shotguns,
+              poolGamesWon: profile.pool_games_won,
+              dartGamesWon: profile.dart_games_won,
+              barsHit: newBarsHit,
+              nightsOut: profile.nights_out,
+            });
+          }
+        }
       },
       
       addDrunkScaleRating: async (rating) => {
@@ -328,6 +398,9 @@ export const useUserProfileStore = create<UserProfileState>()(
           drunk_scale_ratings: [...profile.drunk_scale_ratings, rating],
           last_drunk_scale_date: today
         });
+        
+        // Award XP for drunk scale submission
+        await get().awardXP('drunk_scale_submission', `Submitted drunk scale rating: ${rating}/10`);
       },
       
       getAverageDrunkScale: () => {
@@ -443,6 +516,48 @@ export const useUserProfileStore = create<UserProfileState>()(
           lastResetAt: currentDailyStats?.lastResetAt || new Date().toISOString(),
         };
         
+        // Award XP for each activity increase
+        if (shotsDiff > 0) {
+          for (let i = 0; i < shotsDiff; i++) {
+            await get().awardXP('shots', 'Took a shot');
+          }
+        }
+        if (scoopDiff > 0) {
+          for (let i = 0; i < scoopDiff; i++) {
+            await get().awardXP('scoop_and_scores', 'Had a Scoop & Score');
+          }
+        }
+        if (beersDiff > 0) {
+          for (let i = 0; i < beersDiff; i++) {
+            await get().awardXP('beers', 'Had a beer');
+          }
+        }
+        if (beerTowersDiff > 0) {
+          for (let i = 0; i < beerTowersDiff; i++) {
+            await get().awardXP('beer_towers', 'Finished a beer tower');
+          }
+        }
+        if (funnelsDiff > 0) {
+          for (let i = 0; i < funnelsDiff; i++) {
+            await get().awardXP('funnels', 'Did a funnel');
+          }
+        }
+        if (shotgunsDiff > 0) {
+          for (let i = 0; i < shotgunsDiff; i++) {
+            await get().awardXP('shotguns', 'Did a shotgun');
+          }
+        }
+        if (poolDiff > 0) {
+          for (let i = 0; i < poolDiff; i++) {
+            await get().awardXP('pool_games', 'Won a pool game');
+          }
+        }
+        if (dartDiff > 0) {
+          for (let i = 0; i < dartDiff; i++) {
+            await get().awardXP('dart_games', 'Won a dart game');
+          }
+        }
+        
         await get().updateProfile({
           total_shots: profile.total_shots + shotsDiff,
           total_scoop_and_scores: profile.total_scoop_and_scores + scoopDiff,
@@ -528,8 +643,8 @@ export const useUserProfileStore = create<UserProfileState>()(
         // Check if we need to reset first
         get().checkAndResetDrunkScaleIfNeeded();
         
-        const today = new Date().toISOString();
-        return !profile.last_drunk_scale_date || !isSameDay(profile.last_drunk_scale_date, today);
+        // Use 24-hour check instead of 3 AM reset for drunk scale
+        return hasPassedMidnight(profile.last_drunk_scale_date);
       },
 
       setProfilePicture: async (uri: string) => {

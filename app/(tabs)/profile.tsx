@@ -4,6 +4,7 @@ import { User, Award, Camera, Users, Info, LogOut } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useUserProfileStore } from '@/stores/userProfileStore';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import FriendsModal from '@/components/FriendsModal';
@@ -16,11 +17,21 @@ export default function ProfileScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const { 
-    profile, 
-    updateProfile,
+    profile: authProfile, 
     signOut,
-    isLoading
+    isLoading: authLoading
   } = useAuthStore();
+  const {
+    profile,
+    loadProfile,
+    updateProfile,
+    getRank,
+    getAllRanks,
+    getXPForNextRank,
+    getProgressToNextRank,
+    setProfilePicture,
+    isLoading: profileLoading
+  } = useUserProfileStore();
   const router = useRouter();
   
   const { interactions } = useVenueInteractionStore();
@@ -29,6 +40,13 @@ export default function ProfileScreen() {
   const [rankDetailsModalVisible, setRankDetailsModalVisible] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'chatbot'>('profile');
+
+  useEffect(() => {
+    // Load profile when component mounts
+    if (authProfile && !profile) {
+      loadProfile();
+    }
+  }, [authProfile, profile, loadProfile]);
 
   useEffect(() => {
     // Show onboarding if user hasn't completed it
@@ -47,30 +65,6 @@ export default function ProfileScreen() {
     } catch {
       return 'Recently';
     }
-  };
-
-  const getRank = () => {
-    if (!profile) return { title: 'Sober Star', subTitle: 'Newcomer', color: '#4CAF50' };
-    
-    const xp = profile.xp || 0;
-    
-    if (xp < 126) return { title: 'Sober Star', subTitle: 'Newcomer', color: '#4CAF50' };
-    if (xp < 251) return { title: 'Sober Star', subTitle: 'Explorer', color: '#4CAF50' };
-    if (xp < 376) return { title: 'Sober Star', subTitle: 'Enthusiast', color: '#4CAF50' };
-    if (xp < 501) return { title: 'Sober Star', subTitle: 'Rising Star', color: '#4CAF50' };
-    if (xp < 626) return { title: 'Buzzed Beginner', subTitle: 'Novice', color: '#FFC107' };
-    if (xp < 751) return { title: 'Buzzed Beginner', subTitle: 'Adventurer', color: '#FFC107' };
-    if (xp < 876) return { title: 'Buzzed Beginner', subTitle: 'Socializer', color: '#FFC107' };
-    if (xp < 1001) return { title: 'Buzzed Beginner', subTitle: 'Party Starter', color: '#FFC107' };
-    if (xp < 1126) return { title: 'Tipsy Talent', subTitle: 'Local Hero', color: '#FF9800' };
-    if (xp < 1251) return { title: 'Tipsy Talent', subTitle: 'Crowd Pleaser', color: '#FF9800' };
-    if (xp < 1376) return { title: 'Tipsy Talent', subTitle: 'Nightlife Navigator', color: '#FF9800' };
-    if (xp < 1501) return { title: 'Tipsy Talent', subTitle: 'Star of the Scene', color: '#FF9800' };
-    if (xp < 1626) return { title: 'Big Chocolate', subTitle: 'Legend', color: '#FF5722' };
-    if (xp < 1751) return { title: 'Big Chocolate', subTitle: 'Icon', color: '#FF5722' };
-    if (xp < 1876) return { title: 'Big Chocolate', subTitle: 'Elite', color: '#FF5722' };
-    if (xp < 2001) return { title: 'Big Chocolate', subTitle: 'Master of the Night', color: '#FF5722' };
-    return { title: 'Scoop & Score Champ', subTitle: 'Ultimate Legend', color: '#9C27B0' };
   };
 
   const handleProfilePicturePress = () => {
@@ -101,7 +95,7 @@ export default function ProfileScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        await updateProfile({ profile_picture: result.assets[0].uri });
+        await setProfilePicture(result.assets[0].uri);
       }
     } catch (error) {
       console.warn('Error picking image:', error);
@@ -124,7 +118,7 @@ export default function ProfileScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        await updateProfile({ profile_picture: result.assets[0].uri });
+        await setProfilePicture(result.assets[0].uri);
       }
     } catch (error) {
       console.warn('Error taking photo:', error);
@@ -154,7 +148,16 @@ export default function ProfileScreen() {
     setShowOnboarding(false);
   };
 
+  const handleRankPress = () => {
+    setRankDetailsModalVisible(true);
+  };
+
   const rankInfo = getRank();
+  const allRanks = getAllRanks();
+  const nextRankXP = getXPForNextRank();
+  const progressToNextRank = getProgressToNextRank();
+
+  const isLoading = authLoading || profileLoading;
 
   if (isLoading) {
     return (
@@ -275,12 +278,18 @@ export default function ProfileScreen() {
           </View>
 
           {/* XP and Ranking Card */}
-          <View style={[styles.xpCard, { backgroundColor: themeColors.card }]}>
+          <Pressable 
+            style={[styles.xpCard, { backgroundColor: themeColors.card }]}
+            onPress={handleRankPress}
+          >
             <View style={styles.xpHeader}>
               <Award size={24} color={rankInfo.color} />
               <View style={styles.xpInfo}>
                 <Text style={[styles.xpAmount, { color: themeColors.text }]}>
                   {profile.xp || 0} XP
+                </Text>
+                <Text style={[styles.nextRankText, { color: themeColors.subtext }]}>
+                  {nextRankXP - profile.xp} XP to next rank
                 </Text>
               </View>
             </View>
@@ -293,7 +302,24 @@ export default function ProfileScreen() {
                 {rankInfo.subTitle}
               </Text>
             </View>
-          </View>
+
+            {/* Progress Bar */}
+            <View style={[styles.progressBarContainer, { backgroundColor: themeColors.border }]}>
+              <View 
+                style={[
+                  styles.progressBar, 
+                  { 
+                    backgroundColor: rankInfo.color,
+                    width: `${progressToNextRank}%`
+                  }
+                ]} 
+              />
+            </View>
+            
+            <Text style={[styles.tapToViewText, { color: themeColors.subtext }]}>
+              Tap to view all ranks
+            </Text>
+          </Pressable>
 
           {/* Stats Cards */}
           <View style={styles.statsGrid}>
@@ -350,6 +376,67 @@ export default function ProfileScreen() {
           visible={friendsModalVisible}
           onClose={() => setFriendsModalVisible(false)}
         />
+      </Modal>
+
+      {/* Rank Details Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={rankDetailsModalVisible}
+        onRequestClose={() => setRankDetailsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
+                All Ranks
+              </Text>
+              <Pressable 
+                style={styles.closeButton}
+                onPress={() => setRankDetailsModalVisible(false)}
+              >
+                <Text style={[styles.closeButtonText, { color: themeColors.subtext }]}>✕</Text>
+              </Pressable>
+            </View>
+            
+            <ScrollView style={styles.modalScrollView}>
+              {allRanks.map((rank, index) => (
+                <View 
+                  key={`${rank.tier}-${rank.subRank}`}
+                  style={[
+                    styles.rankItem,
+                    { 
+                      backgroundColor: rank.tier === rankInfo.tier && rank.subRank === rankInfo.subRank 
+                        ? rank.color + '20' 
+                        : 'transparent',
+                      borderColor: rank.tier === rankInfo.tier && rank.subRank === rankInfo.subRank 
+                        ? rank.color 
+                        : themeColors.border
+                    }
+                  ]}
+                >
+                  <Award size={20} color={rank.color} />
+                  <View style={styles.rankItemInfo}>
+                    <Text style={[styles.rankItemTitle, { color: rank.color }]}>
+                      {rank.title}
+                    </Text>
+                    <Text style={[styles.rankItemSubtitle, { color: themeColors.text }]}>
+                      {rank.subTitle}
+                    </Text>
+                    <Text style={[styles.rankItemXP, { color: themeColors.subtext }]}>
+                      {rank.minXP} - {rank.maxXP} XP
+                    </Text>
+                  </View>
+                  {rank.tier === rankInfo.tier && rank.subRank === rankInfo.subRank && (
+                    <Text style={[styles.currentRankBadge, { color: rank.color }]}>
+                      Current
+                    </Text>
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -494,8 +581,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
   },
+  nextRankText: {
+    fontSize: 12,
+    marginTop: 2,
+  },
   rankContainer: {
     alignItems: 'center',
+    marginBottom: 16,
   },
   rankTitle: {
     fontSize: 18,
@@ -505,6 +597,20 @@ const styles = StyleSheet.create({
   rankSubtitle: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  progressBarContainer: {
+    height: 8,
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  tapToViewText: {
+    fontSize: 12,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -563,5 +669,66 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 20,
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  closeButton: {
+    padding: 8,
+  },
+  closeButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  modalScrollView: {
+    maxHeight: 400,
+  },
+  rankItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  rankItemInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  rankItemTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  rankItemSubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  rankItemXP: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  currentRankBadge: {
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

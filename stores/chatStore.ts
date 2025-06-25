@@ -41,7 +41,7 @@ interface ChatState {
   isLoading: boolean;
   error: string | null;
   subscription: any;
-  appStartTime: number; // Track when app started
+  lastResetCheck: number; // Track when we last checked for reset
   lastMessageTime: number; // For rate limiting
   loadMessages: (venueId: string) => Promise<void>;
   sendMessage: (venueId: string, content: string) => Promise<void>;
@@ -50,7 +50,7 @@ interface ChatState {
   unsubscribeFromMessages: () => void;
   cleanup: () => void;
   clearError: () => void;
-  resetChatOnAppReopen: () => void;
+  checkAndResetIfNeeded: () => void;
 }
 
 // Content moderation filters
@@ -254,6 +254,27 @@ const shouldResetMessages = (messageTimestamp: string): boolean => {
   }
 };
 
+// Check if we should reset chat at 5 AM
+const shouldResetChatAt5AM = (lastResetCheck: number): boolean => {
+  try {
+    const now = new Date();
+    const lastCheck = new Date(lastResetCheck);
+    
+    // Get today's 5 AM
+    const today5AM = new Date();
+    today5AM.setHours(5, 0, 0, 0);
+    
+    // If it's past 5 AM today and last check was before today's 5 AM, reset
+    if (now >= today5AM && lastCheck < today5AM) {
+      return true;
+    }
+    
+    return false;
+  } catch {
+    return false;
+  }
+};
+
 // Create user-friendly error messages
 const createUserError = (originalError: Error): Error => {
   const message = originalError.message;
@@ -295,29 +316,39 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isLoading: false,
   error: null,
   subscription: null,
-  appStartTime: Date.now(), // Initialize with current time
+  lastResetCheck: Date.now(), // Initialize with current time
   lastMessageTime: 0, // Initialize rate limiting
 
   clearError: () => set({ error: null }),
 
-  resetChatOnAppReopen: () => {
-    // Clear all chat-related state to ensure fresh start
-    set({ 
-      messages: [], 
-      currentSession: null, 
-      error: null,
-      isLoading: false,
-      appStartTime: Date.now(), // Update app start time
-      lastMessageTime: 0 // Reset rate limiting
-    });
+  checkAndResetIfNeeded: () => {
+    const { lastResetCheck } = get();
     
-    // Clean up any existing subscriptions
-    get().unsubscribeFromMessages();
+    if (shouldResetChatAt5AM(lastResetCheck)) {
+      // Reset chat state at 5 AM
+      set({ 
+        messages: [], 
+        currentSession: null, 
+        error: null,
+        isLoading: false,
+        lastResetCheck: Date.now(),
+        lastMessageTime: 0
+      });
+      
+      // Clean up any existing subscriptions
+      get().unsubscribeFromMessages();
+    } else {
+      // Just update the last reset check time
+      set({ lastResetCheck: Date.now() });
+    }
   },
 
   createOrGetSession: async (venueId: string): Promise<ChatSession> => {
     try {
       set({ isLoading: true, error: null });
+      
+      // Check for reset before creating session
+      get().checkAndResetIfNeeded();
       
       if (!venueId || venueId.trim() === '') {
         throw new Error('Venue ID is required and cannot be empty');
@@ -386,6 +417,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   loadMessages: async (venueId: string): Promise<void> => {
     try {
       set({ isLoading: true, error: null });
+      
+      // Check for reset before loading messages
+      get().checkAndResetIfNeeded();
       
       if (!venueId || venueId.trim() === '') {
         throw new Error('Venue ID is required and cannot be empty');

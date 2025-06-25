@@ -34,7 +34,7 @@ interface DailyTrackerProps {
 export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { awardXP, updateDailyTrackerTotals, addDrunkScaleRating, canSubmitDrunkScale } = useUserProfileStore();
+  const { addDrunkScaleRating, canSubmitDrunkScale, updateDailyTrackerTotals } = useUserProfileStore();
   const { getDailyStats, updateDailyStats } = useDailyTrackerStore();
   
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -68,16 +68,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     }
   }, [visible]);
 
-  // Award XP for increases - moved outside of render
-  const awardXPForIncrease = useCallback((itemId: string, change: number) => {
-    if (change > 0) {
-      const item = drinkItems.find(d => d.id === itemId);
-      if (item) {
-        awardXP(item.xpType, `Had ${change} ${item.name.toLowerCase()}`);
-      }
-    }
-  }, [awardXP]);
-
   const updateCount = (itemId: string, change: number) => {
     if (Platform.OS !== 'web') {
       // Haptics would go here for native platforms
@@ -87,20 +77,13 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       const newCount = Math.max(0, (prev[itemId] || 0) + change);
       const newCounts = { ...prev, [itemId]: newCount };
       
-      // Award XP for increases using useEffect to avoid setState during render
-      if (change > 0) {
-        setTimeout(() => {
-          awardXPForIncrease(itemId, change);
-        }, 0);
-      }
-      
       return newCounts;
     });
   };
 
-  const handleDrunkScaleSubmit = () => {
+  const handleDrunkScaleSubmit = async () => {
     if (canSubmitDrunkScale() && !hasSubmittedDrunkScale) {
-      addDrunkScaleRating(drunkScale);
+      await addDrunkScaleRating(drunkScale);
       setHasSubmittedDrunkScale(true);
       
       if (Platform.OS !== 'web') {
@@ -109,7 +92,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     }
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
     // Save current progress before closing
     const statsToUpdate = {
       shots: counts.shots,
@@ -124,7 +107,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
 
     // Update both stores
     updateDailyStats(statsToUpdate);
-    updateDailyTrackerTotals(statsToUpdate);
+    await updateDailyTrackerTotals(statsToUpdate);
 
     onClose();
   };
@@ -187,11 +170,11 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                 style={[styles.submitButton, { backgroundColor: themeColors.primary }]}
                 onPress={handleDrunkScaleSubmit}
               >
-                <Text style={styles.submitButtonText}>Submit Level</Text>
+                <Text style={styles.submitButtonText}>Submit Level (+25 XP)</Text>
               </Pressable>
             ) : (
               <Text style={[styles.submittedText, { color: themeColors.subtext }]}>
-                ✓ Level submitted for today
+                ✓ Level submitted for today. Come back tomorrow.
               </Text>
             )}
           </View>
@@ -305,6 +288,7 @@ const styles = StyleSheet.create({
   submittedText: {
     fontSize: 14,
     fontWeight: '500',
+    textAlign: 'center',
   },
   itemsGrid: {
     flexDirection: 'row',

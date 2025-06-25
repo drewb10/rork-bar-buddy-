@@ -49,16 +49,16 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     setRsvpModalVisible(true);
   };
 
-  const handleRsvpSubmit = () => {
+  const handleRsvpSubmit = async () => {
     if (selectedTime) {
       incrementInteraction(venue.id, selectedTime);
       
-      // Increment bars hit (always increments)
-      incrementBarsHit();
+      // Increment bars hit (always increments and awards XP)
+      await incrementBarsHit();
       
-      // Increment nights out (only once per day)
+      // Increment nights out (only once per day and awards XP)
       if (canIncrementNightsOut()) {
-        incrementNightsOut();
+        await incrementNightsOut();
       }
       
       setRsvpModalVisible(false);
@@ -309,8 +309,8 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { 
-            backgroundColor: themeColors.glass.background,
-            borderColor: themeColors.glass.border,
+            backgroundColor: themeColors.glass?.background || themeColors.card,
+            borderColor: themeColors.glass?.border || themeColors.border,
           }]}>
             <Text style={[styles.modalTitle, { color: themeColors.text }]}>
               What time are you heading to {venue.name}?
@@ -363,7 +363,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
                 onPress={handleRsvpSubmit}
                 disabled={!selectedTime}
               >
-                <Text style={styles.submitButtonText}>Submit</Text>
+                <Text style={styles.submitButtonText}>Submit (+35 XP)</Text>
               </Pressable>
             </View>
           </View>
