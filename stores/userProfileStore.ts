@@ -69,6 +69,7 @@ interface UserProfile {
   dart_games_won: number;
   photos_taken: number;
   daily_stats?: DailyStats;
+  has_completed_onboarding: boolean;
   created_at: string;
   updated_at: string;
 }
