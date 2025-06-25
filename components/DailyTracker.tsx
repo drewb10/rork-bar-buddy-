@@ -3,7 +3,6 @@ import { StyleSheet, View, Text, Pressable, ScrollView, Alert, Platform, Modal }
 import { X, Plus, Minus, TrendingUp, Award, Target } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
-import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 
 interface DailyTrackerProps {
@@ -30,21 +29,37 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const { 
-    getDailyStats, 
-    updateDailyStats, 
-    submitDrunkScale, 
+    updateDailyTrackerTotals, 
     canSubmitDrunkScale, 
-    hasDrunkScaleForToday,
-    resetDailyStats
-  } = useDailyTrackerStore();
-  const { updateDailyTrackerTotals } = useUserProfileStore();
+    addDrunkScaleRating,
+    profile
+  } = useUserProfileStore();
 
-  const [localStats, setLocalStats] = useState(getDailyStats());
+  const [localStats, setLocalStats] = useState({
+    shots: 0,
+    scoopAndScores: 0,
+    beers: 0,
+    beerTowers: 0,
+    funnels: 0,
+    shotguns: 0,
+    poolGamesWon: 0,
+    dartGamesWon: 0,
+  });
   const [selectedDrunkScale, setSelectedDrunkScale] = useState<number | null>(null);
 
   useEffect(() => {
     if (visible) {
-      setLocalStats(getDailyStats());
+      // Reset local stats when modal opens
+      setLocalStats({
+        shots: 0,
+        scoopAndScores: 0,
+        beers: 0,
+        beerTowers: 0,
+        funnels: 0,
+        shotguns: 0,
+        poolGamesWon: 0,
+        dartGamesWon: 0,
+      });
       setSelectedDrunkScale(null);
     }
   }, [visible]);
@@ -54,11 +69,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   };
 
   const handleStatChange = (statKey: keyof typeof localStats, delta: number) => {
-    if (statKey === 'date' || statKey === 'lastResetAt' || statKey === 'drunkScaleSubmitted' || 
-        statKey === 'drunkScaleRating' || statKey === 'drunkScaleTimestamp' || 
-        statKey === 'lastDrunkScaleSubmission') return;
-
-    const currentValue = localStats[statKey] as number;
+    const currentValue = localStats[statKey];
     const newValue = Math.max(0, currentValue + delta);
     
     setLocalStats(prev => ({
@@ -71,26 +82,25 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     try {
       console.log('🔄 Saving daily tracker stats:', localStats);
       
-      // Update user profile totals (this handles XP awarding and prevents double-counting)
-      await updateDailyTrackerTotals({
-        shots: localStats.shots,
-        scoopAndScores: localStats.scoopAndScores,
-        beers: localStats.beers,
-        beerTowers: localStats.beerTowers,
-        funnels: localStats.funnels,
-        shotguns: localStats.shotguns,
-        poolGamesWon: localStats.poolGamesWon,
-        dartGamesWon: localStats.dartGamesWon,
-      });
+      // Calculate new totals by adding current stats to existing totals
+      const newTotals = {
+        shots: (profile?.total_shots || 0) + localStats.shots,
+        scoopAndScores: (profile?.total_scoop_and_scores || 0) + localStats.scoopAndScores,
+        beers: (profile?.total_beers || 0) + localStats.beers,
+        beerTowers: (profile?.total_beer_towers || 0) + localStats.beerTowers,
+        funnels: (profile?.total_funnels || 0) + localStats.funnels,
+        shotguns: (profile?.total_shotguns || 0) + localStats.shotguns,
+        poolGamesWon: (profile?.pool_games_won || 0) + localStats.poolGamesWon,
+        dartGamesWon: (profile?.dart_games_won || 0) + localStats.dartGamesWon,
+      };
+      
+      // Update user profile totals (this handles XP awarding)
+      await updateDailyTrackerTotals(newTotals);
       
       console.log('✅ Stats saved successfully');
       
-      // Reset the daily stats to zero after saving
-      resetDailyStats();
-      
       // Reset local state to zero
-      const resetStats = {
-        ...localStats,
+      setLocalStats({
         shots: 0,
         scoopAndScores: 0,
         beers: 0,
@@ -98,13 +108,12 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         funnels: 0,
         shotguns: 0,
         poolGamesWon: 0,
-        dartGamesWon: 0
-      };
-      setLocalStats(resetStats);
+        dartGamesWon: 0,
+      });
       
       Alert.alert(
         'Stats Saved! 🎉',
-        'Your daily stats have been updated, XP awarded, and trackers reset!',
+        'Your stats have been updated and XP awarded!',
         [{ text: 'Awesome!', onPress: handleClose }]
       );
     } catch (error) {
@@ -117,23 +126,27 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     }
   };
 
-  const handleDrunkScaleSubmit = () => {
+  const handleDrunkScaleSubmit = async () => {
     if (selectedDrunkScale === null) {
       Alert.alert('Please select a rating', 'Choose how you are feeling right now.');
       return;
     }
 
-    submitDrunkScale(selectedDrunkScale);
-    
-    Alert.alert(
-      'Thanks for sharing! 🍻',
-      'Your drunk scale has been recorded. Stay safe and have fun!',
-      [{ text: 'Got it!', onPress: handleClose }]
-    );
+    try {
+      await addDrunkScaleRating(selectedDrunkScale);
+      
+      Alert.alert(
+        'Thanks for sharing! 🍻',
+        'Your drunk scale has been recorded. Stay safe and have fun!',
+        [{ text: 'Got it!', onPress: handleClose }]
+      );
+    } catch (error) {
+      console.error('Error submitting drunk scale:', error);
+      Alert.alert('Error', 'Failed to submit drunk scale. Please try again.');
+    }
   };
 
   const canSubmitScale = canSubmitDrunkScale();
-  const hasSubmittedToday = hasDrunkScaleForToday();
 
   const statItems = [
     { key: 'shots' as const, label: 'Shots', emoji: '🥃', xp: 5 },
@@ -203,7 +216,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                     </Pressable>
                     
                     <Text style={[styles.statValue, { color: themeColors.text }]}>
-                      {localStats[item.key] as number}
+                      {localStats[item.key]}
                     </Text>
                     
                     <Pressable
@@ -224,16 +237,14 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                   How are you feeling? 🤔
                 </Text>
                 <Text style={[styles.sectionSubtitle, { color: themeColors.subtext }]}>
-                  {hasSubmittedToday 
-                    ? 'Level Submitted for Today (resets in 24h)'
-                    : canSubmitScale 
-                      ? 'Submit once every 24 hours (+25 XP)'
-                      : 'Can submit again in a few hours'
+                  {canSubmitScale 
+                    ? 'Submit once every 24 hours (+25 XP)'
+                    : 'Can submit again in a few hours'
                   }
                 </Text>
               </View>
 
-              {canSubmitScale && !hasSubmittedToday ? (
+              {canSubmitScale ? (
                 <>
                   <View style={styles.drunkScaleOptions}>
                     {drunkScaleOptions.map((option) => (
@@ -300,10 +311,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                 <View style={[styles.drunkScaleDisabled, { backgroundColor: themeColors.background }]}>
                   <Target size={40} color={themeColors.subtext} />
                   <Text style={[styles.drunkScaleDisabledText, { color: themeColors.subtext }]}>
-                    {hasSubmittedToday 
-                      ? 'Thanks for sharing! Come back tomorrow.'
-                      : 'Drunk scale available every 24 hours'
-                    }
+                    Drunk scale available every 24 hours
                   </Text>
                 </View>
               )}

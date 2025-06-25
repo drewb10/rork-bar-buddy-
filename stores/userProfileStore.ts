@@ -111,7 +111,7 @@ interface UserProfileState {
   loadFriendRequests: () => Promise<void>;
   loadFriends: () => Promise<void>;
   checkAndResetDrunkScaleIfNeeded: () => void;
-  initializeDefaultProfile: () => void; // New function for debugging
+  initializeDefaultProfile: () => void;
 }
 
 const XP_VALUES = {
@@ -239,7 +239,6 @@ const createDefaultProfile = (): UserProfile => ({
     dartGamesWon: 0,
     date: getTodayString(),
     lastResetAt: new Date().toISOString(),
-    drunkScaleSubmitted: false
   },
   has_completed_onboarding: true,
   created_at: new Date().toISOString(),
@@ -252,7 +251,7 @@ export const useUserProfileStore = create<UserProfileState>()(
       profile: null,
       isLoading: false,
       
-      // NEW: Initialize default profile for debugging
+      // Initialize default profile for debugging
       initializeDefaultProfile: () => {
         console.log('🔄 Initializing default profile for debugging...');
         const defaultProfile = createDefaultProfile();
@@ -323,7 +322,6 @@ export const useUserProfileStore = create<UserProfileState>()(
                   dartGamesWon: 0,
                   date: getTodayString(),
                   lastResetAt: new Date().toISOString(),
-                  drunkScaleSubmitted: false
                 }
               };
               
@@ -383,9 +381,6 @@ export const useUserProfileStore = create<UserProfileState>()(
         if (!profile) return;
 
         try {
-          // Remove the problematic field if it exists in updates
-          const { last_drunk_scale_reset, ...safeUpdates } = updates as any;
-          
           // Update local state immediately for better UX
           set((state) => ({
             profile: state.profile ? { ...state.profile, ...updates } : null
@@ -396,7 +391,7 @@ export const useUserProfileStore = create<UserProfileState>()(
             const { error } = await supabase
               .from('profiles')
               .update({
-                ...safeUpdates,
+                ...updates,
                 updated_at: new Date().toISOString()
               })
               .eq('id', profile.id);
@@ -621,43 +616,22 @@ export const useUserProfileStore = create<UserProfileState>()(
         }
 
         try {
-          const today = getTodayString();
-          
-          // Get current daily stats safely
-          const currentDailyStats = get().getDailyStats();
-          const isToday = currentDailyStats && currentDailyStats.date === today;
+          console.log('🔄 Updating daily tracker totals:', stats);
           
           // Calculate the differences to avoid double counting
-          const shotsDiff = Math.max(0, stats.shots - (isToday && currentDailyStats ? currentDailyStats.shots || 0 : 0));
-          const scoopDiff = Math.max(0, stats.scoopAndScores - (isToday && currentDailyStats ? currentDailyStats.scoopAndScores || 0 : 0));
-          const beersDiff = Math.max(0, stats.beers - (isToday && currentDailyStats ? currentDailyStats.beers || 0 : 0));
-          const beerTowersDiff = Math.max(0, stats.beerTowers - (isToday && currentDailyStats ? currentDailyStats.beerTowers || 0 : 0));
-          const funnelsDiff = Math.max(0, stats.funnels - (isToday && currentDailyStats ? currentDailyStats.funnels || 0 : 0));
-          const shotgunsDiff = Math.max(0, stats.shotguns - (isToday && currentDailyStats ? currentDailyStats.shotguns || 0 : 0));
-          const poolDiff = Math.max(0, stats.poolGamesWon - (isToday && currentDailyStats ? currentDailyStats.poolGamesWon || 0 : 0));
-          const dartDiff = Math.max(0, stats.dartGamesWon - (isToday && currentDailyStats ? currentDailyStats.dartGamesWon || 0 : 0));
+          const shotsDiff = Math.max(0, stats.shots - (profile.total_shots || 0));
+          const scoopDiff = Math.max(0, stats.scoopAndScores - (profile.total_scoop_and_scores || 0));
+          const beersDiff = Math.max(0, stats.beers - (profile.total_beers || 0));
+          const beerTowersDiff = Math.max(0, stats.beerTowers - (profile.total_beer_towers || 0));
+          const funnelsDiff = Math.max(0, stats.funnels - (profile.total_funnels || 0));
+          const shotgunsDiff = Math.max(0, stats.shotguns - (profile.total_shotguns || 0));
+          const poolDiff = Math.max(0, stats.poolGamesWon - (profile.pool_games_won || 0));
+          const dartDiff = Math.max(0, stats.dartGamesWon - (profile.dart_games_won || 0));
           
           console.log('🔄 Calculated differences:', {
             shotsDiff, scoopDiff, beersDiff, beerTowersDiff, 
             funnelsDiff, shotgunsDiff, poolDiff, dartDiff
           });
-          
-          const newDailyStats: DailyStats = {
-            shots: stats.shots,
-            scoopAndScores: stats.scoopAndScores,
-            beers: stats.beers,
-            beerTowers: stats.beerTowers,
-            funnels: stats.funnels,
-            shotguns: stats.shotguns,
-            poolGamesWon: stats.poolGamesWon,
-            dartGamesWon: stats.dartGamesWon,
-            date: today,
-            lastResetAt: currentDailyStats ? currentDailyStats.lastResetAt || new Date().toISOString() : new Date().toISOString(),
-            drunkScaleSubmitted: currentDailyStats ? currentDailyStats.drunkScaleSubmitted || false : false,
-            drunkScaleRating: currentDailyStats ? currentDailyStats.drunkScaleRating : undefined,
-            drunkScaleTimestamp: currentDailyStats ? currentDailyStats.drunkScaleTimestamp : undefined,
-            lastDrunkScaleSubmission: currentDailyStats ? currentDailyStats.lastDrunkScaleSubmission : undefined
-          };
           
           // Award XP for each activity increase
           if (shotsDiff > 0) {
@@ -701,17 +675,16 @@ export const useUserProfileStore = create<UserProfileState>()(
             }
           }
           
-          // Update profile with new totals and daily stats
+          // Update profile with new totals
           await get().updateProfile({
-            total_shots: (profile.total_shots || 0) + shotsDiff,
-            total_scoop_and_scores: (profile.total_scoop_and_scores || 0) + scoopDiff,
-            total_beers: (profile.total_beers || 0) + beersDiff,
-            total_beer_towers: (profile.total_beer_towers || 0) + beerTowersDiff,
-            total_funnels: (profile.total_funnels || 0) + funnelsDiff,
-            total_shotguns: (profile.total_shotguns || 0) + shotgunsDiff,
-            pool_games_won: (profile.pool_games_won || 0) + poolDiff,
-            dart_games_won: (profile.dart_games_won || 0) + dartDiff,
-            daily_stats: newDailyStats,
+            total_shots: stats.shots,
+            total_scoop_and_scores: stats.scoopAndScores,
+            total_beers: stats.beers,
+            total_beer_towers: stats.beerTowers,
+            total_funnels: stats.funnels,
+            total_shotguns: stats.shotguns,
+            pool_games_won: stats.poolGamesWon,
+            dart_games_won: stats.dartGamesWon,
           });
 
           // Update achievements
@@ -721,14 +694,14 @@ export const useUserProfileStore = create<UserProfileState>()(
               const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
               if (typeof checkAndUpdateMultiLevelAchievements === 'function') {
                 checkAndUpdateMultiLevelAchievements({
-                  totalBeers: (profile.total_beers || 0) + beersDiff,
-                  totalShots: (profile.total_shots || 0) + shotsDiff,
-                  totalBeerTowers: (profile.total_beer_towers || 0) + beerTowersDiff,
-                  totalScoopAndScores: (profile.total_scoop_and_scores || 0) + scoopDiff,
-                  totalFunnels: (profile.total_funnels || 0) + funnelsDiff,
-                  totalShotguns: (profile.total_shotguns || 0) + shotgunsDiff,
-                  poolGamesWon: (profile.pool_games_won || 0) + poolDiff,
-                  dartGamesWon: (profile.dart_games_won || 0) + dartDiff,
+                  totalBeers: stats.beers,
+                  totalShots: stats.shots,
+                  totalBeerTowers: stats.beerTowers,
+                  totalScoopAndScores: stats.scoopAndScores,
+                  totalFunnels: stats.funnels,
+                  totalShotguns: stats.shotguns,
+                  poolGamesWon: stats.poolGamesWon,
+                  dartGamesWon: stats.dartGamesWon,
                   barsHit: profile.bars_hit || 0,
                   nightsOut: profile.nights_out || 0,
                 });
@@ -739,7 +712,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           console.log('✅ Daily tracker totals updated successfully');
         } catch (error) {
           console.error('❌ Error updating daily tracker totals:', error);
-          throw error; // Re-throw to be caught by the calling function
+          throw error;
         }
       },
 
@@ -759,7 +732,6 @@ export const useUserProfileStore = create<UserProfileState>()(
           dartGamesWon: 0,
           date: today,
           lastResetAt: new Date().toISOString(),
-          drunkScaleSubmitted: false,
         };
 
         if (!profile) {
@@ -784,10 +756,6 @@ export const useUserProfileStore = create<UserProfileState>()(
             dartGamesWon: profile.daily_stats.dartGamesWon || 0,
             date: profile.daily_stats.date,
             lastResetAt: profile.daily_stats.lastResetAt || new Date().toISOString(),
-            drunkScaleSubmitted: profile.daily_stats.drunkScaleSubmitted || false,
-            drunkScaleRating: profile.daily_stats.drunkScaleRating,
-            drunkScaleTimestamp: profile.daily_stats.drunkScaleTimestamp,
-            lastDrunkScaleSubmission: profile.daily_stats.lastDrunkScaleSubmission,
           };
         }
         
@@ -1074,54 +1042,10 @@ export const useUserProfileStore = create<UserProfileState>()(
           daily_stats: state.profile.daily_stats,
           created_at: state.profile.created_at,
           updated_at: state.profile.updated_at,
+          drunk_scale_ratings: state.profile.drunk_scale_ratings,
+          last_drunk_scale_date: state.profile.last_drunk_scale_date,
         } : null,
       }),
-      onRehydrateStorage: () => (state) => {
-        // Ensure we always have valid state
-        if (!state) {
-          return {
-            profile: null,
-            isLoading: false,
-            loadProfile: async () => {},
-            updateProfile: async () => {},
-            incrementNightsOut: async () => {},
-            incrementBarsHit: async () => {},
-            addDrunkScaleRating: async () => {},
-            getAverageDrunkScale: () => 0,
-            getRank: () => RANK_STRUCTURE[0],
-            canIncrementNightsOut: () => true,
-            canSubmitDrunkScale: () => true,
-            setProfilePicture: async () => {},
-            awardXP: async () => {},
-            getAllRanks: () => RANK_STRUCTURE,
-            getXPForNextRank: () => 0,
-            getProgressToNextRank: () => 0,
-            updateDailyTrackerTotals: async () => {},
-            getDailyStats: () => ({
-              shots: 0,
-              scoopAndScores: 0,
-              beers: 0,
-              beerTowers: 0,
-              funnels: 0,
-              shotguns: 0,
-              poolGamesWon: 0,
-              dartGamesWon: 0,
-              date: getTodayString(),
-              lastResetAt: new Date().toISOString(),
-              drunkScaleSubmitted: false,
-            }),
-            searchUserByUsername: async () => null,
-            sendFriendRequest: async () => false,
-            acceptFriendRequest: async () => false,
-            declineFriendRequest: async () => false,
-            loadFriendRequests: async () => {},
-            loadFriends: async () => {},
-            checkAndResetDrunkScaleIfNeeded: () => {},
-            initializeDefaultProfile: () => {},
-          };
-        }
-        return state;
-      },
     }
   )
 );

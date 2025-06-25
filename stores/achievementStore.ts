@@ -35,7 +35,6 @@ interface AchievementState {
   completedAchievements: CompletedAchievement[];
   lastPopupDate?: string;
   isInitialized: boolean;
-  isHydrated: boolean;
   canShowPopup: () => boolean;
   shouldShow3AMPopup: () => boolean;
   mark3AMPopupShown: () => void;
@@ -248,22 +247,6 @@ const defaultAchievements: Achievement[] = [
     10
   ),
 
-  // Photo Achievements
-  ...createAchievementLevels(
-    'photos-taken',
-    'Photos Taken',
-    'activities',
-    '📸',
-    [
-      { threshold: 10, title: 'Photo Enthusiast', description: 'Took 10 photos' },
-      { threshold: 50, title: 'Photo Master', description: 'Took 50 photos' },
-      { threshold: 100, title: 'Photo Pro', description: 'Took 100 photos' },
-      { threshold: 250, title: 'Photo Legend', description: 'Took 250 photos' },
-      { threshold: 500, title: 'Photo Champion', description: 'Took 500 photos' },
-    ],
-    11
-  ),
-
   // Social Achievements
   {
     id: 'made-new-friend',
@@ -274,7 +257,7 @@ const defaultAchievements: Achievement[] = [
     category: 'social',
     completed: false,
     icon: '🤝',
-    order: 12,
+    order: 11,
     level: 1,
     maxLevel: 1,
   },
@@ -289,7 +272,7 @@ const defaultAchievements: Achievement[] = [
     category: 'milestones',
     completed: false,
     icon: '🌟',
-    order: 13,
+    order: 12,
     level: 1,
     maxLevel: 1,
   },
@@ -313,28 +296,6 @@ const isThreeAM = (): boolean => {
   return hour === 3;
 };
 
-// Default state for when store isn't ready
-const defaultState: AchievementState = {
-  achievements: [],
-  completedAchievements: [],
-  lastPopupDate: undefined,
-  isInitialized: false,
-  isHydrated: false,
-  canShowPopup: () => false,
-  shouldShow3AMPopup: () => false,
-  mark3AMPopupShown: () => {},
-  initializeAchievements: () => {},
-  completeAchievement: () => {},
-  markPopupShown: () => {},
-  getCompletedCount: () => 0,
-  getAchievementsByCategory: () => [],
-  getCompletedAchievementsByCategory: () => [],
-  resetAchievements: () => {},
-  updateAchievementProgress: () => {},
-  getCurrentLevelAchievements: () => [],
-  checkAndUpdateMultiLevelAchievements: () => {},
-};
-
 export const useAchievementStore = create<AchievementState>()(
   persist(
     (set, get) => ({
@@ -342,7 +303,6 @@ export const useAchievementStore = create<AchievementState>()(
       completedAchievements: [],
       lastPopupDate: undefined,
       isInitialized: false,
-      isHydrated: false,
 
       canShowPopup: () => {
         try {
@@ -614,35 +574,9 @@ export const useAchievementStore = create<AchievementState>()(
     {
       name: 'achievement-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      onRehydrateStorage: () => (state, error) => {
-        if (error) {
-          console.warn('Error rehydrating achievement store:', error);
-          return { ...defaultState, isHydrated: true };
-        }
-        
-        // Ensure we always have valid state and mark as initialized
-        if (!state) {
-          return { ...defaultState, isHydrated: true };
-        }
-        return { ...state, isInitialized: true, isHydrated: true };
-      },
     }
   )
 );
-
-// Safe hook that always returns valid state
-export const useAchievementStoreSafe = (): AchievementState => {
-  try {
-    const store = useAchievementStore();
-    if (!store || !store.isHydrated) {
-      return defaultState;
-    }
-    return store;
-  } catch (error) {
-    console.warn('Error accessing achievement store:', error);
-    return defaultState;
-  }
-};
 
 // Store reference for cross-store access
 if (typeof window !== 'undefined') {
