@@ -11,6 +11,15 @@ export const colors = {
     warning: '#F59E0B',
     error: '#EF4444',
     accent: '#8B5CF6',
+    shadow: {
+      light: 'rgba(0, 0, 0, 0.1)',
+      medium: 'rgba(0, 0, 0, 0.2)',
+      heavy: 'rgba(0, 0, 0, 0.3)',
+    },
+    glass: {
+      background: 'rgba(255, 255, 255, 0.1)',
+      border: 'rgba(255, 255, 255, 0.2)',
+    },
   },
   dark: {
     background: '#0A0A0A',
@@ -24,6 +33,15 @@ export const colors = {
     warning: '#F59E0B',
     error: '#EF4444',
     accent: '#A855F7',
+    shadow: {
+      light: 'rgba(0, 0, 0, 0.2)',
+      medium: 'rgba(0, 0, 0, 0.4)',
+      heavy: 'rgba(0, 0, 0, 0.6)',
+    },
+    glass: {
+      background: 'rgba(0, 0, 0, 0.3)',
+      border: 'rgba(255, 255, 255, 0.1)',
+    },
   },
 };
 

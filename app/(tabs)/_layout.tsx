@@ -2,12 +2,12 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
 import { Home, Award, Camera, Trophy, User } from 'lucide-react-native';
-import { colors } from '@/constants/colors';
-import { useThemeStore } from '@/stores/themeStore';
+import { colors, getThemeColorsSafe } from '@/constants/colors';
+import { useThemeStoreSafe } from '@/stores/themeStore';
 
 export default function TabLayout() {
-  const { theme } = useThemeStore();
-  const themeColors = colors[theme];
+  const { theme } = useThemeStoreSafe();
+  const themeColors = getThemeColorsSafe(theme);
 
   return (
     <Tabs
