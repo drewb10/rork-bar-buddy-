@@ -22,7 +22,7 @@ export default function TrophiesScreen() {
   
   const achievementStore = useAchievementStore();
   const completedAchievements = achievementStore?.completedAchievements || [];
-  const getCompletedAchievementsByCategory = achievementStore?.getCompletedAchievementsByCategory || ((category: 'bars' | 'activities' | 'social' | 'milestones') => []);
+  const getCompletedAchievementsByCategory = achievementStore?.getCompletedAchievementsByCategory || (() => []);
 
   // Handle null profile gracefully
   if (!profile) {
@@ -85,8 +85,8 @@ export default function TrophiesScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: '#000000' }]}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
       
       <ScrollView 
         style={styles.scrollView}
