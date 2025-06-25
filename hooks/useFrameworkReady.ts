@@ -1,21 +1,30 @@
 import { useEffect } from 'react';
-import { useChatStore } from '@/stores/chatStore';
 
 export function useFrameworkReady() {
-  const chatStore = useChatStore();
-
   useEffect(() => {
     try {
-      // Wait for store to be hydrated before calling methods
+      // Wait for stores to be hydrated before calling methods
       const timer = setTimeout(() => {
-        // Initialize chat system when app opens
-        if (chatStore?.resetChatOnAppReopen && typeof chatStore.resetChatOnAppReopen === 'function') {
-          chatStore.resetChatOnAppReopen();
-        }
-        
-        // Check for daily reset
-        if (chatStore?.checkAndResetDaily && typeof chatStore.checkAndResetDaily === 'function') {
-          chatStore.checkAndResetDaily();
+        try {
+          // Safely access chat store
+          if (typeof window !== 'undefined' && (window as any).__chatStore) {
+            const chatStore = (window as any).__chatStore;
+            if (chatStore?.getState) {
+              const { resetChatOnAppReopen, checkAndResetDaily } = chatStore.getState();
+              
+              // Initialize chat system when app opens
+              if (resetChatOnAppReopen && typeof resetChatOnAppReopen === 'function') {
+                resetChatOnAppReopen();
+              }
+              
+              // Check for daily reset
+              if (checkAndResetDaily && typeof checkAndResetDaily === 'function') {
+                checkAndResetDaily();
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('Error initializing chat store:', error);
         }
       }, 100);
 
@@ -23,5 +32,5 @@ export function useFrameworkReady() {
     } catch (error) {
       console.warn('Error in useFrameworkReady:', error);
     }
-  }, [chatStore]);
+  }, []);
 }

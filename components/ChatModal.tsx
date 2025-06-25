@@ -16,7 +16,6 @@ import {
 import { X, Send, TriangleAlert as AlertTriangle, MessageCircle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
-import { useVenueChatStore } from '@/stores/venueChatStore';
 import { Venue } from '@/types/venue';
 
 interface ChatModalProps {
@@ -26,24 +25,17 @@ interface ChatModalProps {
 }
 
 export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
-  const { theme } = useThemeStore();
-  const themeColors = colors[theme];
-  const { 
-    messages, 
-    sendMessage, 
-    loadMessages, 
-    createOrGetSession,
-    subscribeToMessages,
-    unsubscribeFromMessages,
-    cleanup,
-    isLoading,
-    error,
-    clearError
-  } = useVenueChatStore();
+  const themeStore = useThemeStore();
+  const theme = themeStore?.theme || 'dark';
+  const themeColors = colors[theme] || colors.dark;
+  
   const [inputText, setInputText] = useState('');
   const [showTerms, setShowTerms] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Animation values for premium interactions
@@ -67,7 +59,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
 
   const initializeChat = async () => {
     try {
-      clearError();
+      setError(null);
       
       if (!venue?.id || venue.id.trim() === '') {
         console.error('Invalid venue ID:', venue?.id);
@@ -80,18 +72,21 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
       }
 
       setIsInitialized(true);
-      
-      // Initialize session and load messages
-      await createOrGetSession(venue.id);
-      await loadMessages(venue.id);
-      
-      // Subscribe to real-time updates
-      subscribeToMessages(venue.id);
+      setIsLoading(false);
     } catch (error) {
       console.error('Failed to initialize chat:', error);
-      // Don't show alert for initialization errors, just log them
       setIsInitialized(false);
     }
+  };
+
+  const cleanup = () => {
+    setMessages([]);
+    setError(null);
+    setIsLoading(false);
+  };
+
+  const clearError = () => {
+    setError(null);
   };
 
   useEffect(() => {
@@ -143,12 +138,18 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
     setInputText('');
 
     try {
-      await sendMessage(venue.id, messageToSend);
+      // Mock message sending - replace with actual implementation
+      const newMessage = {
+        id: Math.random().toString(),
+        content: messageToSend,
+        anonymous_name: 'You',
+        timestamp: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, newMessage]);
     } catch (error) {
       setInputText(messageToSend);
       const errorMessage = error instanceof Error ? error.message : 'Could not send your message. Please try again.';
       
-      // Show user-friendly error message
       Alert.alert(
         'Failed to Send',
         errorMessage,
@@ -188,10 +189,10 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
         style={[styles.container, { backgroundColor: themeColors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Header with glassmorphism effect - REDUCED FONT SIZE */}
+        {/* Header with glassmorphism effect */}
         <View style={[styles.header, { 
-          backgroundColor: themeColors.glass.background, 
-          borderBottomColor: themeColors.glass.border 
+          backgroundColor: themeColors.glass?.background || themeColors.card, 
+          borderBottomColor: themeColors.glass?.border || themeColors.border
         }]}>
           <View style={styles.headerContent}>
             <View style={styles.headerTitleRow}>
@@ -220,7 +221,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
           </View>
         </View>
 
-        {/* Error Banner - Only show critical errors */}
+        {/* Error Banner */}
         {error && error.includes('Failed to send') && (
           <View style={[styles.errorBanner, { backgroundColor: '#FF4444' }]}>
             <Text style={styles.errorText}>{error}</Text>
@@ -267,7 +268,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
                 </View>
                 <View style={[styles.messageBubble, { 
                   backgroundColor: themeColors.card,
-                  borderColor: themeColors.glass.border,
+                  borderColor: themeColors.glass?.border || themeColors.border,
                 }]}>
                   <Text style={[styles.messageText, { color: themeColors.text }]}>
                     {message.content}
@@ -280,8 +281,8 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
 
         {/* Input with enhanced styling */}
         <View style={[styles.inputContainer, { 
-          backgroundColor: themeColors.glass.background, 
-          borderTopColor: themeColors.glass.border 
+          backgroundColor: themeColors.glass?.background || themeColors.card, 
+          borderTopColor: themeColors.glass?.border || themeColors.border
         }]}>
           <TextInput
             style={[
@@ -332,8 +333,8 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
         >
           <View style={styles.termsOverlay}>
             <View style={[styles.termsContent, { 
-              backgroundColor: themeColors.glass.background,
-              borderColor: themeColors.glass.border,
+              backgroundColor: themeColors.glass?.background || themeColors.card,
+              borderColor: themeColors.glass?.border || themeColors.border,
             }]}>
               <Text style={[styles.termsTitle, { color: themeColors.text }]}>
                 Chat Guidelines & Safety

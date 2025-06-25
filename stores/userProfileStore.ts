@@ -55,7 +55,6 @@ interface UserProfile {
   drunk_scale_ratings: number[];
   last_night_out_date?: string;
   last_drunk_scale_date?: string;
-  last_drunk_scale_reset?: string;
   profile_picture?: string;
   friends: Friend[];
   friend_requests: FriendRequest[];
@@ -199,35 +198,6 @@ const hasPassedMidnight = (lastSubmissionDate?: string): boolean => {
   }
 };
 
-const shouldResetDrunkScaleAt3AM = (lastResetAt?: string): boolean => {
-  try {
-    if (!lastResetAt) return true;
-    
-    const lastReset = new Date(lastResetAt);
-    const now = new Date();
-    
-    // Create 3 AM reset time for today
-    const resetTime = new Date(now);
-    resetTime.setHours(3, 0, 0, 0);
-    
-    // If it's past 3 AM today and last reset was before today's 3 AM, reset
-    if (now >= resetTime && lastReset < resetTime) {
-      return true;
-    }
-    
-    // If it's before 3 AM today, check if last reset was before yesterday's 3 AM
-    if (now < resetTime) {
-      const yesterdayResetTime = new Date(resetTime);
-      yesterdayResetTime.setDate(yesterdayResetTime.getDate() - 1);
-      return lastReset < yesterdayResetTime;
-    }
-    
-    return false;
-  } catch {
-    return true;
-  }
-};
-
 const getTodayString = (): string => {
   return new Date().toISOString().split('T')[0];
 };
@@ -344,10 +314,13 @@ export const useUserProfileStore = create<UserProfileState>()(
         if (!profile) return;
 
         try {
+          // Remove the problematic field from updates
+          const { last_drunk_scale_reset, ...safeUpdates } = updates as any;
+          
           const { error } = await supabase
             .from('profiles')
             .update({
-              ...updates,
+              ...safeUpdates,
               updated_at: new Date().toISOString()
             })
             .eq('id', profile.id);
@@ -358,7 +331,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           }
 
           set((state) => ({
-            profile: state.profile ? { ...state.profile, ...updates } : null
+            profile: state.profile ? { ...state.profile, ...safeUpdates } : null
           }));
         } catch (error) {
           console.error('Error updating profile:', error);
@@ -366,13 +339,13 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       checkAndResetDrunkScaleIfNeeded: () => {
+        // Simplified - just check if it's a new day
         const { profile } = get();
         if (!profile) return;
 
-        if (shouldResetDrunkScaleAt3AM(profile.last_drunk_scale_reset)) {
+        if (hasPassedMidnight(profile.last_drunk_scale_date)) {
           get().updateProfile({
             last_drunk_scale_date: undefined,
-            last_drunk_scale_reset: new Date().toISOString(),
           });
         }
       },
@@ -705,7 +678,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         // Check if we need to reset first
         get().checkAndResetDrunkScaleIfNeeded();
         
-        // Use 24-hour check instead of 3 AM reset for drunk scale
+        // Use 24-hour check for drunk scale
         return hasPassedMidnight(profile.last_drunk_scale_date);
       },
 
@@ -954,6 +927,50 @@ export const useUserProfileStore = create<UserProfileState>()(
           phone: state.profile.phone,
         } : null,
       }),
+      onRehydrateStorage: () => (state) => {
+        // Ensure we always have valid state
+        if (!state) {
+          return {
+            profile: null,
+            isLoading: false,
+            loadProfile: async () => {},
+            updateProfile: async () => {},
+            incrementNightsOut: async () => {},
+            incrementBarsHit: async () => {},
+            addDrunkScaleRating: async () => {},
+            getAverageDrunkScale: () => 0,
+            getRank: () => RANK_STRUCTURE[0],
+            canIncrementNightsOut: () => true,
+            canSubmitDrunkScale: () => true,
+            setProfilePicture: async () => {},
+            awardXP: async () => {},
+            getAllRanks: () => RANK_STRUCTURE,
+            getXPForNextRank: () => 0,
+            getProgressToNextRank: () => 0,
+            updateDailyTrackerTotals: async () => {},
+            getDailyStats: () => ({
+              shots: 0,
+              scoopAndScores: 0,
+              beers: 0,
+              beerTowers: 0,
+              funnels: 0,
+              shotguns: 0,
+              poolGamesWon: 0,
+              dartGamesWon: 0,
+              date: getTodayString(),
+              lastResetAt: new Date().toISOString(),
+            }),
+            searchUserByUsername: async () => null,
+            sendFriendRequest: async () => false,
+            acceptFriendRequest: async () => false,
+            declineFriendRequest: async () => false,
+            loadFriendRequests: async () => {},
+            loadFriends: async () => {},
+            checkAndResetDrunkScaleIfNeeded: () => {},
+          };
+        }
+        return state;
+      },
     }
   )
 );

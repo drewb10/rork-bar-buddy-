@@ -242,3 +242,8 @@ export const useChatStore = create<ChatState>()(
     }
   )
 );
+
+// Store reference for cross-store access
+if (typeof window !== 'undefined') {
+  (window as any).__chatStore = useChatStore;
+}

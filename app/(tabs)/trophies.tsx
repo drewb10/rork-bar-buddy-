@@ -8,21 +8,42 @@ import { useAchievementStore, CompletedAchievement } from '@/stores/achievementS
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 
 export default function TrophiesScreen() {
-  // Safe store access with fallbacks
-  const themeStore = useThemeStore();
-  const theme = themeStore?.theme || 'dark';
-  const themeColors = colors[theme] || colors.dark;
-  
-  const profileStore = useUserProfileStore();
-  const profile = profileStore?.profile;
-  const getRank = profileStore?.getRank || (() => ({ title: 'Newbie', subTitle: 'Just getting started', color: '#666666' }));
-  const getAverageDrunkScale = profileStore?.getAverageDrunkScale || (() => 0);
-  
-  const achievementStore = useAchievementStore();
-  const completedAchievements = achievementStore?.completedAchievements || [];
-  const getCompletedAchievementsByCategory = achievementStore?.getCompletedAchievementsByCategory || (() => []);
-  
+  // Safe store access with fallbacks and error handling
   const [selectedAchievement, setSelectedAchievement] = useState<CompletedAchievement | null>(null);
+  
+  let themeStore, profileStore, achievementStore;
+  let theme = 'dark';
+  let themeColors = colors.dark;
+  let profile = null;
+  let getRank = () => ({ title: 'Newbie', subTitle: 'Just getting started', color: '#666666' });
+  let getAverageDrunkScale = () => 0;
+  let completedAchievements: CompletedAchievement[] = [];
+  let getCompletedAchievementsByCategory = () => [];
+
+  try {
+    themeStore = useThemeStore();
+    theme = themeStore?.theme || 'dark';
+    themeColors = colors[theme] || colors.dark;
+  } catch (error) {
+    console.warn('Error accessing theme store:', error);
+  }
+
+  try {
+    profileStore = useUserProfileStore();
+    profile = profileStore?.profile;
+    getRank = profileStore?.getRank || (() => ({ title: 'Newbie', subTitle: 'Just getting started', color: '#666666' }));
+    getAverageDrunkScale = profileStore?.getAverageDrunkScale || (() => 0);
+  } catch (error) {
+    console.warn('Error accessing profile store:', error);
+  }
+
+  try {
+    achievementStore = useAchievementStore();
+    completedAchievements = achievementStore?.completedAchievements || [];
+    getCompletedAchievementsByCategory = achievementStore?.getCompletedAchievementsByCategory || (() => []);
+  } catch (error) {
+    console.warn('Error accessing achievement store:', error);
+  }
   
   // Handle null profile gracefully
   if (!profile) {

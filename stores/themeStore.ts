@@ -12,10 +12,24 @@ interface ThemeState {
 
 export const useThemeStore = create<ThemeState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       theme: 'dark',
-      setTheme: (theme) => set({ theme }),
-      toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+      setTheme: (theme) => {
+        try {
+          set({ theme });
+        } catch (error) {
+          console.warn('Error setting theme:', error);
+        }
+      },
+      toggleTheme: () => {
+        try {
+          const currentTheme = get()?.theme || 'dark';
+          set({ theme: currentTheme === 'dark' ? 'light' : 'dark' });
+        } catch (error) {
+          console.warn('Error toggling theme:', error);
+          set({ theme: 'dark' });
+        }
+      },
     }),
     {
       name: 'theme-storage',
@@ -23,9 +37,19 @@ export const useThemeStore = create<ThemeState>()(
       onRehydrateStorage: () => (state) => {
         // Ensure we always have a valid theme
         if (!state || !state.theme) {
-          return { theme: 'dark', setTheme: () => {}, toggleTheme: () => {} };
+          return { 
+            theme: 'dark' as Theme, 
+            setTheme: () => {}, 
+            toggleTheme: () => {} 
+          };
         }
+        return state;
       },
     }
   )
 );
+
+// Store reference for cross-store access
+if (typeof window !== 'undefined') {
+  (window as any).__themeStore = useThemeStore;
+}
