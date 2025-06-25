@@ -14,6 +14,38 @@ export default function TrophiesScreen() {
   const { completedAchievements, getCompletedAchievementsByCategory } = useAchievementStore();
   const [selectedAchievement, setSelectedAchievement] = useState<CompletedAchievement | null>(null);
   
+  // Handle null profile gracefully
+  if (!profile) {
+    return (
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+        
+        <ScrollView 
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.header}>
+            <BarBuddyLogo size="small" />
+            <Text style={[styles.headerTitle, { color: themeColors.text }]}>
+              Your Trophies
+            </Text>
+          </View>
+
+          <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
+            <Trophy size={48} color={themeColors.subtext} />
+            <Text style={[styles.emptyStateTitle, { color: themeColors.text }]}>
+              Profile Loading
+            </Text>
+            <Text style={[styles.emptyStateText, { color: themeColors.subtext }]}>
+              Please wait while we load your profile data...
+            </Text>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   const rankInfo = getRank();
   const totalCompletedAchievements = completedAchievements.length;
   const averageDrunkScale = getAverageDrunkScale();
@@ -73,7 +105,7 @@ export default function TrophiesScreen() {
             <View style={styles.statItem}>
               <Award size={24} color={rankInfo.color} />
               <Text style={[styles.statNumber, { color: themeColors.text }]}>
-                {profile.xp}
+                {profile.xp || 0}
               </Text>
               <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
                 Total XP
@@ -94,7 +126,7 @@ export default function TrophiesScreen() {
                 {rankInfo.subTitle}
               </Text>
               <Text style={[styles.rankXP, { color: themeColors.subtext }]}>
-                {profile.xp} XP
+                {profile.xp || 0} XP
               </Text>
             </View>
           </View>
@@ -112,7 +144,7 @@ export default function TrophiesScreen() {
           <View style={styles.trackerStatsGrid}>
             <View style={styles.trackerStatItem}>
               <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {profile.totalShots}
+                {profile.total_shots || 0}
               </Text>
               <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
                 🥃 Shots
@@ -121,7 +153,7 @@ export default function TrophiesScreen() {
             
             <View style={styles.trackerStatItem}>
               <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {profile.totalScoopAndScores}
+                {profile.total_scoop_and_scores || 0}
               </Text>
               <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
                 🍺 Scoop & Scores
@@ -130,7 +162,7 @@ export default function TrophiesScreen() {
             
             <View style={styles.trackerStatItem}>
               <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {profile.totalBeers}
+                {profile.total_beers || 0}
               </Text>
               <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
                 🍻 Beers
@@ -139,7 +171,7 @@ export default function TrophiesScreen() {
             
             <View style={styles.trackerStatItem}>
               <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {profile.totalBeerTowers}
+                {profile.total_beer_towers || 0}
               </Text>
               <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
                 🗼 Beer Towers
@@ -148,7 +180,7 @@ export default function TrophiesScreen() {
             
             <View style={styles.trackerStatItem}>
               <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {profile.totalFunnels}
+                {profile.total_funnels || 0}
               </Text>
               <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
                 🌪️ Funnels
@@ -157,7 +189,7 @@ export default function TrophiesScreen() {
             
             <View style={styles.trackerStatItem}>
               <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {profile.totalShotguns}
+                {profile.total_shotguns || 0}
               </Text>
               <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
                 💥 Shotguns
@@ -166,7 +198,7 @@ export default function TrophiesScreen() {
 
             <View style={styles.trackerStatItem}>
               <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {profile.poolGamesWon || 0}
+                {profile.pool_games_won || 0}
               </Text>
               <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
                 🎱 Pool Games
@@ -175,7 +207,7 @@ export default function TrophiesScreen() {
 
             <View style={styles.trackerStatItem}>
               <Text style={[styles.trackerStatNumber, { color: themeColors.text }]}>
-                {profile.dartGamesWon || 0}
+                {profile.dart_games_won || 0}
               </Text>
               <Text style={[styles.trackerStatLabel, { color: themeColors.subtext }]}>
                 🎯 Dart Games
@@ -193,7 +225,7 @@ export default function TrophiesScreen() {
             <View style={styles.lifetimeStat}>
               <TrendingUp size={20} color={themeColors.primary} />
               <Text style={[styles.lifetimeStatNumber, { color: themeColors.text }]}>
-                {profile.nightsOut}
+                {profile.nights_out || 0}
               </Text>
               <Text style={[styles.lifetimeStatLabel, { color: themeColors.subtext }]}>
                 Nights Out
@@ -203,7 +235,7 @@ export default function TrophiesScreen() {
             <View style={styles.lifetimeStat}>
               <MapPin size={20} color={themeColors.primary} />
               <Text style={[styles.lifetimeStatNumber, { color: themeColors.text }]}>
-                {profile.barsHit}
+                {profile.bars_hit || 0}
               </Text>
               <Text style={[styles.lifetimeStatLabel, { color: themeColors.subtext }]}>
                 Bars Hit
@@ -314,8 +346,8 @@ export default function TrophiesScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { 
-            backgroundColor: themeColors.glass.background,
-            borderColor: themeColors.glass.border,
+            backgroundColor: themeColors.glass?.background || themeColors.card,
+            borderColor: themeColors.glass?.border || themeColors.border,
           }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: themeColors.text }]}>
