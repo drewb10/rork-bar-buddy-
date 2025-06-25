@@ -26,7 +26,7 @@ interface ChatState {
   // Actions
   sendMessage: (text: string) => Promise<void>;
   likeMessage: (messageId: string) => void;
-  resetChatOnOpen: () => void;
+  resetChatOnAppReopen: () => void;
   checkAndResetDaily: () => void;
   clearError: () => void;
 }
@@ -175,7 +175,7 @@ export const useChatStore = create<ChatState>()(
         });
       },
 
-      resetChatOnOpen: () => {
+      resetChatOnAppReopen: () => {
         const { currentSession } = get();
         
         // Check if we need to reset based on 5 AM rule
