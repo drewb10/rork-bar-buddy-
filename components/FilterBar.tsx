@@ -15,9 +15,9 @@ export default function FilterBar({ filters, onFilterChange, filterType }: Filte
   const themeColors = colors[theme];
 
   const venueTypes: { value: VenueType; label: string }[] = [
-    { value: 'sports-bar', label: 'Sports Bar' },
-    { value: 'club', label: 'Club' },
-    { value: 'hangout', label: 'Hangout' },
+    { value: 'club', label: 'Clubs' },
+    { value: 'sports-bar', label: 'Sports Bars' },
+    { value: 'hangout', label: 'Hangouts' },
     { value: 'pool', label: 'Pool' },
   ];
 
@@ -44,7 +44,11 @@ export default function FilterBar({ filters, onFilterChange, filterType }: Filte
 
   return (
     <View style={styles.container}>
-      <View style={styles.centeredContent}>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {options.map((option) => (
           <Pressable
             key={option.value}
@@ -73,31 +77,33 @@ export default function FilterBar({ filters, onFilterChange, filterType }: Filte
             </Text>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 12,
-    alignItems: 'center',
+    paddingVertical: 16,
   },
-  centeredContent: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
+  scrollContent: {
     paddingHorizontal: 16,
+    gap: 12,
   },
   filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 24,
+    borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   filterText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
 });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MapPin, TrendingUp, Calendar, Flame, RotateCcw } from 'lucide-react-native';
+import { MapPin, TrendingUp, Calendar } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
@@ -11,14 +11,16 @@ import VenueCard from '@/components/VenueCard';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import DailyTracker from '@/components/DailyTracker';
 import SectionHeader from '@/components/SectionHeader';
+import FilterBar from '@/components/FilterBar';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { resetAllLikes } = useVenueInteractionStore();
   const { profile, initializeDefaultProfile } = useUserProfileStore();
+  const { getMostPopularVenues } = useVenueInteractionStore();
   const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
 
   // Initialize default profile if none exists (for debugging)
   useEffect(() => {
@@ -27,24 +29,6 @@ export default function HomeScreen() {
       initializeDefaultProfile();
     }
   }, [profile, initializeDefaultProfile]);
-
-  const handleResetLikes = () => {
-    Alert.alert(
-      'Reset All Likes',
-      'This will reset all likes for debugging purposes. Are you sure?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Reset', 
-          style: 'destructive',
-          onPress: () => {
-            resetAllLikes();
-            Alert.alert('Success', 'All likes have been reset!');
-          }
-        }
-      ]
-    );
-  };
 
   const handleViewAllVenues = () => {
     router.push('/all-venues');
@@ -74,6 +58,25 @@ export default function HomeScreen() {
     venue.specials && venue.specials.some(special => special.day === getCurrentDay())
   );
 
+  // Filter venues based on selected filters
+  const filteredVenues = selectedFilters.length > 0 
+    ? venues.filter(venue => selectedFilters.includes(venue.type))
+    : venues;
+
+  // Top picks - specific venues as requested
+  const topPickIds = ['library-taphouse', 'late-night-library', 'jba-sports-bar'];
+  const topPicks = venues.filter(venue => topPickIds.includes(venue.id));
+
+  // Rest of venues sorted by daily likes (excluding top picks)
+  const popularVenues = getMostPopularVenues();
+  const restOfVenues = filteredVenues
+    .filter(venue => !topPickIds.includes(venue.id))
+    .sort((a, b) => {
+      const aLikes = popularVenues.find(p => p.venueId === a.id)?.likes || 0;
+      const bLikes = popularVenues.find(p => p.venueId === b.id)?.likes || 0;
+      return bLikes - aLikes;
+    });
+
   return (
     <View style={[styles.container, { backgroundColor: '#000000' }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -81,23 +84,15 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <BarBuddyLogo size="small" />
-          <View style={styles.headerActions}>
-            {/* Debug Reset Button */}
-            <Pressable 
-              style={[styles.debugButton, { backgroundColor: themeColors.error }]}
-              onPress={handleResetLikes}
-            >
-              <RotateCcw size={16} color="white" />
-            </Pressable>
-            
-            <Pressable 
-              style={[styles.trackerButton, { backgroundColor: themeColors.primary }]}
-              onPress={handleDailyTrackerPress}
-            >
-              <TrendingUp size={18} color="white" />
-            </Pressable>
+          <View style={styles.logoContainer}>
+            <BarBuddyLogo size="medium" />
           </View>
+          <Pressable 
+            style={[styles.trackerButton, { backgroundColor: themeColors.primary }]}
+            onPress={handleDailyTrackerPress}
+          >
+            <TrendingUp size={18} color="white" />
+          </Pressable>
         </View>
         
         <Pressable style={styles.locationContainer} onPress={handleLocationPress}>
@@ -108,12 +103,19 @@ export default function HomeScreen() {
         </Pressable>
       </View>
 
+      {/* Filter Bar */}
+      <FilterBar 
+        filters={selectedFilters}
+        onFilterChange={setSelectedFilters}
+        filterType="venue"
+      />
+
       <ScrollView 
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Main Section - Changed from "Most Liked Venues" to "BarBuddy's Top Picks" */}
+        {/* Top Picks Section */}
         <SectionHeader 
           title="BarBuddy's Top Picks"
           subtitle="Discover the best bars in your area"
@@ -121,10 +123,21 @@ export default function HomeScreen() {
         />
         
         <View style={styles.venueList}>
-          {venues.slice(0, 6).map((venue) => (
+          {topPicks.map((venue) => (
             <VenueCard key={venue.id} venue={venue} />
           ))}
         </View>
+
+        {/* Rest of Venues (sorted by likes) */}
+        {restOfVenues.length > 0 && (
+          <>
+            <View style={styles.venueList}>
+              {restOfVenues.map((venue) => (
+                <VenueCard key={venue.id} venue={venue} />
+              ))}
+            </View>
+          </>
+        )}
 
         {/* Today's Specials Section */}
         {venuesWithSpecials.length > 0 && (
@@ -176,22 +189,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-  headerActions: {
-    flexDirection: 'row',
+  logoContainer: {
+    flex: 1,
     alignItems: 'center',
-    gap: 12,
-  },
-  debugButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
   },
   trackerButton: {
     width: 40,
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: 4,
+    justifyContent: 'center',
   },
   locationText: {
     fontSize: 14,

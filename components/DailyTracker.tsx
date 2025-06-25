@@ -5,7 +5,6 @@ import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
-import { LinearGradient } from 'expo-linear-gradient';
 
 interface DailyTrackerProps {
   visible: boolean;
@@ -41,17 +40,14 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
 
   const [localStats, setLocalStats] = useState(getDailyStats());
   const [selectedDrunkScale, setSelectedDrunkScale] = useState<number | null>(null);
-  const [showDrunkScale, setShowDrunkScale] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setLocalStats(getDailyStats());
       setSelectedDrunkScale(null);
-      setShowDrunkScale(false);
     }
   }, [visible]);
 
-  // Fixed close handler - no side effects
   const handleClose = () => {
     onClose();
   };
@@ -144,25 +140,30 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     >
       <View style={styles.overlay}>
         <View style={[styles.container, { backgroundColor: themeColors.card }]}>
-          {/* Header with fixed close button */}
+          {/* Header */}
           <View style={[styles.header, { borderBottomColor: themeColors.border }]}>
             <View style={styles.headerContent}>
-              <TrendingUp size={24} color={themeColors.primary} />
+              <TrendingUp size={28} color={themeColors.primary} />
               <Text style={[styles.title, { color: themeColors.text }]}>
                 Daily Tracker
               </Text>
             </View>
             <Pressable style={styles.closeButton} onPress={handleClose}>
-              <X size={24} color={themeColors.text} />
+              <X size={28} color={themeColors.text} />
             </Pressable>
           </View>
 
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {/* Stats Section */}
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-                Track Your Night 🍻
-              </Text>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
+                  Track Your Night 🍻
+                </Text>
+                <Text style={[styles.sectionSubtitle, { color: themeColors.subtext }]}>
+                  Earn XP for every activity you track
+                </Text>
+              </View>
               
               {statItems.map((item) => (
                 <View key={item.key} style={[styles.statRow, { backgroundColor: themeColors.background }]}>
@@ -183,7 +184,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                       style={[styles.controlButton, { backgroundColor: themeColors.border }]}
                       onPress={() => handleStatChange(item.key, -1)}
                     >
-                      <Minus size={16} color={themeColors.text} />
+                      <Minus size={18} color={themeColors.text} />
                     </Pressable>
                     
                     <Text style={[styles.statValue, { color: themeColors.text }]}>
@@ -194,7 +195,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                       style={[styles.controlButton, { backgroundColor: themeColors.primary }]}
                       onPress={() => handleStatChange(item.key, 1)}
                     >
-                      <Plus size={16} color="white" />
+                      <Plus size={18} color="white" />
                     </Pressable>
                   </View>
                 </View>
@@ -274,7 +275,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                     onPress={handleDrunkScaleSubmit}
                     disabled={selectedDrunkScale === null}
                   >
-                    <Award size={20} color="white" />
+                    <Award size={22} color="white" />
                     <Text style={styles.submitDrunkScaleText}>
                       Submit Rating (+25 XP)
                     </Text>
@@ -282,7 +283,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                 </>
               ) : (
                 <View style={[styles.drunkScaleDisabled, { backgroundColor: themeColors.background }]}>
-                  <Target size={32} color={themeColors.subtext} />
+                  <Target size={40} color={themeColors.subtext} />
                   <Text style={[styles.drunkScaleDisabledText, { color: themeColors.subtext }]}>
                     {hasSubmittedToday 
                       ? 'Thanks for sharing! Come back tomorrow.'
@@ -300,7 +301,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
               style={[styles.saveButton, { backgroundColor: themeColors.primary }]}
               onPress={handleSaveStats}
             >
-              <Text style={styles.saveButtonText}>Save Stats & Earn XP</Text>
+              <Text style={styles.saveButtonText}>Save My Stats & Earn XP</Text>
             </Pressable>
           </View>
         </View>
@@ -312,24 +313,24 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'flex-end',
   },
   container: {
-    maxHeight: '90%',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    maxHeight: '92%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 20,
+    shadowOffset: { width: 0, height: -12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 25,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
+    padding: 24,
     borderBottomWidth: 1,
   },
   headerContent: {
@@ -337,45 +338,50 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
     marginLeft: 12,
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
   },
   closeButton: {
     padding: 8,
+    borderRadius: 20,
   },
   content: {
-    maxHeight: 500,
+    maxHeight: 520,
   },
   section: {
-    padding: 20,
+    padding: 24,
   },
   sectionHeader: {
-    marginBottom: 16,
+    marginBottom: 20,
+    alignItems: 'center',
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 4,
-    letterSpacing: 0.3,
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 6,
+    letterSpacing: 0.4,
+    textAlign: 'center',
   },
   sectionSubtitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   statRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
+    padding: 20,
+    borderRadius: 20,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 5,
   },
   statInfo: {
     flexDirection: 'row',
@@ -383,72 +389,72 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statEmoji: {
-    fontSize: 24,
-    marginRight: 12,
+    fontSize: 28,
+    marginRight: 16,
   },
   statTextContainer: {
     flex: 1,
   },
   statLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 0.2,
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   statXP: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 2,
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 3,
   },
   statControls: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   controlButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 6,
   },
   statValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginHorizontal: 16,
-    minWidth: 24,
+    fontSize: 20,
+    fontWeight: '800',
+    marginHorizontal: 20,
+    minWidth: 28,
     textAlign: 'center',
   },
   drunkScaleOptions: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   drunkScaleOption: {
-    padding: 16,
-    borderRadius: 16,
+    padding: 20,
+    borderRadius: 20,
     borderWidth: 2,
-    marginBottom: 12,
+    marginBottom: 16,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 5,
   },
   drunkScaleEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
+    fontSize: 36,
+    marginBottom: 10,
   },
   drunkScaleLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 4,
-    letterSpacing: 0.2,
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 6,
+    letterSpacing: 0.3,
   },
   drunkScaleDescription: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '500',
     textAlign: 'center',
   },
@@ -456,52 +462,52 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
-    borderRadius: 24,
+    padding: 20,
+    borderRadius: 28,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 12,
   },
   submitDrunkScaleText: {
     color: 'white',
-    fontSize: 16,
-    fontWeight: '700',
-    marginLeft: 8,
-    letterSpacing: 0.3,
+    fontSize: 18,
+    fontWeight: '800',
+    marginLeft: 10,
+    letterSpacing: 0.4,
   },
   drunkScaleDisabled: {
-    padding: 32,
-    borderRadius: 16,
+    padding: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   drunkScaleDisabledText: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 17,
+    fontWeight: '600',
     textAlign: 'center',
-    marginTop: 12,
-    lineHeight: 22,
+    marginTop: 16,
+    lineHeight: 24,
   },
   footer: {
-    padding: 20,
+    padding: 24,
     borderTopWidth: 1,
   },
   saveButton: {
-    padding: 16,
-    borderRadius: 24,
+    padding: 20,
+    borderRadius: 28,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 12,
   },
   saveButtonText: {
     color: 'white',
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: 0.4,
   },
 });

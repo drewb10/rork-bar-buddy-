@@ -33,7 +33,6 @@ interface VenueInteractionState {
   getTimeSlotData: (venueId: string) => { time: string; count: number; likes: number }[];
   getAllInteractionsForVenue: (venueId: string) => VenueInteraction[];
   getDetailedTimeSlotData: (venueId: string) => { time: string; visits: number; likes: number; isCurrentHour: boolean; isPeak: boolean }[];
-  resetAllLikes: () => void; // New function to reset all likes
 }
 
 const RESET_HOUR = 5;
@@ -522,25 +521,6 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           };
         } catch {
           return null;
-        }
-      },
-
-      // NEW: Reset all likes function for debugging
-      resetAllLikes: () => {
-        try {
-          console.log('🔄 Resetting all likes for debugging...');
-          set((state) => ({
-            interactions: state.interactions.map(interaction => ({
-              ...interaction,
-              likes: 0,
-              dailyLikesUsed: 0,
-              likeTimeSlot: undefined,
-              lastLikeReset: new Date().toISOString(),
-            }))
-          }));
-          console.log('✅ All likes reset successfully');
-        } catch (error) {
-          console.error('❌ Error resetting likes:', error);
         }
       },
 
