@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal } from 'react-native';
 import { Trophy, Award, Star, Target, Users, Calendar, X, MapPin, TrendingUp, ChartBar as BarChart3 } from 'lucide-react-native';
-import { colors, type Theme } from '@/constants/colors';
+import { colors, type Theme, type ThemeColors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { useAchievementStore, CompletedAchievement } from '@/stores/achievementStore';
@@ -13,7 +13,7 @@ export default function TrophiesScreen() {
   
   let themeStore, profileStore, achievementStore;
   let theme: Theme = 'dark';
-  let themeColors = colors.dark;
+  let themeColors: ThemeColors = colors.dark;
   let profile = null;
   let getRank = () => ({ title: 'Newbie', subTitle: 'Just getting started', color: '#666666' });
   let getAverageDrunkScale = () => 0;
@@ -23,7 +23,7 @@ export default function TrophiesScreen() {
   try {
     themeStore = useThemeStore();
     theme = (themeStore?.theme || 'dark') as Theme;
-    themeColors = colors[theme];
+    themeColors = colors[theme] as ThemeColors;
   } catch (error) {
     console.warn('Error accessing theme store:', error);
   }

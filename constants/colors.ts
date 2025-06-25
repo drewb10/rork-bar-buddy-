@@ -55,6 +55,6 @@ export const colors = {
 } as const;
 
 export type Theme = 'dark' | 'light';
-export type ThemeColors = typeof colors[Theme];
+export type ThemeColors = typeof colors['dark']; // Use dark as the base type since both have same structure
 
 export default colors;
