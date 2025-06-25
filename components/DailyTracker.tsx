@@ -87,7 +87,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     }
 
     submitDrunkScale(selectedDrunkScale);
-    awardXP('drunk_scale', 'Submitted drunk scale rating');
+    awardXP('drunk_scale_submission', 'Submitted drunk scale rating');
     
     Alert.alert(
       'Thanks for sharing! 🍻',
