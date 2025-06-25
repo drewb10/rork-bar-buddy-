@@ -51,6 +51,7 @@ interface ChatState {
   cleanup: () => void;
   clearError: () => void;
   checkAndResetIfNeeded: () => void;
+  resetChatOnAppReopen: () => void;
 }
 
 // Content moderation filters
@@ -340,6 +341,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
     } else {
       // Just update the last reset check time
       set({ lastResetCheck: Date.now() });
+    }
+  },
+
+  resetChatOnAppReopen: () => {
+    // Reset chat messages on app start to ensure anonymous behavior
+    try {
+      get().unsubscribeFromMessages();
+      set({ 
+        messages: [], 
+        currentSession: null, 
+        error: null,
+        isLoading: false,
+        lastResetCheck: Date.now(),
+        lastMessageTime: 0
+      });
+    } catch (error) {
+      console.warn('Error during chat reset on app reopen (non-critical):', error);
     }
   },
 
