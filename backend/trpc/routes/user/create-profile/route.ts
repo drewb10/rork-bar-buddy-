@@ -5,29 +5,38 @@ import { supabase } from "@/lib/supabase";
 export const createProfileProcedure = publicProcedure
   .input(z.object({ 
     userId: z.string(),
-    firstName: z.string(),
-    lastName: z.string(),
+    username: z.string(),
+    phone: z.string().optional(),
+    email: z.string().optional(),
     profilePicture: z.string().optional(),
   }))
   .mutation(async ({ input }) => {
     try {
       const { data, error } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .upsert({
-          user_id: input.userId,
-          username: `${input.firstName}${input.lastName}`,
-          first_name: input.firstName,
-          last_name: input.lastName,
-          profile_pic: input.profilePicture,
+          id: input.userId,
+          username: input.username,
+          phone: input.phone || null,
+          email: input.email || null,
+          profile_picture: input.profilePicture,
           has_completed_onboarding: true,
           xp: 0,
+          nights_out: 0,
+          bars_hit: 0,
+          drunk_scale_ratings: [],
+          total_shots: 0,
+          total_scoop_and_scores: 0,
+          total_beers: 0,
+          total_beer_towers: 0,
+          total_funnels: 0,
+          total_shotguns: 0,
+          pool_games_won: 0,
+          dart_games_won: 0,
+          photos_taken: 0,
           xp_activities: [],
           visited_bars: [],
-          events_attended: 0,
-          friends_referred: 0,
-          live_events_attended: 0,
-          featured_drinks_tried: 0,
-          bar_games_played: 0,
+          daily_stats: {},
         })
         .select()
         .single();

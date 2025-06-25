@@ -15,6 +15,7 @@ export interface UserProfile {
   id: string;
   username: string;
   phone: string;
+  email?: string | null;
   xp: number;
   nights_out: number;
   bars_hit: number;
@@ -133,13 +134,14 @@ export const authService = {
 
       console.log('✅ AuthService: Auth user created successfully:', authData.user.id);
 
-      // Step 3: Create profile with retry logic and better error handling
+      // Step 3: Create profile with phone-first logic
       console.log('📝 AuthService: Creating user profile...');
       
       const profileData = {
         id: authData.user.id,
         username,
-        phone,
+        phone: authData.user.phone || phone,
+        email: authData.user.email || null,
         xp: 0,
         nights_out: 0,
         bars_hit: 0,
@@ -259,17 +261,25 @@ export const authService = {
 
       console.log('✅ AuthService: Auth signin successful:', authData.user.id);
 
-      // Get user profile with retry logic
+      // Get user profile with phone-first logic and auto-creation
       console.log('📝 AuthService: Loading user profile...');
       let profile = null;
       
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', authData.user.id)
-            .single();
+          // First try to find profile by phone, then by email, then by user ID
+          const identifier = authData.user.phone || authData.user.email || authData.user.id;
+          let query = supabase.from('profiles').select('*');
+          
+          if (authData.user.phone) {
+            query = query.eq('phone', authData.user.phone);
+          } else if (authData.user.email) {
+            query = query.eq('email', authData.user.email);
+          } else {
+            query = query.eq('id', authData.user.id);
+          }
+
+          const { data: profileData, error: profileError } = await query.single();
 
           if (profileError) {
             console.error(`❌ AuthService: Profile load error (attempt ${attempt}):`, profileError);
@@ -278,10 +288,11 @@ export const authService = {
               // Profile doesn't exist, create it
               console.log('📝 AuthService: Profile not found, creating...');
               
-              const profileData = {
+              const newProfileData = {
                 id: authData.user.id,
-                username: authData.user.user_metadata?.username || `user_${authData.user.id.slice(0, 8)}`,
-                phone: authData.user.phone || phone,
+                username: authData.user.user_metadata?.username || `guest_${Math.floor(Math.random() * 100000)}`,
+                phone: authData.user.phone || null,
+                email: authData.user.email || null,
                 xp: 0,
                 nights_out: 0,
                 bars_hit: 0,
@@ -303,7 +314,7 @@ export const authService = {
               
               const { data: newProfile, error: createError } = await supabase
                 .from('profiles')
-                .insert(profileData)
+                .insert(newProfileData)
                 .select('*')
                 .single();
               
@@ -387,14 +398,59 @@ export const authService = {
         return { user: null, profile: null };
       }
 
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      // Use phone-first logic for profile lookup
+      let query = supabase.from('profiles').select('*');
+      
+      if (user.phone) {
+        query = query.eq('phone', user.phone);
+      } else if (user.email) {
+        query = query.eq('email', user.email);
+      } else {
+        query = query.eq('id', user.id);
+      }
+
+      const { data: profile, error: profileError } = await query.single();
 
       if (profileError) {
         console.warn('Error fetching profile for current user:', profileError);
+        
+        // If profile doesn't exist, create it
+        if (profileError.code === 'PGRST116') {
+          const newProfileData = {
+            id: user.id,
+            username: user.user_metadata?.username || `guest_${Math.floor(Math.random() * 100000)}`,
+            phone: user.phone || null,
+            email: user.email || null,
+            xp: 0,
+            nights_out: 0,
+            bars_hit: 0,
+            drunk_scale_ratings: [],
+            total_shots: 0,
+            total_scoop_and_scores: 0,
+            total_beers: 0,
+            total_beer_towers: 0,
+            total_funnels: 0,
+            total_shotguns: 0,
+            pool_games_won: 0,
+            dart_games_won: 0,
+            photos_taken: 0,
+            visited_bars: [],
+            xp_activities: [],
+            has_completed_onboarding: false,
+            daily_stats: {}
+          };
+          
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert(newProfileData)
+            .select('*')
+            .single();
+          
+          if (!createError) {
+            return { user, profile: newProfile };
+          }
+        }
+        
         return { user, profile: null };
       }
 

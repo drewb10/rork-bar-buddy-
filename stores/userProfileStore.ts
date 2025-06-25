@@ -6,7 +6,8 @@ import { supabase } from '@/lib/supabase';
 interface Friend {
   id: string;
   username: string;
-  email: string;
+  phone: string;
+  email?: string | null;
   xp: number;
   nights_out: number;
   bars_hit: number;
@@ -46,7 +47,8 @@ interface DailyStats {
 interface UserProfile {
   id: string;
   username: string;
-  email: string;
+  phone: string;
+  email?: string | null;
   xp: number;
   nights_out: number;
   bars_hit: number;
@@ -246,14 +248,73 @@ export const useUserProfileStore = create<UserProfileState>()(
             return;
           }
 
-          const { data: profileData, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
+          // Use phone-first logic for profile lookup
+          let query = supabase.from('profiles').select('*');
+          
+          if (user.phone) {
+            query = query.eq('phone', user.phone);
+          } else if (user.email) {
+            query = query.eq('email', user.email);
+          } else {
+            query = query.eq('id', user.id);
+          }
+
+          const { data: profileData, error } = await query.single();
 
           if (error) {
             console.error('Error loading profile:', error);
+            
+            // If profile doesn't exist, create it
+            if (error.code === 'PGRST116') {
+              const newProfileData = {
+                id: user.id,
+                username: user.user_metadata?.username || `guest_${Math.floor(Math.random() * 100000)}`,
+                phone: user.phone || '',
+                email: user.email || null,
+                xp: 0,
+                nights_out: 0,
+                bars_hit: 0,
+                drunk_scale_ratings: [],
+                total_shots: 0,
+                total_scoop_and_scores: 0,
+                total_beers: 0,
+                total_beer_towers: 0,
+                total_funnels: 0,
+                total_shotguns: 0,
+                pool_games_won: 0,
+                dart_games_won: 0,
+                photos_taken: 0,
+                visited_bars: [],
+                xp_activities: [],
+                has_completed_onboarding: false,
+                daily_stats: {}
+              };
+              
+              const { data: newProfile, error: createError } = await supabase
+                .from('profiles')
+                .insert(newProfileData)
+                .select('*')
+                .single();
+              
+              if (!createError) {
+                // Load friends and friend requests
+                await Promise.all([
+                  get().loadFriends(),
+                  get().loadFriendRequests()
+                ]);
+
+                set({ 
+                  profile: {
+                    ...newProfile,
+                    friends: get().profile?.friends || [],
+                    friend_requests: get().profile?.friend_requests || [],
+                  }, 
+                  isLoading: false 
+                });
+                return;
+              }
+            }
+            
             set({ isLoading: false });
             return;
           }
@@ -656,7 +717,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         try {
           const { data, error } = await supabase
             .from('profiles')
-            .select('id, username, email, xp, nights_out, bars_hit, created_at')
+            .select('id, username, phone, email, xp, nights_out, bars_hit, created_at')
             .eq('username', username)
             .single();
 
@@ -669,6 +730,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           return {
             id: data.id,
             username: data.username,
+            phone: data.phone,
             email: data.email,
             xp: data.xp,
             nights_out: data.nights_out,
@@ -845,7 +907,7 @@ export const useUserProfileStore = create<UserProfileState>()(
               id,
               friend_id,
               created_at,
-              friend:profiles!friends_friend_id_fkey(id, username, email, xp, nights_out, bars_hit, created_at)
+              friend:profiles!friends_friend_id_fkey(id, username, phone, email, xp, nights_out, bars_hit, created_at)
             `)
             .eq('user_id', profile.id);
 
@@ -860,7 +922,8 @@ export const useUserProfileStore = create<UserProfileState>()(
             return {
               id: friend?.id || '',
               username: friend?.username || 'Unknown',
-              email: friend?.email || '',
+              phone: friend?.phone || '',
+              email: friend?.email || null,
               xp: friend?.xp || 0,
               nights_out: friend?.nights_out || 0,
               bars_hit: friend?.bars_hit || 0,
@@ -888,7 +951,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         profile: state.profile ? {
           id: state.profile.id,
           username: state.profile.username,
-          email: state.profile.email,
+          phone: state.profile.phone,
         } : null,
       }),
     }
