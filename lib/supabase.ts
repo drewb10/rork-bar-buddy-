@@ -6,10 +6,16 @@ const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-
 
 // Check if Supabase is properly configured
 export const isSupabaseConfigured = () => {
-  return supabaseUrl !== 'https://your-project.supabase.co' && 
+  const isConfigured = supabaseUrl !== 'https://your-project.supabase.co' && 
          supabaseAnonKey !== 'your-anon-key' &&
          supabaseUrl.includes('supabase.co') &&
          supabaseAnonKey.length > 50;
+  
+  if (!isConfigured) {
+    console.warn('🔧 Supabase not configured. Please check your .env file and ensure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY are set correctly.');
+  }
+  
+  return isConfigured;
 };
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
@@ -17,6 +23,11 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'barbuddy-app',
+    },
   },
 });
 
@@ -46,4 +57,23 @@ export const ensureAuth = async () => {
     throw new Error('User not authenticated');
   }
   return user;
+};
+
+// Test connection function
+export const testSupabaseConnection = async () => {
+  if (!isSupabaseConfigured()) {
+    return { success: false, error: 'Supabase not configured' };
+  }
+  
+  try {
+    const { data, error } = await supabase.from('profiles').select('count').limit(1);
+    
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    
+    return { success: true, message: 'Connection successful' };
+  } catch (error) {
+    return { success: false, error: 'Connection failed' };
+  }
 };

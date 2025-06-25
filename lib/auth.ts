@@ -91,7 +91,7 @@ export const authService = {
       }
       console.log('✅ AuthService: Username is available');
 
-      // Step 2: Create auth user
+      // Step 2: Create auth user with better error handling
       console.log('📝 AuthService: Creating auth user...');
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -106,8 +106,8 @@ export const authService = {
       if (authError) {
         console.error('❌ AuthService: Auth signup error:', authError);
         
-        // Provide more specific error messages
-        if (authError.message.includes('already registered')) {
+        // Handle specific Supabase auth errors
+        if (authError.message.includes('User already registered')) {
           throw new AuthError('An account with this email already exists', 'EMAIL_TAKEN');
         }
         if (authError.message.includes('Database error')) {
@@ -116,11 +116,15 @@ export const authService = {
         if (authError.message.includes('Invalid email')) {
           throw new AuthError('Please enter a valid email address', 'INVALID_EMAIL');
         }
-        if (authError.message.includes('Password')) {
+        if (authError.message.includes('Password should be at least')) {
           throw new AuthError('Password must be at least 6 characters long', 'WEAK_PASSWORD');
         }
+        if (authError.message.includes('signup is disabled')) {
+          throw new AuthError('Account creation is currently disabled. Please contact support.', 'SIGNUP_DISABLED');
+        }
         
-        throw new AuthError(authError.message, authError.message);
+        // Generic database error
+        throw new AuthError(`Authentication failed: ${authError.message}`, 'AUTH_ERROR');
       }
 
       if (!authData.user) {
@@ -130,49 +134,74 @@ export const authService = {
 
       console.log('✅ AuthService: Auth user created successfully:', authData.user.id);
 
-      // Step 3: Create profile manually
-      console.log('📝 AuthService: Creating user profile manually...');
+      // Step 3: Create profile with retry logic
+      console.log('📝 AuthService: Creating user profile...');
       
-      try {
-        const { data: newProfile, error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: authData.user.id,
-            username,
-            email,
-            xp: 0,
-            nights_out: 0,
-            bars_hit: 0,
-            drunk_scale_ratings: [],
-            total_shots: 0,
-            total_scoop_and_scores: 0,
-            total_beers: 0,
-            total_beer_towers: 0,
-            total_funnels: 0,
-            total_shotguns: 0,
-            pool_games_won: 0,
-            dart_games_won: 0,
-            photos_taken: 0,
-            visited_bars: [],
-            xp_activities: [],
-            has_completed_onboarding: false
-          })
-          .select('*')
-          .single();
+      let profile = null;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries && !profile) {
+        try {
+          const { data: newProfile, error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: authData.user.id,
+              username,
+              email,
+              xp: 0,
+              nights_out: 0,
+              bars_hit: 0,
+              drunk_scale_ratings: [],
+              total_shots: 0,
+              total_scoop_and_scores: 0,
+              total_beers: 0,
+              total_beer_towers: 0,
+              total_funnels: 0,
+              total_shotguns: 0,
+              pool_games_won: 0,
+              dart_games_won: 0,
+              photos_taken: 0,
+              visited_bars: [],
+              xp_activities: [],
+              has_completed_onboarding: false
+            })
+            .select('*')
+            .single();
 
-        if (profileError) {
-          console.error('❌ AuthService: Profile creation error:', profileError);
-          throw new AuthError('Failed to create user profile. Please try again.', 'PROFILE_CREATION_FAILED');
+          if (profileError) {
+            console.error(`❌ AuthService: Profile creation error (attempt ${retryCount + 1}):`, profileError);
+            
+            if (profileError.code === '23505') { // Unique constraint violation
+              throw new AuthError('Username is already taken', 'USERNAME_TAKEN');
+            }
+            
+            if (retryCount === maxRetries - 1) {
+              throw new AuthError('Failed to create user profile. Please try again.', 'PROFILE_CREATION_FAILED');
+            }
+            
+            retryCount++;
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+            continue;
+          }
+
+          profile = newProfile;
+          console.log('✅ AuthService: Profile created successfully:', profile.id);
+          break;
+        } catch (profileError) {
+          console.error(`❌ AuthService: Exception during profile creation (attempt ${retryCount + 1}):`, profileError);
+          
+          if (retryCount === maxRetries - 1) {
+            throw new AuthError('Failed to create user profile. Please try again.', 'PROFILE_CREATION_FAILED');
+          }
+          
+          retryCount++;
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
         }
-
-        console.log('✅ AuthService: Profile created successfully:', newProfile.id);
-        console.log('🎉 AuthService: Signup completed successfully for user:', authData.user.id);
-
-        return { user: authData.user, profile: newProfile };
-      } catch (profileError) {
-        console.error('❌ AuthService: Exception during profile creation:', profileError);
-        throw new AuthError('Failed to create user profile. Please try again.', 'PROFILE_CREATION_FAILED');
       }
+
+      console.log('🎉 AuthService: Signup completed successfully for user:', authData.user.id);
+      return { user: authData.user, profile };
     } catch (error) {
       if (error instanceof AuthError) {
         throw error;
@@ -200,6 +229,9 @@ export const authService = {
         if (authError.message.includes('Invalid login credentials')) {
           throw new AuthError('Invalid email or password', 'INVALID_CREDENTIALS');
         }
+        if (authError.message.includes('Email not confirmed')) {
+          throw new AuthError('Please check your email and confirm your account', 'EMAIL_NOT_CONFIRMED');
+        }
         throw new AuthError(authError.message, authError.message);
       }
 
@@ -210,20 +242,85 @@ export const authService = {
 
       console.log('✅ AuthService: Auth signin successful:', authData.user.id);
 
-      // Get user profile
+      // Get user profile with retry logic
       console.log('📝 AuthService: Loading user profile...');
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authData.user.id)
-        .single();
+      let profile = null;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries && !profile) {
+        try {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', authData.user.id)
+            .single();
 
-      if (profileError) {
-        console.error('❌ AuthService: Profile load error:', profileError);
-        throw new AuthError('Failed to load user profile', 'PROFILE_LOAD_FAILED');
+          if (profileError) {
+            if (profileError.code === 'PGRST116') {
+              // Profile doesn't exist, create it
+              console.log('📝 AuthService: Profile not found, creating...');
+              const { data: newProfile, error: createError } = await supabase
+                .from('profiles')
+                .insert({
+                  id: authData.user.id,
+                  username: authData.user.user_metadata?.username || `user_${authData.user.id.slice(0, 8)}`,
+                  email: authData.user.email || email,
+                  xp: 0,
+                  nights_out: 0,
+                  bars_hit: 0,
+                  drunk_scale_ratings: [],
+                  total_shots: 0,
+                  total_scoop_and_scores: 0,
+                  total_beers: 0,
+                  total_beer_towers: 0,
+                  total_funnels: 0,
+                  total_shotguns: 0,
+                  pool_games_won: 0,
+                  dart_games_won: 0,
+                  photos_taken: 0,
+                  visited_bars: [],
+                  xp_activities: [],
+                  has_completed_onboarding: false
+                })
+                .select('*')
+                .single();
+              
+              if (createError) {
+                console.error('❌ AuthService: Failed to create profile during signin:', createError);
+                throw new AuthError('Failed to create user profile', 'PROFILE_CREATION_FAILED');
+              }
+              
+              profile = newProfile;
+              break;
+            }
+            
+            console.error(`❌ AuthService: Profile load error (attempt ${retryCount + 1}):`, profileError);
+            
+            if (retryCount === maxRetries - 1) {
+              throw new AuthError('Failed to load user profile', 'PROFILE_LOAD_FAILED');
+            }
+            
+            retryCount++;
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+            continue;
+          }
+
+          profile = profileData;
+          break;
+        } catch (error) {
+          console.error(`❌ AuthService: Exception during profile load (attempt ${retryCount + 1}):`, error);
+          
+          if (retryCount === maxRetries - 1) {
+            throw new AuthError('Failed to load user profile', 'PROFILE_LOAD_FAILED');
+          }
+          
+          retryCount++;
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
       }
 
-      console.log('✅ AuthService: Profile loaded successfully:', profile.id);
+      console.log('✅ AuthService: Profile loaded successfully:', profile?.id);
       console.log('🎉 AuthService: Signin completed successfully for user:', authData.user.id);
 
       return { user: authData.user, profile };

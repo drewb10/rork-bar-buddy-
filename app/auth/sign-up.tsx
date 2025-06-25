@@ -40,8 +40,13 @@ export default function SignUpScreen() {
     }
 
     setUsernameStatus('checking');
-    const isAvailable = await checkUsernameAvailable(username);
-    setUsernameStatus(isAvailable ? 'available' : 'taken');
+    try {
+      const isAvailable = await checkUsernameAvailable(username);
+      setUsernameStatus(isAvailable ? 'available' : 'taken');
+    } catch (error) {
+      console.error('Error checking username:', error);
+      setUsernameStatus('idle');
+    }
   };
 
   const handleUsernameChange = (text: string) => {
@@ -91,14 +96,57 @@ export default function SignUpScreen() {
     }
 
     console.log('🎯 SignUp: Starting signup with:', { email, username });
-    const success = await signUp(email, password, username);
     
-    if (success) {
-      console.log('🎯 SignUp: Success! Redirecting to tabs...');
-      router.replace('/(tabs)');
-    } else if (error) {
-      console.log('🎯 SignUp: Failed with error:', error);
-      Alert.alert('Sign Up Failed', error);
+    try {
+      const success = await signUp(email, password, username);
+      
+      if (success) {
+        console.log('🎯 SignUp: Success! Redirecting to tabs...');
+        Alert.alert(
+          'Account Created!',
+          'Your account has been created successfully.',
+          [
+            { text: 'Continue', onPress: () => router.replace('/(tabs)') }
+          ]
+        );
+      } else if (error) {
+        console.log('🎯 SignUp: Failed with error:', error);
+        
+        // Show more user-friendly error messages
+        let errorTitle = 'Sign Up Failed';
+        let errorMessage = error;
+        
+        if (error.includes('Database connection issue')) {
+          errorTitle = 'Connection Issue';
+          errorMessage = 'Unable to connect to the database. Please check your internet connection and try again.';
+        } else if (error.includes('Username is already taken')) {
+          errorTitle = 'Username Taken';
+          errorMessage = 'This username is already taken. Please choose a different one.';
+        } else if (error.includes('email already exists')) {
+          errorTitle = 'Email Already Registered';
+          errorMessage = 'An account with this email already exists. Please sign in instead.';
+        } else if (error.includes('Password must be at least')) {
+          errorTitle = 'Weak Password';
+          errorMessage = 'Your password must be at least 6 characters long.';
+        } else if (error.includes('Invalid email')) {
+          errorTitle = 'Invalid Email';
+          errorMessage = 'Please enter a valid email address.';
+        }
+        
+        Alert.alert(errorTitle, errorMessage, [
+          { text: 'Try Again' },
+          ...(error.includes('email already exists') ? [
+            { text: 'Sign In Instead', onPress: () => router.push('/auth/sign-in') }
+          ] : [])
+        ]);
+      }
+    } catch (unexpectedError) {
+      console.error('🎯 SignUp: Unexpected error:', unexpectedError);
+      Alert.alert(
+        'Unexpected Error',
+        'Something went wrong. Please try again later.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
