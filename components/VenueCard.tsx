@@ -24,8 +24,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     getInteractionCount, 
     getLikeCount, 
     canInteract, 
-    canLikeVenue,
-    likeVenue,
     getPopularArrivalTime 
   } = useVenueInteractionStore();
   const { incrementNightsOut, incrementBarsHit, canIncrementNightsOut } = useUserProfileStore();
@@ -37,7 +35,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
   const canInteractWithVenue = canInteract(venue.id);
-  const canLikeThisVenue = canLikeVenue(venue.id);
 
   const handlePress = () => {
     if (isInteracting) return; // Prevent multiple clicks
@@ -47,18 +44,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const handleChatPress = (e: any) => {
     e.stopPropagation(); // Prevent venue navigation
     setChatModalVisible(true);
-  };
-
-  // Flame icon now handles likes (daily limit of 1 per bar)
-  const handleFlamePress = (e: any) => {
-    e.stopPropagation(); // Prevent venue navigation
-    
-    if (!canLikeThisVenue) {
-      // Show message about daily limit
-      return;
-    }
-    
-    likeVenue(venue.id);
   };
 
   const handleInteraction = () => {
@@ -151,23 +136,13 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           style={styles.compactGradient}
         />
         
-        {/* Flame Button for compact cards - now handles likes */}
-        <Pressable 
-          style={[
-            styles.compactFlameButton, 
-            { 
-              backgroundColor: canLikeThisVenue ? themeColors.primary : themeColors.border,
-              opacity: canLikeThisVenue ? 1 : 0.5
-            }
-          ]}
-          onPress={handleFlamePress}
-          disabled={!canLikeThisVenue}
-        >
-          <Flame size={12} color="white" fill={likeCount > 0 ? "white" : "transparent"} />
-          {likeCount > 0 && (
+        {/* Like count display for compact cards */}
+        {likeCount > 0 && (
+          <View style={[styles.compactFlameDisplay, { backgroundColor: themeColors.primary }]}>
+            <Flame size={12} color="white" fill="white" />
             <Text style={styles.compactFlameText}>{likeCount}</Text>
-          )}
-        </Pressable>
+          </View>
+        )}
 
         {/* Chat Button for Compact Cards */}
         <Pressable 
@@ -214,27 +189,13 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         style={styles.imageGradient}
       />
       
-      {/* Flame Button - Now handles daily likes (1 per bar per day) */}
-      <Pressable 
-        style={[
-          styles.flameButton, 
-          { 
-            backgroundColor: canLikeThisVenue ? themeColors.primary : themeColors.border,
-            opacity: canLikeThisVenue ? 1 : 0.5
-          }
-        ]}
-        onPress={handleFlamePress}
-        disabled={!canLikeThisVenue}
-      >
-        <Flame 
-          size={18} 
-          color="white"
-          fill={likeCount > 0 ? "white" : "transparent"}
-        />
-        {likeCount > 0 && (
-          <Text style={styles.flameButtonText}>{likeCount}</Text>
-        )}
-      </Pressable>
+      {/* Like count display */}
+      {likeCount > 0 && (
+        <View style={[styles.flameDisplay, { backgroundColor: themeColors.primary }]}>
+          <Flame size={18} color="white" fill="white" />
+          <Text style={styles.flameDisplayText}>{likeCount}</Text>
+        </View>
+      )}
 
       {/* Chat Button */}
       <Pressable 
@@ -296,15 +257,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
             )}
           </View>
         )}
-
-        {/* Daily like limit indicator */}
-        {!canLikeThisVenue && (
-          <View style={[styles.limitBadge, { backgroundColor: themeColors.border + '40' }]}>
-            <Text style={[styles.limitText, { color: themeColors.subtext }]}>
-              🔥 Daily like used • Resets at 4:59 AM
-            </Text>
-          </View>
-        )}
         
         {todaySpecials.length > 0 && (
           <View style={[styles.specialsContainer, { backgroundColor: 'rgba(255,106,0,0.1)' }]}>
@@ -336,7 +288,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         )}
       </View>
 
-      {/* RSVP Modal with glassmorphism */}
+      {/* RSVP Modal for check-ins (separate from likes) */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -458,7 +410,7 @@ const styles = StyleSheet.create({
     right: 0,
     height: 180,
   },
-  flameButton: {
+  flameDisplay: {
     position: 'absolute',
     top: 12,
     right: 12,
@@ -475,7 +427,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  flameButtonText: {
+  flameDisplayText: {
     color: 'white',
     fontSize: 12,
     fontWeight: '700',
@@ -598,18 +550,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginLeft: 2,
   },
-  limitBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    marginBottom: 16,
-    alignSelf: 'flex-start',
-  },
-  limitText: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
   specialsContainer: {
     marginBottom: 16,
     padding: 12,
@@ -667,7 +607,7 @@ const styles = StyleSheet.create({
     right: 0,
     height: 100,
   },
-  compactFlameButton: {
+  compactFlameDisplay: {
     position: 'absolute',
     top: 8,
     right: 8,

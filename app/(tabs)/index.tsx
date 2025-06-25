@@ -22,7 +22,7 @@ export default function HomeScreen() {
   const [venueFilters, setVenueFilters] = useState<string[]>([]);
   const [topPickVenues, setTopPickVenues] = useState<TopPickItem[]>([]);
   const [showDailyTracker, setShowDailyTracker] = useState(false);
-  const { interactions, resetInteractionsIfNeeded, getTotalLikes } = useVenueInteractionStore();
+  const { interactions, resetInteractionsIfNeeded, getTotalLikes, getMostPopularVenues } = useVenueInteractionStore();
   const { getDailyStats } = useUserProfileStore();
 
   useEffect(() => {
@@ -30,25 +30,17 @@ export default function HomeScreen() {
     const allSpecials = getSpecialsByDay(day);
     
     // Get top picks based on likes (most liked venues)
-    const venuesWithLikes = venues.map(venue => ({
-      venue,
-      likes: interactions.find(i => i && i.venueId === venue.id)?.likes || 0
-    }));
-    
-    // Sort by likes and take top 3
-    const topLikedVenues = venuesWithLikes
-      .sort((a, b) => b.likes - a.likes)
-      .slice(0, 3)
-      .filter(item => item.likes > 0); // Only show venues with likes
+    const mostPopularVenues = getMostPopularVenues();
     
     // If no venues have likes, fall back to specific venues
-    const finalTopPicks = topLikedVenues.length > 0 
-      ? topLikedVenues.map(item => item.venue)
+    const finalTopPicks = mostPopularVenues.length > 0 
+      ? mostPopularVenues.slice(0, 3).map(item => venues.find(v => v.id === item.venueId)).filter(Boolean)
       : venues.filter(v => ['2', '5', '6'].includes(v.id)); // The Library, Late Nite, JBA
     
     // Create TopPickItem objects
     const validTopPicks: TopPickItem[] = finalTopPicks
       .map(venue => {
+        if (!venue) return null;
         // Find today's special for this venue
         const todaySpecial = allSpecials.find(({ venue: v }) => v.id === venue.id)?.special;
         
@@ -59,7 +51,8 @@ export default function HomeScreen() {
         }
         
         return topPickItem;
-      });
+      })
+      .filter(Boolean) as TopPickItem[];
     
     setTopPickVenues(validTopPicks);
     resetInteractionsIfNeeded();
@@ -75,6 +68,11 @@ export default function HomeScreen() {
     const bCount = interactions.find(i => i && i.venueId === b.id)?.likes || 0;
     return bCount - aCount;
   });
+
+  // Get the top bar (most liked venue)
+  const topBar = sortedVenues.length > 0 && interactions.find(i => i && i.venueId === sortedVenues[0].id)?.likes > 0 
+    ? sortedVenues[0] 
+    : null;
 
   const dailyStats = getDailyStats();
   const totalDailyActivities = Object.values(dailyStats).reduce((sum, count) => sum + count, 0);
@@ -150,8 +148,17 @@ export default function HomeScreen() {
             showSeeAll={false}
           />
           <View style={styles.venueList}>
-            {sortedVenues.map(venue => (
-              <VenueCard key={venue.id} venue={venue} />
+            {sortedVenues.map((venue, index) => (
+              <View key={venue.id}>
+                {/* Top Bar Label */}
+                {topBar && venue.id === topBar.id && index === 0 && (
+                  <View style={[styles.topBarLabel, { backgroundColor: themeColors.primary }]}>
+                    <Flame size={16} color="white" fill="white" />
+                    <Text style={styles.topBarText}>🔥 Top Bar</Text>
+                  </View>
+                )}
+                <VenueCard venue={venue} />
+              </View>
             ))}
           </View>
         </View>
@@ -262,6 +269,27 @@ const styles = StyleSheet.create({
   },
   venueList: {
     paddingHorizontal: 16,
+  },
+  topBarLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 12,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  topBarText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '700',
+    marginLeft: 8,
   },
   footer: {
     height: 32,

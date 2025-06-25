@@ -12,12 +12,13 @@ interface VenueInteraction {
   timestamp: string;
   lastLikeReset: string;
   dailyLikesUsed: number;
+  likeTimeSlot?: string; // Time slot when user liked the venue
 }
 
 interface VenueInteractionState {
   interactions: VenueInteraction[];
   incrementInteraction: (venueId: string, arrivalTime?: string) => void;
-  likeVenue: (venueId: string) => void;
+  likeVenue: (venueId: string, timeSlot: string) => void;
   getInteractionCount: (venueId: string) => number;
   getLikeCount: (venueId: string) => number;
   getTotalLikes: () => number;
@@ -171,10 +172,10 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
         }
       },
 
-      // Flame icon now handles likes (daily limit of 1 per bar)
-      likeVenue: async (venueId) => {
+      // Flame icon handles likes with time slot selection
+      likeVenue: async (venueId, timeSlot) => {
         try {
-          if (!venueId) return;
+          if (!venueId || !timeSlot) return;
           
           // Check if user can like this venue today
           if (!get().canLikeVenue(venueId)) return;
@@ -198,6 +199,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
                         timestamp: now,
                         lastLikeReset: shouldResetLikesForVenue ? now : i.lastLikeReset,
                         dailyLikesUsed: dailyLikesUsed + 1,
+                        likeTimeSlot: timeSlot,
                       } 
                     : i
                 ).filter(Boolean)
@@ -215,6 +217,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
                     timestamp: now,
                     lastLikeReset: now,
                     dailyLikesUsed: 1,
+                    likeTimeSlot: timeSlot,
                   }
                 ]
               };
@@ -405,6 +408,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
                       arrivalTime: shouldResetInteraction ? undefined : i.arrivalTime,
                       lastLikeReset: shouldResetLikesForVenue ? now : (i.lastLikeReset || i.lastReset),
                       dailyLikesUsed: shouldResetLikesForVenue ? 0 : (i.dailyLikesUsed || 0),
+                      likeTimeSlot: shouldResetLikesForVenue ? undefined : i.likeTimeSlot,
                     };
                   })
                   .filter(Boolean)
