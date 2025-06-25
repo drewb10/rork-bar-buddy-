@@ -1,41 +1,24 @@
 # 🚀 Quick Supabase Setup Instructions
 
-## ⚠️ CRITICAL: Fix "Database error saving new user"
+## ⚠️ CRITICAL: Fix "Could not find the 'has_completed_onboarding' column" Error
 
-If you're getting the error "Database error saving new user", this is caused by restrictive RLS policies. Follow these steps:
+If you're getting the error "Could not find the 'has_completed_onboarding' column", follow these steps:
 
-## Step 1: Run the Latest RLS Policy Fix
+## Step 1: Run the Schema Cache Fix Migration
 1. Go to your Supabase dashboard → SQL Editor
 2. Click "New Query"
-3. Copy the entire contents of `supabase/migrations/20250625003000_fix_rls_policy_final.sql`
+3. Copy the entire contents of `supabase/migrations/20250625010000_fix_schema_cache.sql`
 4. Paste it and click "Run"
-5. You should see "RLS policy test successful - signup should now work"
+5. You should see "SUCCESS: Schema cache test passed - has_completed_onboarding column is accessible"
 
-## Step 2: Verify Your Current RLS Policies
-1. In Supabase dashboard, go to Authentication → Policies
-2. Find the `profiles` table
-3. You should see these policies:
-   - ✅ "Allow profile creation during signup" (INSERT)
-   - ✅ "Allow viewing all profiles" (SELECT)  
-   - ✅ "Allow users to update own profile" (UPDATE)
-   - ✅ "Allow users to delete own profile" (DELETE)
-
-## Step 3: Remove Problematic Policies
-If you see this policy, **DELETE IT**:
-```sql
-❌ "Allow users to insert their own profile" with check ((select auth.uid()) = id)
-```
-
-This policy prevents signup because `auth.uid()` is not available during the signup process.
-
-## Step 4: Get Your Supabase Credentials
+## Step 2: Get Your Supabase Credentials
 1. Go to your Supabase project dashboard
 2. Navigate to Settings → API
 3. Copy these two values:
    - **Project URL** (looks like: `https://abcdefghijklmnop.supabase.co`)
    - **Anon/Public Key** (starts with `eyJhbGciOiJIUzI1NiIs...`)
 
-## Step 5: Create Your .env File
+## Step 3: Create Your .env File
 1. In your project root, create a file called `.env` (no extension)
 2. Copy this content and replace with your actual values:
 
@@ -44,37 +27,40 @@ EXPO_PUBLIC_SUPABASE_URL=https://your-actual-project-id.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-actual-anon-key-here
 ```
 
-## Step 6: Restart Your App
+## Step 4: Restart Your App
 ```bash
 npm start
 # or
 yarn start
 ```
 
-## Step 7: Test Signup
+## Step 5: Test Signup
 1. Try creating a new account
 2. If it works, go to Supabase dashboard → Table Editor
 3. Check the `profiles` table - you should see your data
 
 ## 🔧 Why This Error Happens
 
-The "Database error saving new user" occurs because:
+The "Could not find the 'has_completed_onboarding' column" error occurs because:
 
-1. **Restrictive RLS Policy**: The policy `(select auth.uid()) = id` fails during signup
-2. **Timing Issue**: `auth.uid()` is not available when the profile is being created
-3. **Supabase Auth Flow**: Auth user is created first, then profile, but RLS blocks it
+1. **Schema Cache Issue**: Supabase's PostgREST cache doesn't recognize the column
+2. **Table Structure Mismatch**: The column exists in the database but not in the cache
+3. **Migration Order**: Previous migrations may have created the table without this column
 
 ## 🛠️ Our Solution
 
-1. **Permissive INSERT Policy**: Allow anyone to create profiles (needed for signup)
-2. **Proper UPDATE/DELETE Policies**: Restrict to own profiles after signup
-3. **No Foreign Key Constraints**: Avoid cascade issues
-4. **Manual Relationship Management**: Handle user-profile relationship in app code
+1. **Recreate Table**: Drop and recreate the profiles table with all required columns
+2. **Force Cache Refresh**: Notify PostgREST to reload the schema
+3. **Test Column Access**: Verify the column is accessible via SQL
+4. **Restore Data**: Preserve any existing data during the migration
 
 ## Common Errors & Solutions
 
+### "Could not find the 'has_completed_onboarding' column"
+**Solution:** Run the schema cache fix migration `20250625010000_fix_schema_cache.sql`
+
 ### "Database error saving new user"
-**Solution:** Run the RLS policy fix migration `20250625003000_fix_rls_policy_final.sql`
+**Solution:** Run the RLS policy fix migration `20250625004000_final_auth_fix.sql`
 
 ### "Supabase not configured"
 **Solution:** Create `.env` file with correct credentials
@@ -96,8 +82,8 @@ If you haven't set up Supabase yet, the app works in demo mode:
 - No account creation or data persistence
 
 ## Verification Steps
-1. ✅ RLS policy migration runs without errors
-2. ✅ Correct policies are visible in Supabase dashboard
+1. ✅ Schema cache fix migration runs without errors
+2. ✅ Test query returns "SUCCESS" message
 3. ✅ .env file created with correct values
 4. ✅ App restarts successfully
 5. ✅ Signup creates account without errors
