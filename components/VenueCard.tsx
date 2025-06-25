@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { StyleSheet, View, Text, Pressable, Image, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MapPin, Clock, Star, Flame, TrendingUp, MessageCircle } from 'lucide-react-native';
@@ -29,9 +29,16 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     canLikeVenue
   } = useVenueInteractionStore();
   const { incrementNightsOut, incrementBarsHit, canIncrementNightsOut } = useUserProfileStore();
-  const interactionCount = getInteractionCount(venue.id);
-  const likeCount = getLikeCount(venue.id);
-  const hotTimeData = getHotTimeWithLikes(venue.id);
+  
+  // Memoize interaction data to prevent unnecessary re-calculations
+  const interactionData = useMemo(() => ({
+    interactionCount: getInteractionCount(venue.id),
+    likeCount: getLikeCount(venue.id),
+    hotTimeData: getHotTimeWithLikes(venue.id),
+    canInteractWithVenue: canInteract(venue.id),
+    canLikeThisVenue: canLikeVenue(venue.id),
+  }), [venue.id, getInteractionCount, getLikeCount, getHotTimeWithLikes, canInteract, canLikeVenue]);
+
   const [rsvpModalVisible, setRsvpModalVisible] = useState(false);
   const [likeModalVisible, setLikeModalVisible] = useState(false);
   const [chatModalVisible, setChatModalVisible] = useState(false);
@@ -39,92 +46,101 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const [selectedLikeTime, setSelectedLikeTime] = useState<string | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
-  const canInteractWithVenue = canInteract(venue.id);
-  const canLikeThisVenue = canLikeVenue(venue.id);
 
-  const handlePress = () => {
+  const handlePress = useCallback(() => {
     if (isInteracting || isLiking) return; // Prevent multiple clicks
     router.push(`/venue/${venue.id}`);
-  };
+  }, [isInteracting, isLiking, router, venue.id]);
 
-  const handleChatPress = (e: any) => {
+  const handleChatPress = useCallback((e: any) => {
     e.stopPropagation(); // Prevent venue navigation
     setChatModalVisible(true);
-  };
+  }, []);
 
-  const handleInteraction = () => {
-    if (!canInteractWithVenue || isInteracting) return;
+  const handleInteraction = useCallback(() => {
+    if (!interactionData.canInteractWithVenue || isInteracting) return;
     
     setIsInteracting(true);
     
     // Show RSVP modal
     setRsvpModalVisible(true);
-  };
+  }, [interactionData.canInteractWithVenue, isInteracting]);
 
-  const handleLikePress = (e: any) => {
+  const handleLikePress = useCallback((e: any) => {
     e.stopPropagation(); // Prevent venue navigation
-    if (!canLikeThisVenue || isLiking) return;
+    if (!interactionData.canLikeThisVenue || isLiking) return;
     
     setIsLiking(true);
     setLikeModalVisible(true);
-  };
+  }, [interactionData.canLikeThisVenue, isLiking]);
 
-  const handleRsvpSubmit = async () => {
+  const handleRsvpSubmit = useCallback(async () => {
     if (selectedTime) {
-      incrementInteraction(venue.id, selectedTime);
-      
-      // Increment bars hit (always increments and awards XP)
-      await incrementBarsHit();
-      
-      // Increment nights out (only once per day and awards XP)
-      if (canIncrementNightsOut()) {
-        await incrementNightsOut();
+      try {
+        incrementInteraction(venue.id, selectedTime);
+        
+        // Increment bars hit (always increments and awards XP)
+        await incrementBarsHit();
+        
+        // Increment nights out (only once per day and awards XP)
+        if (canIncrementNightsOut()) {
+          await incrementNightsOut();
+        }
+        
+        setRsvpModalVisible(false);
+        setSelectedTime(null);
+        setIsInteracting(false);
+      } catch (error) {
+        console.error('Error submitting RSVP:', error);
+        setIsInteracting(false);
       }
-      
-      setRsvpModalVisible(false);
-      setSelectedTime(null);
-      setIsInteracting(false);
     }
-  };
+  }, [selectedTime, venue.id, incrementInteraction, incrementBarsHit, canIncrementNightsOut, incrementNightsOut]);
 
-  const handleLikeSubmit = async () => {
+  const handleLikeSubmit = useCallback(async () => {
     if (selectedLikeTime) {
-      likeVenue(venue.id, selectedLikeTime);
-      setLikeModalVisible(false);
-      setSelectedLikeTime(null);
-      setIsLiking(false);
+      try {
+        likeVenue(venue.id, selectedLikeTime);
+        setLikeModalVisible(false);
+        setSelectedLikeTime(null);
+        setIsLiking(false);
+      } catch (error) {
+        console.error('Error submitting like:', error);
+        setIsLiking(false);
+      }
     }
-  };
+  }, [selectedLikeTime, venue.id, likeVenue]);
 
-  const handleRsvpCancel = () => {
+  const handleRsvpCancel = useCallback(() => {
     setRsvpModalVisible(false);
     setSelectedTime(null);
     setIsInteracting(false);
-  };
+  }, []);
 
-  const handleLikeCancel = () => {
+  const handleLikeCancel = useCallback(() => {
     setLikeModalVisible(false);
     setSelectedLikeTime(null);
     setIsLiking(false);
-  };
+  }, []);
 
-  const renderPriceLevel = () => {
+  const renderPriceLevel = useCallback(() => {
     const symbols = [];
     for (let i = 0; i < venue.priceLevel; i++) {
       symbols.push('$');
     }
     return symbols.join('');
-  };
+  }, [venue.priceLevel]);
 
-  // Get today's specials
-  const todaySpecials = venue.specials.filter(
-    special => special.day === getCurrentDay()
-  );
+  // Get today's specials - memoized
+  const todaySpecials = useMemo(() => {
+    return venue.specials.filter(
+      special => special.day === getCurrentDay()
+    );
+  }, [venue.specials]);
 
-  // Generate time slots for RSVP and likes
-  const generateTimeSlots = () => {
+  // Generate time slots for RSVP and likes - memoized
+  const timeSlots = useMemo(() => {
     const slots = [];
-    const now = new Date();
     const startHour = 19; // 7 PM
     const endHour = 2; // 2 AM
     
@@ -142,15 +158,13 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     }
     
     return slots;
-  };
+  }, []);
 
-  const formatTimeSlot = (timeSlot: string) => {
+  const formatTimeSlot = useCallback((timeSlot: string) => {
     const [hours, minutes] = timeSlot.split(':');
     const hour = parseInt(hours);
     return `${hour % 12 || 12}:${minutes} ${hour >= 12 ? 'PM' : 'AM'}`;
-  };
-
-  const timeSlots = generateTimeSlots();
+  }, []);
 
   if (compact) {
     return (
@@ -166,10 +180,10 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         />
         
         {/* Total likes display - top left */}
-        {likeCount > 0 && (
+        {interactionData.likeCount > 0 && (
           <View style={[styles.compactTotalLikes, { backgroundColor: themeColors.primary }]}>
             <Flame size={12} color="white" fill="white" />
-            <Text style={styles.compactTotalLikesText}>{likeCount}</Text>
+            <Text style={styles.compactTotalLikesText}>{interactionData.likeCount}</Text>
           </View>
         )}
 
@@ -178,14 +192,14 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           style={[
             styles.compactLikeButton, 
             { 
-              backgroundColor: canLikeThisVenue ? themeColors.primary : themeColors.border,
-              opacity: canLikeThisVenue ? 1 : 0.3
+              backgroundColor: interactionData.canLikeThisVenue ? themeColors.primary : themeColors.border,
+              opacity: interactionData.canLikeThisVenue ? 1 : 0.3
             }
           ]}
           onPress={handleLikePress}
-          disabled={!canLikeThisVenue || isLiking}
+          disabled={!interactionData.canLikeThisVenue || isLiking}
         >
-          <Flame size={12} color="white" fill={canLikeThisVenue ? "transparent" : "white"} />
+          <Flame size={12} color="white" fill={interactionData.canLikeThisVenue ? "transparent" : "white"} />
         </Pressable>
 
         {/* Chat Button */}
@@ -304,10 +318,10 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
       />
       
       {/* Total likes display - top left */}
-      {likeCount > 0 && (
+      {interactionData.likeCount > 0 && (
         <View style={[styles.totalLikesDisplay, { backgroundColor: themeColors.primary }]}>
           <Flame size={18} color="white" fill="white" />
-          <Text style={styles.totalLikesText}>{likeCount}</Text>
+          <Text style={styles.totalLikesText}>{interactionData.likeCount}</Text>
         </View>
       )}
 
@@ -316,17 +330,17 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         style={[
           styles.likeButton, 
           { 
-            backgroundColor: canLikeThisVenue ? themeColors.primary : themeColors.border,
-            opacity: canLikeThisVenue ? 1 : 0.3
+            backgroundColor: interactionData.canLikeThisVenue ? themeColors.primary : themeColors.border,
+            opacity: interactionData.canLikeThisVenue ? 1 : 0.3
           }
         ]}
         onPress={handleLikePress}
-        disabled={!canLikeThisVenue || isLiking}
+        disabled={!interactionData.canLikeThisVenue || isLiking}
       >
         <Flame 
           size={18} 
           color="white"
-          fill={canLikeThisVenue ? "transparent" : "white"}
+          fill={interactionData.canLikeThisVenue ? "transparent" : "white"}
         />
       </Pressable>
 
@@ -339,7 +353,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
       </Pressable>
 
       {/* Analytics indicator for venues with data */}
-      {likeCount > 5 && (
+      {interactionData.likeCount > 5 && (
         <View style={[styles.analyticsIndicator, { backgroundColor: themeColors.primary + '20' }]}>
           <TrendingUp size={12} color={themeColors.primary} />
         </View>
@@ -371,11 +385,11 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         </View>
 
         {/* Hot Time Display with like count */}
-        {hotTimeData && (
+        {interactionData.hotTimeData && (
           <View style={[styles.hotTimeBadge, { backgroundColor: themeColors.primary + '20' }]}>
             <Flame size={14} color={themeColors.primary} />
             <Text style={[styles.hotTimeText, { color: themeColors.primary }]}>
-              Hot Time: {formatTimeSlot(hotTimeData.time)} — {hotTimeData.likes} Likes
+              Hot Time: {formatTimeSlot(interactionData.hotTimeData.time)} — {interactionData.hotTimeData.likes} Likes
             </Text>
           </View>
         )}

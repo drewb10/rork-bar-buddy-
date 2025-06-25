@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, Text, Pressable, ScrollView, Alert, Platform, Modal } from 'react-native';
 import { X, Plus, Minus, TrendingUp, Award, Target } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
@@ -48,41 +48,48 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const [selectedDrunkScale, setSelectedDrunkScale] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Reset local stats when modal opens - use useCallback to prevent unnecessary re-renders
+  const resetLocalStats = useCallback(() => {
+    setLocalStats({
+      shots: 0,
+      scoopAndScores: 0,
+      beers: 0,
+      beerTowers: 0,
+      funnels: 0,
+      shotguns: 0,
+      poolGamesWon: 0,
+      dartGamesWon: 0,
+    });
+    setSelectedDrunkScale(null);
+    setIsSaving(false);
+  }, []);
+
+  // Only reset when modal becomes visible, not on every render
   useEffect(() => {
     if (visible) {
-      // Reset local stats when modal opens
-      setLocalStats({
-        shots: 0,
-        scoopAndScores: 0,
-        beers: 0,
-        beerTowers: 0,
-        funnels: 0,
-        shotguns: 0,
-        poolGamesWon: 0,
-        dartGamesWon: 0,
-      });
-      setSelectedDrunkScale(null);
-      setIsSaving(false);
+      resetLocalStats();
     }
-  }, [visible]);
+  }, [visible, resetLocalStats]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (!isSaving) {
       onClose();
     }
-  };
+  }, [isSaving, onClose]);
 
-  const handleStatChange = (statKey: keyof typeof localStats, delta: number) => {
-    const currentValue = localStats[statKey];
-    const newValue = Math.max(0, currentValue + delta);
-    
-    setLocalStats(prev => ({
-      ...prev,
-      [statKey]: newValue
-    }));
-  };
+  const handleStatChange = useCallback((statKey: keyof typeof localStats, delta: number) => {
+    setLocalStats(prev => {
+      const currentValue = prev[statKey];
+      const newValue = Math.max(0, currentValue + delta);
+      
+      return {
+        ...prev,
+        [statKey]: newValue
+      };
+    });
+  }, []);
 
-  const handleSaveStats = async () => {
+  const handleSaveStats = useCallback(async () => {
     if (isSaving) return;
     
     try {
@@ -122,18 +129,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       console.log('✅ Stats saved successfully');
       
       // Reset local state to zero
-      setLocalStats({
-        shots: 0,
-        scoopAndScores: 0,
-        beers: 0,
-        beerTowers: 0,
-        funnels: 0,
-        shotguns: 0,
-        poolGamesWon: 0,
-        dartGamesWon: 0,
-      });
-      
-      setIsSaving(false);
+      resetLocalStats();
       
       Alert.alert(
         'Stats Saved! 🎉',
@@ -149,9 +145,9 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         [{ text: 'OK' }]
       );
     }
-  };
+  }, [isSaving, localStats, profile, updateDailyTrackerTotals, resetLocalStats, handleClose]);
 
-  const handleDrunkScaleSubmit = async () => {
+  const handleDrunkScaleSubmit = useCallback(async () => {
     if (selectedDrunkScale === null) {
       Alert.alert('Please select a rating', 'Choose how you are feeling right now.');
       return;
@@ -169,11 +165,19 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       console.error('Error submitting drunk scale:', error);
       Alert.alert('Error', 'Failed to submit drunk scale. Please try again.');
     }
-  };
+  }, [selectedDrunkScale, addDrunkScaleRating, handleClose]);
 
-  const canSubmitScale = canSubmitDrunkScale();
+  // Memoize canSubmitScale to prevent unnecessary re-calculations
+  const canSubmitScale = React.useMemo(() => {
+    try {
+      return canSubmitDrunkScale();
+    } catch (error) {
+      console.warn('Error checking drunk scale submission:', error);
+      return false;
+    }
+  }, [canSubmitDrunkScale]);
 
-  const statItems = [
+  const statItems = React.useMemo(() => [
     { key: 'shots' as const, label: 'Shots', emoji: '🥃', xp: 5 },
     { key: 'scoopAndScores' as const, label: 'Scoop & Scores', emoji: '🍺', xp: 10 },
     { key: 'beers' as const, label: 'Beers', emoji: '🍻', xp: 5 },
@@ -182,7 +186,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     { key: 'shotguns' as const, label: 'Shotguns', emoji: '💥', xp: 10 },
     { key: 'poolGamesWon' as const, label: 'Pool Games Won', emoji: '🎱', xp: 15 },
     { key: 'dartGamesWon' as const, label: 'Dart Games Won', emoji: '🎯', xp: 15 },
-  ];
+  ], []);
 
   return (
     <Modal

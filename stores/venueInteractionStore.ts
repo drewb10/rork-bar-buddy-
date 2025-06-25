@@ -98,12 +98,21 @@ const canInteractWithVenue = (lastInteraction: string | undefined): boolean => {
   }
 };
 
+// Debounce function to prevent rapid successive calls
+const debounce = <T extends (...args: any[]) => any>(func: T, wait: number): T => {
+  let timeout: NodeJS.Timeout;
+  return ((...args: any[]) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(null, args), wait);
+  }) as T;
+};
+
 export const useVenueInteractionStore = create<VenueInteractionState>()(
   persist(
     (set, get) => ({
       interactions: [],
       
-      incrementInteraction: async (venueId, arrivalTime) => {
+      incrementInteraction: (venueId, arrivalTime) => {
         try {
           if (!venueId) return;
           
@@ -152,31 +161,18 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
             }
           });
 
-          // Award XP through user profile store
-          if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
-            const userProfileStore = (window as any).__userProfileStore;
-            if (userProfileStore?.getState) {
-              const { awardXP, profile } = userProfileStore.getState();
-              
-              // Award XP for checking in
-              awardXP('check_in', `Checked in at venue`, venueId);
-              
-              // Award XP for visiting a new bar
-              if (isNewBar || !profile?.visited_bars?.includes(venueId)) {
-                awardXP('visit_new_bar', `Visited a new bar`, venueId);
-              }
-            }
-          }
-
+          // Award XP through user profile store with debouncing
+          debouncedAwardXP(venueId, isNewBar);
+          
           // Sync to Supabase
-          await get().syncToSupabase(venueId, arrivalTime);
+          get().syncToSupabase(venueId, arrivalTime);
         } catch (error) {
           console.warn('Error incrementing interaction:', error);
         }
       },
 
       // Flame icon handles likes with time slot selection
-      likeVenue: async (venueId, timeSlot) => {
+      likeVenue: (venueId, timeSlot) => {
         try {
           if (!venueId || !timeSlot) return;
           
@@ -227,14 +223,8 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
             }
           });
 
-          // Award XP for liking a bar
-          if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
-            const userProfileStore = (window as any).__userProfileStore;
-            if (userProfileStore?.getState) {
-              const { awardXP } = userProfileStore.getState();
-              awardXP('like_bar', `Liked a bar`, venueId);
-            }
-          }
+          // Award XP for liking a bar with debouncing
+          debouncedAwardLikeXP(venueId);
         } catch (error) {
           console.warn('Error liking venue:', error);
         }
@@ -546,6 +536,42 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
     }
   )
 );
+
+// Debounced XP award functions to prevent rapid successive calls
+const debouncedAwardXP = debounce((venueId: string, isNewBar: boolean) => {
+  try {
+    if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
+      const userProfileStore = (window as any).__userProfileStore;
+      if (userProfileStore?.getState) {
+        const { awardXP, profile } = userProfileStore.getState();
+        
+        // Award XP for checking in
+        awardXP('check_in', `Checked in at venue`, venueId);
+        
+        // Award XP for visiting a new bar
+        if (isNewBar || !profile?.visited_bars?.includes(venueId)) {
+          awardXP('visit_new_bar', `Visited a new bar`, venueId);
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Error awarding XP:', error);
+  }
+}, 300);
+
+const debouncedAwardLikeXP = debounce((venueId: string) => {
+  try {
+    if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
+      const userProfileStore = (window as any).__userProfileStore;
+      if (userProfileStore?.getState) {
+        const { awardXP } = userProfileStore.getState();
+        awardXP('like_bar', `Liked a bar`, venueId);
+      }
+    }
+  } catch (error) {
+    console.warn('Error awarding like XP:', error);
+  }
+}, 300);
 
 // Store reference for cross-store access
 if (typeof window !== 'undefined') {

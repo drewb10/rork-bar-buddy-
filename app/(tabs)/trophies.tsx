@@ -1,415 +1,192 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal } from 'react-native';
-import { Trophy, Award, Star, Target, Users, Calendar, X, MapPin, TrendingUp, BarChart3 } from 'lucide-react-native';
-import { getThemeColorsSafe, type Theme, type ThemeColors } from '@/constants/colors';
-import { useThemeStoreSafe } from '@/stores/themeStore';
+import React, { useEffect, useMemo } from 'react';
+import { StyleSheet, View, Text, ScrollView, StatusBar, Platform } from 'react-native';
+import { colors } from '@/constants/colors';
+import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
-import { useAchievementStoreSafe, CompletedAchievement } from '@/stores/achievementStore';
+import { useAchievementStoreSafe } from '@/stores/achievementStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 
 export default function TrophiesScreen() {
-  const [selectedAchievement, setSelectedAchievement] = useState<CompletedAchievement | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const initializationRef = useRef(false);
-  
-  // Store access
-  const themeStore = useThemeStoreSafe();
-  const profileStore = useUserProfileStore();
-  const achievementStore = useAchievementStoreSafe();
-  
-  // Initialize stores only once
+  const { theme } = useThemeStore();
+  const themeColors = colors[theme];
+  const { profile } = useUserProfileStore();
+  const { 
+    completedAchievements, 
+    initializeAchievements, 
+    isInitialized 
+  } = useAchievementStoreSafe();
+
+  // Initialize achievements when component mounts
   useEffect(() => {
-    if (initializationRef.current) return;
-    
-    const initializeStores = async () => {
-      try {
-        initializationRef.current = true;
-        
-        // Initialize achievement store if needed
-        if (!achievementStore.isInitialized && typeof achievementStore.initializeAchievements === 'function') {
-          achievementStore.initializeAchievements();
-        }
-        
-        // Load profile if needed (but don't force reload if already exists)
-        if (!profileStore.profile && typeof profileStore.loadProfile === 'function') {
-          await profileStore.loadProfile();
-        }
-        
-        // Set loading to false after a brief delay
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 500);
-      } catch (error) {
-        console.warn('Error initializing stores:', error);
-        setIsLoading(false);
-      }
-    };
-
-    initializeStores();
-  }, []); // Empty dependency array - only run once
-
-  // Get theme safely
-  const theme: Theme = themeStore?.theme || 'dark';
-  const themeColors: ThemeColors = getThemeColorsSafe(theme);
-  
-  // Get profile data safely with fallbacks
-  const profile = profileStore?.profile;
-  const getRank = profileStore?.getRank || (() => ({ title: 'Newbie', subTitle: 'Just getting started', color: '#666666' }));
-  const getAverageDrunkScale = profileStore?.getAverageDrunkScale || (() => 0);
-  
-  // Get achievement data safely
-  const completedAchievements = achievementStore?.completedAchievements || [];
-  const getCompletedAchievementsByCategory = achievementStore?.getCompletedAchievementsByCategory || (() => []);
-  
-  // Show loading state while stores are initializing
-  if (isLoading) {
-    return (
-      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-        <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
-        
-        <ScrollView 
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          <View style={styles.header}>
-            <BarBuddyLogo size="small" />
-            <Text style={[styles.headerTitle, { color: themeColors.text }]}>
-              Your Trophies
-            </Text>
-          </View>
-
-          <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
-            <Trophy size={48} color={themeColors.subtext} />
-            <Text style={[styles.emptyStateTitle, { color: themeColors.text }]}>
-              Loading Trophies
-            </Text>
-            <Text style={[styles.emptyStateText, { color: themeColors.subtext }]}>
-              Please wait while we load your achievements...
-            </Text>
-          </View>
-        </ScrollView>
-      </View>
-    );
-  }
-
-  const rankInfo = getRank();
-  const totalCompletedAchievements = completedAchievements.length;
-  const averageDrunkScale = getAverageDrunkScale();
-
-  // Calculate total drinks logged safely
-  const totalDrinksLogged = (profile?.total_shots || 0) + 
-                           (profile?.total_beers || 0) + 
-                           (profile?.total_scoop_and_scores || 0) + 
-                           (profile?.total_beer_towers || 0) + 
-                           (profile?.total_funnels || 0) + 
-                           (profile?.total_shotguns || 0);
-
-  const categories = [
-    { key: 'bars', title: 'Bar Hopping', icon: Trophy, color: '#FF6A00' },
-    { key: 'activities', title: 'Activities', icon: Target, color: '#4CAF50' },
-    { key: 'social', title: 'Social', icon: Users, color: '#2196F3' },
-    { key: 'milestones', title: 'Milestones', icon: Star, color: '#9C27B0' },
-  ] as const;
-
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric',
-        year: 'numeric'
-      });
-    } catch {
-      return 'Recently';
+    if (!isInitialized) {
+      initializeAchievements();
     }
-  };
+  }, [isInitialized, initializeAchievements]);
 
-  const handleAchievementPress = (achievement: CompletedAchievement) => {
-    setSelectedAchievement(achievement);
-  };
+  // Memoize lifetime stats to prevent unnecessary recalculations
+  const lifetimeStats = useMemo(() => {
+    if (!profile) {
+      return {
+        barsHit: 0,
+        nightsOut: 0,
+        drinksLogged: 0,
+        drunkScaleAvg: 0,
+        totalShots: 0,
+      };
+    }
+
+    const totalDrinks = (profile.total_beers || 0) + 
+                       (profile.total_shots || 0) + 
+                       (profile.total_scoop_and_scores || 0) + 
+                       (profile.total_beer_towers || 0) + 
+                       (profile.total_funnels || 0) + 
+                       (profile.total_shotguns || 0);
+
+    const drunkScaleAvg = profile.drunk_scale_ratings && profile.drunk_scale_ratings.length > 0
+      ? Math.round((profile.drunk_scale_ratings.reduce((sum, rating) => sum + rating, 0) / profile.drunk_scale_ratings.length) * 10) / 10
+      : 0;
+
+    return {
+      barsHit: profile.bars_hit || 0,
+      nightsOut: profile.nights_out || 0,
+      drinksLogged: totalDrinks,
+      drunkScaleAvg,
+      totalShots: profile.total_shots || 0,
+    };
+  }, [profile]);
+
+  // Memoize trophy categories
+  const trophyCategories = useMemo(() => {
+    const categories = ['bars', 'activities', 'social', 'milestones'] as const;
+    
+    return categories.map(category => {
+      const categoryTrophies = completedAchievements.filter(trophy => trophy.category === category);
+      
+      return {
+        name: category,
+        displayName: category.charAt(0).toUpperCase() + category.slice(1),
+        trophies: categoryTrophies,
+        count: categoryTrophies.length
+      };
+    }).filter(category => category.count > 0); // Only show categories with trophies
+  }, [completedAchievements]);
+
+  const StatCard = ({ title, value, subtitle }: { title: string; value: number | string; subtitle?: string }) => (
+    <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
+      <Text style={[styles.statValue, { color: themeColors.primary }]}>{value}</Text>
+      <Text style={[styles.statTitle, { color: themeColors.text }]}>{title}</Text>
+      {subtitle && (
+        <Text style={[styles.statSubtitle, { color: themeColors.subtext }]}>{subtitle}</Text>
+      )}
+    </View>
+  );
+
+  const TrophyCard = ({ trophy }: { trophy: any }) => (
+    <View style={[styles.trophyCard, { backgroundColor: themeColors.card }]}>
+      <View style={[styles.trophyIcon, { backgroundColor: themeColors.primary + '20' }]}>
+        <Text style={styles.trophyEmoji}>{trophy.icon}</Text>
+      </View>
+      <View style={styles.trophyContent}>
+        <Text style={[styles.trophyTitle, { color: themeColors.text }]}>{trophy.title}</Text>
+        <Text style={[styles.trophyDescription, { color: themeColors.subtext }]}>
+          {trophy.description}
+        </Text>
+        {trophy.level > 1 && (
+          <View style={[styles.levelBadge, { backgroundColor: themeColors.primary }]}>
+            <Text style={styles.levelText}>Level {trophy.level}</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+    <View style={[styles.container, { backgroundColor: '#000000' }]}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       <ScrollView 
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        {/* Header with Logo */}
         <View style={styles.header}>
-          <BarBuddyLogo size="small" />
-          <Text style={[styles.headerTitle, { color: themeColors.text }]}>
+          <View style={styles.logoContainer}>
+            <BarBuddyLogo size="large" />
+          </View>
+        </View>
+
+        {/* Page Title */}
+        <View style={styles.titleSection}>
+          <Text style={[styles.pageTitle, { color: themeColors.text }]}>
             Your Trophies
           </Text>
         </View>
 
         {/* Lifetime Stats Section */}
-        <View style={[styles.lifetimeStatsCard, { backgroundColor: themeColors.card }]}>
-          <Text style={[styles.lifetimeStatsTitle, { color: themeColors.text }]}>
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
             Lifetime Stats
           </Text>
-          <View style={styles.lifetimeStatsGrid}>
-            <View style={styles.lifetimeStat}>
-              <MapPin size={20} color={themeColors.primary} />
-              <Text style={[styles.lifetimeStatNumber, { color: themeColors.text }]}>
-                {profile?.bars_hit || 0}
-              </Text>
-              <Text style={[styles.lifetimeStatLabel, { color: themeColors.subtext }]}>
-                Bars Hit
-              </Text>
-            </View>
-
-            <View style={styles.lifetimeStat}>
-              <TrendingUp size={20} color={themeColors.primary} />
-              <Text style={[styles.lifetimeStatNumber, { color: themeColors.text }]}>
-                {profile?.nights_out || 0}
-              </Text>
-              <Text style={[styles.lifetimeStatLabel, { color: themeColors.subtext }]}>
-                Nights Out
-              </Text>
-            </View>
-
-            <View style={styles.lifetimeStat}>
-              <BarChart3 size={20} color={themeColors.primary} />
-              <Text style={[styles.lifetimeStatNumber, { color: themeColors.text }]}>
-                {totalDrinksLogged}
-              </Text>
-              <Text style={[styles.lifetimeStatLabel, { color: themeColors.subtext }]}>
-                Drinks Logged
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.lifetimeStatsGrid}>
-            <View style={styles.lifetimeStat}>
-              <Star size={20} color={themeColors.primary} />
-              <Text style={[styles.lifetimeStatNumber, { color: themeColors.text }]}>
-                {averageDrunkScale > 0 ? averageDrunkScale.toFixed(1) : '0.0'}
-              </Text>
-              <Text style={[styles.lifetimeStatLabel, { color: themeColors.subtext }]}>
-                Drunk Scale Avg
-              </Text>
-            </View>
-
-            <View style={styles.lifetimeStat}>
-              <Text style={styles.lifetimeStatEmoji}>🥃</Text>
-              <Text style={[styles.lifetimeStatNumber, { color: themeColors.text }]}>
-                {profile?.total_shots || 0}
-              </Text>
-              <Text style={[styles.lifetimeStatLabel, { color: themeColors.subtext }]}>
-                Total Shots
-              </Text>
-            </View>
-
-            <View style={styles.lifetimeStat}>
-              <Text style={styles.lifetimeStatEmoji}>🍺</Text>
-              <Text style={[styles.lifetimeStatNumber, { color: themeColors.text }]}>
-                {Math.round(((profile?.total_shots || 0) / Math.max(profile?.nights_out || 1, 1)) * 10) / 10}
-              </Text>
-              <Text style={[styles.lifetimeStatLabel, { color: themeColors.subtext }]}>
-                Avg. Shot Count
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Current Rank */}
-        <View style={[styles.rankCard, { backgroundColor: themeColors.card }]}>
-          <View style={styles.rankContent}>
-            <Award size={40} color={rankInfo.color} />
-            <View style={styles.rankInfo}>
-              <Text style={[styles.rankTitle, { color: rankInfo.color }]}>
-                {rankInfo.title}
-              </Text>
-              <Text style={[styles.rankSubtitle, { color: themeColors.text }]}>
-                {rankInfo.subTitle}
-              </Text>
-              <Text style={[styles.rankXP, { color: themeColors.subtext }]}>
-                {profile?.xp || 0} XP
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Trophy Stats */}
-        <View style={[styles.statsCard, { backgroundColor: themeColors.card }]}>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Trophy size={24} color={themeColors.primary} />
-              <Text style={[styles.statNumber, { color: themeColors.text }]}>
-                {totalCompletedAchievements}
-              </Text>
-              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                Trophies Earned
-              </Text>
-            </View>
-            
-            <View style={styles.statItem}>
-              <Award size={24} color={rankInfo.color} />
-              <Text style={[styles.statNumber, { color: themeColors.text }]}>
-                {profile?.xp || 0}
-              </Text>
-              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                Total XP
-              </Text>
-            </View>
+          
+          <View style={styles.statsGrid}>
+            <StatCard 
+              title="Bars Hit" 
+              value={lifetimeStats.barsHit}
+            />
+            <StatCard 
+              title="Nights Out" 
+              value={lifetimeStats.nightsOut}
+            />
+            <StatCard 
+              title="Drinks Logged" 
+              value={lifetimeStats.drinksLogged}
+            />
+            <StatCard 
+              title="Drunk Scale Avg" 
+              value={lifetimeStats.drunkScaleAvg}
+              subtitle="out of 5"
+            />
           </View>
         </View>
 
         {/* Trophies Section */}
-        <View style={styles.trophiesSection}>
-          <Text style={[styles.trophiesSectionTitle, { color: themeColors.text }]}>
-            Trophies
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
+            Trophies ({completedAchievements.length})
           </Text>
           
-          {totalCompletedAchievements === 0 ? (
+          {completedAchievements.length === 0 ? (
             <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
-              <Trophy size={48} color={themeColors.subtext} />
-              <Text style={[styles.emptyStateTitle, { color: themeColors.text }]}>
+              <Text style={styles.emptyEmoji}>🏆</Text>
+              <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
                 No Trophies Yet
               </Text>
-              <Text style={[styles.emptyStateText, { color: themeColors.subtext }]}>
-                Complete achievements to earn your first trophy! Use the Daily Tracker to log your activities and unlock achievements.
+              <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
+                Start tracking your activities to earn your first trophy!
               </Text>
             </View>
           ) : (
-            categories.map((category) => {
-              const categoryCompletedAchievements = getCompletedAchievementsByCategory(category.key);
-              
-              if (categoryCompletedAchievements.length === 0) return null;
-              
-              return (
-                <View key={category.key} style={styles.categorySection}>
-                  <View style={styles.categoryHeader}>
-                    <View style={styles.categoryTitleRow}>
-                      <category.icon size={20} color={category.color} />
-                      <Text style={[styles.categoryTitle, { color: themeColors.text }]}>
-                        {category.title}
-                      </Text>
-                    </View>
-                    <Text style={[styles.categoryProgress, { color: themeColors.subtext }]}>
-                      {categoryCompletedAchievements.length} earned
-                    </Text>
-                  </View>
+            <>
+              {trophyCategories.map((category) => (
+                <View key={category.name} style={styles.categorySection}>
+                  <Text style={[styles.categoryTitle, { color: themeColors.primary }]}>
+                    {category.displayName} ({category.count})
+                  </Text>
                   
-                  <View style={styles.achievementGrid}>
-                    {categoryCompletedAchievements.map((achievement) => (
-                      <Pressable
-                        key={achievement.id}
-                        style={[
-                          styles.achievementCard,
-                          { 
-                            backgroundColor: themeColors.card,
-                            borderColor: category.color,
-                            borderWidth: 2,
-                          }
-                        ]}
-                        onPress={() => handleAchievementPress(achievement)}
-                      >
-                        <View style={styles.achievementContent}>
-                          <Text style={styles.achievementIcon}>
-                            {achievement.icon}
-                          </Text>
-                          <View style={styles.achievementTextContainer}>
-                            <Text 
-                              style={[
-                                styles.achievementTitle, 
-                                { 
-                                  color: themeColors.text,
-                                }
-                              ]}
-                              numberOfLines={2}
-                            >
-                              {achievement.title}
-                            </Text>
-                            
-                            {achievement.level > 1 && (
-                              <View style={[styles.levelBadge, { backgroundColor: category.color }]}>
-                                <Text style={styles.levelBadgeText}>Lv.{achievement.level}</Text>
-                              </View>
-                            )}
-                          </View>
-                          
-                          <View style={[styles.completedBadge, { backgroundColor: category.color }]}>
-                            <Trophy size={12} color="white" />
-                          </View>
-                        </View>
-                      </Pressable>
+                  <View style={styles.trophyList}>
+                    {category.trophies.map((trophy) => (
+                      <TrophyCard key={trophy.id} trophy={trophy} />
                     ))}
                   </View>
                 </View>
-              );
-            })
+              ))}
+            </>
           )}
         </View>
 
         <View style={styles.footer} />
       </ScrollView>
-
-      {/* Achievement Detail Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={!!selectedAchievement}
-        onRequestClose={() => setSelectedAchievement(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { 
-            backgroundColor: themeColors.card,
-            borderColor: themeColors.border,
-          }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-                Trophy Details
-              </Text>
-              <Pressable 
-                style={styles.closeButton}
-                onPress={() => setSelectedAchievement(null)}
-              >
-                <X size={24} color={themeColors.subtext} />
-              </Pressable>
-            </View>
-            
-            {selectedAchievement && (
-              <View style={styles.modalBody}>
-                <Text style={styles.modalIcon}>
-                  {selectedAchievement.icon}
-                </Text>
-                
-                <Text style={[styles.modalAchievementTitle, { color: themeColors.text }]}>
-                  {selectedAchievement.title}
-                </Text>
-                
-                <Text style={[styles.modalDescription, { color: themeColors.subtext }]}>
-                  {selectedAchievement.description}
-                </Text>
-                
-                {selectedAchievement.level > 1 && (
-                  <View style={[styles.modalLevelBadge, { backgroundColor: themeColors.primary }]}>
-                    <Text style={styles.modalLevelText}>Level {selectedAchievement.level}</Text>
-                  </View>
-                )}
-                
-                <View style={styles.completedInfo}>
-                  <Calendar size={16} color={themeColors.primary} />
-                  <Text style={[styles.completedDate, { color: themeColors.primary }]}>
-                    Completed on {formatDate(selectedAchievement.completedAt)}
-                  </Text>
-                </View>
-                
-                <View style={[styles.statusBadge, { backgroundColor: themeColors.primary + '20' }]}>
-                  <Trophy size={16} color={themeColors.primary} />
-                  <Text style={[styles.statusText, { color: themeColors.primary }]}>
-                    Trophy Earned
-                  </Text>
-                </View>
-              </View>
-            )}
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -422,358 +199,168 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingBottom: 40,
   },
   header: {
-    alignItems: 'center',
-    paddingBottom: 24,
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingBottom: 8,
     paddingHorizontal: 16,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginTop: 8,
-    letterSpacing: 0.3,
-  },
-  lifetimeStatsCard: {
-    marginHorizontal: 16,
-    marginBottom: 20,
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  lifetimeStatsTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 20,
-    textAlign: 'center',
-    letterSpacing: 0.3,
-  },
-  lifetimeStatsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 16,
-  },
-  lifetimeStat: {
+  logoContainer: {
     alignItems: 'center',
-    flex: 1,
+    justifyContent: 'center',
   },
-  lifetimeStatEmoji: {
-    fontSize: 20,
-    marginBottom: 8,
-  },
-  lifetimeStatNumber: {
-    fontSize: 24,
-    fontWeight: '800',
-    marginTop: 8,
-    marginBottom: 6,
-    letterSpacing: 0.5,
-  },
-  lifetimeStatLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-    textAlign: 'center',
-  },
-  rankCard: {
-    marginHorizontal: 16,
-    marginBottom: 20,
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  rankContent: {
-    flexDirection: 'row',
+  titleSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
     alignItems: 'center',
   },
-  rankInfo: {
-    marginLeft: 20,
-    flex: 1,
-  },
-  rankTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    marginBottom: 6,
-    letterSpacing: 0.5,
-  },
-  rankSubtitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 6,
-    letterSpacing: 0.3,
-  },
-  rankXP: {
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
-  statsCard: {
-    marginHorizontal: 16,
-    marginBottom: 20,
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statNumber: {
+  pageTitle: {
     fontSize: 28,
     fontWeight: '800',
-    marginTop: 12,
-    marginBottom: 6,
     letterSpacing: 0.5,
+    textAlign: 'center',
   },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.3,
+  section: {
+    paddingHorizontal: 16,
+    marginBottom: 32,
   },
-  trophiesSection: {
-    marginHorizontal: 16,
-  },
-  trophiesSectionTitle: {
-    fontSize: 20,
-    fontWeight: '800',
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '700',
     marginBottom: 20,
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
+    textAlign: 'center',
   },
-  emptyState: {
-    borderRadius: 20,
-    padding: 40,
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  statCard: {
+    width: '48%',
+    padding: 20,
+    borderRadius: 16,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
+    shadowRadius: 8,
+    elevation: 6,
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  emptyStateTitle: {
+  statValue: {
+    fontSize: 32,
+    fontWeight: '800',
+    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  statTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
+  statSubtitle: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  emptyState: {
+    padding: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  emptyEmoji: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    marginTop: 16,
     marginBottom: 8,
     letterSpacing: 0.3,
   },
-  emptyStateText: {
+  emptyDescription: {
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 22,
     fontWeight: '500',
   },
   categorySection: {
-    marginBottom: 28,
-  },
-  categoryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  categoryTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginBottom: 24,
   },
   categoryTitle: {
     fontSize: 18,
     fontWeight: '700',
-    marginLeft: 8,
+    marginBottom: 16,
     letterSpacing: 0.3,
   },
-  categoryProgress: {
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
-  achievementGrid: {
+  trophyList: {
     gap: 12,
   },
-  achievementCard: {
-    width: '100%',
+  trophyCard: {
+    flexDirection: 'row',
+    padding: 16,
     borderRadius: 16,
-    padding: 20,
-    position: 'relative',
+    alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  achievementContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  achievementIcon: {
-    fontSize: 36,
-    marginRight: 16,
-  },
-  achievementTextContainer: {
-    flex: 1,
-    position: 'relative',
-  },
-  achievementTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 8,
-    letterSpacing: 0.2,
-    paddingRight: 40,
-    lineHeight: 20,
-  },
-  levelBadge: {
-    position: 'absolute',
-    bottom: -8,
-    right: 0,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-    zIndex: 1,
-  },
-  levelBadgeText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.2,
-  },
-  completedBadge: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  footer: {
-    height: 32,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-  },
-  modalContent: {
-    width: '90%',
-    maxHeight: '80%',
-    borderRadius: 24,
-    padding: 28,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.3,
-    shadowRadius: 24,
-    elevation: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: 0.3,
-  },
-  closeButton: {
-    padding: 8,
-  },
-  modalBody: {
-    alignItems: 'center',
-  },
-  modalIcon: {
-    fontSize: 56,
-    marginBottom: 20,
-  },
-  modalAchievementTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    marginBottom: 16,
-    textAlign: 'center',
-    letterSpacing: 0.5,
-  },
-  modalDescription: {
-    fontSize: 16,
-    lineHeight: 22,
-    textAlign: 'center',
-    marginBottom: 24,
-    fontWeight: '500',
-  },
-  modalLevelBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  modalLevelText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 0.3,
-  },
-  completedInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  completedDate: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
-    letterSpacing: 0.2,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-    gap: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 6,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  statusText: {
-    fontSize: 14,
+  trophyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  trophyEmoji: {
+    fontSize: 28,
+  },
+  trophyContent: {
+    flex: 1,
+  },
+  trophyTitle: {
+    fontSize: 16,
     fontWeight: '700',
-    letterSpacing: 0.3,
+    marginBottom: 4,
+    letterSpacing: 0.2,
+  },
+  trophyDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '500',
+  },
+  levelBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  levelText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  footer: {
+    height: 24,
   },
 });

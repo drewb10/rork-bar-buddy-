@@ -246,6 +246,15 @@ const createDefaultProfile = (): UserProfile => ({
   updated_at: new Date().toISOString(),
 });
 
+// Debounce function to prevent rapid successive calls
+const debounce = <T extends (...args: any[]) => any>(func: T, wait: number): T => {
+  let timeout: NodeJS.Timeout;
+  return ((...args: any[]) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(null, args), wait);
+  }) as T;
+};
+
 export const useUserProfileStore = create<UserProfileState>()(
   persist(
     (set, get) => ({
@@ -450,31 +459,19 @@ export const useUserProfileStore = create<UserProfileState>()(
           // Award XP for night out
           await get().awardXP('complete_night_out', 'Completed a night out');
           
-          // Update achievements safely
-          try {
-            if (typeof window !== 'undefined' && (window as any).__achievementStore) {
-              const achievementStore = (window as any).__achievementStore;
-              if (achievementStore?.getState) {
-                const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
-                if (typeof checkAndUpdateMultiLevelAchievements === 'function') {
-                  checkAndUpdateMultiLevelAchievements({
-                    totalBeers: profile.total_beers || 0,
-                    totalShots: profile.total_shots || 0,
-                    totalBeerTowers: profile.total_beer_towers || 0,
-                    totalScoopAndScores: profile.total_scoop_and_scores || 0,
-                    totalFunnels: profile.total_funnels || 0,
-                    totalShotguns: profile.total_shotguns || 0,
-                    poolGamesWon: profile.pool_games_won || 0,
-                    dartGamesWon: profile.dart_games_won || 0,
-                    barsHit: profile.bars_hit || 0,
-                    nightsOut: newNightsOut,
-                  });
-                }
-              }
-            }
-          } catch (error) {
-            console.warn('Error updating achievements:', error);
-          }
+          // Update achievements safely with debouncing
+          debouncedUpdateAchievements({
+            totalBeers: profile.total_beers || 0,
+            totalShots: profile.total_shots || 0,
+            totalBeerTowers: profile.total_beer_towers || 0,
+            totalScoopAndScores: profile.total_scoop_and_scores || 0,
+            totalFunnels: profile.total_funnels || 0,
+            totalShotguns: profile.total_shotguns || 0,
+            poolGamesWon: profile.pool_games_won || 0,
+            dartGamesWon: profile.dart_games_won || 0,
+            barsHit: profile.bars_hit || 0,
+            nightsOut: newNightsOut,
+          });
         }
       },
       
@@ -491,31 +488,19 @@ export const useUserProfileStore = create<UserProfileState>()(
         // Award XP for bar visit
         await get().awardXP('visit_new_bar', 'Visited a new bar');
         
-        // Update achievements safely
-        try {
-          if (typeof window !== 'undefined' && (window as any).__achievementStore) {
-            const achievementStore = (window as any).__achievementStore;
-            if (achievementStore?.getState) {
-              const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
-              if (typeof checkAndUpdateMultiLevelAchievements === 'function') {
-                checkAndUpdateMultiLevelAchievements({
-                  totalBeers: profile.total_beers || 0,
-                  totalShots: profile.total_shots || 0,
-                  totalBeerTowers: profile.total_beer_towers || 0,
-                  totalScoopAndScores: profile.total_scoop_and_scores || 0,
-                  totalFunnels: profile.total_funnels || 0,
-                  totalShotguns: profile.total_shotguns || 0,
-                  poolGamesWon: profile.pool_games_won || 0,
-                  dartGamesWon: profile.dart_games_won || 0,
-                  barsHit: newBarsHit,
-                  nightsOut: profile.nights_out || 0,
-                });
-              }
-            }
-          }
-        } catch (error) {
-          console.warn('Error updating achievements:', error);
-        }
+        // Update achievements safely with debouncing
+        debouncedUpdateAchievements({
+          totalBeers: profile.total_beers || 0,
+          totalShots: profile.total_shots || 0,
+          totalBeerTowers: profile.total_beer_towers || 0,
+          totalScoopAndScores: profile.total_scoop_and_scores || 0,
+          totalFunnels: profile.total_funnels || 0,
+          totalShotguns: profile.total_shotguns || 0,
+          poolGamesWon: profile.pool_games_won || 0,
+          dartGamesWon: profile.dart_games_won || 0,
+          barsHit: newBarsHit,
+          nightsOut: profile.nights_out || 0,
+        });
       },
       
       addDrunkScaleRating: async (rating) => {
@@ -654,47 +639,52 @@ export const useUserProfileStore = create<UserProfileState>()(
             funnelsDiff, shotgunsDiff, poolDiff, dartDiff
           });
           
-          // Award XP for each activity increase
+          // Batch all XP awards to prevent multiple re-renders
+          const xpPromises = [];
+          
           if (shotsDiff > 0) {
             for (let i = 0; i < shotsDiff; i++) {
-              await get().awardXP('shots', 'Took a shot');
+              xpPromises.push(get().awardXP('shots', 'Took a shot'));
             }
           }
           if (scoopDiff > 0) {
             for (let i = 0; i < scoopDiff; i++) {
-              await get().awardXP('scoop_and_scores', 'Had a Scoop & Score');
+              xpPromises.push(get().awardXP('scoop_and_scores', 'Had a Scoop & Score'));
             }
           }
           if (beersDiff > 0) {
             for (let i = 0; i < beersDiff; i++) {
-              await get().awardXP('beers', 'Had a beer');
+              xpPromises.push(get().awardXP('beers', 'Had a beer'));
             }
           }
           if (beerTowersDiff > 0) {
             for (let i = 0; i < beerTowersDiff; i++) {
-              await get().awardXP('beer_towers', 'Finished a beer tower');
+              xpPromises.push(get().awardXP('beer_towers', 'Finished a beer tower'));
             }
           }
           if (funnelsDiff > 0) {
             for (let i = 0; i < funnelsDiff; i++) {
-              await get().awardXP('funnels', 'Did a funnel');
+              xpPromises.push(get().awardXP('funnels', 'Did a funnel'));
             }
           }
           if (shotgunsDiff > 0) {
             for (let i = 0; i < shotgunsDiff; i++) {
-              await get().awardXP('shotguns', 'Did a shotgun');
+              xpPromises.push(get().awardXP('shotguns', 'Did a shotgun'));
             }
           }
           if (poolDiff > 0) {
             for (let i = 0; i < poolDiff; i++) {
-              await get().awardXP('pool_games', 'Won a pool game');
+              xpPromises.push(get().awardXP('pool_games', 'Won a pool game'));
             }
           }
           if (dartDiff > 0) {
             for (let i = 0; i < dartDiff; i++) {
-              await get().awardXP('dart_games', 'Won a dart game');
+              xpPromises.push(get().awardXP('dart_games', 'Won a dart game'));
             }
           }
+          
+          // Wait for all XP awards to complete
+          await Promise.all(xpPromises);
           
           // Update profile with new totals
           await get().updateProfile({
@@ -708,31 +698,19 @@ export const useUserProfileStore = create<UserProfileState>()(
             dart_games_won: stats.dartGamesWon,
           });
 
-          // Update achievements safely
-          try {
-            if (typeof window !== 'undefined' && (window as any).__achievementStore) {
-              const achievementStore = (window as any).__achievementStore;
-              if (achievementStore?.getState) {
-                const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
-                if (typeof checkAndUpdateMultiLevelAchievements === 'function') {
-                  checkAndUpdateMultiLevelAchievements({
-                    totalBeers: stats.beers,
-                    totalShots: stats.shots,
-                    totalBeerTowers: stats.beerTowers,
-                    totalScoopAndScores: stats.scoopAndScores,
-                    totalFunnels: stats.funnels,
-                    totalShotguns: stats.shotguns,
-                    poolGamesWon: stats.poolGamesWon,
-                    dartGamesWon: stats.dartGamesWon,
-                    barsHit: profile.bars_hit || 0,
-                    nightsOut: profile.nights_out || 0,
-                  });
-                }
-              }
-            }
-          } catch (error) {
-            console.warn('Error updating achievements:', error);
-          }
+          // Update achievements safely with debouncing
+          debouncedUpdateAchievements({
+            totalBeers: stats.beers,
+            totalShots: stats.shots,
+            totalBeerTowers: stats.beerTowers,
+            totalScoopAndScores: stats.scoopAndScores,
+            totalFunnels: stats.funnels,
+            totalShotguns: stats.shotguns,
+            poolGamesWon: stats.poolGamesWon,
+            dartGamesWon: stats.dartGamesWon,
+            barsHit: profile.bars_hit || 0,
+            nightsOut: profile.nights_out || 0,
+          });
           
           console.log('✅ Daily tracker totals updated successfully');
         } catch (error) {
@@ -1074,6 +1052,23 @@ export const useUserProfileStore = create<UserProfileState>()(
     }
   )
 );
+
+// Debounced achievement update function to prevent rapid successive calls
+const debouncedUpdateAchievements = debounce((stats: any) => {
+  try {
+    if (typeof window !== 'undefined' && (window as any).__achievementStore) {
+      const achievementStore = (window as any).__achievementStore;
+      if (achievementStore?.getState) {
+        const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
+        if (typeof checkAndUpdateMultiLevelAchievements === 'function') {
+          checkAndUpdateMultiLevelAchievements(stats);
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Error updating achievements:', error);
+  }
+}, 500); // 500ms debounce
 
 // Store reference for cross-store access
 if (typeof window !== 'undefined') {
