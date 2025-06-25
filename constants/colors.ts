@@ -55,7 +55,7 @@ export const colors = {
 } as const;
 
 export type Theme = keyof typeof colors;
-export type ThemeColors = typeof colors[Theme];
+export type ThemeColors = (typeof colors)[Theme];
 
 // Helper function to get theme colors with proper typing
 export const getThemeColors = (theme: Theme): ThemeColors => {

@@ -224,26 +224,6 @@ export const useChatStore = create<ChatState>()(
       partialize: (state) => ({
         currentSession: state.currentSession,
       }),
-      onRehydrateStorage: () => (state) => {
-        // Ensure we always have the required functions
-        if (!state) {
-          return {
-            currentSession: null,
-            isLoading: false,
-            error: null,
-            sendMessage: async () => {},
-            likeMessage: () => {},
-            resetChatOnAppReopen: () => {},
-            checkAndResetDaily: () => {},
-            clearError: () => {},
-          };
-        }
-      },
     }
   )
 );
-
-// Store reference for cross-store access
-if (typeof window !== 'undefined') {
-  (window as any).__chatStore = useChatStore;
-}

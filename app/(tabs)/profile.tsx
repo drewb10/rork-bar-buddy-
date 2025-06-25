@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, Image, ActivityIndicator } from 'react-native';
-import { User, Award, Camera, Users, Info, LogOut } from 'lucide-react-native';
-import { colors } from '@/constants/colors';
+import { User, Award, Camera, Users, LogOut } from 'lucide-react-native';
+import { getThemeColors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
-import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import FriendsModal from '@/components/FriendsModal';
 import BarBuddyChatbot from '@/components/BarBuddyChatbot';
@@ -15,7 +14,7 @@ import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
   const { theme } = useThemeStore();
-  const themeColors = colors[theme];
+  const themeColors = getThemeColors(theme);
   const { 
     profile: authProfile, 
     signOut,
@@ -24,7 +23,6 @@ export default function ProfileScreen() {
   const {
     profile,
     loadProfile,
-    updateProfile,
     getRank,
     getAllRanks,
     getXPForNextRank,
@@ -33,8 +31,6 @@ export default function ProfileScreen() {
     isLoading: profileLoading
   } = useUserProfileStore();
   const router = useRouter();
-  
-  const { interactions } = useVenueInteractionStore();
   
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
   const [rankDetailsModalVisible, setRankDetailsModalVisible] = useState(false);
@@ -164,10 +160,10 @@ export default function ProfileScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { backgroundColor: '#000000' }]}>
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+        <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6A00" />
+          <ActivityIndicator size="large" color={themeColors.primary} />
           <Text style={[styles.loadingText, { color: themeColors.text, marginTop: 16 }]}>
             Loading profile...
           </Text>
@@ -178,8 +174,8 @@ export default function ProfileScreen() {
 
   if (!profile) {
     return (
-      <View style={[styles.container, { backgroundColor: '#000000' }]}>
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+        <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
           <Text style={[styles.loadingText, { color: themeColors.text }]}>
             No profile found. Please sign in.
@@ -196,8 +192,8 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: '#000000' }]}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
       
       {/* Header with Logo and Title */}
       <View style={styles.header}>
