@@ -59,7 +59,7 @@ export type ThemeColors = typeof colors[Theme];
 
 // Helper function to get theme colors safely
 export const getThemeColors = (theme: Theme): ThemeColors => {
-  return colors[theme];
+  return colors[theme] || colors.dark;
 };
 
 export default colors;

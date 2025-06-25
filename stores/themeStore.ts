@@ -15,7 +15,7 @@ export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
       theme: 'dark',
-      isInitialized: false,
+      isInitialized: true, // Set to true by default to prevent undefined errors
       setTheme: (theme: Theme) => {
         try {
           set({ theme, isInitialized: true });
@@ -42,7 +42,7 @@ export const useThemeStore = create<ThemeState>()(
         if (!state || !state.theme) {
           return { 
             theme: 'dark' as Theme, 
-            setTheme: () => {}, 
+            setTheme: (theme: Theme) => {},
             toggleTheme: () => {},
             isInitialized: true
           };
