@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, Pressable, ScrollView, Alert, Platform } from 'react-native';
+import { StyleSheet, View, Text, Pressable, ScrollView, Alert, Platform, Modal } from 'react-native';
 import { X, Plus, Minus, TrendingUp, Award, Target } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
@@ -34,7 +34,8 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     updateDailyStats, 
     submitDrunkScale, 
     canSubmitDrunkScale, 
-    hasDrunkScaleForToday 
+    hasDrunkScaleForToday,
+    resetDailyStats
   } = useDailyTrackerStore();
   const { updateDailyTrackerTotals } = useUserProfileStore();
 
@@ -70,9 +71,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     try {
       console.log('🔄 Saving daily tracker stats:', localStats);
       
-      // Update daily tracker store (for local state)
-      updateDailyStats(localStats);
-      
       // Update user profile totals (this handles XP awarding and prevents double-counting)
       await updateDailyTrackerTotals({
         shots: localStats.shots,
@@ -87,24 +85,27 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       
       console.log('✅ Stats saved successfully');
       
+      // Reset the daily stats to zero after saving
+      resetDailyStats();
+      
+      // Reset local state to zero
+      const resetStats = {
+        ...localStats,
+        shots: 0,
+        scoopAndScores: 0,
+        beers: 0,
+        beerTowers: 0,
+        funnels: 0,
+        shotguns: 0,
+        poolGamesWon: 0,
+        dartGamesWon: 0
+      };
+      setLocalStats(resetStats);
+      
       Alert.alert(
         'Stats Saved! 🎉',
-        'Your daily stats have been updated and XP awarded!',
-        [{ text: 'Awesome!', onPress: () => {
-          // Reset local stats to zero after saving
-          setLocalStats({
-            ...localStats,
-            shots: 0,
-            scoopAndScores: 0,
-            beers: 0,
-            beerTowers: 0,
-            funnels: 0,
-            shotguns: 0,
-            poolGamesWon: 0,
-            dartGamesWon: 0
-          });
-          handleClose();
-        }}]
+        'Your daily stats have been updated, XP awarded, and trackers reset!',
+        [{ text: 'Awesome!', onPress: handleClose }]
       );
     } catch (error) {
       console.error('❌ Error saving stats:', error);

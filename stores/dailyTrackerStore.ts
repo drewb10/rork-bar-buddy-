@@ -281,10 +281,19 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
 
       resetDailyStats: () => {
         const { dailyStats } = get();
+        const today = getTodayString();
+        
         set({
           dailyStats: { 
-            ...defaultDailyStats, 
-            date: getTodayString(),
+            shots: 0,
+            scoopAndScores: 0,
+            beers: 0,
+            beerTowers: 0,
+            funnels: 0,
+            shotguns: 0,
+            poolGamesWon: 0,
+            dartGamesWon: 0,
+            date: today,
             lastResetAt: new Date().toISOString(),
             // Preserve drunk scale submission status if it was submitted today
             drunkScaleSubmitted: canSubmitDrunkScaleToday(dailyStats.lastDrunkScaleSubmission) ? false : dailyStats.drunkScaleSubmitted,

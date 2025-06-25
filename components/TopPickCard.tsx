@@ -47,19 +47,19 @@ export default function TopPickCard({ venue }: TopPickCardProps) {
       {/* Flame count badge - top left */}
       {likeCount > 0 && (
         <View style={[styles.flameBadge, { backgroundColor: themeColors.primary }]}>
-          <Flame size={12} color="white" fill="white" />
+          <Flame size={10} color="white" fill="white" />
           <Text style={styles.flameText}>{likeCount}</Text>
         </View>
       )}
       
       <View style={styles.content}>
-        <Text style={[styles.venueName, { color: themeColors.text }]} numberOfLines={1}>
+        <Text style={[styles.venueName, { color: themeColors.text }]} numberOfLines={2}>
           {venue.name}
         </Text>
         
         <View style={styles.detailsRow}>
           <View style={styles.ratingContainer}>
-            <Star size={14} color={themeColors.accent} fill={themeColors.accent} />
+            <Star size={12} color={themeColors.accent} fill={themeColors.accent} />
             <Text style={[styles.rating, { color: themeColors.subtext }]}>{venue.rating}</Text>
           </View>
           
@@ -71,7 +71,7 @@ export default function TopPickCard({ venue }: TopPickCardProps) {
         {/* Hot Time Display */}
         {hotTimeData && (
           <View style={[styles.hotTimeBadge, { backgroundColor: themeColors.primary + '20' }]}>
-            <Flame size={12} color={themeColors.primary} />
+            <Flame size={10} color={themeColors.primary} />
             <Text style={[styles.hotTimeText, { color: themeColors.primary }]}>
               Hot: {formatTimeSlot(hotTimeData.time)}
             </Text>
@@ -80,7 +80,7 @@ export default function TopPickCard({ venue }: TopPickCardProps) {
 
         {/* Today's Special */}
         {todaySpecials.length > 0 && (
-          <Text style={[styles.specialText, { color: themeColors.accent }]} numberOfLines={1}>
+          <Text style={[styles.specialText, { color: themeColors.accent }]} numberOfLines={2}>
             {todaySpecials[0].title}
           </Text>
         )}
@@ -102,81 +102,82 @@ function formatTimeSlot(timeSlot: string): string {
 
 const styles = StyleSheet.create({
   card: {
-    width: 160,
-    height: 220,
-    borderRadius: 16,
+    width: 120,
+    height: 180,
+    borderRadius: 12,
     overflow: 'hidden',
-    marginRight: 16,
+    marginRight: 12,
     position: 'relative',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowRadius: 8,
+    elevation: 6,
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   image: {
     width: '100%',
-    height: 120,
+    height: 80,
   },
   gradient: {
     position: 'absolute',
     top: 0,
     left: 0,
     width: '100%',
-    height: 120,
+    height: 80,
   },
   flameBadge: {
     position: 'absolute',
-    top: 8,
-    left: 8,
+    top: 6,
+    left: 6,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowRadius: 4,
+    elevation: 5,
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   flameText: {
     color: 'white',
-    fontSize: 10,
+    fontSize: 8,
     fontWeight: '700',
-    marginLeft: 3,
+    marginLeft: 2,
   },
   content: {
     flex: 1,
-    padding: 12,
+    padding: 8,
   },
   venueName: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: '700',
     marginBottom: 4,
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
+    lineHeight: 14,
   },
   detailsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   rating: {
-    marginLeft: 4,
-    fontSize: 12,
+    marginLeft: 3,
+    fontSize: 10,
     fontWeight: '700',
   },
   venueType: {
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '500',
     textTransform: 'capitalize',
     flex: 1,
@@ -185,19 +186,20 @@ const styles = StyleSheet.create({
   hotTimeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-    marginBottom: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginBottom: 4,
     alignSelf: 'flex-start',
   },
   hotTimeText: {
-    fontSize: 10,
+    fontSize: 8,
     fontWeight: '700',
-    marginLeft: 4,
+    marginLeft: 3,
   },
   specialText: {
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '600',
+    lineHeight: 12,
   },
 });
