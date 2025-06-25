@@ -51,7 +51,6 @@ export default function HomeScreen() {
   // Rest of venues sorted by daily likes (excluding top picks)
   const popularVenues = getMostPopularVenues();
   const maconBars = filteredVenues
-    .filter(venue => !topPickIds.includes(venue.id))
     .sort((a, b) => {
       const aLikes = popularVenues.find(p => p.venueId === a.id)?.likes || 0;
       const bLikes = popularVenues.find(p => p.venueId === b.id)?.likes || 0;

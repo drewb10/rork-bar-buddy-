@@ -90,7 +90,21 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       Alert.alert(
         'Stats Saved! 🎉',
         'Your daily stats have been updated and XP awarded!',
-        [{ text: 'Awesome!', onPress: handleClose }]
+        [{ text: 'Awesome!', onPress: () => {
+          // Reset local stats to zero after saving
+          setLocalStats({
+            ...localStats,
+            shots: 0,
+            scoopAndScores: 0,
+            beers: 0,
+            beerTowers: 0,
+            funnels: 0,
+            shotguns: 0,
+            poolGamesWon: 0,
+            dartGamesWon: 0
+          });
+          handleClose();
+        }}]
       );
     } catch (error) {
       console.error('❌ Error saving stats:', error);
@@ -210,7 +224,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                 </Text>
                 <Text style={[styles.sectionSubtitle, { color: themeColors.subtext }]}>
                   {hasSubmittedToday 
-                    ? 'Already submitted today (resets in 24h)'
+                    ? 'Level Submitted for Today (resets in 24h)'
                     : canSubmitScale 
                       ? 'Submit once every 24 hours (+25 XP)'
                       : 'Can submit again in a few hours'
