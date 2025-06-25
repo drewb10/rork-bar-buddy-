@@ -114,7 +114,7 @@ export const authService = {
           throw new AuthError('An account with this email already exists', 'EMAIL_TAKEN');
         }
         if (authError.message.includes('Database error saving new user')) {
-          throw new AuthError('Database setup issue. Please run the RLS policy fix migration in your Supabase dashboard.', 'DATABASE_ERROR');
+          throw new AuthError('Database setup issue. Please run the latest migration in your Supabase dashboard.', 'DATABASE_ERROR');
         }
         if (authError.message.includes('Invalid email')) {
           throw new AuthError('Please enter a valid email address', 'INVALID_EMAIL');
@@ -137,17 +137,18 @@ export const authService = {
 
       console.log('✅ AuthService: Auth user created successfully:', authData.user.id);
 
-      // Step 3: Create profile with retry logic
+      // Step 3: Create profile with improved error handling
       console.log('📝 AuthService: Creating user profile...');
       
       let profile = null;
       let retryCount = 0;
-      const maxRetries = 5;
+      const maxRetries = 3;
       
       while (retryCount < maxRetries && !profile) {
         try {
-          // Wait a bit between retries
+          // Wait a bit between retries to allow auth user to be fully created
           if (retryCount > 0) {
+            console.log(`📝 AuthService: Retry ${retryCount} - waiting before profile creation...`);
             await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
           }
           
@@ -185,8 +186,13 @@ export const authService = {
               throw new AuthError('Username is already taken', 'USERNAME_TAKEN');
             }
             
+            if (profileError.message.includes('new row violates row-level security policy')) {
+              console.error('❌ RLS Policy Error - this should be fixed by the new migration');
+              throw new AuthError('Database permissions issue. Please run the latest migration in your Supabase dashboard.', 'RLS_POLICY_ERROR');
+            }
+            
             if (retryCount === maxRetries - 1) {
-              throw new AuthError('Failed to create user profile. Please check your RLS policies in Supabase.', 'PROFILE_CREATION_FAILED');
+              throw new AuthError('Failed to create user profile. Please check your database setup.', 'PROFILE_CREATION_FAILED');
             }
             
             retryCount++;
@@ -200,7 +206,7 @@ export const authService = {
           console.error(`❌ AuthService: Exception during profile creation (attempt ${retryCount + 1}):`, profileError);
           
           if (retryCount === maxRetries - 1) {
-            throw new AuthError('Failed to create user profile. Please check your RLS policies in Supabase.', 'PROFILE_CREATION_FAILED');
+            throw new AuthError('Failed to create user profile. Please check your database setup.', 'PROFILE_CREATION_FAILED');
           }
           
           retryCount++;
