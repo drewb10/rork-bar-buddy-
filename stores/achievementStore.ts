@@ -524,6 +524,36 @@ export const useAchievementStore = create<AchievementState>()(
     {
       name: 'achievement-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        // Ensure we always have valid state
+        if (!state) {
+          return {
+            achievements: defaultAchievements,
+            completedAchievements: [],
+            lastPopupDate: undefined,
+            canShowPopup: () => true,
+            shouldShow3AMPopup: () => false,
+            mark3AMPopupShown: () => {},
+            initializeAchievements: () => {},
+            completeAchievement: () => {},
+            markPopupShown: () => {},
+            getCompletedCount: () => 0,
+            getAchievementsByCategory: () => [],
+            getCompletedAchievementsByCategory: () => [],
+            resetAchievements: () => {},
+            updateAchievementProgress: () => {},
+            getCurrentLevelAchievements: () => [],
+            checkAndUpdateMultiLevelAchievements: () => {},
+          };
+        }
+        
+        // Initialize achievements if empty
+        if (!state.achievements || state.achievements.length === 0) {
+          state.achievements = defaultAchievements;
+        }
+        
+        return state;
+      },
     }
   )
 );

@@ -314,10 +314,14 @@ export const useUserProfileStore = create<UserProfileState>()(
         if (!profile) return;
 
         try {
+          // Remove any fields that don't exist in the database schema
+          const cleanUpdates = { ...updates };
+          delete (cleanUpdates as any).last_drunk_scale_reset;
+
           const { error } = await supabase
             .from('profiles')
             .update({
-              ...updates,
+              ...cleanUpdates,
               updated_at: new Date().toISOString()
             })
             .eq('id', profile.id);

@@ -8,43 +8,22 @@ import { useAchievementStore, CompletedAchievement } from '@/stores/achievementS
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 
 export default function TrophiesScreen() {
-  // Safe store access with fallbacks and error handling
   const [selectedAchievement, setSelectedAchievement] = useState<CompletedAchievement | null>(null);
   
-  let themeStore, profileStore, achievementStore;
-  let theme: Theme = 'dark';
-  let themeColors: ThemeColors = colors.dark;
-  let profile = null;
-  let getRank = () => ({ title: 'Newbie', subTitle: 'Just getting started', color: '#666666' });
-  let getAverageDrunkScale = () => 0;
-  let completedAchievements: CompletedAchievement[] = [];
-  let getCompletedAchievementsByCategory = (category: 'bars' | 'activities' | 'social' | 'milestones'): CompletedAchievement[] => [];
-
-  try {
-    themeStore = useThemeStore();
-    theme = (themeStore?.theme || 'dark') as Theme;
-    themeColors = colors[theme] as ThemeColors;
-  } catch (error) {
-    console.warn('Error accessing theme store:', error);
-  }
-
-  try {
-    profileStore = useUserProfileStore();
-    profile = profileStore?.profile;
-    getRank = profileStore?.getRank || (() => ({ title: 'Newbie', subTitle: 'Just getting started', color: '#666666' }));
-    getAverageDrunkScale = profileStore?.getAverageDrunkScale || (() => 0);
-  } catch (error) {
-    console.warn('Error accessing profile store:', error);
-  }
-
-  try {
-    achievementStore = useAchievementStore();
-    completedAchievements = achievementStore?.completedAchievements || [];
-    getCompletedAchievementsByCategory = achievementStore?.getCompletedAchievementsByCategory || ((category: 'bars' | 'activities' | 'social' | 'milestones') => []);
-  } catch (error) {
-    console.warn('Error accessing achievement store:', error);
-  }
+  // Safe store access with proper error handling
+  const themeStore = useThemeStore();
+  const theme: Theme = themeStore?.theme || 'dark';
+  const themeColors: ThemeColors = colors[theme];
   
+  const profileStore = useUserProfileStore();
+  const profile = profileStore?.profile;
+  const getRank = profileStore?.getRank || (() => ({ title: 'Newbie', subTitle: 'Just getting started', color: '#666666' }));
+  const getAverageDrunkScale = profileStore?.getAverageDrunkScale || (() => 0);
+  
+  const achievementStore = useAchievementStore();
+  const completedAchievements = achievementStore?.completedAchievements || [];
+  const getCompletedAchievementsByCategory = achievementStore?.getCompletedAchievementsByCategory || (() => []);
+
   // Handle null profile gracefully
   if (!profile) {
     return (
@@ -82,11 +61,11 @@ export default function TrophiesScreen() {
   const averageDrunkScale = getAverageDrunkScale();
 
   const categories = [
-    { key: 'bars', title: 'Bar Hopping', icon: Trophy, color: '#FF6A00' },
-    { key: 'activities', title: 'Activities', icon: Target, color: '#4CAF50' },
-    { key: 'social', title: 'Social', icon: Users, color: '#2196F3' },
-    { key: 'milestones', title: 'Milestones', icon: Star, color: '#9C27B0' },
-  ] as const;
+    { key: 'bars' as const, title: 'Bar Hopping', icon: Trophy, color: '#FF6A00' },
+    { key: 'activities' as const, title: 'Activities', icon: Target, color: '#4CAF50' },
+    { key: 'social' as const, title: 'Social', icon: Users, color: '#2196F3' },
+    { key: 'milestones' as const, title: 'Milestones', icon: Star, color: '#9C27B0' },
+  ];
 
   const formatDate = (dateString: string) => {
     try {

@@ -58,6 +58,9 @@ export default function ProfileScreen() {
   const formatJoinDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Recently';
+      }
       return date.toLocaleDateString('en-US', { 
         month: 'long', 
         year: 'numeric' 
@@ -272,9 +275,11 @@ export default function ProfileScreen() {
               Member since {formatJoinDate(profile.created_at)}
             </Text>
 
-            <Text style={[styles.email, { color: themeColors.subtext }]}>
-              {profile.email}
-            </Text>
+            {profile.email && (
+              <Text style={[styles.email, { color: themeColors.subtext }]}>
+                {profile.email}
+              </Text>
+            )}
           </View>
 
           {/* XP and Ranking Card */}
@@ -289,7 +294,7 @@ export default function ProfileScreen() {
                   {profile.xp || 0} XP
                 </Text>
                 <Text style={[styles.nextRankText, { color: themeColors.subtext }]}>
-                  {nextRankXP - profile.xp} XP to next rank
+                  {Math.max(0, nextRankXP - (profile.xp || 0))} XP to next rank
                 </Text>
               </View>
             </View>
@@ -342,6 +347,27 @@ export default function ProfileScreen() {
             </View>
           </View>
 
+          {/* Additional Stats Grid */}
+          <View style={styles.statsGrid}>
+            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
+              <Text style={[styles.statNumber, { color: themeColors.text }]}>
+                {profile.total_beers || 0}
+              </Text>
+              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
+                Total Beers
+              </Text>
+            </View>
+
+            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
+              <Text style={[styles.statNumber, { color: themeColors.text }]}>
+                {profile.total_shots || 0}
+              </Text>
+              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
+                Total Shots
+              </Text>
+            </View>
+          </View>
+
           {/* Friends Button */}
           <Pressable 
             style={[styles.friendsButton, { backgroundColor: themeColors.card }]}
@@ -349,7 +375,7 @@ export default function ProfileScreen() {
           >
             <Users size={20} color={themeColors.primary} />
             <Text style={[styles.friendsButtonText, { color: themeColors.primary }]}>
-              Friends
+              Friends ({profile.friends?.length || 0})
             </Text>
           </Pressable>
 

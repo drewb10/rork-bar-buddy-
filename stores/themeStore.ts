@@ -35,14 +35,53 @@ export const useThemeStore = create<ThemeState>()(
       name: 'theme-storage',
       storage: createJSONStorage(() => AsyncStorage),
       onRehydrateStorage: () => (state) => {
-        // Ensure we always have a valid theme
-        if (!state || !state.theme) {
+        // Ensure we always have a valid theme and functions
+        if (!state) {
           return { 
             theme: 'dark' as Theme, 
-            setTheme: () => {}, 
-            toggleTheme: () => {} 
+            setTheme: (theme: Theme) => {
+              try {
+                useThemeStore.setState({ theme });
+              } catch (error) {
+                console.warn('Error setting theme:', error);
+              }
+            }, 
+            toggleTheme: () => {
+              try {
+                const currentTheme = useThemeStore.getState()?.theme || 'dark';
+                useThemeStore.setState({ theme: currentTheme === 'dark' ? 'light' : 'dark' });
+              } catch (error) {
+                console.warn('Error toggling theme:', error);
+                useThemeStore.setState({ theme: 'dark' });
+              }
+            }
           };
         }
+        
+        // Ensure functions exist even after rehydration
+        if (!state.setTheme || !state.toggleTheme) {
+          return {
+            ...state,
+            theme: state.theme || 'dark',
+            setTheme: (theme: Theme) => {
+              try {
+                useThemeStore.setState({ theme });
+              } catch (error) {
+                console.warn('Error setting theme:', error);
+              }
+            },
+            toggleTheme: () => {
+              try {
+                const currentTheme = useThemeStore.getState()?.theme || 'dark';
+                useThemeStore.setState({ theme: currentTheme === 'dark' ? 'light' : 'dark' });
+              } catch (error) {
+                console.warn('Error toggling theme:', error);
+                useThemeStore.setState({ theme: 'dark' });
+              }
+            }
+          };
+        }
+        
         return state;
       },
     }
