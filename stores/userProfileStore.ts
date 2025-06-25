@@ -239,6 +239,7 @@ const createDefaultProfile = (): UserProfile => ({
     dartGamesWon: 0,
     date: getTodayString(),
     lastResetAt: new Date().toISOString(),
+    drunkScaleSubmitted: false
   },
   has_completed_onboarding: true,
   created_at: new Date().toISOString(),
@@ -322,6 +323,7 @@ export const useUserProfileStore = create<UserProfileState>()(
                   dartGamesWon: 0,
                   date: getTodayString(),
                   lastResetAt: new Date().toISOString(),
+                  drunkScaleSubmitted: false
                 }
               };
               
@@ -445,18 +447,20 @@ export const useUserProfileStore = create<UserProfileState>()(
             const achievementStore = (window as any).__achievementStore;
             if (achievementStore?.getState) {
               const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
-              checkAndUpdateMultiLevelAchievements({
-                totalBeers: profile.total_beers,
-                totalShots: profile.total_shots,
-                totalBeerTowers: profile.total_beer_towers,
-                totalScoopAndScores: profile.total_scoop_and_scores,
-                totalFunnels: profile.total_funnels,
-                totalShotguns: profile.total_shotguns,
-                poolGamesWon: profile.pool_games_won,
-                dartGamesWon: profile.dart_games_won,
-                barsHit: profile.bars_hit,
-                nightsOut: newNightsOut,
-              });
+              if (typeof checkAndUpdateMultiLevelAchievements === 'function') {
+                checkAndUpdateMultiLevelAchievements({
+                  totalBeers: profile.total_beers || 0,
+                  totalShots: profile.total_shots || 0,
+                  totalBeerTowers: profile.total_beer_towers || 0,
+                  totalScoopAndScores: profile.total_scoop_and_scores || 0,
+                  totalFunnels: profile.total_funnels || 0,
+                  totalShotguns: profile.total_shotguns || 0,
+                  poolGamesWon: profile.pool_games_won || 0,
+                  dartGamesWon: profile.dart_games_won || 0,
+                  barsHit: profile.bars_hit || 0,
+                  nightsOut: newNightsOut,
+                });
+              }
             }
           }
         }
@@ -466,7 +470,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         const { profile } = get();
         if (!profile) return;
 
-        const newBarsHit = profile.bars_hit + 1;
+        const newBarsHit = (profile.bars_hit || 0) + 1;
         
         await get().updateProfile({
           bars_hit: newBarsHit
@@ -480,18 +484,20 @@ export const useUserProfileStore = create<UserProfileState>()(
           const achievementStore = (window as any).__achievementStore;
           if (achievementStore?.getState) {
             const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
-            checkAndUpdateMultiLevelAchievements({
-              totalBeers: profile.total_beers,
-              totalShots: profile.total_shots,
-              totalBeerTowers: profile.total_beer_towers,
-              totalScoopAndScores: profile.total_scoop_and_scores,
-              totalFunnels: profile.total_funnels,
-              totalShotguns: profile.total_shotguns,
-              poolGamesWon: profile.pool_games_won,
-              dartGamesWon: profile.dart_games_won,
-              barsHit: newBarsHit,
-              nightsOut: profile.nights_out,
-            });
+            if (typeof checkAndUpdateMultiLevelAchievements === 'function') {
+              checkAndUpdateMultiLevelAchievements({
+                totalBeers: profile.total_beers || 0,
+                totalShots: profile.total_shots || 0,
+                totalBeerTowers: profile.total_beer_towers || 0,
+                totalScoopAndScores: profile.total_scoop_and_scores || 0,
+                totalFunnels: profile.total_funnels || 0,
+                totalShotguns: profile.total_shotguns || 0,
+                poolGamesWon: profile.pool_games_won || 0,
+                dartGamesWon: profile.dart_games_won || 0,
+                barsHit: newBarsHit,
+                nightsOut: profile.nights_out || 0,
+              });
+            }
           }
         }
       },
@@ -501,9 +507,10 @@ export const useUserProfileStore = create<UserProfileState>()(
         if (!profile) return;
 
         const today = new Date().toISOString();
+        const currentRatings = profile.drunk_scale_ratings || [];
         
         await get().updateProfile({
-          drunk_scale_ratings: [...profile.drunk_scale_ratings, rating],
+          drunk_scale_ratings: [...currentRatings, rating],
           last_drunk_scale_date: today
         });
         
@@ -513,7 +520,7 @@ export const useUserProfileStore = create<UserProfileState>()(
       
       getAverageDrunkScale: () => {
         const { profile } = get();
-        if (!profile || profile.drunk_scale_ratings.length === 0) return 0;
+        if (!profile || !profile.drunk_scale_ratings || profile.drunk_scale_ratings.length === 0) return 0;
         
         const sum = profile.drunk_scale_ratings.reduce((acc, rating) => acc + rating, 0);
         return Math.round((sum / profile.drunk_scale_ratings.length) * 10) / 10;
@@ -522,7 +529,7 @@ export const useUserProfileStore = create<UserProfileState>()(
       getRank: () => {
         const { profile } = get();
         if (!profile) return RANK_STRUCTURE[0];
-        return getRankByXP(profile.xp);
+        return getRankByXP(profile.xp || 0);
       },
       
       getAllRanks: () => RANK_STRUCTURE,
@@ -578,30 +585,32 @@ export const useUserProfileStore = create<UserProfileState>()(
           description,
         };
         
+        const currentXPActivities = profile.xp_activities || [];
+        
         let updates: Partial<UserProfile> = {
-          xp: profile.xp + xpAmount,
-          xp_activities: [...profile.xp_activities, newActivity],
+          xp: (profile.xp || 0) + xpAmount,
+          xp_activities: [...currentXPActivities, newActivity],
         };
         
         switch (type) {
           case 'visit_new_bar':
-            if (venueId && !profile.visited_bars.includes(venueId)) {
-              updates.visited_bars = [...profile.visited_bars, venueId];
+            if (venueId && !profile.visited_bars?.includes(venueId)) {
+              updates.visited_bars = [...(profile.visited_bars || []), venueId];
             }
             break;
           case 'photo_taken':
-            updates.photos_taken = profile.photos_taken + 1;
+            updates.photos_taken = (profile.photos_taken || 0) + 1;
             break;
           case 'pool_games':
-            updates.pool_games_won = profile.pool_games_won + 1;
+            updates.pool_games_won = (profile.pool_games_won || 0) + 1;
             break;
           case 'dart_games':
-            updates.dart_games_won = profile.dart_games_won + 1;
+            updates.dart_games_won = (profile.dart_games_won || 0) + 1;
             break;
         }
         
         await get().updateProfile(updates);
-        console.log(`✅ XP awarded successfully. New total: ${profile.xp + xpAmount}`);
+        console.log(`✅ XP awarded successfully. New total: ${(profile.xp || 0) + xpAmount}`);
       },
       
       updateDailyTrackerTotals: async (stats) => {
@@ -616,17 +625,17 @@ export const useUserProfileStore = create<UserProfileState>()(
           
           // Get current daily stats safely
           const currentDailyStats = get().getDailyStats();
-          const isToday = currentDailyStats.date === today;
+          const isToday = currentDailyStats && currentDailyStats.date === today;
           
           // Calculate the differences to avoid double counting
-          const shotsDiff = Math.max(0, stats.shots - (isToday ? currentDailyStats.shots : 0));
-          const scoopDiff = Math.max(0, stats.scoopAndScores - (isToday ? currentDailyStats.scoopAndScores : 0));
-          const beersDiff = Math.max(0, stats.beers - (isToday ? currentDailyStats.beers : 0));
-          const beerTowersDiff = Math.max(0, stats.beerTowers - (isToday ? currentDailyStats.beerTowers : 0));
-          const funnelsDiff = Math.max(0, stats.funnels - (isToday ? currentDailyStats.funnels : 0));
-          const shotgunsDiff = Math.max(0, stats.shotguns - (isToday ? currentDailyStats.shotguns : 0));
-          const poolDiff = Math.max(0, stats.poolGamesWon - (isToday ? currentDailyStats.poolGamesWon : 0));
-          const dartDiff = Math.max(0, stats.dartGamesWon - (isToday ? currentDailyStats.dartGamesWon : 0));
+          const shotsDiff = Math.max(0, stats.shots - (isToday && currentDailyStats ? currentDailyStats.shots || 0 : 0));
+          const scoopDiff = Math.max(0, stats.scoopAndScores - (isToday && currentDailyStats ? currentDailyStats.scoopAndScores || 0 : 0));
+          const beersDiff = Math.max(0, stats.beers - (isToday && currentDailyStats ? currentDailyStats.beers || 0 : 0));
+          const beerTowersDiff = Math.max(0, stats.beerTowers - (isToday && currentDailyStats ? currentDailyStats.beerTowers || 0 : 0));
+          const funnelsDiff = Math.max(0, stats.funnels - (isToday && currentDailyStats ? currentDailyStats.funnels || 0 : 0));
+          const shotgunsDiff = Math.max(0, stats.shotguns - (isToday && currentDailyStats ? currentDailyStats.shotguns || 0 : 0));
+          const poolDiff = Math.max(0, stats.poolGamesWon - (isToday && currentDailyStats ? currentDailyStats.poolGamesWon || 0 : 0));
+          const dartDiff = Math.max(0, stats.dartGamesWon - (isToday && currentDailyStats ? currentDailyStats.dartGamesWon || 0 : 0));
           
           console.log('🔄 Calculated differences:', {
             shotsDiff, scoopDiff, beersDiff, beerTowersDiff, 
@@ -643,7 +652,11 @@ export const useUserProfileStore = create<UserProfileState>()(
             poolGamesWon: stats.poolGamesWon,
             dartGamesWon: stats.dartGamesWon,
             date: today,
-            lastResetAt: currentDailyStats.lastResetAt,
+            lastResetAt: currentDailyStats ? currentDailyStats.lastResetAt || new Date().toISOString() : new Date().toISOString(),
+            drunkScaleSubmitted: currentDailyStats ? currentDailyStats.drunkScaleSubmitted || false : false,
+            drunkScaleRating: currentDailyStats ? currentDailyStats.drunkScaleRating : undefined,
+            drunkScaleTimestamp: currentDailyStats ? currentDailyStats.drunkScaleTimestamp : undefined,
+            lastDrunkScaleSubmission: currentDailyStats ? currentDailyStats.lastDrunkScaleSubmission : undefined
           };
           
           // Award XP for each activity increase
@@ -690,14 +703,14 @@ export const useUserProfileStore = create<UserProfileState>()(
           
           // Update profile with new totals and daily stats
           await get().updateProfile({
-            total_shots: profile.total_shots + shotsDiff,
-            total_scoop_and_scores: profile.total_scoop_and_scores + scoopDiff,
-            total_beers: profile.total_beers + beersDiff,
-            total_beer_towers: profile.total_beer_towers + beerTowersDiff,
-            total_funnels: profile.total_funnels + funnelsDiff,
-            total_shotguns: profile.total_shotguns + shotgunsDiff,
-            pool_games_won: profile.pool_games_won + poolDiff,
-            dart_games_won: profile.dart_games_won + dartDiff,
+            total_shots: (profile.total_shots || 0) + shotsDiff,
+            total_scoop_and_scores: (profile.total_scoop_and_scores || 0) + scoopDiff,
+            total_beers: (profile.total_beers || 0) + beersDiff,
+            total_beer_towers: (profile.total_beer_towers || 0) + beerTowersDiff,
+            total_funnels: (profile.total_funnels || 0) + funnelsDiff,
+            total_shotguns: (profile.total_shotguns || 0) + shotgunsDiff,
+            pool_games_won: (profile.pool_games_won || 0) + poolDiff,
+            dart_games_won: (profile.dart_games_won || 0) + dartDiff,
             daily_stats: newDailyStats,
           });
 
@@ -706,18 +719,20 @@ export const useUserProfileStore = create<UserProfileState>()(
             const achievementStore = (window as any).__achievementStore;
             if (achievementStore?.getState) {
               const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
-              checkAndUpdateMultiLevelAchievements({
-                totalBeers: profile.total_beers + beersDiff,
-                totalShots: profile.total_shots + shotsDiff,
-                totalBeerTowers: profile.total_beer_towers + beerTowersDiff,
-                totalScoopAndScores: profile.total_scoop_and_scores + scoopDiff,
-                totalFunnels: profile.total_funnels + funnelsDiff,
-                totalShotguns: profile.total_shotguns + shotgunsDiff,
-                poolGamesWon: profile.pool_games_won + poolDiff,
-                dartGamesWon: profile.dart_games_won + dartDiff,
-                barsHit: profile.bars_hit,
-                nightsOut: profile.nights_out,
-              });
+              if (typeof checkAndUpdateMultiLevelAchievements === 'function') {
+                checkAndUpdateMultiLevelAchievements({
+                  totalBeers: (profile.total_beers || 0) + beersDiff,
+                  totalShots: (profile.total_shots || 0) + shotsDiff,
+                  totalBeerTowers: (profile.total_beer_towers || 0) + beerTowersDiff,
+                  totalScoopAndScores: (profile.total_scoop_and_scores || 0) + scoopDiff,
+                  totalFunnels: (profile.total_funnels || 0) + funnelsDiff,
+                  totalShotguns: (profile.total_shotguns || 0) + shotgunsDiff,
+                  poolGamesWon: (profile.pool_games_won || 0) + poolDiff,
+                  dartGamesWon: (profile.dart_games_won || 0) + dartDiff,
+                  barsHit: profile.bars_hit || 0,
+                  nightsOut: profile.nights_out || 0,
+                });
+              }
             }
           }
           
@@ -744,6 +759,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           dartGamesWon: 0,
           date: today,
           lastResetAt: new Date().toISOString(),
+          drunkScaleSubmitted: false,
         };
 
         if (!profile) {
@@ -768,6 +784,10 @@ export const useUserProfileStore = create<UserProfileState>()(
             dartGamesWon: profile.daily_stats.dartGamesWon || 0,
             date: profile.daily_stats.date,
             lastResetAt: profile.daily_stats.lastResetAt || new Date().toISOString(),
+            drunkScaleSubmitted: profile.daily_stats.drunkScaleSubmitted || false,
+            drunkScaleRating: profile.daily_stats.drunkScaleRating,
+            drunkScaleTimestamp: profile.daily_stats.drunkScaleTimestamp,
+            lastDrunkScaleSubmission: profile.daily_stats.lastDrunkScaleSubmission,
           };
         }
         
@@ -1088,6 +1108,7 @@ export const useUserProfileStore = create<UserProfileState>()(
               dartGamesWon: 0,
               date: getTodayString(),
               lastResetAt: new Date().toISOString(),
+              drunkScaleSubmitted: false,
             }),
             searchUserByUsername: async () => null,
             sendFriendRequest: async () => false,

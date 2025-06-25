@@ -43,34 +43,66 @@ interface DailyTrackerState {
   hasDrunkScaleForToday: () => boolean;
 }
 
-const getTodayString = (): string => {
-  return new Date().toISOString().split('T')[0];
-};
+const RESET_HOUR = 5;
+const LIKE_RESET_HOUR = 4;
+const LIKE_RESET_MINUTE = 59;
+const INTERACTION_COOLDOWN_HOURS = 2;
+const DAILY_LIKE_LIMIT = 1; // 1 like per bar per day
 
-const shouldResetAt3AM = (lastResetAt: string): boolean => {
+const shouldReset = (lastReset: string): boolean => {
   try {
-    const lastReset = new Date(lastResetAt);
+    const lastResetDate = new Date(lastReset);
     const now = new Date();
     
-    // Create 3 AM reset time for today
     const resetTime = new Date(now);
-    resetTime.setHours(3, 0, 0, 0);
+    resetTime.setHours(RESET_HOUR, 0, 0, 0);
     
-    // If it's past 3 AM today and last reset was before today's 3 AM, reset
-    if (now >= resetTime && lastReset < resetTime) {
+    return now >= resetTime && lastResetDate < resetTime;
+  } catch {
+    return false;
+  }
+};
+
+const shouldResetLikes = (lastLikeReset: string): boolean => {
+  try {
+    const lastResetDate = new Date(lastLikeReset);
+    const now = new Date();
+    
+    // Reset at 4:59 AM
+    const resetTime = new Date(now);
+    resetTime.setHours(LIKE_RESET_HOUR, LIKE_RESET_MINUTE, 0, 0);
+    
+    // If it's past 4:59 AM today and last reset was before today's 4:59 AM, reset
+    if (now >= resetTime && lastResetDate < resetTime) {
       return true;
     }
     
-    // If it's before 3 AM today, check if last reset was before yesterday's 3 AM
+    // If it's before 4:59 AM today, check if last reset was before yesterday's 4:59 AM
     if (now < resetTime) {
       const yesterdayResetTime = new Date(resetTime);
       yesterdayResetTime.setDate(yesterdayResetTime.getDate() - 1);
-      return lastReset < yesterdayResetTime;
+      return lastResetDate < yesterdayResetTime;
     }
     
     return false;
   } catch {
-    return true; // Reset if there's any error parsing dates
+    return false;
+  }
+};
+
+const canInteractWithVenue = (lastInteraction: string | undefined): boolean => {
+  try {
+    if (!lastInteraction) return true;
+    
+    const lastInteractionDate = new Date(lastInteraction);
+    const now = new Date();
+    
+    const cooldownTime = new Date(lastInteractionDate);
+    cooldownTime.setHours(cooldownTime.getHours() + INTERACTION_COOLDOWN_HOURS);
+    
+    return now >= cooldownTime;
+  } catch {
+    return true;
   }
 };
 
@@ -89,6 +121,10 @@ const canSubmitDrunkScaleToday = (lastSubmission?: string): boolean => {
   } catch {
     return true; // Allow submission if there's an error parsing the date
   }
+};
+
+const getTodayString = (): string => {
+  return new Date().toISOString().split('T')[0];
 };
 
 const defaultDailyStats: DailyStats = {
@@ -124,84 +160,90 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
 
       checkAndResetIfNeeded: () => {
         const { dailyStats } = get();
-        if (shouldResetAt3AM(dailyStats.lastResetAt)) {
+        if (shouldReset(dailyStats.lastResetAt)) {
           get().resetDailyStats();
         }
       },
 
       updateDailyStats: (stats) => {
-        // Check for reset before updating
-        get().checkAndResetIfNeeded();
-        
-        const today = getTodayString();
-        
-        set((state) => {
-          const currentStats = state.dailyStats;
+        try {
+          // Check for reset before updating
+          get().checkAndResetIfNeeded();
           
-          // Safely handle stats updates with proper defaults
-          const newStats: DailyStats = {
-            shots: stats.shots !== undefined ? stats.shots : currentStats.shots,
-            scoopAndScores: stats.scoopAndScores !== undefined ? stats.scoopAndScores : currentStats.scoopAndScores,
-            beers: stats.beers !== undefined ? stats.beers : currentStats.beers,
-            beerTowers: stats.beerTowers !== undefined ? stats.beerTowers : currentStats.beerTowers,
-            funnels: stats.funnels !== undefined ? stats.funnels : currentStats.funnels,
-            shotguns: stats.shotguns !== undefined ? stats.shotguns : currentStats.shotguns,
-            poolGamesWon: stats.poolGamesWon !== undefined ? stats.poolGamesWon : currentStats.poolGamesWon,
-            dartGamesWon: stats.dartGamesWon !== undefined ? stats.dartGamesWon : currentStats.dartGamesWon,
-            date: today,
-            lastResetAt: currentStats.lastResetAt,
-            drunkScaleSubmitted: currentStats.drunkScaleSubmitted,
-            drunkScaleRating: currentStats.drunkScaleRating,
-            drunkScaleTimestamp: currentStats.drunkScaleTimestamp,
-            lastDrunkScaleSubmission: currentStats.lastDrunkScaleSubmission,
-          };
+          const today = getTodayString();
           
-          // Calculate the differences to avoid double counting
-          const shotsDiff = Math.max(0, newStats.shots - currentStats.shots);
-          const scoopDiff = Math.max(0, newStats.scoopAndScores - currentStats.scoopAndScores);
-          const beersDiff = Math.max(0, newStats.beers - currentStats.beers);
-          const beerTowersDiff = Math.max(0, newStats.beerTowers - currentStats.beerTowers);
-          const funnelsDiff = Math.max(0, newStats.funnels - currentStats.funnels);
-          const shotgunsDiff = Math.max(0, newStats.shotguns - currentStats.shotguns);
-          const poolDiff = Math.max(0, newStats.poolGamesWon - currentStats.poolGamesWon);
-          const dartDiff = Math.max(0, newStats.dartGamesWon - currentStats.dartGamesWon);
-          
-          const updatedTotalStats: TotalStats = {
-            shots: state.totalStats.shots + shotsDiff,
-            scoopAndScores: state.totalStats.scoopAndScores + scoopDiff,
-            beers: state.totalStats.beers + beersDiff,
-            beerTowers: state.totalStats.beerTowers + beerTowersDiff,
-            funnels: state.totalStats.funnels + funnelsDiff,
-            shotguns: state.totalStats.shotguns + shotgunsDiff,
-            poolGamesWon: state.totalStats.poolGamesWon + poolDiff,
-            dartGamesWon: state.totalStats.dartGamesWon + dartDiff,
-          };
-          
-          // Update achievements if there are any increases
-          if (typeof window !== 'undefined' && (window as any).__achievementStore) {
-            const achievementStore = (window as any).__achievementStore;
-            if (achievementStore?.getState) {
-              const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
-              checkAndUpdateMultiLevelAchievements({
-                totalBeers: updatedTotalStats.beers,
-                totalShots: updatedTotalStats.shots,
-                totalBeerTowers: updatedTotalStats.beerTowers,
-                totalScoopAndScores: updatedTotalStats.scoopAndScores,
-                totalFunnels: updatedTotalStats.funnels,
-                totalShotguns: updatedTotalStats.shotguns,
-                poolGamesWon: updatedTotalStats.poolGamesWon,
-                dartGamesWon: updatedTotalStats.dartGamesWon,
-                barsHit: 0, // This comes from user profile
-                nightsOut: 0, // This comes from user profile
-              });
+          set((state) => {
+            const currentStats = state.dailyStats || defaultDailyStats;
+            
+            // Safely handle stats updates with proper defaults
+            const newStats: DailyStats = {
+              shots: stats.shots !== undefined ? stats.shots : currentStats.shots || 0,
+              scoopAndScores: stats.scoopAndScores !== undefined ? stats.scoopAndScores : currentStats.scoopAndScores || 0,
+              beers: stats.beers !== undefined ? stats.beers : currentStats.beers || 0,
+              beerTowers: stats.beerTowers !== undefined ? stats.beerTowers : currentStats.beerTowers || 0,
+              funnels: stats.funnels !== undefined ? stats.funnels : currentStats.funnels || 0,
+              shotguns: stats.shotguns !== undefined ? stats.shotguns : currentStats.shotguns || 0,
+              poolGamesWon: stats.poolGamesWon !== undefined ? stats.poolGamesWon : currentStats.poolGamesWon || 0,
+              dartGamesWon: stats.dartGamesWon !== undefined ? stats.dartGamesWon : currentStats.dartGamesWon || 0,
+              date: today,
+              lastResetAt: currentStats.lastResetAt || new Date().toISOString(),
+              drunkScaleSubmitted: currentStats.drunkScaleSubmitted || false,
+              drunkScaleRating: currentStats.drunkScaleRating,
+              drunkScaleTimestamp: currentStats.drunkScaleTimestamp,
+              lastDrunkScaleSubmission: currentStats.lastDrunkScaleSubmission,
+            };
+            
+            // Calculate the differences to avoid double counting
+            const shotsDiff = Math.max(0, newStats.shots - (currentStats.shots || 0));
+            const scoopDiff = Math.max(0, newStats.scoopAndScores - (currentStats.scoopAndScores || 0));
+            const beersDiff = Math.max(0, newStats.beers - (currentStats.beers || 0));
+            const beerTowersDiff = Math.max(0, newStats.beerTowers - (currentStats.beerTowers || 0));
+            const funnelsDiff = Math.max(0, newStats.funnels - (currentStats.funnels || 0));
+            const shotgunsDiff = Math.max(0, newStats.shotguns - (currentStats.shotguns || 0));
+            const poolDiff = Math.max(0, newStats.poolGamesWon - (currentStats.poolGamesWon || 0));
+            const dartDiff = Math.max(0, newStats.dartGamesWon - (currentStats.dartGamesWon || 0));
+            
+            const updatedTotalStats: TotalStats = {
+              shots: (state.totalStats?.shots || 0) + shotsDiff,
+              scoopAndScores: (state.totalStats?.scoopAndScores || 0) + scoopDiff,
+              beers: (state.totalStats?.beers || 0) + beersDiff,
+              beerTowers: (state.totalStats?.beerTowers || 0) + beerTowersDiff,
+              funnels: (state.totalStats?.funnels || 0) + funnelsDiff,
+              shotguns: (state.totalStats?.shotguns || 0) + shotgunsDiff,
+              poolGamesWon: (state.totalStats?.poolGamesWon || 0) + poolDiff,
+              dartGamesWon: (state.totalStats?.dartGamesWon || 0) + dartDiff,
+            };
+            
+            // Update achievements if there are any increases
+            if (typeof window !== 'undefined' && (window as any).__achievementStore) {
+              const achievementStore = (window as any).__achievementStore;
+              if (achievementStore?.getState) {
+                const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
+                if (typeof checkAndUpdateMultiLevelAchievements === 'function') {
+                  checkAndUpdateMultiLevelAchievements({
+                    totalBeers: updatedTotalStats.beers,
+                    totalShots: updatedTotalStats.shots,
+                    totalBeerTowers: updatedTotalStats.beerTowers,
+                    totalScoopAndScores: updatedTotalStats.scoopAndScores,
+                    totalFunnels: updatedTotalStats.funnels,
+                    totalShotguns: updatedTotalStats.shotguns,
+                    poolGamesWon: updatedTotalStats.poolGamesWon,
+                    dartGamesWon: updatedTotalStats.dartGamesWon,
+                    barsHit: 0, // This comes from user profile
+                    nightsOut: 0, // This comes from user profile
+                  });
+                }
+              }
             }
-          }
-          
-          return {
-            dailyStats: newStats,
-            totalStats: updatedTotalStats,
-          };
-        });
+            
+            return {
+              dailyStats: newStats,
+              totalStats: updatedTotalStats,
+            };
+          });
+        } catch (error) {
+          console.warn('Error updating daily stats:', error);
+        }
       },
 
       submitDrunkScale: (rating: number) => {
@@ -230,7 +272,9 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
           const userProfileStore = (window as any).__userProfileStore;
           if (userProfileStore?.getState) {
             const { addDrunkScaleRating } = userProfileStore.getState();
-            addDrunkScaleRating(rating);
+            if (typeof addDrunkScaleRating === 'function') {
+              addDrunkScaleRating(rating);
+            }
           }
         }
       },
@@ -256,7 +300,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
         const { dailyStats } = get();
         const today = getTodayString();
         
-        if (dailyStats.date === today) {
+        if (dailyStats && dailyStats.date === today) {
           return dailyStats;
         }
         
@@ -268,7 +312,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
       },
 
       getTotalStats: () => {
-        return get().totalStats;
+        return get().totalStats || defaultTotalStats;
       },
 
       canSubmitDrunkScale: () => {
@@ -276,7 +320,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
         const { dailyStats } = get();
         
         // Check if 24 hours have passed since last submission
-        return canSubmitDrunkScaleToday(dailyStats.lastDrunkScaleSubmission);
+        return canSubmitDrunkScaleToday(dailyStats?.lastDrunkScaleSubmission);
       },
 
       hasDrunkScaleForToday: () => {
@@ -284,7 +328,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
         const { dailyStats } = get();
         
         // Check if user has submitted today and 24 hours haven't passed
-        return !canSubmitDrunkScaleToday(dailyStats.lastDrunkScaleSubmission);
+        return !canSubmitDrunkScaleToday(dailyStats?.lastDrunkScaleSubmission);
       },
     }),
     {

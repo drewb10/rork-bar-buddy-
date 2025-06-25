@@ -48,7 +48,7 @@ export default function HomeScreen() {
   const topPickIds = ['library-taphouse', 'late-night-library', 'jba-sports-bar'];
   const topPicks = venues.filter(venue => topPickIds.includes(venue.id)).slice(0, 3);
 
-  // Rest of venues sorted by daily likes (excluding top picks)
+  // Rest of venues sorted by daily likes (including top picks)
   const popularVenues = getMostPopularVenues();
   const maconBars = filteredVenues
     .sort((a, b) => {
