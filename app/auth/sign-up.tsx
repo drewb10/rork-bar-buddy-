@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, StatusBar, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Eye, EyeOff, Mail, Lock, User, Check, X } from 'lucide-react-native';
+import { Eye, EyeOff, Mail, Lock, User, Check, X, AlertCircle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -12,7 +12,7 @@ export default function SignUpScreen() {
   const router = useRouter();
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { signUp, isLoading, error, clearError, checkUsernameAvailable } = useAuthStore();
+  const { signUp, isLoading, error, clearError, checkUsernameAvailable, isConfigured } = useAuthStore();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -58,6 +58,18 @@ export default function SignUpScreen() {
   const handleSignUp = async () => {
     clearError();
 
+    if (!isConfigured) {
+      Alert.alert(
+        'Setup Required', 
+        'Please configure your Supabase database first. Check the setup instructions in your project.',
+        [
+          { text: 'OK' },
+          { text: 'Go to Demo', onPress: () => router.replace('/(tabs)') }
+        ]
+      );
+      return;
+    }
+
     if (!validateEmail(email)) {
       Alert.alert('Invalid Email', 'Please enter a valid email address');
       return;
@@ -92,6 +104,10 @@ export default function SignUpScreen() {
 
   const navigateToSignIn = () => {
     router.push('/auth/sign-in');
+  };
+
+  const navigateToDemo = () => {
+    router.replace('/(tabs)');
   };
 
   const getUsernameIcon = () => {
@@ -149,6 +165,16 @@ export default function SignUpScreen() {
               Join the best bar community
             </Text>
           </View>
+
+          {/* Configuration Warning */}
+          {!isConfigured && (
+            <View style={[styles.warningContainer, { backgroundColor: '#FFA500' + '20', borderColor: '#FFA500' }]}>
+              <AlertCircle size={20} color="#FFA500" />
+              <Text style={[styles.warningText, { color: '#FFA500' }]}>
+                Database not configured. Check setup instructions or try demo mode.
+              </Text>
+            </View>
+          )}
 
           {/* Error Display */}
           {error && (
@@ -248,6 +274,18 @@ export default function SignUpScreen() {
               </Pressable>
             </LinearGradient>
 
+            {/* Demo Mode Button */}
+            {!isConfigured && (
+              <Pressable
+                style={[styles.demoButton, { borderColor: themeColors.border }]}
+                onPress={navigateToDemo}
+              >
+                <Text style={[styles.demoButtonText, { color: themeColors.text }]}>
+                  Try Demo Mode
+                </Text>
+              </Pressable>
+            )}
+
             {/* Sign In Link */}
             <View style={styles.signInContainer}>
               <Text style={[styles.signInText, { color: themeColors.subtext }]}>
@@ -289,6 +327,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginTop: 16,
+  },
+  warningContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 20,
+    gap: 12,
+  },
+  warningText: {
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
   },
   errorContainer: {
     padding: 16,
@@ -357,6 +409,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: 1,
+  },
+  demoButton: {
+    borderRadius: 14,
+    borderWidth: 2,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  demoButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   signInContainer: {
     flexDirection: 'row',

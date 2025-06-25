@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService, UserProfile, AuthError } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 interface AuthState {
   user: any | null;
@@ -10,6 +10,7 @@ interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
   error: string | null;
+  isConfigured: boolean;
   
   // Actions
   signUp: (email: string, password: string, username: string) => Promise<boolean>;
@@ -20,6 +21,7 @@ interface AuthState {
   updateProfile: (updates: Partial<UserProfile>) => Promise<boolean>;
   searchUser: (username: string) => Promise<UserProfile | null>;
   initialize: () => Promise<void>;
+  checkConfiguration: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -30,6 +32,7 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       isAuthenticated: false,
       error: null,
+      isConfigured: isSupabaseConfigured(),
 
       signUp: async (email: string, password: string, username: string): Promise<boolean> => {
         set({ isLoading: true, error: null });
@@ -166,6 +169,24 @@ export const useAuthStore = create<AuthState>()(
       },
 
       initialize: async (): Promise<void> => {
+        const currentState = get();
+        
+        // Check configuration first
+        const configured = isSupabaseConfigured();
+        set({ isConfigured: configured });
+        
+        if (!configured) {
+          console.log('🎯 AuthStore: Supabase not configured, skipping auth initialization');
+          set({
+            user: null,
+            profile: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: null
+          });
+          return;
+        }
+        
         set({ isLoading: true });
         
         try {
@@ -201,6 +222,11 @@ export const useAuthStore = create<AuthState>()(
             error: null
           });
         }
+      },
+
+      checkConfiguration: () => {
+        const configured = isSupabaseConfigured();
+        set({ isConfigured: configured });
       }
     }),
     {
@@ -215,19 +241,23 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// Set up auth state listener
-supabase.auth.onAuthStateChange(async (event, session) => {
-  console.log('🎯 Auth state change:', event);
-  const { initialize } = useAuthStore.getState();
-  
-  if (event === 'SIGNED_IN' && session) {
-    await initialize();
-  } else if (event === 'SIGNED_OUT') {
-    useAuthStore.setState({
-      user: null,
-      profile: null,
-      isAuthenticated: false,
-      error: null
-    });
-  }
-});
+// Set up auth state listener only if configured
+if (isSupabaseConfigured()) {
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    console.log('🎯 Auth state change:', event);
+    const { initialize } = useAuthStore.getState();
+    
+    if (event === 'SIGNED_IN' && session) {
+      await initialize();
+    } else if (event === 'SIGNED_OUT') {
+      useAuthStore.setState({
+        user: null,
+        profile: null,
+        isAuthenticated: false,
+        error: null
+      });
+    }
+  });
+} else {
+  console.warn('🎯 Supabase not configured, skipping auth state listener');
+}

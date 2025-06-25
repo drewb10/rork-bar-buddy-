@@ -11,6 +11,7 @@ import { useChatStore } from "@/stores/chatStore";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
 import AchievementPopup from "@/components/AchievementPopup";
 import { useFrameworkReady } from "@/hooks/useFrameworkReady";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,7 +28,7 @@ export default function RootLayout() {
   useFrameworkReady();
 
   const { isVerified, setVerified } = useAgeVerificationStore();
-  const { isAuthenticated, initialize: initializeAuth } = useAuthStore();
+  const { isAuthenticated, initialize: initializeAuth, isConfigured, checkConfiguration } = useAuthStore();
   const { loadPopularTimesFromSupabase } = useVenueInteractionStore();
   const { shouldShow3AMPopup, mark3AMPopupShown } = useAchievementStore();
   const { resetChatOnAppReopen } = useChatStore();
@@ -39,6 +40,9 @@ export default function RootLayout() {
     // Reset chat messages on app start to ensure anonymous behavior
     resetChatOnAppReopen();
     
+    // Check Supabase configuration
+    checkConfiguration();
+    
     // Initialize authentication
     const initializeApp = async () => {
       try {
@@ -49,11 +53,11 @@ export default function RootLayout() {
           setIsInitialized(true);
         }, 5000);
 
-        // Initialize auth first
+        // Initialize auth (will handle unconfigured state gracefully)
         await initializeAuth();
         
-        // Load venue data if authenticated
-        if (isAuthenticated) {
+        // Load venue data if authenticated and configured
+        if (isAuthenticated && isSupabaseConfigured()) {
           try {
             await loadPopularTimesFromSupabase();
           } catch (error) {
@@ -80,7 +84,7 @@ export default function RootLayout() {
         }, 100);
       }
     }
-  }, [isVerified, isAuthenticated, isInitialized, resetChatOnAppReopen, initializeAuth, loadPopularTimesFromSupabase]);
+  }, [isVerified, isAuthenticated, isInitialized, resetChatOnAppReopen, initializeAuth, loadPopularTimesFromSupabase, checkConfiguration]);
 
   // 3 AM popup check
   useEffect(() => {

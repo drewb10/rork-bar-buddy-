@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, isSupabaseConfigured } from './supabase';
 
 export interface SignUpData {
   email: string;
@@ -46,6 +46,11 @@ export class AuthError extends Error {
 export const authService = {
   async checkUsernameAvailable(username: string): Promise<boolean> {
     try {
+      if (!isSupabaseConfigured()) {
+        console.warn('Supabase not configured, skipping username check');
+        return true; // Allow any username when not configured
+      }
+
       // First check if username is valid
       if (!username || username.length < 3 || username.length > 20 || !/^[a-zA-Z0-9_]+$/.test(username)) {
         return false;
@@ -72,6 +77,10 @@ export const authService = {
 
   async signUp({ email, password, username }: SignUpData): Promise<{ user: any; profile: UserProfile | null }> {
     try {
+      if (!isSupabaseConfigured()) {
+        throw new AuthError('Database not configured. Please check your setup instructions.', 'NOT_CONFIGURED');
+      }
+
       console.log('🚀 AuthService: Starting signup process for:', { email, username });
       
       // Step 1: Check username availability
@@ -82,8 +91,8 @@ export const authService = {
       }
       console.log('✅ AuthService: Username is available');
 
-      // Step 2: Create auth user (this should now work without trigger interference)
-      console.log('📝 AuthService: Creating auth user (no triggers)...');
+      // Step 2: Create auth user
+      console.log('📝 AuthService: Creating auth user...');
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -102,7 +111,7 @@ export const authService = {
           throw new AuthError('An account with this email already exists', 'EMAIL_TAKEN');
         }
         if (authError.message.includes('Database error')) {
-          throw new AuthError('Database connection issue. Please try again.', 'DATABASE_ERROR');
+          throw new AuthError('Database connection issue. Please check your Supabase configuration.', 'DATABASE_ERROR');
         }
         if (authError.message.includes('Invalid email')) {
           throw new AuthError('Please enter a valid email address', 'INVALID_EMAIL');
@@ -121,7 +130,7 @@ export const authService = {
 
       console.log('✅ AuthService: Auth user created successfully:', authData.user.id);
 
-      // Step 3: Create profile manually (completely separate from auth)
+      // Step 3: Create profile manually
       console.log('📝 AuthService: Creating user profile manually...');
       
       try {
@@ -153,20 +162,6 @@ export const authService = {
 
         if (profileError) {
           console.error('❌ AuthService: Profile creation error:', profileError);
-          
-          // Clean up the auth user since profile creation failed
-          console.log('🧹 AuthService: Cleaning up auth user due to profile creation failure...');
-          try {
-            const { error: deleteError } = await supabase.auth.admin.deleteUser(authData.user.id);
-            if (deleteError) {
-              console.error('❌ AuthService: Failed to cleanup auth user:', deleteError);
-            } else {
-              console.log('✅ AuthService: Auth user cleaned up successfully');
-            }
-          } catch (cleanupError) {
-            console.error('❌ AuthService: Exception during auth user cleanup:', cleanupError);
-          }
-          
           throw new AuthError('Failed to create user profile. Please try again.', 'PROFILE_CREATION_FAILED');
         }
 
@@ -176,18 +171,6 @@ export const authService = {
         return { user: authData.user, profile: newProfile };
       } catch (profileError) {
         console.error('❌ AuthService: Exception during profile creation:', profileError);
-        
-        // Clean up the auth user
-        console.log('🧹 AuthService: Cleaning up auth user due to profile creation exception...');
-        try {
-          const { error: deleteError } = await supabase.auth.admin.deleteUser(authData.user.id);
-          if (deleteError) {
-            console.error('❌ AuthService: Failed to cleanup auth user:', deleteError);
-          }
-        } catch (cleanupError) {
-          console.error('❌ AuthService: Exception during auth user cleanup:', cleanupError);
-        }
-        
         throw new AuthError('Failed to create user profile. Please try again.', 'PROFILE_CREATION_FAILED');
       }
     } catch (error) {
@@ -201,6 +184,10 @@ export const authService = {
 
   async signIn({ email, password }: SignInData): Promise<{ user: any; profile: UserProfile | null }> {
     try {
+      if (!isSupabaseConfigured()) {
+        throw new AuthError('Database not configured. Please check your setup instructions.', 'NOT_CONFIGURED');
+      }
+
       console.log('🚀 AuthService: Starting signin process for:', email);
       
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -251,6 +238,11 @@ export const authService = {
 
   async signOut(): Promise<void> {
     try {
+      if (!isSupabaseConfigured()) {
+        console.warn('Supabase not configured, skipping signout');
+        return;
+      }
+
       console.log('🚀 AuthService: Starting signout process...');
       const { error } = await supabase.auth.signOut();
       if (error) {
@@ -266,6 +258,11 @@ export const authService = {
 
   async getCurrentUser(): Promise<{ user: any; profile: UserProfile | null }> {
     try {
+      if (!isSupabaseConfigured()) {
+        console.warn('Supabase not configured, returning null user');
+        return { user: null, profile: null };
+      }
+
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError || !user) {
@@ -292,6 +289,10 @@ export const authService = {
 
   async updateProfile(updates: Partial<UserProfile>): Promise<UserProfile> {
     try {
+      if (!isSupabaseConfigured()) {
+        throw new AuthError('Database not configured', 'NOT_CONFIGURED');
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -322,6 +323,10 @@ export const authService = {
 
   async searchUserByUsername(username: string): Promise<UserProfile | null> {
     try {
+      if (!isSupabaseConfigured()) {
+        return null;
+      }
+
       const { data, error } = await supabase
         .from('profiles')
         .select('*')

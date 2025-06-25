@@ -32,14 +32,34 @@ yarn start
 ## Step 5: Test the Connection
 1. Complete the onboarding flow in your app
 2. Go to your Supabase dashboard → Table Editor
-3. Check the `user_profiles` table - you should see your data
+3. Check the `profiles` table - you should see your data
 4. Try adding friends, completing bingo tasks, etc.
 5. Verify data appears in the respective tables
+
+## Demo Mode
+If you haven't set up Supabase yet, the app will work in demo mode:
+- All features work locally
+- Data is stored in device memory only
+- Perfect for testing and development
+- No account creation or data persistence
 
 ## Troubleshooting
 - Make sure `.env` is in your project root (same level as `package.json`)
 - Restart your development server after creating `.env`
 - Check Supabase logs if you get errors
 - Verify your URL and key are correct (no extra spaces)
+- If you see "Database error saving new user", check your Supabase configuration
 
-That's it! Your app will automatically sync all data to Supabase.
+## Error: "Database error saving new user"
+This error means:
+1. Your `.env` file is missing or has incorrect values
+2. Your Supabase project is not accessible
+3. The database tables haven't been created yet
+
+**Quick Fix:**
+1. Double-check your `.env` file
+2. Run the SQL setup script in Supabase
+3. Restart your app
+4. Or use Demo Mode to test the app without a database
+
+That's it! Your app will automatically sync all data to Supabase when configured.

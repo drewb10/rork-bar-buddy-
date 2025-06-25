@@ -4,11 +4,16 @@ import { useAuthStore } from '@/stores/authStore';
 import { useAgeVerificationStore } from '@/stores/ageVerificationStore';
 
 export default function Index() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isConfigured } = useAuthStore();
   const { isVerified } = useAgeVerificationStore();
 
   // If not age verified, go to tabs to show age verification modal
   if (!isVerified) {
+    return <Redirect href="/(tabs)" />;
+  }
+
+  // If Supabase is not configured, go to tabs (app will work in demo mode)
+  if (!isConfigured) {
     return <Redirect href="/(tabs)" />;
   }
 
