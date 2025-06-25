@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, Pressable, Image, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MapPin, Clock, Star, Flame, Heart, TrendingUp, MessageCircle } from 'lucide-react-native';
+import { MapPin, Clock, Star, Flame, TrendingUp, MessageCircle } from 'lucide-react-native';
 import { Venue } from '@/types/venue';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
@@ -49,7 +49,8 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     setChatModalVisible(true);
   };
 
-  const handleLikePress = (e: any) => {
+  // Flame icon now handles likes (daily limit of 1 per bar)
+  const handleFlamePress = (e: any) => {
     e.stopPropagation(); // Prevent venue navigation
     
     if (!canLikeThisVenue) {
@@ -150,21 +151,21 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           style={styles.compactGradient}
         />
         
-        {/* Like Button for compact cards */}
+        {/* Flame Button for compact cards - now handles likes */}
         <Pressable 
           style={[
-            styles.compactLikeButton, 
+            styles.compactFlameButton, 
             { 
               backgroundColor: canLikeThisVenue ? themeColors.primary : themeColors.border,
               opacity: canLikeThisVenue ? 1 : 0.5
             }
           ]}
-          onPress={handleLikePress}
+          onPress={handleFlamePress}
           disabled={!canLikeThisVenue}
         >
-          <Heart size={12} color="white" fill={likeCount > 0 ? "white" : "transparent"} />
+          <Flame size={12} color="white" fill={likeCount > 0 ? "white" : "transparent"} />
           {likeCount > 0 && (
-            <Text style={styles.compactLikeText}>{likeCount}</Text>
+            <Text style={styles.compactFlameText}>{likeCount}</Text>
           )}
         </Pressable>
 
@@ -213,48 +214,34 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         style={styles.imageGradient}
       />
       
-      {/* Flame Button - No counter, just functional */}
+      {/* Flame Button - Now handles daily likes (1 per bar per day) */}
       <Pressable 
         style={[
-          styles.interactionButton, 
-          { 
-            backgroundColor: interactionCount > 0 ? themeColors.primary : themeColors.card,
-            opacity: canInteractWithVenue && !isInteracting ? 1 : 0.5
-          }
-        ]}
-        onPress={handleInteraction}
-        disabled={!canInteractWithVenue || isInteracting}
-      >
-        <Flame 
-          size={18} 
-          color={interactionCount > 0 ? 'white' : themeColors.primary} 
-        />
-      </Pressable>
-
-      {/* Chat Button - New prominent position */}
-      <Pressable 
-        style={[styles.chatButton, { backgroundColor: themeColors.primary }]}
-        onPress={handleChatPress}
-      >
-        <MessageCircle size={18} color="white" />
-      </Pressable>
-
-      {/* Like Button with daily limit indicator */}
-      <Pressable 
-        style={[
-          styles.likeButton, 
+          styles.flameButton, 
           { 
             backgroundColor: canLikeThisVenue ? themeColors.primary : themeColors.border,
             opacity: canLikeThisVenue ? 1 : 0.5
           }
         ]}
-        onPress={handleLikePress}
+        onPress={handleFlamePress}
         disabled={!canLikeThisVenue}
       >
-        <Heart size={16} color="white" fill={likeCount > 0 ? "white" : "transparent"} />
+        <Flame 
+          size={18} 
+          color="white"
+          fill={likeCount > 0 ? "white" : "transparent"}
+        />
         {likeCount > 0 && (
-          <Text style={styles.likeButtonText}>{likeCount}</Text>
+          <Text style={styles.flameButtonText}>{likeCount}</Text>
         )}
+      </Pressable>
+
+      {/* Chat Button */}
+      <Pressable 
+        style={[styles.chatButton, { backgroundColor: themeColors.primary }]}
+        onPress={handleChatPress}
+      >
+        <MessageCircle size={18} color="white" />
       </Pressable>
 
       {/* Analytics indicator for venues with data */}
@@ -301,7 +288,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
             </Text>
             {likeCount > 0 && (
               <View style={styles.hotTimeLikes}>
-                <Heart size={10} color={themeColors.primary} fill={themeColors.primary} />
+                <Flame size={10} color={themeColors.primary} fill={themeColors.primary} />
                 <Text style={[styles.hotTimeLikesText, { color: themeColors.primary }]}>
                   {likeCount}
                 </Text>
@@ -314,7 +301,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         {!canLikeThisVenue && (
           <View style={[styles.limitBadge, { backgroundColor: themeColors.border + '40' }]}>
             <Text style={[styles.limitText, { color: themeColors.subtext }]}>
-              💡 Daily like used • Resets at 4:59 AM
+              🔥 Daily like used • Resets at 4:59 AM
             </Text>
           </View>
         )}
@@ -471,15 +458,15 @@ const styles = StyleSheet.create({
     right: 0,
     height: 180,
   },
-  interactionButton: {
+  flameButton: {
     position: 'absolute',
     top: 12,
     right: 12,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -487,6 +474,12 @@ const styles = StyleSheet.create({
     elevation: 8,
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  flameButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 4,
   },
   chatButton: {
     position: 'absolute',
@@ -504,29 +497,6 @@ const styles = StyleSheet.create({
     elevation: 8,
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  likeButton: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  likeButtonText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '700',
-    marginLeft: 4,
   },
   analyticsIndicator: {
     position: 'absolute',
@@ -697,7 +667,7 @@ const styles = StyleSheet.create({
     right: 0,
     height: 100,
   },
-  compactLikeButton: {
+  compactFlameButton: {
     position: 'absolute',
     top: 8,
     right: 8,
@@ -712,7 +682,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  compactLikeText: {
+  compactFlameText: {
     color: 'white',
     fontSize: 10,
     fontWeight: '700',

@@ -16,7 +16,7 @@ import {
 import { X, Send, TriangleAlert as AlertTriangle, MessageCircle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
-import { useChatStore } from '@/stores/chatStore';
+import { useVenueChatStore } from '@/stores/venueChatStore';
 import { Venue } from '@/types/venue';
 
 interface ChatModalProps {
@@ -31,15 +31,18 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
   const themeColors = colors[theme] || colors.dark;
   
   const { 
+    messages, 
     currentSession, 
-    sendMessage, 
     isLoading, 
     error, 
-    clearError,
-    resetChatOnAppReopen,
-    checkAndResetDaily,
-    generateAnonymousIdentity 
-  } = useChatStore();
+    createOrGetSession,
+    loadMessages,
+    sendMessage,
+    subscribeToMessages,
+    unsubscribeFromMessages,
+    cleanup,
+    clearError
+  } = useVenueChatStore();
   
   const [inputText, setInputText] = useState('');
   const [showTerms, setShowTerms] = useState(false);
@@ -54,23 +57,16 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
     if (visible && venue?.id && !isInitialized) {
       initializeChat();
     } else if (!visible) {
-      cleanup();
+      cleanupChat();
       setIsInitialized(false);
     }
 
     return () => {
       if (!visible) {
-        cleanup();
+        cleanupChat();
       }
     };
   }, [visible, venue?.id]);
-
-  // Check for daily reset when modal opens
-  useEffect(() => {
-    if (visible) {
-      checkAndResetDaily();
-    }
-  }, [visible, checkAndResetDaily]);
 
   const initializeChat = async () => {
     try {
@@ -86,10 +82,14 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
         return;
       }
 
-      // Ensure we have a session with anonymous identity
-      if (!currentSession) {
-        resetChatOnAppReopen();
-      }
+      // Create or get session for this venue
+      await createOrGetSession(venue.id);
+      
+      // Load existing messages for this venue
+      await loadMessages(venue.id);
+      
+      // Subscribe to real-time messages
+      subscribeToMessages(venue.id);
 
       setIsInitialized(true);
     } catch (error) {
@@ -98,17 +98,18 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
     }
   };
 
-  const cleanup = () => {
+  const cleanupChat = () => {
+    unsubscribeFromMessages();
     clearError();
   };
 
   useEffect(() => {
-    if (currentSession?.messages && currentSession.messages.length > 0) {
+    if (messages && messages.length > 0) {
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
-  }, [currentSession?.messages]);
+  }, [messages]);
 
   const handleSendMessage = async () => {
     if (!inputText || !inputText.trim() || isSending) return;
@@ -151,7 +152,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
     setInputText('');
 
     try {
-      await sendMessage(messageToSend);
+      await sendMessage(venue.id, messageToSend);
     } catch (error) {
       setInputText(messageToSend);
       const errorMessage = error instanceof Error ? error.message : 'Could not send your message. Please try again.';
@@ -177,15 +178,14 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
 
   const handleClose = () => {
     clearError();
-    cleanup();
+    cleanupChat();
     setIsInitialized(false);
     onClose();
   };
 
   if (!venue) return null;
 
-  const messages = currentSession?.messages || [];
-  const anonymousName = currentSession?.anonymousName || 'Anonymous';
+  const anonymousName = currentSession?.anonymous_name || 'Anonymous';
 
   return (
     <Modal
@@ -272,7 +272,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
               <View key={message.id} style={styles.messageContainer}>
                 <View style={styles.messageHeader}>
                   <Text style={[styles.messageSender, { color: themeColors.primary }]}>
-                    {message.anonymousName || (message.isUser ? anonymousName : 'BarBuddy')}
+                    {message.anonymous_name}
                   </Text>
                   <Text style={[styles.messageTime, { color: themeColors.subtext }]}>
                     {formatTime(message.timestamp)}
@@ -283,7 +283,7 @@ export default function ChatModal({ visible, onClose, venue }: ChatModalProps) {
                   borderColor: themeColors.glass?.border || themeColors.border,
                 }]}>
                   <Text style={[styles.messageText, { color: themeColors.text }]}>
-                    {message.text}
+                    {message.content}
                   </Text>
                 </View>
               </View>

@@ -1,42 +1,35 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, Text, Pressable, Modal, ScrollView } from 'react-native';
-import { Plus, Minus, ChartBar as BarChart3, X } from 'lucide-react-native';
-import { getThemeColorsSafe } from '@/constants/colors';
-import { useThemeStoreSafe } from '@/stores/themeStore';
-import { useUserProfileStore } from '@/stores/userProfileStore';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, Modal, Pressable, ScrollView, Alert, Platform } from 'react-native';
+import { X, Plus, Minus, TrendingUp, Award, Target } from 'lucide-react-native';
+import { colors } from '@/constants/colors';
+import { useThemeStore } from '@/stores/themeStore';
 import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
-import { Platform } from 'react-native';
-import Slider from '@react-native-community/slider';
-
-interface DrinkItem {
-  id: string;
-  name: string;
-  icon: string;
-  xpType: 'shots' | 'scoop_and_scores' | 'beers' | 'beer_towers' | 'funnels' | 'shotguns' | 'pool_games' | 'dart_games';
-}
-
-const drinkItems: DrinkItem[] = [
-  { id: 'shots', name: 'Shots', icon: '🥃', xpType: 'shots' },
-  { id: 'scoopAndScores', name: 'Scoop & Scores', icon: '🍺', xpType: 'scoop_and_scores' },
-  { id: 'beers', name: 'Beers', icon: '🍻', xpType: 'beers' },
-  { id: 'beerTowers', name: 'Beer Towers', icon: '🗼', xpType: 'beer_towers' },
-  { id: 'funnels', name: 'Funnels', icon: '⏳', xpType: 'funnels' },
-  { id: 'shotguns', name: 'Shotguns', icon: '🔫', xpType: 'shotguns' },
-  { id: 'poolGamesWon', name: 'Pool Games Won', icon: '🎱', xpType: 'pool_games' },
-  { id: 'dartGamesWon', name: 'Dart Games Won', icon: '🎯', xpType: 'dart_games' },
-];
+import { useUserProfileStore } from '@/stores/userProfileStore';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface DailyTrackerProps {
   visible: boolean;
   onClose: () => void;
 }
 
+interface DrunkScaleOption {
+  value: number;
+  label: string;
+  emoji: string;
+  description: string;
+}
+
+const drunkScaleOptions: DrunkScaleOption[] = [
+  { value: 1, label: 'Sober', emoji: '😐', description: 'Completely sober' },
+  { value: 2, label: 'Buzzed', emoji: '🙂', description: 'Feeling relaxed' },
+  { value: 3, label: 'Tipsy', emoji: '😊', description: 'Feeling good' },
+  { value: 4, label: 'Drunk', emoji: '😵', description: 'Pretty drunk' },
+  { value: 5, label: 'Wasted', emoji: '🤢', description: 'Very drunk' },
+];
+
 export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
-  const themeStore = useThemeStoreSafe();
-  const theme = themeStore?.theme || 'dark';
-  const themeColors = getThemeColorsSafe(theme);
-  
-  const { updateDailyTrackerTotals } = useUserProfileStore();
+  const { theme } = useThemeStore();
+  const themeColors = colors[theme];
   const { 
     getDailyStats, 
     updateDailyStats, 
@@ -44,351 +37,446 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     canSubmitDrunkScale, 
     hasDrunkScaleForToday 
   } = useDailyTrackerStore();
-  
-  const [counts, setCounts] = useState<Record<string, number>>({});
-  const [originalCounts, setOriginalCounts] = useState<Record<string, number>>({});
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [drunkScale, setDrunkScale] = useState(1);
-  const [hasSubmittedDrunkScale, setHasSubmittedDrunkScale] = useState(false);
+  const { awardXP } = useUserProfileStore();
 
-  // Initialize counts when modal becomes visible
-  useEffect(() => {
-    if (visible && !isInitialized) {
-      const dailyStats = getDailyStats();
-      const initialCounts = {
-        shots: dailyStats.shots || 0,
-        scoopAndScores: dailyStats.scoopAndScores || 0,
-        beers: dailyStats.beers || 0,
-        beerTowers: dailyStats.beerTowers || 0,
-        funnels: dailyStats.funnels || 0,
-        shotguns: dailyStats.shotguns || 0,
-        poolGamesWon: dailyStats.poolGamesWon || 0,
-        dartGamesWon: dailyStats.dartGamesWon || 0,
-      };
-      
-      setCounts(initialCounts);
-      setOriginalCounts(initialCounts); // Store original values for cancel functionality
-      
-      // Set drunk scale from daily stats if available
-      if (dailyStats.drunkScaleRating) {
-        setDrunkScale(dailyStats.drunkScaleRating);
-      }
-      
-      setIsInitialized(true);
-      setHasSubmittedDrunkScale(hasDrunkScaleForToday());
-    }
-  }, [visible, isInitialized, getDailyStats, hasDrunkScaleForToday]);
+  const [localStats, setLocalStats] = useState(getDailyStats());
+  const [selectedDrunkScale, setSelectedDrunkScale] = useState<number | null>(null);
+  const [showDrunkScale, setShowDrunkScale] = useState(false);
 
-  // Reset initialization when modal closes
   useEffect(() => {
-    if (!visible) {
-      setIsInitialized(false);
+    if (visible) {
+      setLocalStats(getDailyStats());
+      setSelectedDrunkScale(null);
+      setShowDrunkScale(false);
     }
   }, [visible]);
 
-  const updateCount = (itemId: string, change: number) => {
-    if (Platform.OS !== 'web') {
-      // Haptics would go here for native platforms
-    }
-
-    setCounts(prev => {
-      const newCount = Math.max(0, (prev[itemId] || 0) + change);
-      const newCounts = { ...prev, [itemId]: newCount };
-      
-      return newCounts;
-    });
-  };
-
-  const handleDrunkScaleSubmit = async () => {
-    if (canSubmitDrunkScale() && !hasSubmittedDrunkScale) {
-      submitDrunkScale(drunkScale);
-      setHasSubmittedDrunkScale(true);
-      
-      if (Platform.OS !== 'web') {
-        // Haptics would go here for native platforms
-      }
-    }
-  };
-
-  // Cancel function - closes without saving any changes
-  const handleCancel = () => {
-    // Reset counts to original values
-    setCounts(originalCounts);
-    setIsInitialized(false);
+  // Fixed close handler - no side effects
+  const handleClose = () => {
     onClose();
   };
 
-  // Save function - saves progress and closes
-  const handleSave = async () => {
-    // Save current progress before closing
-    const statsToUpdate = {
-      shots: counts.shots,
-      scoopAndScores: counts.scoopAndScores,
-      beers: counts.beers,
-      beerTowers: counts.beerTowers,
-      funnels: counts.funnels,
-      shotguns: counts.shotguns,
-      poolGamesWon: counts.poolGamesWon,
-      dartGamesWon: counts.dartGamesWon,
-    };
+  const handleStatChange = (statKey: keyof typeof localStats, delta: number) => {
+    if (statKey === 'date' || statKey === 'lastResetAt' || statKey === 'drunkScaleSubmitted' || 
+        statKey === 'drunkScaleRating' || statKey === 'drunkScaleTimestamp' || 
+        statKey === 'lastDrunkScaleSubmission') return;
 
-    // Update both stores
-    updateDailyStats(statsToUpdate);
-    await updateDailyTrackerTotals(statsToUpdate);
-
-    setIsInitialized(false);
-    onClose();
+    const currentValue = localStats[statKey] as number;
+    const newValue = Math.max(0, currentValue + delta);
+    
+    setLocalStats(prev => ({
+      ...prev,
+      [statKey]: newValue
+    }));
   };
 
-  const getDrunkScaleLabel = (value: number) => {
-    const labels = [
-      '', 'Sober', 'Tipsy', 'Buzzed', 'Drunk', 'Very Drunk', 
-      'Wasted', 'Blackout', 'Gone', 'Dead', 'Legendary'
-    ];
-    return labels[value] || '';
+  const handleSaveStats = () => {
+    updateDailyStats(localStats);
+    
+    Alert.alert(
+      'Stats Saved! 🎉',
+      'Your daily stats have been updated and XP awarded!',
+      [{ text: 'Awesome!', onPress: handleClose }]
+    );
   };
 
-  // Check if there are unsaved changes
-  const hasUnsavedChanges = () => {
-    return Object.keys(counts).some(key => counts[key] !== originalCounts[key]);
+  const handleDrunkScaleSubmit = () => {
+    if (selectedDrunkScale === null) {
+      Alert.alert('Please select a rating', 'Choose how you are feeling right now.');
+      return;
+    }
+
+    submitDrunkScale(selectedDrunkScale);
+    awardXP('drunk_scale', 'Submitted drunk scale rating');
+    
+    Alert.alert(
+      'Thanks for sharing! 🍻',
+      'Your drunk scale has been recorded. Stay safe and have fun!',
+      [{ text: 'Got it!', onPress: handleClose }]
+    );
   };
+
+  const canSubmitScale = canSubmitDrunkScale();
+  const hasSubmittedToday = hasDrunkScaleForToday();
+
+  const statItems = [
+    { key: 'shots' as const, label: 'Shots', emoji: '🥃', xp: 5 },
+    { key: 'scoopAndScores' as const, label: 'Scoop & Scores', emoji: '🍺', xp: 10 },
+    { key: 'beers' as const, label: 'Beers', emoji: '🍻', xp: 8 },
+    { key: 'beerTowers' as const, label: 'Beer Towers', emoji: '🗼', xp: 25 },
+    { key: 'funnels' as const, label: 'Funnels', emoji: '🌪️', xp: 15 },
+    { key: 'shotguns' as const, label: 'Shotguns', emoji: '💥', xp: 12 },
+    { key: 'poolGamesWon' as const, label: 'Pool Games Won', emoji: '🎱', xp: 20 },
+    { key: 'dartGamesWon' as const, label: 'Dart Games Won', emoji: '🎯', xp: 20 },
+  ];
 
   return (
     <Modal
-      visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={handleCancel}
+      transparent={true}
+      visible={visible}
+      onRequestClose={handleClose}
     >
-      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-        <View style={[styles.header, { borderBottomColor: themeColors.border }]}>
-          <View style={styles.headerLeft}>
-            <BarChart3 size={24} color={themeColors.primary} />
-            <Text style={[styles.title, { color: themeColors.text }]}>
-              Daily Tracker
-            </Text>
-          </View>
-          <View style={styles.headerActions}>
-            {hasUnsavedChanges() && (
-              <Pressable onPress={handleSave} style={[styles.saveButton, { backgroundColor: themeColors.primary }]}>
-                <Text style={styles.saveButtonText}>Save</Text>
-              </Pressable>
-            )}
-            <Pressable onPress={handleCancel} style={styles.closeButton}>
+      <View style={styles.overlay}>
+        <View style={[styles.container, { backgroundColor: themeColors.card }]}>
+          {/* Header with fixed close button */}
+          <View style={[styles.header, { borderBottomColor: themeColors.border }]}>
+            <View style={styles.headerContent}>
+              <TrendingUp size={24} color={themeColors.primary} />
+              <Text style={[styles.title, { color: themeColors.text }]}>
+                Daily Tracker
+              </Text>
+            </View>
+            <Pressable style={styles.closeButton} onPress={handleClose}>
               <X size={24} color={themeColors.text} />
             </Pressable>
           </View>
-        </View>
-        
-        <ScrollView 
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          {/* Drunk Scale Slider */}
-          <View style={[styles.drunkScaleContainer, { backgroundColor: themeColors.card }]}>
-            <Text style={[styles.drunkScaleTitle, { color: themeColors.text }]}>
-              How drunk are you? 🍻
-            </Text>
-            <Text style={[styles.drunkScaleValue, { color: themeColors.primary }]}>
-              {drunkScale}/10 - {getDrunkScaleLabel(drunkScale)}
-            </Text>
-            <Slider
-              style={styles.slider}
-              minimumValue={1}
-              maximumValue={10}
-              step={1}
-              value={drunkScale}
-              onValueChange={setDrunkScale}
-              minimumTrackTintColor={themeColors.primary}
-              maximumTrackTintColor={themeColors.border}
-              thumbTintColor={themeColors.primary}
-              disabled={hasSubmittedDrunkScale}
-            />
-            {!hasSubmittedDrunkScale ? (
-              <Pressable
-                style={[styles.submitButton, { backgroundColor: themeColors.primary }]}
-                onPress={handleDrunkScaleSubmit}
-              >
-                <Text style={styles.submitButtonText}>Submit Level (+25 XP)</Text>
-              </Pressable>
-            ) : (
-              <Text style={[styles.submittedText, { color: themeColors.subtext }]}>
-                ✓ Level submitted for today. Come back tomorrow.
-              </Text>
-            )}
-          </View>
 
-          <View style={styles.itemsGrid}>
-            {drinkItems.map((item) => (
-              <View key={item.id} style={[styles.itemCard, { backgroundColor: themeColors.card }]}>
-                <Text style={styles.itemIcon}>{item.icon}</Text>
-                <Text style={[styles.itemName, { color: themeColors.text }]}>
-                  {item.name}
-                </Text>
-                
-                <View style={styles.counter}>
-                  <Pressable
-                    style={[styles.counterButton, { backgroundColor: themeColors.border }]}
-                    onPress={() => updateCount(item.id, -1)}
-                    disabled={counts[item.id] === 0}
-                  >
-                    <Minus size={16} color={counts[item.id] === 0 ? themeColors.subtext : themeColors.text} />
-                  </Pressable>
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            {/* Stats Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
+                Track Your Night 🍻
+              </Text>
+              
+              {statItems.map((item) => (
+                <View key={item.key} style={[styles.statRow, { backgroundColor: themeColors.background }]}>
+                  <View style={styles.statInfo}>
+                    <Text style={styles.statEmoji}>{item.emoji}</Text>
+                    <View style={styles.statTextContainer}>
+                      <Text style={[styles.statLabel, { color: themeColors.text }]}>
+                        {item.label}
+                      </Text>
+                      <Text style={[styles.statXP, { color: themeColors.primary }]}>
+                        +{item.xp} XP each
+                      </Text>
+                    </View>
+                  </View>
                   
-                  <Text style={[styles.count, { color: themeColors.text }]}>
-                    {counts[item.id] || 0}
-                  </Text>
-                  
-                  <Pressable
-                    style={[styles.counterButton, { backgroundColor: themeColors.primary }]}
-                    onPress={() => updateCount(item.id, 1)}
-                  >
-                    <Plus size={16} color="white" />
-                  </Pressable>
+                  <View style={styles.statControls}>
+                    <Pressable
+                      style={[styles.controlButton, { backgroundColor: themeColors.border }]}
+                      onPress={() => handleStatChange(item.key, -1)}
+                    >
+                      <Minus size={16} color={themeColors.text} />
+                    </Pressable>
+                    
+                    <Text style={[styles.statValue, { color: themeColors.text }]}>
+                      {localStats[item.key] as number}
+                    </Text>
+                    
+                    <Pressable
+                      style={[styles.controlButton, { backgroundColor: themeColors.primary }]}
+                      onPress={() => handleStatChange(item.key, 1)}
+                    >
+                      <Plus size={16} color="white" />
+                    </Pressable>
+                  </View>
                 </View>
+              ))}
+            </View>
+
+            {/* Drunk Scale Section */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
+                  How are you feeling? 🤔
+                </Text>
+                <Text style={[styles.sectionSubtitle, { color: themeColors.subtext }]}>
+                  {hasSubmittedToday 
+                    ? 'Already submitted today (resets in 24h)'
+                    : canSubmitScale 
+                      ? 'Submit once every 24 hours (+50 XP)'
+                      : 'Can submit again in a few hours'
+                  }
+                </Text>
               </View>
-            ))}
+
+              {canSubmitScale && !hasSubmittedToday ? (
+                <>
+                  <View style={styles.drunkScaleOptions}>
+                    {drunkScaleOptions.map((option) => (
+                      <Pressable
+                        key={option.value}
+                        style={[
+                          styles.drunkScaleOption,
+                          {
+                            backgroundColor: selectedDrunkScale === option.value 
+                              ? themeColors.primary 
+                              : themeColors.background,
+                            borderColor: selectedDrunkScale === option.value 
+                              ? themeColors.primary 
+                              : themeColors.border,
+                          }
+                        ]}
+                        onPress={() => setSelectedDrunkScale(option.value)}
+                      >
+                        <Text style={styles.drunkScaleEmoji}>{option.emoji}</Text>
+                        <Text style={[
+                          styles.drunkScaleLabel, 
+                          { 
+                            color: selectedDrunkScale === option.value 
+                              ? 'white' 
+                              : themeColors.text 
+                          }
+                        ]}>
+                          {option.label}
+                        </Text>
+                        <Text style={[
+                          styles.drunkScaleDescription, 
+                          { 
+                            color: selectedDrunkScale === option.value 
+                              ? 'rgba(255,255,255,0.8)' 
+                              : themeColors.subtext 
+                          }
+                        ]}>
+                          {option.description}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+
+                  <Pressable
+                    style={[
+                      styles.submitDrunkScaleButton,
+                      {
+                        backgroundColor: selectedDrunkScale !== null 
+                          ? themeColors.primary 
+                          : themeColors.border,
+                        opacity: selectedDrunkScale !== null ? 1 : 0.5,
+                      }
+                    ]}
+                    onPress={handleDrunkScaleSubmit}
+                    disabled={selectedDrunkScale === null}
+                  >
+                    <Award size={20} color="white" />
+                    <Text style={styles.submitDrunkScaleText}>
+                      Submit Rating (+50 XP)
+                    </Text>
+                  </Pressable>
+                </>
+              ) : (
+                <View style={[styles.drunkScaleDisabled, { backgroundColor: themeColors.background }]}>
+                  <Target size={32} color={themeColors.subtext} />
+                  <Text style={[styles.drunkScaleDisabledText, { color: themeColors.subtext }]}>
+                    {hasSubmittedToday 
+                      ? 'Thanks for sharing! Come back tomorrow.'
+                      : 'Drunk scale available every 24 hours'
+                    }
+                  </Text>
+                </View>
+              )}
+            </View>
+          </ScrollView>
+
+          {/* Save Button */}
+          <View style={[styles.footer, { borderTopColor: themeColors.border }]}>
+            <Pressable
+              style={[styles.saveButton, { backgroundColor: themeColors.primary }]}
+              onPress={handleSaveStats}
+            >
+              <Text style={styles.saveButtonText}>Save Stats & Earn XP</Text>
+            </Pressable>
           </View>
-        </ScrollView>
+        </View>
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  overlay: {
     flex: 1,
-    paddingTop: 60,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'flex-end',
+  },
+  container: {
+    maxHeight: '90%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 20,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    padding: 20,
     borderBottomWidth: 1,
   },
-  headerLeft: {
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     marginLeft: 12,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  saveButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  saveButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
+    letterSpacing: 0.3,
   },
   closeButton: {
     padding: 8,
   },
-  scrollView: {
+  content: {
+    maxHeight: 500,
+  },
+  section: {
+    padding: 20,
+  },
+  sectionHeader: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+    letterSpacing: 0.3,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
   },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
+  statEmoji: {
+    fontSize: 24,
+    marginRight: 12,
   },
-  drunkScaleContainer: {
+  statTextContainer: {
+    flex: 1,
+  },
+  statLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  statXP: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  statControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  controlButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginHorizontal: 16,
+    minWidth: 24,
+    textAlign: 'center',
+  },
+  drunkScaleOptions: {
+    marginBottom: 20,
+  },
+  drunkScaleOption: {
+    padding: 16,
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
+    borderWidth: 2,
+    marginBottom: 12,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
-  drunkScaleTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+  drunkScaleEmoji: {
+    fontSize: 32,
     marginBottom: 8,
   },
-  drunkScaleValue: {
+  drunkScaleLabel: {
     fontSize: 16,
     fontWeight: '700',
-    marginBottom: 16,
+    marginBottom: 4,
+    letterSpacing: 0.2,
   },
-  slider: {
-    width: '100%',
-    height: 40,
-    marginBottom: 16,
-  },
-  submitButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  submitButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  submittedText: {
+  drunkScaleDescription: {
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
   },
-  itemsGrid: {
+  submitDrunkScaleButton: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-    marginBottom: 24,
-  },
-  itemCard: {
-    width: '47%',
-    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 16,
-    alignItems: 'center',
+    borderRadius: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  itemIcon: {
-    fontSize: 32,
-    marginBottom: 8,
+  submitDrunkScaleText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '700',
+    marginLeft: 8,
+    letterSpacing: 0.3,
   },
-  itemName: {
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  counter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  counterButton: {
-    width: 32,
-    height: 32,
+  drunkScaleDisabled: {
+    padding: 32,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  count: {
-    fontSize: 18,
-    fontWeight: '700',
-    minWidth: 24,
+  drunkScaleDisabledText: {
+    fontSize: 16,
+    fontWeight: '500',
     textAlign: 'center',
+    marginTop: 12,
+    lineHeight: 22,
+  },
+  footer: {
+    padding: 20,
+    borderTopWidth: 1,
+  },
+  saveButton: {
+    padding: 16,
+    borderRadius: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
 });

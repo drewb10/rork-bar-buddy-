@@ -20,13 +20,13 @@ interface VenueInteractionState {
   likeVenue: (venueId: string) => void;
   getInteractionCount: (venueId: string) => number;
   getLikeCount: (venueId: string) => number;
+  getTotalLikes: () => number;
   resetInteractionsIfNeeded: () => void;
   canInteract: (venueId: string) => boolean;
   canLikeVenue: (venueId: string) => boolean;
   getPopularArrivalTime: (venueId: string) => string | null;
   syncToSupabase: (venueId: string, arrivalTime?: string) => Promise<void>;
   loadPopularTimesFromSupabase: () => Promise<void>;
-  getTotalLikes: () => number;
   getMostPopularVenues: () => { venueId: string; likes: number }[];
   getTimeSlotData: (venueId: string) => { time: string; count: number; likes: number }[];
   getAllInteractionsForVenue: (venueId: string) => VenueInteraction[];
@@ -171,6 +171,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
         }
       },
 
+      // Flame icon now handles likes (daily limit of 1 per bar)
       likeVenue: async (venueId) => {
         try {
           if (!venueId) return;

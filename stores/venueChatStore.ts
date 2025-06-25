@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { trpcClient } from '@/lib/trpc';
 
 interface ChatMessage {
   id: string;
@@ -56,6 +55,10 @@ const getUserId = (): string => {
   return userId;
 };
 
+// Mock data for demonstration (in real app, this would come from Supabase)
+let mockSessions: ChatSession[] = [];
+let mockMessages: ChatMessage[] = [];
+
 export const useVenueChatStore = create<VenueChatState>()((set, get) => ({
   messages: [],
   currentSession: null,
@@ -67,19 +70,25 @@ export const useVenueChatStore = create<VenueChatState>()((set, get) => ({
       set({ isLoading: true, error: null });
       
       const userId = getUserId();
-      const anonymousName = generateAnonymousName();
       
-      const result = await trpcClient.chat.createSession.mutate({
-        userId,
-        venueId,
-        anonymousName,
-      });
+      // Check if session exists for this venue and user
+      let session = mockSessions.find(s => s.venue_id === venueId && s.user_id === userId);
       
-      if (result.success) {
-        set({ currentSession: result.session, isLoading: false });
-      } else {
-        throw new Error('Failed to create session');
+      if (!session) {
+        // Create new session
+        const anonymousName = generateAnonymousName();
+        session = {
+          id: `session_${Math.random().toString(36).substr(2, 9)}`,
+          user_id: userId,
+          venue_id: venueId,
+          anonymous_name: anonymousName,
+          created_at: new Date().toISOString(),
+          last_active: new Date().toISOString(),
+        };
+        mockSessions.push(session);
       }
+      
+      set({ currentSession: session, isLoading: false });
     } catch (error) {
       console.error('Error creating session:', error);
       set({ 
@@ -93,16 +102,22 @@ export const useVenueChatStore = create<VenueChatState>()((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const result = await trpcClient.chat.getMessages.query({
-        venueId,
-        limit: 100,
-      });
+      // Filter messages for this venue (reset daily at 5 AM)
+      const now = new Date();
+      const resetTime = new Date(now);
+      resetTime.setHours(5, 0, 0, 0);
       
-      if (result.success) {
-        set({ messages: result.messages, isLoading: false });
-      } else {
-        throw new Error('Failed to load messages');
+      // If it's before 5 AM, use yesterday's 5 AM as reset time
+      if (now.getHours() < 5) {
+        resetTime.setDate(resetTime.getDate() - 1);
       }
+      
+      const venueMessages = mockMessages.filter(msg => 
+        msg.venue_id === venueId && 
+        new Date(msg.created_at) >= resetTime
+      );
+      
+      set({ messages: venueMessages, isLoading: false });
     } catch (error) {
       console.error('Error loading messages:', error);
       set({ 
@@ -122,19 +137,23 @@ export const useVenueChatStore = create<VenueChatState>()((set, get) => ({
     try {
       set({ error: null });
       
-      const result = await trpcClient.chat.sendMessage.mutate({
-        sessionId: currentSession.id,
-        venueId,
+      const newMessage: ChatMessage = {
+        id: `msg_${Math.random().toString(36).substr(2, 9)}`,
+        session_id: currentSession.id,
+        venue_id: venueId,
         content,
-      });
+        anonymous_name: currentSession.anonymous_name,
+        timestamp: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+      };
       
-      if (result.success) {
-        // Add the new message to the local state
-        const { messages } = get();
-        set({ messages: [...messages, result.message] });
-      } else {
-        throw new Error('Failed to send message');
-      }
+      // Add to mock storage
+      mockMessages.push(newMessage);
+      
+      // Add the new message to the local state
+      const { messages } = get();
+      set({ messages: [...messages, newMessage] });
+      
     } catch (error) {
       console.error('Error sending message:', error);
       throw new Error(error instanceof Error ? error.message : 'Failed to send message');
@@ -146,17 +165,23 @@ export const useVenueChatStore = create<VenueChatState>()((set, get) => ({
     // For now, we'll just poll for new messages every few seconds
     const pollInterval = setInterval(async () => {
       try {
-        const result = await trpcClient.chat.getMessages.query({
-          venueId,
-          limit: 100,
-        });
+        const now = new Date();
+        const resetTime = new Date(now);
+        resetTime.setHours(5, 0, 0, 0);
         
-        if (result.success) {
-          const { messages } = get();
-          // Only update if we have new messages
-          if (result.messages.length !== messages.length) {
-            set({ messages: result.messages });
-          }
+        if (now.getHours() < 5) {
+          resetTime.setDate(resetTime.getDate() - 1);
+        }
+        
+        const venueMessages = mockMessages.filter(msg => 
+          msg.venue_id === venueId && 
+          new Date(msg.created_at) >= resetTime
+        );
+        
+        const { messages } = get();
+        // Only update if we have new messages
+        if (venueMessages.length !== messages.length) {
+          set({ messages: venueMessages });
         }
       } catch (error) {
         console.error('Error polling messages:', error);

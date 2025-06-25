@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Text, Pressable, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Clock, Star, Heart } from 'lucide-react-native';
+import { Clock, Star, Flame } from 'lucide-react-native';
 import { Venue, Special } from '@/types/venue';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
@@ -45,11 +45,11 @@ export default function TopPickCard({ venue, todaySpecial }: TopPickCardProps) {
         style={styles.gradient}
       />
       
-      {/* Like count badge with enhanced styling */}
+      {/* Flame count badge with enhanced styling */}
       {likeCount > 0 && (
-        <View style={[styles.likeBadge, { backgroundColor: themeColors.primary }]}>
-          <Heart size={10} color="white" fill="white" />
-          <Text style={styles.likeText}>{likeCount}</Text>
+        <View style={[styles.flameBadge, { backgroundColor: themeColors.primary }]}>
+          <Flame size={10} color="white" fill="white" />
+          <Text style={styles.flameText}>{likeCount}</Text>
         </View>
       )}
       
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     right: 0,
     height: 100,
   },
-  likeBadge: {
+  flameBadge: {
     position: 'absolute',
     top: 8,
     right: 8,
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  likeText: {
+  flameText: {
     color: 'white',
     fontSize: 10,
     fontWeight: '700',

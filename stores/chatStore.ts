@@ -107,6 +107,8 @@ export const useChatStore = create<ChatState>()(
 
       generateAnonymousIdentity,
 
+      // Note: This store is now primarily for the BarBuddy AI chatbot
+      // Venue-specific chats use the venueChatStore instead
       sendMessage: async (text: string) => {
         set({ isLoading: true, error: null });
         
