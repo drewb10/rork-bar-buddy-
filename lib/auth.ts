@@ -51,15 +51,13 @@ export const authService = {
     try {
       if (!isSupabaseConfigured()) {
         console.warn('Supabase not configured, skipping username check');
-        return true; // Allow any username when not configured
+        return true;
       }
 
-      // First check if username is valid
       if (!username || username.length < 3 || username.length > 20 || !/^[a-zA-Z0-9_]+$/.test(username)) {
         return false;
       }
       
-      // Check if username exists in profiles table
       const { data, error } = await supabase
         .from('profiles')
         .select('username')
@@ -109,12 +107,11 @@ export const authService = {
       if (authError) {
         console.error('❌ AuthService: Auth signup error:', authError);
         
-        // Handle specific Supabase auth errors
         if (authError.message.includes('User already registered')) {
           throw new AuthError('An account with this email already exists', 'EMAIL_TAKEN');
         }
         if (authError.message.includes('Database error saving new user')) {
-          throw new AuthError('Database setup issue. Please run the latest migration in your Supabase dashboard.', 'DATABASE_ERROR');
+          throw new AuthError('Database setup issue. Please run the latest migration (20250625013000_fix_schema_cache_final.sql) in your Supabase dashboard.', 'DATABASE_ERROR');
         }
         if (authError.message.includes('Invalid email')) {
           throw new AuthError('Please enter a valid email address', 'INVALID_EMAIL');
@@ -126,7 +123,6 @@ export const authService = {
           throw new AuthError('Account creation is currently disabled. Please contact support.', 'SIGNUP_DISABLED');
         }
         
-        // Generic database error
         throw new AuthError(`Authentication failed: ${authError.message}`, 'AUTH_ERROR');
       }
 
@@ -137,10 +133,9 @@ export const authService = {
 
       console.log('✅ AuthService: Auth user created successfully:', authData.user.id);
 
-      // Step 3: Create profile with improved error handling
+      // Step 3: Create profile with retry logic and better error handling
       console.log('📝 AuthService: Creating user profile...');
       
-      // Simplified profile creation - only include essential fields
       const profileData = {
         id: authData.user.id,
         username,
@@ -164,32 +159,63 @@ export const authService = {
         daily_stats: {}
       };
       
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .insert(profileData)
-        .select('*')
-        .single();
+      // Retry profile creation up to 3 times
+      let profile = null;
+      let lastError = null;
+      
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          console.log(`📝 AuthService: Profile creation attempt ${attempt}...`);
+          
+          const { data: profileResult, error: profileError } = await supabase
+            .from('profiles')
+            .insert(profileData)
+            .select('*')
+            .single();
 
-      if (profileError) {
-        console.error('❌ AuthService: Profile creation error:', profileError);
-        
-        if (profileError.code === '23505') { // Unique constraint violation
-          throw new AuthError('Username is already taken', 'USERNAME_TAKEN');
+          if (profileError) {
+            console.error(`❌ AuthService: Profile creation error (attempt ${attempt}):`, profileError);
+            lastError = profileError;
+            
+            if (profileError.code === 'PGRST204' && profileError.message.includes('schema cache')) {
+              if (attempt < 3) {
+                console.log(`⏳ AuthService: Schema cache issue, waiting before retry...`);
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                continue;
+              } else {
+                throw new AuthError('Database schema issue. Please run the latest migration (20250625013000_fix_schema_cache_final.sql) in your Supabase dashboard.', 'SCHEMA_CACHE_ERROR');
+              }
+            }
+            
+            if (profileError.code === '23505') {
+              throw new AuthError('Username is already taken', 'USERNAME_TAKEN');
+            }
+            
+            if (profileError.message.includes('new row violates row-level security policy')) {
+              throw new AuthError('Database permissions issue. Please run the latest migration in your Supabase dashboard.', 'RLS_POLICY_ERROR');
+            }
+            
+            if (attempt === 3) {
+              throw new AuthError('Failed to create user profile. Please check your database setup.', 'PROFILE_CREATION_FAILED');
+            }
+          } else {
+            profile = profileResult;
+            console.log(`✅ AuthService: Profile created successfully on attempt ${attempt}:`, profile.id);
+            break;
+          }
+        } catch (error) {
+          console.error(`❌ AuthService: Exception during profile creation (attempt ${attempt}):`, error);
+          if (attempt === 3) {
+            throw error;
+          }
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
         }
-        
-        if (profileError.message.includes('Could not find the') && 
-            profileError.message.includes('column')) {
-          throw new AuthError('Database schema issue. Please run the latest migration (20250625010000_fix_schema_cache.sql) in your Supabase dashboard.', 'SCHEMA_ERROR');
-        }
-        
-        if (profileError.message.includes('new row violates row-level security policy')) {
-          throw new AuthError('Database permissions issue. Please run the latest migration in your Supabase dashboard.', 'RLS_POLICY_ERROR');
-        }
-        
-        throw new AuthError('Failed to create user profile. Please check your database setup.', 'PROFILE_CREATION_FAILED');
       }
 
-      console.log('✅ AuthService: Profile created successfully:', profile.id);
+      if (!profile) {
+        throw new AuthError('Failed to create user profile after multiple attempts. Please check your database setup.', 'PROFILE_CREATION_FAILED');
+      }
+
       console.log('🎉 AuthService: Signup completed successfully for user:', authData.user.id);
       
       return { user: authData.user, profile };
@@ -233,64 +259,89 @@ export const authService = {
 
       console.log('✅ AuthService: Auth signin successful:', authData.user.id);
 
-      // Get user profile
+      // Get user profile with retry logic
       console.log('📝 AuthService: Loading user profile...');
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authData.user.id)
-        .single();
-
-      if (profileError) {
-        console.error('❌ AuthService: Profile load error:', profileError);
-        
-        if (profileError.code === 'PGRST116') {
-          // Profile doesn't exist, create it
-          console.log('📝 AuthService: Profile not found, creating...');
-          
-          // Simplified profile creation
-          const profileData = {
-            id: authData.user.id,
-            username: authData.user.user_metadata?.username || `user_${authData.user.id.slice(0, 8)}`,
-            email: authData.user.email || email,
-            xp: 0,
-            nights_out: 0,
-            bars_hit: 0,
-            drunk_scale_ratings: [],
-            total_shots: 0,
-            total_scoop_and_scores: 0,
-            total_beers: 0,
-            total_beer_towers: 0,
-            total_funnels: 0,
-            total_shotguns: 0,
-            pool_games_won: 0,
-            dart_games_won: 0,
-            photos_taken: 0,
-            visited_bars: [],
-            xp_activities: [],
-            has_completed_onboarding: false,
-            daily_stats: {}
-          };
-          
-          const { data: newProfile, error: createError } = await supabase
+      let profile = null;
+      
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .insert(profileData)
             .select('*')
+            .eq('id', authData.user.id)
             .single();
-          
-          if (createError) {
-            console.error('❌ AuthService: Failed to create profile during signin:', createError);
-            throw new AuthError('Failed to create user profile', 'PROFILE_CREATION_FAILED');
+
+          if (profileError) {
+            console.error(`❌ AuthService: Profile load error (attempt ${attempt}):`, profileError);
+            
+            if (profileError.code === 'PGRST116') {
+              // Profile doesn't exist, create it
+              console.log('📝 AuthService: Profile not found, creating...');
+              
+              const profileData = {
+                id: authData.user.id,
+                username: authData.user.user_metadata?.username || `user_${authData.user.id.slice(0, 8)}`,
+                email: authData.user.email || email,
+                xp: 0,
+                nights_out: 0,
+                bars_hit: 0,
+                drunk_scale_ratings: [],
+                total_shots: 0,
+                total_scoop_and_scores: 0,
+                total_beers: 0,
+                total_beer_towers: 0,
+                total_funnels: 0,
+                total_shotguns: 0,
+                pool_games_won: 0,
+                dart_games_won: 0,
+                photos_taken: 0,
+                visited_bars: [],
+                xp_activities: [],
+                has_completed_onboarding: false,
+                daily_stats: {}
+              };
+              
+              const { data: newProfile, error: createError } = await supabase
+                .from('profiles')
+                .insert(profileData)
+                .select('*')
+                .single();
+              
+              if (createError) {
+                console.error('❌ AuthService: Failed to create profile during signin:', createError);
+                if (attempt === 3) {
+                  throw new AuthError('Failed to create user profile', 'PROFILE_CREATION_FAILED');
+                }
+              } else {
+                profile = newProfile;
+                console.log('✅ AuthService: Profile created during signin:', newProfile.id);
+                break;
+              }
+            } else if (profileError.code === 'PGRST204' && profileError.message.includes('schema cache')) {
+              if (attempt < 3) {
+                console.log(`⏳ AuthService: Schema cache issue during signin, waiting before retry...`);
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                continue;
+              } else {
+                throw new AuthError('Database schema issue. Please run the latest migration in your Supabase dashboard.', 'SCHEMA_CACHE_ERROR');
+              }
+            } else if (attempt === 3) {
+              throw new AuthError('Failed to load user profile', 'PROFILE_LOAD_FAILED');
+            }
+          } else {
+            profile = profileData;
+            console.log(`✅ AuthService: Profile loaded successfully on attempt ${attempt}:`, profile.id);
+            break;
           }
-          
-          console.log('✅ AuthService: Profile created during signin:', newProfile.id);
-          return { user: authData.user, profile: newProfile };
+        } catch (error) {
+          console.error(`❌ AuthService: Exception during profile load (attempt ${attempt}):`, error);
+          if (attempt === 3) {
+            throw error;
+          }
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
         }
-        
-        throw new AuthError('Failed to load user profile', 'PROFILE_LOAD_FAILED');
       }
 
-      console.log('✅ AuthService: Profile loaded successfully:', profile.id);
       console.log('🎉 AuthService: Signin completed successfully for user:', authData.user.id);
 
       return { user: authData.user, profile };
@@ -402,7 +453,7 @@ export const authService = {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          return null; // User not found
+          return null;
         }
         throw error;
       }

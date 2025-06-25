@@ -9,61 +9,85 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
-      user_profiles: {
+      profiles: {
         Row: {
           id: string
           username: string
-          user_id: string
-          ranking: string
-          total_nights_out: number
-          total_bars_hit: number
-          profile_pic: string | null
-          first_name: string
-          last_name: string
-          email: string | null
-          join_date: string
+          email: string
+          xp: number
+          nights_out: number
+          bars_hit: number
           drunk_scale_ratings: number[]
+          total_shots: number
+          total_scoop_and_scores: number
+          total_beers: number
+          total_beer_towers: number
+          total_funnels: number
+          total_shotguns: number
+          pool_games_won: number
+          dart_games_won: number
+          photos_taken: number
+          profile_picture: string | null
+          visited_bars: string[]
+          xp_activities: Json
+          has_completed_onboarding: boolean
+          daily_stats: Json
           last_night_out_date: string | null
           last_drunk_scale_date: string | null
-          has_completed_onboarding: boolean
           created_at: string
           updated_at: string
         }
         Insert: {
-          id?: string
+          id: string
           username: string
-          user_id: string
-          ranking?: string
-          total_nights_out?: number
-          total_bars_hit?: number
-          profile_pic?: string | null
-          first_name: string
-          last_name: string
-          email?: string | null
-          join_date?: string
+          email: string
+          xp?: number
+          nights_out?: number
+          bars_hit?: number
           drunk_scale_ratings?: number[]
+          total_shots?: number
+          total_scoop_and_scores?: number
+          total_beers?: number
+          total_beer_towers?: number
+          total_funnels?: number
+          total_shotguns?: number
+          pool_games_won?: number
+          dart_games_won?: number
+          photos_taken?: number
+          profile_picture?: string | null
+          visited_bars?: string[]
+          xp_activities?: Json
+          has_completed_onboarding?: boolean
+          daily_stats?: Json
           last_night_out_date?: string | null
           last_drunk_scale_date?: string | null
-          has_completed_onboarding?: boolean
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           username?: string
-          user_id?: string
-          ranking?: string
-          total_nights_out?: number
-          total_bars_hit?: number
-          profile_pic?: string | null
-          first_name?: string
-          last_name?: string
-          email?: string | null
-          join_date?: string
+          email?: string
+          xp?: number
+          nights_out?: number
+          bars_hit?: number
           drunk_scale_ratings?: number[]
+          total_shots?: number
+          total_scoop_and_scores?: number
+          total_beers?: number
+          total_beer_towers?: number
+          total_funnels?: number
+          total_shotguns?: number
+          pool_games_won?: number
+          dart_games_won?: number
+          photos_taken?: number
+          profile_picture?: string | null
+          visited_bars?: string[]
+          xp_activities?: Json
+          has_completed_onboarding?: boolean
+          daily_stats?: Json
           last_night_out_date?: string | null
           last_drunk_scale_date?: string | null
-          has_completed_onboarding?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -72,19 +96,19 @@ export interface Database {
         Row: {
           id: string
           user_id: string
-          friend_user_id: string
+          friend_id: string
           created_at: string
         }
         Insert: {
           id?: string
           user_id: string
-          friend_user_id: string
+          friend_id: string
           created_at?: string
         }
         Update: {
           id?: string
           user_id?: string
-          friend_user_id?: string
+          friend_id?: string
           created_at?: string
         }
       }
@@ -94,7 +118,7 @@ export interface Database {
           from_user_id: string
           to_user_id: string
           status: 'pending' | 'accepted' | 'declined'
-          sent_at: string
+          created_at: string
           responded_at: string | null
         }
         Insert: {
@@ -102,7 +126,7 @@ export interface Database {
           from_user_id: string
           to_user_id: string
           status?: 'pending' | 'accepted' | 'declined'
-          sent_at?: string
+          created_at?: string
           responded_at?: string | null
         }
         Update: {
@@ -110,7 +134,7 @@ export interface Database {
           from_user_id?: string
           to_user_id?: string
           status?: 'pending' | 'accepted' | 'declined'
-          sent_at?: string
+          created_at?: string
           responded_at?: string | null
         }
       }

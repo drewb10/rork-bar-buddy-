@@ -68,7 +68,7 @@ export default function SignUpScreen() {
         'Database Setup Required', 
         `Your Supabase database needs to be configured. Please:
 
-1. Run the latest migration (20250625004000_final_auth_fix.sql) in your Supabase dashboard
+1. Run the latest migration (20250625013000_fix_schema_cache_final.sql) in your Supabase dashboard
 2. Check your .env file has correct SUPABASE_URL and SUPABASE_ANON_KEY
 3. Or try Demo Mode to test the app`,
         [
@@ -124,9 +124,11 @@ export default function SignUpScreen() {
         if (error.includes('Database setup issue') || 
             error.includes('Database error saving new user') ||
             error.includes('RLS Policy Error') ||
-            error.includes('Database permissions issue')) {
+            error.includes('Database permissions issue') ||
+            error.includes('Database schema issue') ||
+            error.includes('schema cache')) {
           errorTitle = 'Database Setup Required';
-          errorMessage = 'Your database needs the latest migration. Please run migration file "20250625004000_final_auth_fix.sql" in your Supabase dashboard SQL Editor.';
+          errorMessage = 'Your database needs the latest migration. Please run migration file "20250625013000_fix_schema_cache_final.sql" in your Supabase dashboard SQL Editor.';
           showMigrationButton = true;
         } else if (error.includes('Database connection issue')) {
           errorTitle = 'Connection Issue';
@@ -151,7 +153,7 @@ export default function SignUpScreen() {
             { text: 'Sign In Instead', onPress: () => router.push('/auth/sign-in') }
           ] : []),
           ...(showMigrationButton ? [
-            { text: 'Migration Help', onPress: () => console.log('Run migration: 20250625004000_final_auth_fix.sql in Supabase dashboard') }
+            { text: 'Migration Help', onPress: () => console.log('Run migration: 20250625013000_fix_schema_cache_final.sql in Supabase dashboard') }
           ] : [])
         ];
         
@@ -243,7 +245,7 @@ export default function SignUpScreen() {
                   Database Setup Required
                 </Text>
                 <Text style={[styles.warningText, { color: '#FFA500' }]}>
-                  Run migration 20250625004000_final_auth_fix.sql in Supabase or try demo mode
+                  Run migration 20250625013000_fix_schema_cache_final.sql in Supabase or try demo mode
                 </Text>
               </View>
             </View>
