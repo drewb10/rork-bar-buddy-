@@ -379,6 +379,7 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         profile: state.profile,
         isAuthenticated: state.isAuthenticated,
+        sessionChecked: state.sessionChecked,
       }),
       onRehydrateStorage: () => (state, error) => {
         if (error) {
@@ -395,7 +396,7 @@ export const useAuthStore = create<AuthState>()(
 if (isSupabaseConfigured()) {
   supabase.auth.onAuthStateChange(async (event, session) => {
     console.log('🎯 Auth state change:', event);
-    const { initialize, refreshSession } = useAuthStore.getState();
+    const { initialize } = useAuthStore.getState();
     
     if (event === 'SIGNED_IN' && session) {
       await initialize();

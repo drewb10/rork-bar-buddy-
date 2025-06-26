@@ -20,6 +20,7 @@ interface DailyTrackerState {
   isLoading: boolean;
   isSaving: boolean;
   lastSyncDate: string | null;
+  error: string | null;
   
   // Actions
   updateLocalStats: (stats: Partial<DailyStats>) => void;
@@ -27,6 +28,7 @@ interface DailyTrackerState {
   saveTodayStats: () => Promise<void>;
   resetLocalStats: () => void;
   canSubmitDrunkScale: () => Promise<boolean>;
+  clearError: () => void;
 }
 
 const defaultStats: DailyStats = {
@@ -52,6 +54,11 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
       isLoading: false,
       isSaving: false,
       lastSyncDate: null,
+      error: null,
+
+      clearError: () => {
+        set({ error: null });
+      },
 
       updateLocalStats: (stats: Partial<DailyStats>) => {
         set((state) => ({
@@ -59,6 +66,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
             ...state.localStats,
             ...stats,
           },
+          error: null, // Clear any previous errors when updating stats
         }));
       },
 
@@ -69,7 +77,13 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
         }
 
         const today = getTodayString();
-        const { lastSyncDate } = get();
+        const { lastSyncDate, isLoading, isSaving } = get();
+
+        // Prevent multiple simultaneous loads
+        if (isLoading || isSaving) {
+          console.log('📊 DailyTracker: Load already in progress, skipping...');
+          return;
+        }
 
         // If we already synced today, don't reload
         if (lastSyncDate === today) {
@@ -77,7 +91,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
           return;
         }
 
-        set({ isLoading: true });
+        set({ isLoading: true, error: null });
 
         try {
           const userId = await getCurrentUserId();
@@ -87,6 +101,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
               localStats: defaultStats, 
               isLoading: false,
               lastSyncDate: today,
+              error: null,
             });
             return;
           }
@@ -108,15 +123,18 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
             },
             isLoading: false,
             lastSyncDate: today,
+            error: null,
           });
 
           console.log('📊 DailyTracker: Stats loaded successfully');
         } catch (error) {
           console.error('📊 DailyTracker: Error loading today stats:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to load stats';
           set({ 
             localStats: defaultStats, 
             isLoading: false,
             lastSyncDate: today,
+            error: errorMessage,
           });
         }
       },
@@ -126,14 +144,15 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
           throw new Error('Supabase not configured');
         }
 
-        const { localStats, isSaving } = get();
+        const { localStats, isSaving, isLoading } = get();
 
-        if (isSaving) {
-          console.log('📊 DailyTracker: Save already in progress');
+        // Prevent multiple simultaneous saves
+        if (isSaving || isLoading) {
+          console.log('📊 DailyTracker: Save already in progress, skipping...');
           return;
         }
 
-        set({ isSaving: true });
+        set({ isSaving: true, error: null });
 
         try {
           const userId = await getCurrentUserId();
@@ -143,18 +162,24 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
 
           console.log('📊 DailyTracker: Saving stats to Supabase...', localStats);
 
+          // Save to daily_stats table
           await dailyStatsHelpers.saveTodayStats(userId, localStats);
 
           const today = getTodayString();
           set({ 
             isSaving: false,
             lastSyncDate: today,
+            error: null,
           });
 
           console.log('📊 DailyTracker: Stats saved successfully');
         } catch (error) {
           console.error('📊 DailyTracker: Error saving stats:', error);
-          set({ isSaving: false });
+          const errorMessage = error instanceof Error ? error.message : 'Failed to save stats';
+          set({ 
+            isSaving: false,
+            error: errorMessage,
+          });
           throw error;
         }
       },
@@ -163,6 +188,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
         set({ 
           localStats: defaultStats,
           lastSyncDate: null,
+          error: null,
         });
       },
 

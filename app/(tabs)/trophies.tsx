@@ -66,7 +66,7 @@ export default function TrophiesScreen() {
         return;
       }
 
-      console.log('🏆 Trophies: Loading lifetime stats from Supabase...');
+      console.log('🏆 Trophies: Loading lifetime stats from daily_stats table...');
       const stats = await dailyStatsHelpers.getLifetimeStats(userId);
 
       setLifetimeStats({
@@ -85,7 +85,7 @@ export default function TrophiesScreen() {
         totalXP: profile?.xp || 0, // XP still comes from profile
       });
 
-      console.log('🏆 Trophies: Lifetime stats loaded successfully');
+      console.log('🏆 Trophies: Lifetime stats loaded successfully from daily_stats');
     } catch (error) {
       console.error('🏆 Trophies: Error loading lifetime stats:', error);
     } finally {
@@ -262,7 +262,7 @@ export default function TrophiesScreen() {
                   Loading Your Stats
                 </Text>
                 <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
-                  Fetching your lifetime statistics...
+                  Fetching your lifetime statistics from daily tracker...
                 </Text>
               </View>
             ) : (
@@ -289,6 +289,7 @@ export default function TrophiesScreen() {
                   <StatCard 
                     title="Nights Out" 
                     value={lifetimeStats.nightsOut}
+                    subtitle="Days with stats"
                     size="large"
                   />
                 </View>

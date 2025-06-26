@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { StyleSheet, View, Text, Pressable, ScrollView, Alert, Platform, Modal } from 'react-native';
-import { X, Plus, Minus, TrendingUp, Target, Loader2 } from 'lucide-react-native';
+import { X, Plus, Minus, TrendingUp, Target, Loader2, CheckCircle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
@@ -34,26 +34,29 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     localStats,
     isLoading,
     isSaving,
+    error,
     updateLocalStats,
     loadTodayStats,
     saveTodayStats,
-    resetLocalStats,
-    canSubmitDrunkScale
+    canSubmitDrunkScale,
+    clearError
   } = useDailyTrackerStore();
 
   const [canSubmitScale, setCanSubmitScale] = useState(true);
-  const [saveProgress, setSaveProgress] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Load today's stats when modal opens
   useEffect(() => {
     if (visible) {
       console.log('📊 DailyTracker: Modal opened, loading today stats...');
+      setSaveSuccess(false);
+      clearError();
       loadTodayStats();
       
       // Check drunk scale submission eligibility
       canSubmitDrunkScale().then(setCanSubmitScale);
     }
-  }, [visible, loadTodayStats, canSubmitDrunkScale]);
+  }, [visible, loadTodayStats, canSubmitDrunkScale, clearError]);
 
   // Check session when modal opens
   useEffect(() => {
@@ -65,9 +68,11 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
 
   const handleClose = useCallback(() => {
     if (!isSaving) {
+      setSaveSuccess(false);
+      clearError();
       onClose();
     }
-  }, [isSaving, onClose]);
+  }, [isSaving, onClose, clearError]);
 
   const handleStatChange = useCallback((statKey: keyof typeof localStats, delta: number) => {
     if (isSaving) return;
@@ -115,22 +120,22 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     }
 
     try {
-      setSaveProgress('Saving your stats...');
       console.log('📊 DailyTracker: Saving stats:', localStats);
       
       await saveTodayStats();
       
-      setSaveProgress('');
+      setSaveSuccess(true);
       console.log('✅ Stats saved successfully');
       
-      Alert.alert(
-        'Stats Saved! 🎉',
-        'Your stats have been saved successfully!',
-        [{ text: 'Awesome!', onPress: handleClose }]
-      );
+      // Auto-close modal after 2 seconds
+      setTimeout(() => {
+        setSaveSuccess(false);
+        handleClose();
+      }, 2000);
+      
     } catch (error) {
       console.error('❌ Error saving stats:', error);
-      setSaveProgress('');
+      setSaveSuccess(false);
       
       let errorMessage = 'Failed to save stats. Please try again.';
       
@@ -162,8 +167,10 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   }, [isAuthenticated, isSaving, isLoading]);
 
   const getStatusMessage = () => {
-    if (isSaving) return saveProgress || 'Saving...';
+    if (saveSuccess) return 'Stats saved successfully! 🎉';
+    if (isSaving) return 'Saving your stats...';
     if (isLoading) return 'Loading your stats...';
+    if (error) return `Error: ${error}`;
     if (!isAuthenticated) return 'Sign in to save your stats';
     return null;
   };
@@ -201,23 +208,40 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
             <View style={[
               styles.statusBanner, 
               { 
-                backgroundColor: isSaving 
-                  ? themeColors.primary + '20' 
-                  : themeColors.warning + '20' 
+                backgroundColor: saveSuccess
+                  ? themeColors.success + '20'
+                  : isSaving 
+                    ? themeColors.primary + '20' 
+                    : error
+                      ? themeColors.error + '20'
+                      : themeColors.warning + '20' 
               }
             ]}>
               <View style={styles.statusContent}>
+                {saveSuccess && (
+                  <CheckCircle 
+                    size={16} 
+                    color={themeColors.success} 
+                    style={styles.statusIcon} 
+                  />
+                )}
                 {isSaving && (
                   <Loader2 
                     size={16} 
                     color={themeColors.primary} 
-                    style={styles.loadingIcon} 
+                    style={styles.statusIcon} 
                   />
                 )}
                 <Text style={[
                   styles.statusText, 
                   { 
-                    color: isSaving ? themeColors.primary : themeColors.warning 
+                    color: saveSuccess
+                      ? themeColors.success
+                      : isSaving 
+                        ? themeColors.primary 
+                        : error
+                          ? themeColors.error
+                          : themeColors.warning 
                   }
                 ]}>
                   {statusMessage}
@@ -361,12 +385,14 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
               style={[
                 styles.saveButton, 
                 { 
-                  backgroundColor: themeColors.primary,
-                  opacity: canSaveStats ? 1 : 0.5,
+                  backgroundColor: saveSuccess 
+                    ? themeColors.success 
+                    : themeColors.primary,
+                  opacity: canSaveStats && !saveSuccess ? 1 : 0.5,
                 }
               ]}
               onPress={handleSaveStats}
-              disabled={!canSaveStats}
+              disabled={!canSaveStats || saveSuccess}
             >
               <View style={styles.saveButtonContent}>
                 {isSaving && (
@@ -376,12 +402,21 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                     style={styles.saveButtonIcon} 
                   />
                 )}
+                {saveSuccess && (
+                  <CheckCircle 
+                    size={20} 
+                    color="white" 
+                    style={styles.saveButtonIcon} 
+                  />
+                )}
                 <Text style={styles.saveButtonText}>
-                  {isSaving 
-                    ? 'Saving...' 
-                    : statusMessage && !isAuthenticated
-                      ? 'Sign In to Save' 
-                      : 'Save My Stats'
+                  {saveSuccess
+                    ? 'Saved Successfully!'
+                    : isSaving 
+                      ? 'Saving...' 
+                      : statusMessage && !isAuthenticated
+                        ? 'Sign In to Save' 
+                        : 'Save My Stats'
                   }
                 </Text>
               </View>
@@ -439,7 +474,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  loadingIcon: {
+  statusIcon: {
     marginRight: 8,
   },
   statusText: {

@@ -1,59 +1,55 @@
 export const colors = {
   light: {
+    text: '#000000',
+    subtext: '#666666',
     background: '#FFFFFF',
     card: '#F8F9FA',
-    text: '#1A1A1A',
-    subtext: '#6B7280',
+    border: '#E1E5E9',
     primary: '#FF6A00',
-    secondary: '#4F46E5',
-    border: '#E5E7EB',
-    success: '#10B981',
-    warning: '#F59E0B',
-    error: '#EF4444',
-    accent: '#8B5CF6',
-    shadow: {
-      light: 'rgba(0, 0, 0, 0.1)',
-      medium: 'rgba(0, 0, 0, 0.2)',
-      heavy: 'rgba(0, 0, 0, 0.3)',
-    },
+    secondary: '#007AFF',
+    accent: '#34C759',
+    warning: '#FF9500',
+    error: '#FF3B30',
+    success: '#34C759',
     glass: {
-      background: 'rgba(255, 255, 255, 0.1)',
-      border: 'rgba(255, 255, 255, 0.2)',
+      border: 'rgba(0, 0, 0, 0.1)',
+      background: 'rgba(255, 255, 255, 0.8)',
+    },
+    shadow: {
+      light: '#000000',
+      heavy: '#000000',
     },
   },
   dark: {
-    background: '#0A0A0A',
-    card: '#1A1A1A',
     text: '#FFFFFF',
-    subtext: '#9CA3AF',
+    subtext: '#A0A0A0',
+    background: '#1C1C1E',
+    card: '#2C2C2E',
+    border: '#3A3A3C',
     primary: '#FF6A00',
-    secondary: '#6366F1',
-    border: '#374151',
-    success: '#10B981',
-    warning: '#F59E0B',
-    error: '#EF4444',
-    accent: '#A855F7',
-    shadow: {
-      light: 'rgba(0, 0, 0, 0.2)',
-      medium: 'rgba(0, 0, 0, 0.4)',
-      heavy: 'rgba(0, 0, 0, 0.6)',
-    },
+    secondary: '#007AFF',
+    accent: '#34C759',
+    warning: '#FF9500',
+    error: '#FF453A',
+    success: '#32D74B',
     glass: {
-      background: 'rgba(0, 0, 0, 0.3)',
       border: 'rgba(255, 255, 255, 0.1)',
+      background: 'rgba(0, 0, 0, 0.8)',
+    },
+    shadow: {
+      light: '#000000',
+      heavy: '#000000',
     },
   },
 };
 
 export type Theme = 'light' | 'dark';
-export type ThemeColors = typeof colors.light;
 
-// Safe getter for theme colors
-export const getThemeColorsSafe = (theme: Theme): ThemeColors => {
+export function getThemeColorsSafe(theme: Theme) {
   try {
     return colors[theme] || colors.dark;
   } catch (error) {
     console.warn('Error getting theme colors:', error);
     return colors.dark;
   }
-};
+}
