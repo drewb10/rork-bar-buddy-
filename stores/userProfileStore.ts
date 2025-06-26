@@ -223,10 +223,14 @@ export const useUserProfileStore = create<UserProfileState>()(
       
       loadProfile: async () => {
         const state = get();
-        if (state.isLoading || state.isUpdating) return; // Prevent concurrent loads
+        if (state.isLoading || state.isUpdating) {
+          console.log('🔄 Profile load already in progress, skipping...');
+          return;
+        }
         
         try {
           set({ isLoading: true });
+          console.log('🔄 Starting profile load...');
           
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) {
@@ -347,10 +351,19 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       updateProfile: async (updates) => {
         const state = get();
-        if (!state.profile || state.isUpdating) return;
+        if (!state.profile) {
+          console.error('❌ No profile available for update');
+          return;
+        }
+        
+        if (state.isUpdating) {
+          console.log('⚠️ Profile update already in progress, skipping...');
+          return;
+        }
 
         try {
           set({ isUpdating: true });
+          console.log('🔄 Updating profile with:', updates);
           
           // Update local state immediately for better UX
           set((currentState) => ({
@@ -370,6 +383,8 @@ export const useUserProfileStore = create<UserProfileState>()(
             if (error) {
               console.warn('Error updating profile in Supabase:', error);
               // Don't revert local changes - keep them for offline functionality
+            } else {
+              console.log('✅ Profile updated in Supabase successfully');
             }
           } catch (supabaseError) {
             console.warn('Supabase not available, keeping local changes:', supabaseError);
@@ -457,7 +472,10 @@ export const useUserProfileStore = create<UserProfileState>()(
       
       addDrunkScaleRating: async (rating) => {
         const { profile } = get();
-        if (!profile) return;
+        if (!profile) {
+          console.error('❌ No profile available for drunk scale rating');
+          return;
+        }
 
         const today = new Date().toISOString();
         const currentRatings = profile.drunk_scale_ratings || [];
@@ -515,8 +533,13 @@ export const useUserProfileStore = create<UserProfileState>()(
       
       awardXP: async (type, description, venueId) => {
         const { profile, isUpdating } = get();
-        if (!profile || isUpdating) {
-          console.warn('No profile available for XP award or update in progress');
+        if (!profile) {
+          console.warn('❌ No profile available for XP award');
+          return;
+        }
+        
+        if (isUpdating) {
+          console.warn('⚠️ Profile update in progress, skipping XP award');
           return;
         }
 
@@ -568,9 +591,16 @@ export const useUserProfileStore = create<UserProfileState>()(
       
       updateDailyTrackerTotals: async (stats) => {
         const { profile, isUpdating } = get();
-        if (!profile || isUpdating) {
-          console.error('❌ No profile available for updating daily tracker totals or update in progress');
-          return;
+        
+        // Enhanced validation with better error messages
+        if (!profile) {
+          console.error('❌ No profile available for updating daily tracker totals');
+          throw new Error('Profile not loaded. Please wait for your profile to load and try again.');
+        }
+        
+        if (isUpdating) {
+          console.error('❌ Profile update already in progress');
+          throw new Error('Another update is in progress. Please wait and try again.');
         }
 
         try {

@@ -34,7 +34,8 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     addDrunkScaleRating,
     profile,
     isLoading: profileIsLoading,
-    isUpdating: profileIsUpdating
+    isUpdating: profileIsUpdating,
+    loadProfile
   } = useUserProfileStore();
 
   const [localStats, setLocalStats] = useState({
@@ -49,6 +50,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   });
   const [selectedDrunkScale, setSelectedDrunkScale] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [profileReady, setProfileReady] = useState(false);
 
   // Reset local stats when modal opens - use useCallback to prevent unnecessary re-renders
   const resetLocalStats = useCallback(() => {
@@ -66,12 +68,29 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     setIsSaving(false);
   }, []);
 
-  // Only reset when modal becomes visible, not on every render
+  // Load profile when modal opens and check if it's ready
   useEffect(() => {
     if (visible) {
       resetLocalStats();
+      setProfileReady(false);
+      
+      // Load profile if not already loaded
+      if (!profile && !profileIsLoading) {
+        console.log('🔄 Loading profile for Daily Tracker...');
+        loadProfile();
+      }
     }
-  }, [visible, resetLocalStats]);
+  }, [visible, resetLocalStats, profile, profileIsLoading, loadProfile]);
+
+  // Check if profile is ready for operations
+  useEffect(() => {
+    if (profile && !profileIsLoading && !profileIsUpdating) {
+      setProfileReady(true);
+      console.log('✅ Profile ready for Daily Tracker operations');
+    } else {
+      setProfileReady(false);
+    }
+  }, [profile, profileIsLoading, profileIsUpdating]);
 
   const handleClose = useCallback(() => {
     if (!isSaving) {
@@ -92,26 +111,51 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   }, []);
 
   const handleSaveStats = useCallback(async () => {
-    // Check if profile is available and not already saving
+    // Prevent duplicate saves
+    if (isSaving) {
+      console.log('⚠️ Save already in progress, ignoring duplicate request');
+      return;
+    }
+    
+    // Check if profile is still loading
+    if (profileIsLoading) {
+      Alert.alert(
+        'Please Wait',
+        'Still loading your profile. Please try again in a moment.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
+    // Check if profile is not available
     if (!profile) {
       Alert.alert(
         'Profile Not Available',
-        'Please sign in or wait for your profile to load before saving stats.',
+        'Please wait, still loading your profile.',
         [{ text: 'OK' }]
       );
       return;
     }
     
-    if (profileIsLoading || profileIsUpdating) {
+    // Check if another update is in progress
+    if (profileIsUpdating) {
       Alert.alert(
-        'Profile Update in Progress',
-        'Please wait for the current profile update to complete.',
+        'Update in Progress',
+        'Update in progress. Try again in a second.',
         [{ text: 'OK' }]
       );
       return;
     }
     
-    if (isSaving) return;
+    // Check if profile is ready
+    if (!profileReady) {
+      Alert.alert(
+        'Profile Not Ready',
+        'Please wait for your profile to finish loading.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
     
     try {
       setIsSaving(true);
@@ -132,6 +176,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       
       // Submit drunk scale if selected
       if (selectedDrunkScale !== null && canSubmitDrunkScale()) {
+        console.log('🔄 Submitting drunk scale rating:', selectedDrunkScale);
         await addDrunkScaleRating(selectedDrunkScale);
       }
       
@@ -174,7 +219,20 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         [{ text: 'OK' }]
       );
     }
-  }, [isSaving, localStats, profile, profileIsLoading, profileIsUpdating, updateDailyTrackerTotals, resetLocalStats, handleClose, selectedDrunkScale, canSubmitDrunkScale, addDrunkScaleRating]);
+  }, [
+    isSaving, 
+    profileIsLoading, 
+    profile, 
+    profileIsUpdating, 
+    profileReady, 
+    localStats, 
+    selectedDrunkScale, 
+    canSubmitDrunkScale, 
+    addDrunkScaleRating, 
+    updateDailyTrackerTotals, 
+    resetLocalStats, 
+    handleClose
+  ]);
 
   // Memoize canSubmitScale to prevent unnecessary re-calculations
   const canSubmitScale = useMemo(() => {
@@ -197,10 +255,10 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     { key: 'dartGamesWon' as const, label: 'Dart Games Won', emoji: '🎯', xp: 15 },
   ], []);
 
-  // Check if we can save stats (profile is available and not loading/updating)
+  // Check if we can save stats (profile is ready and not saving)
   const canSaveStats = useMemo(() => {
-    return !!profile && !profileIsLoading && !profileIsUpdating && !isSaving;
-  }, [profile, profileIsLoading, profileIsUpdating, isSaving]);
+    return profileReady && !isSaving && !profileIsLoading && !profileIsUpdating;
+  }, [profileReady, isSaving, profileIsLoading, profileIsUpdating]);
 
   return (
     <Modal
@@ -229,10 +287,10 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
           </View>
 
           {/* Profile Status Banner */}
-          {!profile && (
+          {!profileReady && (
             <View style={[styles.warningBanner, { backgroundColor: themeColors.warning + '20' }]}>
               <Text style={[styles.warningText, { color: themeColors.warning }]}>
-                Sign in to save your stats and earn XP
+                {profileIsLoading ? 'Loading your profile...' : !profile ? 'Sign in to save your stats and earn XP' : 'Preparing your profile...'}
               </Text>
             </View>
           )}
@@ -267,7 +325,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                     <Pressable
                       style={[styles.controlButton, { backgroundColor: themeColors.border }]}
                       onPress={() => handleStatChange(item.key, -1)}
-                      disabled={isSaving}
+                      disabled={isSaving || !profileReady}
                     >
                       <Minus size={18} color={themeColors.text} />
                     </Pressable>
@@ -279,7 +337,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                     <Pressable
                       style={[styles.controlButton, { backgroundColor: themeColors.primary }]}
                       onPress={() => handleStatChange(item.key, 1)}
-                      disabled={isSaving}
+                      disabled={isSaving || !profileReady}
                     >
                       <Plus size={18} color="white" />
                     </Pressable>
@@ -320,7 +378,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                           }
                         ]}
                         onPress={() => setSelectedDrunkScale(option.value)}
-                        disabled={isSaving}
+                        disabled={isSaving || !profileReady}
                       >
                         <Text style={styles.drunkScaleEmoji}>{option.emoji}</Text>
                         <Text style={[
@@ -372,7 +430,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
               disabled={!canSaveStats}
             >
               <Text style={styles.saveButtonText}>
-                {isSaving ? 'Saving...' : 'Save My Stats & Earn XP'}
+                {isSaving ? 'Saving...' : profileIsLoading ? 'Loading Profile...' : 'Save My Stats & Earn XP'}
               </Text>
             </Pressable>
           </View>
