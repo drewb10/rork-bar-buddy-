@@ -9,6 +9,7 @@ import BarBuddyLogo from '@/components/BarBuddyLogo';
 import FriendsModal from '@/components/FriendsModal';
 import BarBuddyChatbot from '@/components/BarBuddyChatbot';
 import OnboardingModal from '@/components/OnboardingModal';
+import DailyTracker from '@/components/DailyTracker';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 
@@ -18,7 +19,8 @@ export default function ProfileScreen() {
   const { 
     profile: authProfile, 
     signOut,
-    isLoading: authLoading
+    isLoading: authLoading,
+    isAuthenticated
   } = useAuthStore();
   const {
     profile,
@@ -30,6 +32,7 @@ export default function ProfileScreen() {
     getProgressToNextRank,
     setProfilePicture,
     isLoading: profileLoading,
+    profileReady
   } = useUserProfileStore();
   const router = useRouter();
   
@@ -37,13 +40,15 @@ export default function ProfileScreen() {
   const [rankDetailsModalVisible, setRankDetailsModalVisible] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'chatbot'>('profile');
+  const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
 
   useEffect(() => {
-    // Load profile when component mounts
-    if (authProfile && !profile) {
+    // Load profile when component mounts and user is authenticated
+    if (isAuthenticated && !profile && !profileLoading) {
+      console.log('🔄 Profile screen: Loading profile for authenticated user');
       loadProfile();
     }
-  }, [authProfile, profile, loadProfile]);
+  }, [isAuthenticated, profile, profileLoading, loadProfile]);
 
   useEffect(() => {
     // Show onboarding if user hasn't completed it
@@ -149,6 +154,31 @@ export default function ProfileScreen() {
     setRankDetailsModalVisible(true);
   };
 
+  const handleDailyTrackerPress = () => {
+    if (!isAuthenticated) {
+      Alert.alert(
+        'Sign In Required',
+        'Please sign in to track your daily stats and earn XP.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign In', onPress: () => router.push('/auth/sign-in') }
+        ]
+      );
+      return;
+    }
+
+    if (!profileReady) {
+      Alert.alert(
+        'Profile Loading',
+        'Please wait for your profile to finish loading.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    setDailyTrackerVisible(true);
+  };
+
   const rankInfo = getRank();
   const allRanks = getAllRanks();
   const nextRankXP = getXPForNextRank();
@@ -170,19 +200,38 @@ export default function ProfileScreen() {
     );
   }
 
-  if (!profile) {
+  if (!isAuthenticated) {
     return (
       <View style={[styles.container, { backgroundColor: '#000000' }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
           <Text style={[styles.loadingText, { color: themeColors.text }]}>
-            No profile found. Please sign in to continue.
+            Please sign in to view your profile.
           </Text>
           <Pressable 
             style={[styles.signInButton, { backgroundColor: themeColors.primary, marginTop: 20 }]}
             onPress={() => router.replace('/auth/sign-in')}
           >
             <Text style={styles.signInButtonText}>Sign In</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.loadingText, { color: themeColors.text }]}>
+            No profile found. Please try refreshing.
+          </Text>
+          <Pressable 
+            style={[styles.signInButton, { backgroundColor: themeColors.primary, marginTop: 20 }]}
+            onPress={() => loadProfile()}
+          >
+            <Text style={styles.signInButtonText}>Refresh Profile</Text>
           </Pressable>
         </View>
       </View>
@@ -322,6 +371,19 @@ export default function ProfileScreen() {
             </Text>
           </Pressable>
 
+          {/* Daily Tracker Button */}
+          <Pressable 
+            style={[styles.dailyTrackerButton, { backgroundColor: themeColors.card }]}
+            onPress={handleDailyTrackerPress}
+          >
+            <Text style={[styles.dailyTrackerButtonText, { color: themeColors.primary }]}>
+              📊 Daily Tracker
+            </Text>
+            <Text style={[styles.dailyTrackerSubtext, { color: themeColors.subtext }]}>
+              Track your night & earn XP
+            </Text>
+          </Pressable>
+
           {/* Friends Button */}
           <Pressable 
             style={[styles.friendsButton, { backgroundColor: themeColors.card }]}
@@ -338,6 +400,12 @@ export default function ProfileScreen() {
       ) : (
         <BarBuddyChatbot />
       )}
+
+      {/* Daily Tracker Modal */}
+      <DailyTracker
+        visible={dailyTrackerVisible}
+        onClose={() => setDailyTrackerVisible(false)}
+      />
 
       {/* Onboarding Modal */}
       <OnboardingModal
@@ -591,6 +659,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  dailyTrackerButton: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  dailyTrackerButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  dailyTrackerSubtext: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   friendsButton: {
     flexDirection: 'row',

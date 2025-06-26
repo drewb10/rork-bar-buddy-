@@ -44,6 +44,7 @@ export default function RootLayout() {
   const isAuthenticated = authStore?.isAuthenticated || false;
   const isConfigured = authStore?.isConfigured || false;
   const initializeAuth = authStore?.initialize || (() => Promise.resolve());
+  const refreshSession = authStore?.refreshSession || (() => Promise.resolve());
   const checkConfiguration = authStore?.checkConfiguration || (() => {});
   const loadPopularTimesFromSupabase = venueInteractionStore?.loadPopularTimesFromSupabase || (() => Promise.resolve());
   const shouldShow3AMPopup = achievementStore?.shouldShow3AMPopup || (() => false);
@@ -73,11 +74,16 @@ export default function RootLayout() {
           const initTimeout = setTimeout(() => {
             console.warn('App initialization timeout, continuing anyway');
             setIsInitialized(true);
-          }, 5000);
+          }, 10000); // Increased timeout to 10 seconds
 
           // Initialize auth (will handle unconfigured state gracefully)
           if (initializeAuth && typeof initializeAuth === 'function') {
             await initializeAuth();
+          }
+
+          // Refresh session to ensure we have the latest auth state
+          if (isConfigured && refreshSession && typeof refreshSession === 'function') {
+            await refreshSession();
           }
           
           // Load venue data if authenticated and configured

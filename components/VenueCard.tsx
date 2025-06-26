@@ -568,17 +568,16 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
               </Pressable>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
 
-      {/* Chat Modal */}
-      <ChatModal
-        visible={chatModalVisible}
-        onClose={() => setChatModalVisible(false)}
-        venue={venue}
-      />
-    </View>
-  );
+        {/* Chat Modal */}
+        <ChatModal
+          visible={chatModalVisible}
+          onClose={() => setChatModalVisible(false)}
+          venue={venue}
+        />
+      </View>
+    );
 }
 
 function getCurrentDay(): string {

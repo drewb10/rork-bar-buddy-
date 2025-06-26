@@ -4,12 +4,14 @@ import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { useAchievementStoreSafe } from '@/stores/achievementStore';
+import { useAuthStore } from '@/stores/authStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 
 export default function TrophiesScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const { profile, loadProfile, isLoading } = useUserProfileStore();
+  const { isAuthenticated } = useAuthStore();
   const { 
     completedAchievements, 
     initializeAchievements, 
@@ -26,14 +28,17 @@ export default function TrophiesScreen() {
     }
   }, [isInitialized, initializeAchievements]);
 
-  // Load profile when component mounts if not already loaded
+  // Load profile when component mounts if authenticated and not already loaded
   useEffect(() => {
-    if (!profile && !isLoading) {
+    if (isAuthenticated && !profile && !isLoading) {
+      console.log('🔄 Trophies screen: Loading profile for authenticated user');
       loadProfile();
     }
-  }, [profile, isLoading, loadProfile]);
+  }, [isAuthenticated, profile, isLoading, loadProfile]);
 
   const onRefresh = async () => {
+    if (!isAuthenticated) return;
+    
     setRefreshing(true);
     try {
       await loadProfile();
@@ -189,6 +194,11 @@ export default function TrophiesScreen() {
               @{profile.username} • {lifetimeStats.totalXP} XP
             </Text>
           )}
+          {!isAuthenticated && (
+            <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
+              Sign in to track your stats and earn trophies
+            </Text>
+          )}
         </View>
 
         {/* Tab Navigation */}
@@ -226,60 +236,84 @@ export default function TrophiesScreen() {
         {activeTab === 'stats' ? (
           /* Lifetime Stats Section */
           <View style={styles.section}>
-            {/* Activity Stats Grid */}
-            <View style={styles.statsGrid}>
-              <StatCard title="Shots Taken" value={lifetimeStats.shotsTaken} />
-              <StatCard title="Scoop & Scores" value={lifetimeStats.scoopAndScores} />
-              <StatCard title="Beers Logged" value={lifetimeStats.beersLogged} />
-              <StatCard title="Beer Towers" value={lifetimeStats.beerTowers} />
-              <StatCard title="Funnels" value={lifetimeStats.funnels} />
-              <StatCard title="Shotguns" value={lifetimeStats.shotguns} />
-              <StatCard title="Pool Games Won" value={lifetimeStats.poolGamesWon} />
-              <StatCard title="Dart Games Won" value={lifetimeStats.dartGamesWon} />
-            </View>
+            {!isAuthenticated ? (
+              <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
+                <Text style={styles.emptyEmoji}>📊</Text>
+                <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
+                  Sign In to View Stats
+                </Text>
+                <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
+                  Track your activities and see your lifetime stats here!
+                </Text>
+              </View>
+            ) : (
+              <>
+                {/* Activity Stats Grid */}
+                <View style={styles.statsGrid}>
+                  <StatCard title="Shots Taken" value={lifetimeStats.shotsTaken} />
+                  <StatCard title="Scoop & Scores" value={lifetimeStats.scoopAndScores} />
+                  <StatCard title="Beers Logged" value={lifetimeStats.beersLogged} />
+                  <StatCard title="Beer Towers" value={lifetimeStats.beerTowers} />
+                  <StatCard title="Funnels" value={lifetimeStats.funnels} />
+                  <StatCard title="Shotguns" value={lifetimeStats.shotguns} />
+                  <StatCard title="Pool Games Won" value={lifetimeStats.poolGamesWon} />
+                  <StatCard title="Dart Games Won" value={lifetimeStats.dartGamesWon} />
+                </View>
 
-            {/* Bottom Row - Larger Stats */}
-            <View style={styles.bottomStatsGrid}>
-              <StatCard 
-                title="Bars Hit" 
-                value={lifetimeStats.barsHit}
-                size="large"
-              />
-              <StatCard 
-                title="Nights Out" 
-                value={lifetimeStats.nightsOut}
-                size="large"
-              />
-            </View>
+                {/* Bottom Row - Larger Stats */}
+                <View style={styles.bottomStatsGrid}>
+                  <StatCard 
+                    title="Bars Hit" 
+                    value={lifetimeStats.barsHit}
+                    size="large"
+                  />
+                  <StatCard 
+                    title="Nights Out" 
+                    value={lifetimeStats.nightsOut}
+                    size="large"
+                  />
+                </View>
 
-            <View style={styles.bottomStatsGrid}>
-              <StatCard 
-                title="Total Drinks Logged" 
-                value={lifetimeStats.totalDrinksLogged}
-                size="large"
-              />
-              <StatCard 
-                title="Average Drunk Scale" 
-                value={lifetimeStats.drunkScaleAvg}
-                subtitle="out of 5"
-                size="large"
-              />
-            </View>
+                <View style={styles.bottomStatsGrid}>
+                  <StatCard 
+                    title="Total Drinks Logged" 
+                    value={lifetimeStats.totalDrinksLogged}
+                    size="large"
+                  />
+                  <StatCard 
+                    title="Average Drunk Scale" 
+                    value={lifetimeStats.drunkScaleAvg}
+                    subtitle="out of 5"
+                    size="large"
+                  />
+                </View>
 
-            {/* XP Card */}
-            <View style={styles.bottomStatsGrid}>
-              <StatCard 
-                title="Total XP Earned" 
-                value={lifetimeStats.totalXP}
-                subtitle="Experience Points"
-                size="large"
-              />
-            </View>
+                {/* XP Card */}
+                <View style={styles.bottomStatsGrid}>
+                  <StatCard 
+                    title="Total XP Earned" 
+                    value={lifetimeStats.totalXP}
+                    subtitle="Experience Points"
+                    size="large"
+                  />
+                </View>
+              </>
+            )}
           </View>
         ) : (
           /* Trophies Section */
           <View style={styles.section}>
-            {completedAchievements.length === 0 ? (
+            {!isAuthenticated ? (
+              <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
+                <Text style={styles.emptyEmoji}>🏆</Text>
+                <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
+                  Sign In to View Trophies
+                </Text>
+                <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
+                  Earn trophies by tracking your activities and achievements!
+                </Text>
+              </View>
+            ) : completedAchievements.length === 0 ? (
               <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
                 <Text style={styles.emptyEmoji}>🏆</Text>
                 <Text style={[styles.emptyTitle, { color: themeColors.text }]}>

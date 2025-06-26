@@ -232,17 +232,14 @@ export const useUserProfileStore = create<UserProfileState>()(
         
         try {
           // Process all queued updates sequentially
-          while (state.updateQueue.length > 0) {
-            const currentState = get();
-            const nextUpdate = currentState.updateQueue[0];
-            
-            if (nextUpdate) {
-              await nextUpdate();
-              
-              // Remove the processed update from queue
-              set((prevState) => ({
-                updateQueue: prevState.updateQueue.slice(1)
-              }));
+          const currentQueue = [...state.updateQueue];
+          set({ updateQueue: [] }); // Clear queue immediately
+          
+          for (const updateFunction of currentQueue) {
+            try {
+              await updateFunction();
+            } catch (error) {
+              console.error('Error processing queued update:', error);
             }
           }
         } catch (error) {
@@ -495,25 +492,31 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
       
       addDrunkScaleRating: async (rating: number) => {
-        return new Promise<void>((resolve) => {
+        return new Promise<void>((resolve, reject) => {
           const updateFunction = async () => {
-            const { profile } = get();
-            if (!profile) {
-              console.error('❌ No profile available for drunk scale rating');
-              return;
-            }
+            try {
+              const { profile } = get();
+              if (!profile) {
+                console.error('❌ No profile available for drunk scale rating');
+                reject(new Error('No profile available'));
+                return;
+              }
 
-            const today = new Date().toISOString();
-            const currentRatings = profile.drunk_scale_ratings || [];
-            
-            await get().updateProfile({
-              drunk_scale_ratings: [...currentRatings, rating],
-              last_drunk_scale_date: today
-            });
-            
-            // Award XP for drunk scale submission
-            await get().awardXP('drunk_scale_submission', `Submitted drunk scale rating: ${rating}/10`);
-            resolve();
+              const today = new Date().toISOString();
+              const currentRatings = profile.drunk_scale_ratings || [];
+              
+              await get().updateProfile({
+                drunk_scale_ratings: [...currentRatings, rating],
+                last_drunk_scale_date: today
+              });
+              
+              // Award XP for drunk scale submission
+              await get().awardXP('drunk_scale_submission', `Submitted drunk scale rating: ${rating}/5`);
+              resolve();
+            } catch (error) {
+              console.error('❌ Error adding drunk scale rating:', error);
+              reject(error);
+            }
           };
 
           // Add to queue instead of executing immediately
@@ -1147,7 +1150,7 @@ export const useUserProfileStore = create<UserProfileState>()(
 
 // Debounced achievement update function to prevent rapid successive calls
 const debouncedUpdateAchievements = (() => {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  let timeoutId: NodeJS.Timeout | null = null;
   
   return (stats: any) => {
     if (timeoutId) {

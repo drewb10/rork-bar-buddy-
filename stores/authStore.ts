@@ -23,6 +23,7 @@ interface AuthState {
   searchUser: (username: string) => Promise<UserProfile | null>;
   initialize: () => Promise<void>;
   checkConfiguration: () => void;
+  refreshSession: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -170,6 +171,44 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      refreshSession: async (): Promise<void> => {
+        if (!isSupabaseConfigured()) {
+          console.log('🎯 AuthStore: Supabase not configured, skipping session refresh');
+          return;
+        }
+
+        try {
+          console.log('🎯 AuthStore: Refreshing session...');
+          const { data: { session }, error } = await supabase.auth.refreshSession();
+          
+          if (error) {
+            console.error('🎯 AuthStore: Session refresh failed:', error);
+            // Clear auth state if refresh fails
+            set({
+              user: null,
+              profile: null,
+              isAuthenticated: false,
+              error: null
+            });
+            return;
+          }
+
+          if (session?.user) {
+            console.log('🎯 AuthStore: Session refreshed successfully');
+            // Re-initialize with fresh session
+            await get().initialize();
+          }
+        } catch (error) {
+          console.error('🎯 AuthStore: Session refresh error:', error);
+          set({
+            user: null,
+            profile: null,
+            isAuthenticated: false,
+            error: null
+          });
+        }
+      },
+
       initialize: async (): Promise<void> => {
         // Check configuration first
         const configured = isSupabaseConfigured();
@@ -191,10 +230,39 @@ export const useAuthStore = create<AuthState>()(
         
         try {
           console.log('🎯 AuthStore: Initializing auth state...');
+          
+          // First check if we have a valid session
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError) {
+            console.error('🎯 AuthStore: Session error:', sessionError);
+            set({
+              user: null,
+              profile: null,
+              isAuthenticated: false,
+              isLoading: false,
+              error: null
+            });
+            return;
+          }
+
+          if (!session?.user) {
+            console.log('🎯 AuthStore: No valid session found');
+            set({
+              user: null,
+              profile: null,
+              isAuthenticated: false,
+              isLoading: false,
+              error: null
+            });
+            return;
+          }
+
+          // If session exists, get current user and profile
           const { user, profile } = await authService.getCurrentUser();
           
           if (user && profile) {
-            console.log('🎯 AuthStore: Found existing session');
+            console.log('🎯 AuthStore: Found existing session with profile');
             set({
               user,
               profile,
@@ -203,7 +271,7 @@ export const useAuthStore = create<AuthState>()(
               error: null
             });
           } else {
-            console.log('🎯 AuthStore: No existing session');
+            console.log('🎯 AuthStore: Session exists but no profile found');
             set({
               user: null,
               profile: null,
@@ -252,7 +320,7 @@ export const useAuthStore = create<AuthState>()(
 if (isSupabaseConfigured()) {
   supabase.auth.onAuthStateChange(async (event, session) => {
     console.log('🎯 Auth state change:', event);
-    const { initialize } = useAuthStore.getState();
+    const { initialize, refreshSession } = useAuthStore.getState();
     
     if (event === 'SIGNED_IN' && session) {
       await initialize();
@@ -263,6 +331,9 @@ if (isSupabaseConfigured()) {
         isAuthenticated: false,
         error: null
       });
+    } else if (event === 'TOKEN_REFRESHED' && session) {
+      console.log('🎯 Token refreshed, updating state...');
+      await initialize();
     }
   });
 } else {
