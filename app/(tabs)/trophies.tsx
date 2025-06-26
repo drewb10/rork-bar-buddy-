@@ -2,16 +2,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, RefreshControl } from 'react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
-import { useUserProfileStore } from '@/stores/userProfileStore';
-import { useAchievementStoreSafe } from '@/stores/achievementStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useAchievementStoreSafe } from '@/stores/achievementStore';
+import { dailyStatsHelpers, getCurrentUserId, isSupabaseConfigured } from '@/lib/supabase';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 
 export default function TrophiesScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { profile, loadProfile, isLoading } = useUserProfileStore();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, profile } = useAuthStore();
   const { 
     completedAchievements, 
     initializeAchievements, 
@@ -20,6 +19,22 @@ export default function TrophiesScreen() {
 
   const [activeTab, setActiveTab] = useState<'stats' | 'trophies'>('stats');
   const [refreshing, setRefreshing] = useState(false);
+  const [lifetimeStats, setLifetimeStats] = useState({
+    totalBeers: 0,
+    totalShots: 0,
+    totalScoopAndScores: 0,
+    totalBeerTowers: 0,
+    totalFunnels: 0,
+    totalShotguns: 0,
+    totalPoolGames: 0,
+    totalDartGames: 0,
+    totalDrinksLogged: 0,
+    avgDrunkScale: 0,
+    barsHit: 0,
+    nightsOut: 0,
+    totalXP: 0,
+  });
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   // Initialize achievements when component mounts
   useEffect(() => {
@@ -28,74 +43,68 @@ export default function TrophiesScreen() {
     }
   }, [isInitialized, initializeAchievements]);
 
-  // Load profile when component mounts if authenticated and not already loaded
+  // Load lifetime stats when component mounts or when authenticated
   useEffect(() => {
-    if (isAuthenticated && !profile && !isLoading) {
-      console.log('🔄 Trophies screen: Loading profile for authenticated user');
-      loadProfile();
+    if (isAuthenticated) {
+      loadLifetimeStats();
     }
-  }, [isAuthenticated, profile, isLoading, loadProfile]);
+  }, [isAuthenticated]);
+
+  const loadLifetimeStats = async () => {
+    if (!isSupabaseConfigured() || !isAuthenticated) {
+      console.log('🏆 Trophies: Supabase not configured or user not authenticated');
+      return;
+    }
+
+    setIsLoadingStats(true);
+
+    try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        console.log('🏆 Trophies: No authenticated user');
+        setIsLoadingStats(false);
+        return;
+      }
+
+      console.log('🏆 Trophies: Loading lifetime stats from Supabase...');
+      const stats = await dailyStatsHelpers.getLifetimeStats(userId);
+
+      setLifetimeStats({
+        totalBeers: stats.totalBeers,
+        totalShots: stats.totalShots,
+        totalScoopAndScores: stats.totalScoopAndScores,
+        totalBeerTowers: stats.totalBeerTowers,
+        totalFunnels: stats.totalFunnels,
+        totalShotguns: stats.totalShotguns,
+        totalPoolGames: stats.totalPoolGames,
+        totalDartGames: stats.totalDartGames,
+        totalDrinksLogged: stats.totalDrinksLogged,
+        avgDrunkScale: stats.avgDrunkScale,
+        barsHit: stats.barsHit,
+        nightsOut: stats.nightsOut,
+        totalXP: profile?.xp || 0, // XP still comes from profile
+      });
+
+      console.log('🏆 Trophies: Lifetime stats loaded successfully');
+    } catch (error) {
+      console.error('🏆 Trophies: Error loading lifetime stats:', error);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
 
   const onRefresh = async () => {
     if (!isAuthenticated) return;
     
     setRefreshing(true);
     try {
-      await loadProfile();
+      await loadLifetimeStats();
     } catch (error) {
-      console.error('Error refreshing profile:', error);
+      console.error('Error refreshing stats:', error);
     } finally {
       setRefreshing(false);
     }
   };
-
-  // Memoize lifetime stats to prevent unnecessary recalculations
-  const lifetimeStats = useMemo(() => {
-    if (!profile) {
-      return {
-        shotsTaken: 0,
-        scoopAndScores: 0,
-        beersLogged: 0,
-        beerTowers: 0,
-        funnels: 0,
-        shotguns: 0,
-        poolGamesWon: 0,
-        dartGamesWon: 0,
-        barsHit: 0,
-        nightsOut: 0,
-        totalDrinksLogged: 0,
-        drunkScaleAvg: 0,
-        totalXP: 0,
-      };
-    }
-
-    const totalDrinks = (profile.total_beers || 0) + 
-                       (profile.total_shots || 0) + 
-                       (profile.total_scoop_and_scores || 0) + 
-                       (profile.total_beer_towers || 0) + 
-                       (profile.total_funnels || 0) + 
-                       (profile.total_shotguns || 0);
-
-    const drunkScaleAvg = profile.drunk_scale_ratings && profile.drunk_scale_ratings.length > 0
-      ? Math.round((profile.drunk_scale_ratings.reduce((sum, rating) => sum + rating, 0) / profile.drunk_scale_ratings.length) * 10) / 10
-      : 0;
-
-    return {
-      shotsTaken: profile.total_shots || 0,
-      scoopAndScores: profile.total_scoop_and_scores || 0,
-      beersLogged: profile.total_beers || 0,
-      beerTowers: profile.total_beer_towers || 0,
-      funnels: profile.total_funnels || 0,
-      shotguns: profile.total_shotguns || 0,
-      poolGamesWon: profile.pool_games_won || 0,
-      dartGamesWon: profile.dart_games_won || 0,
-      barsHit: profile.bars_hit || 0,
-      nightsOut: profile.nights_out || 0,
-      totalDrinksLogged: totalDrinks,
-      drunkScaleAvg,
-      totalXP: profile.xp || 0,
-    };
-  }, [profile]);
 
   // Memoize trophy categories
   const trophyCategories = useMemo(() => {
@@ -246,18 +255,28 @@ export default function TrophiesScreen() {
                   Track your activities and see your lifetime stats here!
                 </Text>
               </View>
+            ) : isLoadingStats ? (
+              <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
+                <Text style={styles.emptyEmoji}>⏳</Text>
+                <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
+                  Loading Your Stats
+                </Text>
+                <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
+                  Fetching your lifetime statistics...
+                </Text>
+              </View>
             ) : (
               <>
                 {/* Activity Stats Grid */}
                 <View style={styles.statsGrid}>
-                  <StatCard title="Shots Taken" value={lifetimeStats.shotsTaken} />
-                  <StatCard title="Scoop & Scores" value={lifetimeStats.scoopAndScores} />
-                  <StatCard title="Beers Logged" value={lifetimeStats.beersLogged} />
-                  <StatCard title="Beer Towers" value={lifetimeStats.beerTowers} />
-                  <StatCard title="Funnels" value={lifetimeStats.funnels} />
-                  <StatCard title="Shotguns" value={lifetimeStats.shotguns} />
-                  <StatCard title="Pool Games Won" value={lifetimeStats.poolGamesWon} />
-                  <StatCard title="Dart Games Won" value={lifetimeStats.dartGamesWon} />
+                  <StatCard title="Shots Taken" value={lifetimeStats.totalShots} />
+                  <StatCard title="Scoop & Scores" value={lifetimeStats.totalScoopAndScores} />
+                  <StatCard title="Beers Logged" value={lifetimeStats.totalBeers} />
+                  <StatCard title="Beer Towers" value={lifetimeStats.totalBeerTowers} />
+                  <StatCard title="Funnels" value={lifetimeStats.totalFunnels} />
+                  <StatCard title="Shotguns" value={lifetimeStats.totalShotguns} />
+                  <StatCard title="Pool Games Won" value={lifetimeStats.totalPoolGames} />
+                  <StatCard title="Dart Games Won" value={lifetimeStats.totalDartGames} />
                 </View>
 
                 {/* Bottom Row - Larger Stats */}
@@ -282,7 +301,7 @@ export default function TrophiesScreen() {
                   />
                   <StatCard 
                     title="Average Drunk Scale" 
-                    value={lifetimeStats.drunkScaleAvg}
+                    value={lifetimeStats.avgDrunkScale}
                     subtitle="out of 5"
                     size="large"
                   />

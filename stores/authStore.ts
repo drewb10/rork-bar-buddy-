@@ -12,6 +12,7 @@ interface AuthState {
   error: string | null;
   isConfigured: boolean;
   isHydrated: boolean;
+  sessionChecked: boolean;
   
   // Actions
   signUp: (phone: string, password: string, username: string) => Promise<boolean>;
@@ -24,6 +25,7 @@ interface AuthState {
   initialize: () => Promise<void>;
   checkConfiguration: () => void;
   refreshSession: () => Promise<void>;
+  checkSession: () => Promise<boolean>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -36,6 +38,7 @@ export const useAuthStore = create<AuthState>()(
       error: null,
       isConfigured: isSupabaseConfigured(),
       isHydrated: false,
+      sessionChecked: false,
 
       signUp: async (phone: string, password: string, username: string): Promise<boolean> => {
         set({ isLoading: true, error: null });
@@ -50,7 +53,8 @@ export const useAuthStore = create<AuthState>()(
             profile,
             isAuthenticated: true,
             isLoading: false,
-            error: null
+            error: null,
+            sessionChecked: true,
           });
           
           console.log('🎯 AuthStore: State updated successfully');
@@ -63,7 +67,8 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             user: null,
             profile: null,
-            isAuthenticated: false
+            isAuthenticated: false,
+            sessionChecked: true,
           });
           return false;
         }
@@ -82,7 +87,8 @@ export const useAuthStore = create<AuthState>()(
             profile,
             isAuthenticated: true,
             isLoading: false,
-            error: null
+            error: null,
+            sessionChecked: true,
           });
           
           console.log('🎯 AuthStore: State updated successfully');
@@ -95,7 +101,8 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             user: null,
             profile: null,
-            isAuthenticated: false
+            isAuthenticated: false,
+            sessionChecked: true,
           });
           return false;
         }
@@ -112,7 +119,8 @@ export const useAuthStore = create<AuthState>()(
             profile: null,
             isAuthenticated: false,
             isLoading: false,
-            error: null
+            error: null,
+            sessionChecked: true,
           });
           console.log('🎯 AuthStore: Signout successful');
         } catch (error) {
@@ -123,7 +131,8 @@ export const useAuthStore = create<AuthState>()(
             profile: null,
             isAuthenticated: false,
             isLoading: false,
-            error: null
+            error: null,
+            sessionChecked: true,
           });
         }
       },
@@ -188,7 +197,8 @@ export const useAuthStore = create<AuthState>()(
               user: null,
               profile: null,
               isAuthenticated: false,
-              error: null
+              error: null,
+              sessionChecked: true,
             });
             return;
           }
@@ -204,8 +214,67 @@ export const useAuthStore = create<AuthState>()(
             user: null,
             profile: null,
             isAuthenticated: false,
-            error: null
+            error: null,
+            sessionChecked: true,
           });
+        }
+      },
+
+      checkSession: async (): Promise<boolean> => {
+        if (!isSupabaseConfigured()) {
+          console.log('🎯 AuthStore: Supabase not configured');
+          set({ sessionChecked: true, isAuthenticated: false });
+          return false;
+        }
+
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error('🎯 AuthStore: Session check error:', error);
+            set({ 
+              sessionChecked: true, 
+              isAuthenticated: false,
+              user: null,
+              profile: null 
+            });
+            return false;
+          }
+
+          const isValid = !!session?.user;
+          console.log('🎯 AuthStore: Session check result:', isValid);
+          
+          if (isValid && session?.user) {
+            // If we have a valid session but no profile loaded, initialize
+            const currentState = get();
+            if (!currentState.profile) {
+              await get().initialize();
+            } else {
+              set({ 
+                sessionChecked: true, 
+                isAuthenticated: true,
+                user: session.user 
+              });
+            }
+          } else {
+            set({ 
+              sessionChecked: true, 
+              isAuthenticated: false,
+              user: null,
+              profile: null 
+            });
+          }
+
+          return isValid;
+        } catch (error) {
+          console.error('🎯 AuthStore: Session check failed:', error);
+          set({ 
+            sessionChecked: true, 
+            isAuthenticated: false,
+            user: null,
+            profile: null 
+          });
+          return false;
         }
       },
 
@@ -221,7 +290,8 @@ export const useAuthStore = create<AuthState>()(
             profile: null,
             isAuthenticated: false,
             isLoading: false,
-            error: null
+            error: null,
+            sessionChecked: true,
           });
           return;
         }
@@ -241,7 +311,8 @@ export const useAuthStore = create<AuthState>()(
               profile: null,
               isAuthenticated: false,
               isLoading: false,
-              error: null
+              error: null,
+              sessionChecked: true,
             });
             return;
           }
@@ -253,7 +324,8 @@ export const useAuthStore = create<AuthState>()(
               profile: null,
               isAuthenticated: false,
               isLoading: false,
-              error: null
+              error: null,
+              sessionChecked: true,
             });
             return;
           }
@@ -268,7 +340,8 @@ export const useAuthStore = create<AuthState>()(
               profile,
               isAuthenticated: true,
               isLoading: false,
-              error: null
+              error: null,
+              sessionChecked: true,
             });
           } else {
             console.log('🎯 AuthStore: Session exists but no profile found');
@@ -277,7 +350,8 @@ export const useAuthStore = create<AuthState>()(
               profile: null,
               isAuthenticated: false,
               isLoading: false,
-              error: null
+              error: null,
+              sessionChecked: true,
             });
           }
         } catch (error) {
@@ -287,7 +361,8 @@ export const useAuthStore = create<AuthState>()(
             profile: null,
             isAuthenticated: false,
             isLoading: false,
-            error: null
+            error: null,
+            sessionChecked: true,
           });
         }
       },
@@ -329,7 +404,8 @@ if (isSupabaseConfigured()) {
         user: null,
         profile: null,
         isAuthenticated: false,
-        error: null
+        error: null,
+        sessionChecked: true,
       });
     } else if (event === 'TOKEN_REFRESHED' && session) {
       console.log('🎯 Token refreshed, updating state...');

@@ -95,6 +95,56 @@ export interface Database {
           updated_at?: string
         }
       }
+      daily_stats: {
+        Row: {
+          id: string
+          user_id: string
+          date: string
+          drunk_scale: number | null
+          beers: number
+          shots: number
+          scoop_and_scores: number
+          beer_towers: number
+          funnels: number
+          shotguns: number
+          pool_games_won: number
+          dart_games_won: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          date: string
+          drunk_scale?: number | null
+          beers?: number
+          shots?: number
+          scoop_and_scores?: number
+          beer_towers?: number
+          funnels?: number
+          shotguns?: number
+          pool_games_won?: number
+          dart_games_won?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          date?: string
+          drunk_scale?: number | null
+          beers?: number
+          shots?: number
+          scoop_and_scores?: number
+          beer_towers?: number
+          funnels?: number
+          shotguns?: number
+          pool_games_won?: number
+          dart_games_won?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
       friends: {
         Row: {
           id: string

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { StyleSheet, View, Text, Pressable, ScrollView, Alert, Platform, Modal } from 'react-native';
-import { X, Plus, Minus, TrendingUp, Award, Target, Loader2 } from 'lucide-react-native';
+import { X, Plus, Minus, TrendingUp, Target, Loader2 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
-import { useUserProfileStore } from '@/stores/userProfileStore';
+import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
+import { useAuthStore } from '@/stores/authStore';
 
 interface DailyTrackerProps {
   visible: boolean;
@@ -28,60 +29,39 @@ const drunkScaleOptions: DrunkScaleOption[] = [
 export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
+  const { isAuthenticated, checkSession } = useAuthStore();
   const { 
-    updateDailyTrackerTotals, 
-    canSubmitDrunkScale, 
-    addDrunkScaleRating,
-    profile,
-    isLoading: profileIsLoading,
-    isUpdating: profileIsUpdating,
-    profileReady,
-    loadProfile
-  } = useUserProfileStore();
+    localStats,
+    isLoading,
+    isSaving,
+    updateLocalStats,
+    loadTodayStats,
+    saveTodayStats,
+    resetLocalStats,
+    canSubmitDrunkScale
+  } = useDailyTrackerStore();
 
-  const [localStats, setLocalStats] = useState({
-    shots: 0,
-    scoopAndScores: 0,
-    beers: 0,
-    beerTowers: 0,
-    funnels: 0,
-    shotguns: 0,
-    poolGamesWon: 0,
-    dartGamesWon: 0,
-  });
-  const [selectedDrunkScale, setSelectedDrunkScale] = useState<number | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [canSubmitScale, setCanSubmitScale] = useState(true);
   const [saveProgress, setSaveProgress] = useState('');
 
-  // Reset local stats when modal opens - use useCallback to prevent unnecessary re-renders
-  const resetLocalStats = useCallback(() => {
-    setLocalStats({
-      shots: 0,
-      scoopAndScores: 0,
-      beers: 0,
-      beerTowers: 0,
-      funnels: 0,
-      shotguns: 0,
-      poolGamesWon: 0,
-      dartGamesWon: 0,
-    });
-    setSelectedDrunkScale(null);
-    setIsSaving(false);
-    setSaveProgress('');
-  }, []);
-
-  // Load profile when modal opens
+  // Load today's stats when modal opens
   useEffect(() => {
     if (visible) {
-      resetLocalStats();
+      console.log('📊 DailyTracker: Modal opened, loading today stats...');
+      loadTodayStats();
       
-      // Load profile if not already loaded or ready
-      if (!profile || !profileReady) {
-        console.log('🔄 Loading profile for Daily Tracker...');
-        loadProfile();
-      }
+      // Check drunk scale submission eligibility
+      canSubmitDrunkScale().then(setCanSubmitScale);
     }
-  }, [visible, resetLocalStats, profile, profileReady, loadProfile]);
+  }, [visible, loadTodayStats, canSubmitDrunkScale]);
+
+  // Check session when modal opens
+  useEffect(() => {
+    if (visible && !isAuthenticated) {
+      console.log('📊 DailyTracker: Checking session...');
+      checkSession();
+    }
+  }, [visible, isAuthenticated, checkSession]);
 
   const handleClose = useCallback(() => {
     if (!isSaving) {
@@ -90,196 +70,101 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   }, [isSaving, onClose]);
 
   const handleStatChange = useCallback((statKey: keyof typeof localStats, delta: number) => {
-    if (isSaving) return; // Prevent changes while saving
+    if (isSaving) return;
     
-    setLocalStats(prev => {
-      const currentValue = prev[statKey];
-      const newValue = Math.max(0, currentValue + delta);
-      
-      return {
-        ...prev,
-        [statKey]: newValue
-      };
-    });
-  }, [isSaving]);
+    const currentValue = localStats[statKey] as number;
+    const newValue = Math.max(0, currentValue + delta);
+    
+    updateLocalStats({ [statKey]: newValue });
+  }, [isSaving, localStats, updateLocalStats]);
+
+  const handleDrunkScaleSelect = useCallback((rating: number) => {
+    if (isSaving || !canSubmitScale) return;
+    
+    updateLocalStats({ drunk_scale: rating });
+  }, [isSaving, canSubmitScale, updateLocalStats]);
 
   const handleSaveStats = useCallback(async () => {
-    // Prevent duplicate saves
     if (isSaving) {
-      console.log('⚠️ Save already in progress, ignoring duplicate request');
+      console.log('⚠️ Save already in progress');
       return;
     }
-    
-    // Check if profile is still loading
-    if (profileIsLoading) {
+
+    if (!isAuthenticated) {
       Alert.alert(
-        'Please Wait',
-        'Still loading your profile. Please try again in a moment.',
+        'Sign In Required',
+        'Please sign in to save your stats and earn XP.',
         [{ text: 'OK' }]
       );
       return;
     }
-    
-    // Check if profile is not available
-    if (!profile) {
+
+    // Check if there are any stats to save
+    const hasStats = Object.entries(localStats).some(([key, value]) => {
+      if (key === 'drunk_scale') return value !== null;
+      return value > 0;
+    });
+
+    if (!hasStats) {
       Alert.alert(
-        'Profile Not Available',
-        'Please wait, still loading your profile.',
+        'No Stats to Save',
+        'Please add some activities or select a drunk scale rating before saving.',
         [{ text: 'OK' }]
       );
       return;
     }
-    
-    // Check if another update is in progress
-    if (profileIsUpdating) {
-      Alert.alert(
-        'Update in Progress',
-        'Another update is in progress. Please wait a moment and try again.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-    
-    // Check if profile is ready
-    if (!profileReady) {
-      Alert.alert(
-        'Profile Not Ready',
-        'Please wait for your profile to finish loading.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-    
+
     try {
-      setIsSaving(true);
       setSaveProgress('Saving your stats...');
-      console.log('🔄 Saving daily tracker stats:', localStats);
+      console.log('📊 DailyTracker: Saving stats:', localStats);
       
-      // Check if there are any stats to save
-      const hasStats = Object.values(localStats).some(value => value > 0);
+      await saveTodayStats();
       
-      if (!hasStats && !selectedDrunkScale) {
-        Alert.alert(
-          'No Stats to Save',
-          'Please add some activities or select a drunk scale rating before saving.',
-          [{ text: 'OK' }]
-        );
-        setIsSaving(false);
-        setSaveProgress('');
-        return;
-      }
-      
-      // Submit drunk scale if selected
-      if (selectedDrunkScale !== null && canSubmitDrunkScale()) {
-        setSaveProgress('Submitting drunk scale rating...');
-        console.log('🔄 Submitting drunk scale rating:', selectedDrunkScale);
-        await addDrunkScaleRating(selectedDrunkScale);
-      }
-      
-      // Only update tracker totals if there are actual stats
-      if (hasStats) {
-        setSaveProgress('Updating your stats...');
-        
-        // Calculate new totals by adding current stats to existing totals
-        const newTotals = {
-          shots: (profile?.total_shots || 0) + localStats.shots,
-          scoopAndScores: (profile?.total_scoop_and_scores || 0) + localStats.scoopAndScores,
-          beers: (profile?.total_beers || 0) + localStats.beers,
-          beerTowers: (profile?.total_beer_towers || 0) + localStats.beerTowers,
-          funnels: (profile?.total_funnels || 0) + localStats.funnels,
-          shotguns: (profile?.total_shotguns || 0) + localStats.shotguns,
-          poolGamesWon: (profile?.pool_games_won || 0) + localStats.poolGamesWon,
-          dartGamesWon: (profile?.dart_games_won || 0) + localStats.dartGamesWon,
-        };
-        
-        console.log('🔄 New totals will be:', newTotals);
-        
-        // Update user profile totals (this handles XP awarding and achievement updates)
-        await updateDailyTrackerTotals(newTotals);
-      }
-      
-      setSaveProgress('Finalizing...');
+      setSaveProgress('');
       console.log('✅ Stats saved successfully');
-      
-      // Reset local state to zero
-      resetLocalStats();
       
       Alert.alert(
         'Stats Saved! 🎉',
-        'Your stats have been updated and XP awarded! Check your trophies to see any new achievements.',
+        'Your stats have been saved successfully!',
         [{ text: 'Awesome!', onPress: handleClose }]
       );
     } catch (error) {
       console.error('❌ Error saving stats:', error);
-      setIsSaving(false);
       setSaveProgress('');
       
       let errorMessage = 'Failed to save stats. Please try again.';
       
       if (error instanceof Error) {
-        if (error.message.includes('Profile not loaded')) {
-          errorMessage = 'Profile not loaded. Please wait for your profile to load and try again.';
-        } else if (error.message.includes('Profile is still loading')) {
-          errorMessage = 'Profile is still loading. Please wait and try again.';
-        } else if (error.message.includes('Another update is in progress')) {
-          errorMessage = 'Another update is in progress. Please wait a moment and try again.';
+        if (error.message.includes('not authenticated')) {
+          errorMessage = 'Please sign in to save your stats.';
+        } else if (error.message.includes('not configured')) {
+          errorMessage = 'Database not configured. Please contact support.';
         }
       }
       
-      Alert.alert(
-        'Error',
-        errorMessage,
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Error', errorMessage, [{ text: 'OK' }]);
     }
-  }, [
-    isSaving, 
-    profileIsLoading, 
-    profile, 
-    profileIsUpdating, 
-    profileReady, 
-    localStats, 
-    selectedDrunkScale, 
-    canSubmitDrunkScale, 
-    addDrunkScaleRating, 
-    updateDailyTrackerTotals, 
-    resetLocalStats, 
-    handleClose
-  ]);
-
-  // Memoize canSubmitScale to prevent unnecessary re-calculations
-  const canSubmitScale = useMemo(() => {
-    try {
-      return canSubmitDrunkScale();
-    } catch (error) {
-      console.warn('Error checking drunk scale submission:', error);
-      return false;
-    }
-  }, [canSubmitDrunkScale]);
+  }, [isSaving, isAuthenticated, localStats, saveTodayStats, handleClose]);
 
   const statItems = useMemo(() => [
     { key: 'shots' as const, label: 'Shots', emoji: '🥃', xp: 5 },
-    { key: 'scoopAndScores' as const, label: 'Scoop & Scores', emoji: '🍺', xp: 10 },
+    { key: 'scoop_and_scores' as const, label: 'Scoop & Scores', emoji: '🍺', xp: 10 },
     { key: 'beers' as const, label: 'Beers', emoji: '🍻', xp: 5 },
-    { key: 'beerTowers' as const, label: 'Beer Towers', emoji: '🗼', xp: 15 },
+    { key: 'beer_towers' as const, label: 'Beer Towers', emoji: '🗼', xp: 15 },
     { key: 'funnels' as const, label: 'Funnels', emoji: '🌪️', xp: 10 },
     { key: 'shotguns' as const, label: 'Shotguns', emoji: '💥', xp: 10 },
-    { key: 'poolGamesWon' as const, label: 'Pool Games Won', emoji: '🎱', xp: 15 },
-    { key: 'dartGamesWon' as const, label: 'Dart Games Won', emoji: '🎯', xp: 15 },
+    { key: 'pool_games_won' as const, label: 'Pool Games Won', emoji: '🎱', xp: 15 },
+    { key: 'dart_games_won' as const, label: 'Dart Games Won', emoji: '🎯', xp: 15 },
   ], []);
 
-  // Check if we can save stats (profile is ready and not saving)
   const canSaveStats = useMemo(() => {
-    return profileReady && !isSaving && !profileIsLoading && !profileIsUpdating && profile;
-  }, [profileReady, isSaving, profileIsLoading, profileIsUpdating, profile]);
+    return isAuthenticated && !isSaving && !isLoading;
+  }, [isAuthenticated, isSaving, isLoading]);
 
-  // Determine what status message to show
   const getStatusMessage = () => {
     if (isSaving) return saveProgress || 'Saving...';
-    if (profileIsLoading) return 'Loading your profile...';
-    if (!profile) return 'Sign in to save your stats and earn XP';
-    if (!profileReady) return 'Preparing your profile...';
-    if (profileIsUpdating) return 'Updating your profile...';
+    if (isLoading) return 'Loading your stats...';
+    if (!isAuthenticated) return 'Sign in to save your stats';
     return null;
   };
 
@@ -311,7 +196,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
             </Pressable>
           </View>
 
-          {/* Profile Status Banner */}
+          {/* Status Banner */}
           {statusMessage && (
             <View style={[
               styles.statusBanner, 
@@ -349,7 +234,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                   Track Your Night 🍻
                 </Text>
                 <Text style={[styles.sectionSubtitle, { color: themeColors.subtext }]}>
-                  Earn XP for every activity you track
+                  Track your activities for the day
                 </Text>
               </View>
               
@@ -360,9 +245,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                     <View style={styles.statTextContainer}>
                       <Text style={[styles.statLabel, { color: themeColors.text }]}>
                         {item.label}
-                      </Text>
-                      <Text style={[styles.statXP, { color: themeColors.primary }]}>
-                        +{item.xp} XP each
                       </Text>
                     </View>
                   </View>
@@ -383,7 +265,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                     </Pressable>
                     
                     <Text style={[styles.statValue, { color: themeColors.text }]}>
-                      {localStats[item.key]}
+                      {localStats[item.key] || 0}
                     </Text>
                     
                     <Pressable
@@ -412,63 +294,61 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                 </Text>
                 <Text style={[styles.sectionSubtitle, { color: themeColors.subtext }]}>
                   {canSubmitScale 
-                    ? 'Submit once every 24 hours (+25 XP)'
-                    : 'Can submit again in a few hours'
+                    ? 'Submit once per day'
+                    : 'Already submitted today'
                   }
                 </Text>
               </View>
 
               {canSubmitScale ? (
-                <>
-                  <View style={styles.drunkScaleOptions}>
-                    {drunkScaleOptions.map((option) => (
-                      <Pressable
-                        key={option.value}
-                        style={[
-                          styles.drunkScaleOption,
-                          {
-                            backgroundColor: selectedDrunkScale === option.value 
-                              ? themeColors.primary 
-                              : themeColors.background,
-                            borderColor: selectedDrunkScale === option.value 
-                              ? themeColors.primary 
-                              : themeColors.border,
-                            opacity: (isSaving || !canSaveStats) ? 0.5 : 1
-                          }
-                        ]}
-                        onPress={() => !isSaving && canSaveStats && setSelectedDrunkScale(option.value)}
-                        disabled={isSaving || !canSaveStats}
-                      >
-                        <Text style={styles.drunkScaleEmoji}>{option.emoji}</Text>
-                        <Text style={[
-                          styles.drunkScaleLabel, 
-                          { 
-                            color: selectedDrunkScale === option.value 
-                              ? 'white' 
-                              : themeColors.text 
-                          }
-                        ]}>
-                          {option.label}
-                        </Text>
-                        <Text style={[
-                          styles.drunkScaleDescription, 
-                          { 
-                            color: selectedDrunkScale === option.value 
-                              ? 'rgba(255,255,255,0.8)' 
-                              : themeColors.subtext 
-                          }
-                        ]}>
-                          {option.description}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </>
+                <View style={styles.drunkScaleOptions}>
+                  {drunkScaleOptions.map((option) => (
+                    <Pressable
+                      key={option.value}
+                      style={[
+                        styles.drunkScaleOption,
+                        {
+                          backgroundColor: localStats.drunk_scale === option.value 
+                            ? themeColors.primary 
+                            : themeColors.background,
+                          borderColor: localStats.drunk_scale === option.value 
+                            ? themeColors.primary 
+                            : themeColors.border,
+                          opacity: (isSaving || !canSaveStats) ? 0.5 : 1
+                        }
+                      ]}
+                      onPress={() => handleDrunkScaleSelect(option.value)}
+                      disabled={isSaving || !canSaveStats}
+                    >
+                      <Text style={styles.drunkScaleEmoji}>{option.emoji}</Text>
+                      <Text style={[
+                        styles.drunkScaleLabel, 
+                        { 
+                          color: localStats.drunk_scale === option.value 
+                            ? 'white' 
+                            : themeColors.text 
+                        }
+                      ]}>
+                        {option.label}
+                      </Text>
+                      <Text style={[
+                        styles.drunkScaleDescription, 
+                        { 
+                          color: localStats.drunk_scale === option.value 
+                            ? 'rgba(255,255,255,0.8)' 
+                            : themeColors.subtext 
+                        }
+                      ]}>
+                        {option.description}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
               ) : (
                 <View style={[styles.drunkScaleDisabled, { backgroundColor: themeColors.background }]}>
                   <Target size={40} color={themeColors.subtext} />
                   <Text style={[styles.drunkScaleDisabledText, { color: themeColors.subtext }]}>
-                    Drunk scale available every 24 hours
+                    Drunk scale submitted for today
                   </Text>
                 </View>
               )}
@@ -499,9 +379,9 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                 <Text style={styles.saveButtonText}>
                   {isSaving 
                     ? 'Saving...' 
-                    : statusMessage && !profileReady
-                      ? 'Loading Profile...' 
-                      : 'Save My Stats & Earn XP'
+                    : statusMessage && !isAuthenticated
+                      ? 'Sign In to Save' 
+                      : 'Save My Stats'
                   }
                 </Text>
               </View>
@@ -618,11 +498,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     letterSpacing: 0.3,
-  },
-  statXP: {
-    fontSize: 13,
-    fontWeight: '700',
-    marginTop: 3,
   },
   statControls: {
     flexDirection: 'row',

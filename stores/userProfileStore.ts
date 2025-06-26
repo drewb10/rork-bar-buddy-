@@ -31,19 +31,6 @@ interface XPActivity {
   description: string;
 }
 
-interface DailyStats {
-  shots: number;
-  scoopAndScores: number;
-  beers: number;
-  beerTowers: number;
-  funnels: number;
-  shotguns: number;
-  poolGamesWon: number;
-  dartGamesWon: number;
-  date: string;
-  lastResetAt: string;
-}
-
 interface UserProfile {
   id: string;
   username: string;
@@ -69,20 +56,9 @@ interface UserProfile {
   pool_games_won: number;
   dart_games_won: number;
   photos_taken: number;
-  daily_stats?: DailyStats;
   has_completed_onboarding: boolean;
   created_at: string;
   updated_at: string;
-}
-
-interface RankInfo {
-  tier: number;
-  subRank: number;
-  title: string;
-  subTitle: string;
-  color: string;
-  minXP: number;
-  maxXP: number;
 }
 
 interface UserProfileState {
@@ -90,23 +66,16 @@ interface UserProfileState {
   isLoading: boolean;
   isUpdating: boolean;
   profileReady: boolean;
-  updateQueue: Array<() => Promise<void>>;
   loadProfile: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   incrementNightsOut: () => Promise<void>;
   incrementBarsHit: () => Promise<void>;
   addDrunkScaleRating: (rating: number) => Promise<void>;
   getAverageDrunkScale: () => number;
-  getRank: () => RankInfo;
   canIncrementNightsOut: () => boolean;
   canSubmitDrunkScale: () => boolean;
   setProfilePicture: (uri: string) => Promise<void>;
   awardXP: (type: XPActivity['type'], description: string, venueId?: string) => Promise<void>;
-  getAllRanks: () => RankInfo[];
-  getXPForNextRank: () => number;
-  getProgressToNextRank: () => number;
-  updateDailyTrackerTotals: (stats: { shots: number; scoopAndScores: number; beers: number; beerTowers: number; funnels: number; shotguns: number; poolGamesWon: number; dartGamesWon: number; }) => Promise<void>;
-  getDailyStats: () => DailyStats;
   searchUserByUsername: (username: string) => Promise<Friend | null>;
   sendFriendRequest: (username: string) => Promise<boolean>;
   acceptFriendRequest: (requestId: string) => Promise<boolean>;
@@ -115,7 +84,6 @@ interface UserProfileState {
   loadFriends: () => Promise<void>;
   checkAndResetDrunkScaleIfNeeded: () => void;
   setProfileReady: (ready: boolean) => void;
-  processUpdateQueue: () => Promise<void>;
 }
 
 const XP_VALUES = {
@@ -139,38 +107,6 @@ const XP_VALUES = {
   drunk_scale_submission: 25,
   like_bar: 5,
   check_in: 10,
-};
-
-const RANK_STRUCTURE: RankInfo[] = [
-  { tier: 1, subRank: 1, title: 'Sober Star', subTitle: 'Newcomer', color: '#4CAF50', minXP: 0, maxXP: 125 },
-  { tier: 1, subRank: 2, title: 'Sober Star', subTitle: 'Explorer', color: '#4CAF50', minXP: 126, maxXP: 250 },
-  { tier: 1, subRank: 3, title: 'Sober Star', subTitle: 'Enthusiast', color: '#4CAF50', minXP: 251, maxXP: 375 },
-  { tier: 1, subRank: 4, title: 'Sober Star', subTitle: 'Rising Star', color: '#4CAF50', minXP: 376, maxXP: 500 },
-  { tier: 2, subRank: 1, title: 'Buzzed Beginner', subTitle: 'Novice', color: '#FFC107', minXP: 501, maxXP: 625 },
-  { tier: 2, subRank: 2, title: 'Buzzed Beginner', subTitle: 'Adventurer', color: '#FFC107', minXP: 626, maxXP: 750 },
-  { tier: 2, subRank: 3, title: 'Buzzed Beginner', subTitle: 'Socializer', color: '#FFC107', minXP: 751, maxXP: 875 },
-  { tier: 2, subRank: 4, title: 'Buzzed Beginner', subTitle: 'Party Starter', color: '#FFC107', minXP: 876, maxXP: 1000 },
-  { tier: 3, subRank: 1, title: 'Tipsy Talent', subTitle: 'Local Hero', color: '#FF9800', minXP: 1001, maxXP: 1125 },
-  { tier: 3, subRank: 2, title: 'Tipsy Talent', subTitle: 'Crowd Pleaser', color: '#FF9800', minXP: 1126, maxXP: 1250 },
-  { tier: 3, subRank: 3, title: 'Tipsy Talent', subTitle: 'Nightlife Navigator', color: '#FF9800', minXP: 1251, maxXP: 1375 },
-  { tier: 3, subRank: 4, title: 'Tipsy Talent', subTitle: 'Star of the Scene', color: '#FF9800', minXP: 1376, maxXP: 1500 },
-  { tier: 4, subRank: 1, title: 'Big Chocolate', subTitle: 'Legend', color: '#FF5722', minXP: 1501, maxXP: 1625 },
-  { tier: 4, subRank: 2, title: 'Big Chocolate', subTitle: 'Icon', color: '#FF5722', minXP: 1626, maxXP: 1750 },
-  { tier: 4, subRank: 3, title: 'Big Chocolate', subTitle: 'Elite', color: '#FF5722', minXP: 1751, maxXP: 1875 },
-  { tier: 4, subRank: 4, title: 'Big Chocolate', subTitle: 'Master of the Night', color: '#FF5722', minXP: 1876, maxXP: 2000 },
-  { tier: 5, subRank: 1, title: 'Scoop & Score Champ', subTitle: 'Champion', color: '#9C27B0', minXP: 2001, maxXP: 2125 },
-  { tier: 5, subRank: 2, title: 'Scoop & Score Champ', subTitle: 'MVP', color: '#9C27B0', minXP: 2126, maxXP: 2250 },
-  { tier: 5, subRank: 3, title: 'Scoop & Score Champ', subTitle: 'Hall of Famer', color: '#9C27B0', minXP: 2251, maxXP: 2375 },
-  { tier: 5, subRank: 4, title: 'Scoop & Score Champ', subTitle: 'Ultimate Legend', color: '#9C27B0', minXP: 2376, maxXP: 2500 },
-];
-
-const getRankByXP = (xp: number): RankInfo => {
-  for (let i = RANK_STRUCTURE.length - 1; i >= 0; i--) {
-    if (xp >= RANK_STRUCTURE[i].minXP) {
-      return RANK_STRUCTURE[i];
-    }
-  }
-  return RANK_STRUCTURE[0];
 };
 
 const isSameDay = (date1: string, date2: string): boolean => {
@@ -205,10 +141,6 @@ const hasPassedMidnight = (lastSubmissionDate?: string): boolean => {
   }
 };
 
-const getTodayString = (): string => {
-  return new Date().toISOString().split('T')[0];
-};
-
 export const useUserProfileStore = create<UserProfileState>()(
   persist(
     (set, get) => ({
@@ -216,37 +148,9 @@ export const useUserProfileStore = create<UserProfileState>()(
       isLoading: false,
       isUpdating: false,
       profileReady: false,
-      updateQueue: [],
       
       setProfileReady: (ready: boolean) => {
         set({ profileReady: ready });
-      },
-      
-      processUpdateQueue: async () => {
-        const state = get();
-        if (state.isUpdating || state.updateQueue.length === 0) {
-          return;
-        }
-        
-        set({ isUpdating: true });
-        
-        try {
-          // Process all queued updates sequentially
-          const currentQueue = [...state.updateQueue];
-          set({ updateQueue: [] }); // Clear queue immediately
-          
-          for (const updateFunction of currentQueue) {
-            try {
-              await updateFunction();
-            } catch (error) {
-              console.error('Error processing queued update:', error);
-            }
-          }
-        } catch (error) {
-          console.error('Error processing update queue:', error);
-        } finally {
-          set({ isUpdating: false });
-        }
       },
       
       loadProfile: async () => {
@@ -309,18 +213,6 @@ export const useUserProfileStore = create<UserProfileState>()(
                 visited_bars: [],
                 xp_activities: [],
                 has_completed_onboarding: false,
-                daily_stats: {
-                  shots: 0,
-                  scoopAndScores: 0,
-                  beers: 0,
-                  beerTowers: 0,
-                  funnels: 0,
-                  shotguns: 0,
-                  poolGamesWon: 0,
-                  dartGamesWon: 0,
-                  date: getTodayString(),
-                  lastResetAt: new Date().toISOString(),
-                }
               };
               
               const { data: newProfile, error: createError } = await supabase
@@ -446,20 +338,6 @@ export const useUserProfileStore = create<UserProfileState>()(
           
           // Award XP for night out
           await get().awardXP('complete_night_out', 'Completed a night out');
-          
-          // Update achievements safely with debouncing
-          debouncedUpdateAchievements({
-            totalBeers: profile.total_beers || 0,
-            totalShots: profile.total_shots || 0,
-            totalBeerTowers: profile.total_beer_towers || 0,
-            totalScoopAndScores: profile.total_scoop_and_scores || 0,
-            totalFunnels: profile.total_funnels || 0,
-            totalShotguns: profile.total_shotguns || 0,
-            poolGamesWon: profile.pool_games_won || 0,
-            dartGamesWon: profile.dart_games_won || 0,
-            barsHit: profile.bars_hit || 0,
-            nightsOut: newNightsOut,
-          });
         }
       },
       
@@ -475,58 +353,25 @@ export const useUserProfileStore = create<UserProfileState>()(
         
         // Award XP for bar visit
         await get().awardXP('visit_new_bar', 'Visited a new bar');
-        
-        // Update achievements safely with debouncing
-        debouncedUpdateAchievements({
-          totalBeers: profile.total_beers || 0,
-          totalShots: profile.total_shots || 0,
-          totalBeerTowers: profile.total_beer_towers || 0,
-          totalScoopAndScores: profile.total_scoop_and_scores || 0,
-          totalFunnels: profile.total_funnels || 0,
-          totalShotguns: profile.total_shotguns || 0,
-          poolGamesWon: profile.pool_games_won || 0,
-          dartGamesWon: profile.dart_games_won || 0,
-          barsHit: newBarsHit,
-          nightsOut: profile.nights_out || 0,
-        });
       },
       
       addDrunkScaleRating: async (rating: number) => {
-        return new Promise<void>((resolve, reject) => {
-          const updateFunction = async () => {
-            try {
-              const { profile } = get();
-              if (!profile) {
-                console.error('❌ No profile available for drunk scale rating');
-                reject(new Error('No profile available'));
-                return;
-              }
+        const { profile } = get();
+        if (!profile) {
+          console.error('❌ No profile available for drunk scale rating');
+          return;
+        }
 
-              const today = new Date().toISOString();
-              const currentRatings = profile.drunk_scale_ratings || [];
-              
-              await get().updateProfile({
-                drunk_scale_ratings: [...currentRatings, rating],
-                last_drunk_scale_date: today
-              });
-              
-              // Award XP for drunk scale submission
-              await get().awardXP('drunk_scale_submission', `Submitted drunk scale rating: ${rating}/5`);
-              resolve();
-            } catch (error) {
-              console.error('❌ Error adding drunk scale rating:', error);
-              reject(error);
-            }
-          };
-
-          // Add to queue instead of executing immediately
-          set((state) => ({
-            updateQueue: [...state.updateQueue, updateFunction]
-          }));
-
-          // Process queue
-          get().processUpdateQueue();
+        const today = new Date().toISOString();
+        const currentRatings = profile.drunk_scale_ratings || [];
+        
+        await get().updateProfile({
+          drunk_scale_ratings: [...currentRatings, rating],
+          last_drunk_scale_date: today
         });
+        
+        // Award XP for drunk scale submission
+        await get().awardXP('drunk_scale_submission', `Submitted drunk scale rating: ${rating}/5`);
       },
       
       getAverageDrunkScale: () => {
@@ -535,40 +380,6 @@ export const useUserProfileStore = create<UserProfileState>()(
         
         const sum = profile.drunk_scale_ratings.reduce((acc, rating) => acc + rating, 0);
         return Math.round((sum / profile.drunk_scale_ratings.length) * 10) / 10;
-      },
-      
-      getRank: () => {
-        const { profile } = get();
-        if (!profile) return RANK_STRUCTURE[0];
-        return getRankByXP(profile.xp || 0);
-      },
-      
-      getAllRanks: () => RANK_STRUCTURE,
-      
-      getXPForNextRank: () => {
-        const currentRank = get().getRank();
-        const currentRankIndex = RANK_STRUCTURE.findIndex(rank => 
-          rank.tier === currentRank.tier && rank.subRank === currentRank.subRank
-        );
-        
-        if (currentRankIndex < RANK_STRUCTURE.length - 1) {
-          return RANK_STRUCTURE[currentRankIndex + 1].minXP;
-        }
-        
-        return currentRank.maxXP;
-      },
-      
-      getProgressToNextRank: () => {
-        const { profile } = get();
-        if (!profile) return 0;
-        
-        const currentRank = get().getRank();
-        const nextRankXP = get().getXPForNextRank();
-        
-        if (nextRankXP === currentRank.maxXP) return 100;
-        
-        const progress = ((profile.xp - currentRank.minXP) / (nextRankXP - currentRank.minXP)) * 100;
-        return Math.min(Math.max(progress, 0), 100);
       },
       
       awardXP: async (type, description, venueId) => {
@@ -624,242 +435,6 @@ export const useUserProfileStore = create<UserProfileState>()(
         console.log(`✅ XP awarded successfully. New total: ${(profile.xp || 0) + xpAmount}`);
       },
       
-      updateDailyTrackerTotals: async (stats) => {
-        return new Promise<void>((resolve, reject) => {
-          const updateFunction = async () => {
-            try {
-              const { profile, profileReady } = get();
-              
-              // Enhanced validation with better error messages
-              if (!profile) {
-                console.error('❌ No profile available for updating daily tracker totals');
-                throw new Error('Profile not loaded. Please wait for your profile to load and try again.');
-              }
-              
-              if (!profileReady) {
-                console.error('❌ Profile not ready for updates');
-                throw new Error('Profile is still loading. Please wait and try again.');
-              }
-
-              console.log('🔄 Updating daily tracker totals:', stats);
-              
-              // Calculate the differences to avoid double counting
-              const shotsDiff = Math.max(0, stats.shots - (profile.total_shots || 0));
-              const scoopDiff = Math.max(0, stats.scoopAndScores - (profile.total_scoop_and_scores || 0));
-              const beersDiff = Math.max(0, stats.beers - (profile.total_beers || 0));
-              const beerTowersDiff = Math.max(0, stats.beerTowers - (profile.total_beer_towers || 0));
-              const funnelsDiff = Math.max(0, stats.funnels - (profile.total_funnels || 0));
-              const shotgunsDiff = Math.max(0, stats.shotguns - (profile.total_shotguns || 0));
-              const poolDiff = Math.max(0, stats.poolGamesWon - (profile.pool_games_won || 0));
-              const dartDiff = Math.max(0, stats.dartGamesWon - (profile.dart_games_won || 0));
-              
-              console.log('🔄 Calculated differences:', {
-                shotsDiff, scoopDiff, beersDiff, beerTowersDiff, 
-                funnelsDiff, shotgunsDiff, poolDiff, dartDiff
-              });
-              
-              // Calculate total XP to award in batch
-              let totalXPToAward = 0;
-              const newActivities: XPActivity[] = [];
-              
-              if (shotsDiff > 0) {
-                totalXPToAward += shotsDiff * XP_VALUES.shots;
-                for (let i = 0; i < shotsDiff; i++) {
-                  newActivities.push({
-                    id: Math.random().toString(36).substr(2, 9),
-                    type: 'shots',
-                    xpAwarded: XP_VALUES.shots,
-                    timestamp: new Date().toISOString(),
-                    description: 'Took a shot',
-                  });
-                }
-              }
-              
-              if (scoopDiff > 0) {
-                totalXPToAward += scoopDiff * XP_VALUES.scoop_and_scores;
-                for (let i = 0; i < scoopDiff; i++) {
-                  newActivities.push({
-                    id: Math.random().toString(36).substr(2, 9),
-                    type: 'scoop_and_scores',
-                    xpAwarded: XP_VALUES.scoop_and_scores,
-                    timestamp: new Date().toISOString(),
-                    description: 'Had a Scoop & Score',
-                  });
-                }
-              }
-              
-              if (beersDiff > 0) {
-                totalXPToAward += beersDiff * XP_VALUES.beers;
-                for (let i = 0; i < beersDiff; i++) {
-                  newActivities.push({
-                    id: Math.random().toString(36).substr(2, 9),
-                    type: 'beers',
-                    xpAwarded: XP_VALUES.beers,
-                    timestamp: new Date().toISOString(),
-                    description: 'Had a beer',
-                  });
-                }
-              }
-              
-              if (beerTowersDiff > 0) {
-                totalXPToAward += beerTowersDiff * XP_VALUES.beer_towers;
-                for (let i = 0; i < beerTowersDiff; i++) {
-                  newActivities.push({
-                    id: Math.random().toString(36).substr(2, 9),
-                    type: 'beer_towers',
-                    xpAwarded: XP_VALUES.beer_towers,
-                    timestamp: new Date().toISOString(),
-                    description: 'Finished a beer tower',
-                  });
-                }
-              }
-              
-              if (funnelsDiff > 0) {
-                totalXPToAward += funnelsDiff * XP_VALUES.funnels;
-                for (let i = 0; i < funnelsDiff; i++) {
-                  newActivities.push({
-                    id: Math.random().toString(36).substr(2, 9),
-                    type: 'funnels',
-                    xpAwarded: XP_VALUES.funnels,
-                    timestamp: new Date().toISOString(),
-                    description: 'Did a funnel',
-                  });
-                }
-              }
-              
-              if (shotgunsDiff > 0) {
-                totalXPToAward += shotgunsDiff * XP_VALUES.shotguns;
-                for (let i = 0; i < shotgunsDiff; i++) {
-                  newActivities.push({
-                    id: Math.random().toString(36).substr(2, 9),
-                    type: 'shotguns',
-                    xpAwarded: XP_VALUES.shotguns,
-                    timestamp: new Date().toISOString(),
-                    description: 'Did a shotgun',
-                  });
-                }
-              }
-              
-              if (poolDiff > 0) {
-                totalXPToAward += poolDiff * XP_VALUES.pool_games;
-                for (let i = 0; i < poolDiff; i++) {
-                  newActivities.push({
-                    id: Math.random().toString(36).substr(2, 9),
-                    type: 'pool_games',
-                    xpAwarded: XP_VALUES.pool_games,
-                    timestamp: new Date().toISOString(),
-                    description: 'Won a pool game',
-                  });
-                }
-              }
-              
-              if (dartDiff > 0) {
-                totalXPToAward += dartDiff * XP_VALUES.dart_games;
-                for (let i = 0; i < dartDiff; i++) {
-                  newActivities.push({
-                    id: Math.random().toString(36).substr(2, 9),
-                    type: 'dart_games',
-                    xpAwarded: XP_VALUES.dart_games,
-                    timestamp: new Date().toISOString(),
-                    description: 'Won a dart game',
-                  });
-                }
-              }
-              
-              // Update profile with all changes in a single batch
-              const currentXPActivities = profile.xp_activities || [];
-              await get().updateProfile({
-                total_shots: stats.shots,
-                total_scoop_and_scores: stats.scoopAndScores,
-                total_beers: stats.beers,
-                total_beer_towers: stats.beerTowers,
-                total_funnels: stats.funnels,
-                total_shotguns: stats.shotguns,
-                pool_games_won: stats.poolGamesWon,
-                dart_games_won: stats.dartGamesWon,
-                xp: (profile.xp || 0) + totalXPToAward,
-                xp_activities: [...currentXPActivities, ...newActivities],
-              });
-
-              // Update achievements safely with debouncing
-              debouncedUpdateAchievements({
-                totalBeers: stats.beers,
-                totalShots: stats.shots,
-                totalBeerTowers: stats.beerTowers,
-                totalScoopAndScores: stats.scoopAndScores,
-                totalFunnels: stats.funnels,
-                totalShotguns: stats.shotguns,
-                poolGamesWon: stats.poolGamesWon,
-                dartGamesWon: stats.dartGamesWon,
-                barsHit: profile.bars_hit || 0,
-                nightsOut: profile.nights_out || 0,
-              });
-              
-              console.log('✅ Daily tracker totals updated successfully');
-              resolve();
-            } catch (error) {
-              console.error('❌ Error updating daily tracker totals:', error);
-              reject(error);
-            }
-          };
-
-          // Add to queue instead of executing immediately
-          set((state) => ({
-            updateQueue: [...state.updateQueue, updateFunction]
-          }));
-
-          // Process queue
-          get().processUpdateQueue();
-        });
-      },
-
-      getDailyStats: () => {
-        const { profile } = get();
-        const today = getTodayString();
-        
-        // Default stats for when profile doesn't exist or daily_stats is undefined
-        const defaultStats: DailyStats = {
-          shots: 0,
-          scoopAndScores: 0,
-          beers: 0,
-          beerTowers: 0,
-          funnels: 0,
-          shotguns: 0,
-          poolGamesWon: 0,
-          dartGamesWon: 0,
-          date: today,
-          lastResetAt: new Date().toISOString(),
-        };
-
-        if (!profile) {
-          return defaultStats;
-        }
-
-        // If daily_stats doesn't exist or is not properly structured, return default
-        if (!profile.daily_stats || typeof profile.daily_stats !== 'object') {
-          return defaultStats;
-        }
-
-        // If the date matches today, return the existing stats
-        if (profile.daily_stats.date === today) {
-          return {
-            shots: profile.daily_stats.shots || 0,
-            scoopAndScores: profile.daily_stats.scoopAndScores || 0,
-            beers: profile.daily_stats.beers || 0,
-            beerTowers: profile.daily_stats.beerTowers || 0,
-            funnels: profile.daily_stats.funnels || 0,
-            shotguns: profile.daily_stats.shotguns || 0,
-            poolGamesWon: profile.daily_stats.poolGamesWon || 0,
-            dartGamesWon: profile.daily_stats.dartGamesWon || 0,
-            date: profile.daily_stats.date,
-            lastResetAt: profile.daily_stats.lastResetAt || new Date().toISOString(),
-          };
-        }
-        
-        // If it's a different day, return default stats for today
-        return defaultStats;
-      },
-      
       canIncrementNightsOut: () => {
         const { profile } = get();
         if (!profile) return true;
@@ -895,8 +470,6 @@ export const useUserProfileStore = create<UserProfileState>()(
             return null;
           }
 
-          const rank = getRankByXP(data.xp);
-
           return {
             id: data.id,
             username: data.username,
@@ -905,7 +478,7 @@ export const useUserProfileStore = create<UserProfileState>()(
             xp: data.xp,
             nights_out: data.nights_out,
             bars_hit: data.bars_hit,
-            rank_title: rank.title,
+            rank_title: 'Bar Explorer',
             created_at: data.created_at,
           };
         } catch (error) {
@@ -1044,16 +617,13 @@ export const useUserProfileStore = create<UserProfileState>()(
             return;
           }
 
-          const friendRequests: FriendRequest[] = (data || []).map((request: any) => {
-            const rank = getRankByXP(request.from_user?.xp || 0);
-            return {
-              id: request.id,
-              from_user_id: request.from_user_id,
-              from_username: request.from_user?.username || 'Unknown',
-              from_user_rank: rank.title,
-              created_at: request.created_at,
-            };
-          });
+          const friendRequests: FriendRequest[] = (data || []).map((request: any) => ({
+            id: request.id,
+            from_user_id: request.from_user_id,
+            from_username: request.from_user?.username || 'Unknown',
+            from_user_rank: 'Bar Explorer',
+            created_at: request.created_at,
+          }));
 
           set((state) => ({
             profile: state.profile ? {
@@ -1088,7 +658,6 @@ export const useUserProfileStore = create<UserProfileState>()(
 
           const friends: Friend[] = (data || []).map((friendship: any) => {
             const friend = friendship.friend;
-            const rank = getRankByXP(friend?.xp || 0);
             return {
               id: friend?.id || '',
               username: friend?.username || 'Unknown',
@@ -1097,7 +666,7 @@ export const useUserProfileStore = create<UserProfileState>()(
               xp: friend?.xp || 0,
               nights_out: friend?.nights_out || 0,
               bars_hit: friend?.bars_hit || 0,
-              rank_title: rank.title,
+              rank_title: 'Bar Explorer',
               created_at: friendship.created_at,
             };
           });
@@ -1136,7 +705,6 @@ export const useUserProfileStore = create<UserProfileState>()(
           xp_activities: state.profile.xp_activities,
           visited_bars: state.profile.visited_bars,
           has_completed_onboarding: state.profile.has_completed_onboarding,
-          daily_stats: state.profile.daily_stats,
           created_at: state.profile.created_at,
           updated_at: state.profile.updated_at,
           drunk_scale_ratings: state.profile.drunk_scale_ratings,
@@ -1147,33 +715,6 @@ export const useUserProfileStore = create<UserProfileState>()(
     }
   )
 );
-
-// Debounced achievement update function to prevent rapid successive calls
-const debouncedUpdateAchievements = (() => {
-  let timeoutId: NodeJS.Timeout | null = null;
-  
-  return (stats: any) => {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-    
-    timeoutId = setTimeout(() => {
-      try {
-        if (typeof window !== 'undefined' && (window as any).__achievementStore) {
-          const achievementStore = (window as any).__achievementStore;
-          if (achievementStore?.getState) {
-            const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
-            if (typeof checkAndUpdateMultiLevelAchievements === 'function') {
-              checkAndUpdateMultiLevelAchievements(stats);
-            }
-          }
-        }
-      } catch (error) {
-        console.warn('Error updating achievements:', error);
-      }
-    }, 500);
-  };
-})();
 
 // Store reference for cross-store access
 if (typeof window !== 'undefined') {

@@ -4,7 +4,6 @@ import { User, Award, Camera, Users, LogOut } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
-import { useUserProfileStore } from '@/stores/userProfileStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import FriendsModal from '@/components/FriendsModal';
 import BarBuddyChatbot from '@/components/BarBuddyChatbot';
@@ -17,23 +16,13 @@ export default function ProfileScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const { 
-    profile: authProfile, 
+    profile, 
     signOut,
     isLoading: authLoading,
-    isAuthenticated
+    isAuthenticated,
+    checkSession,
+    sessionChecked
   } = useAuthStore();
-  const {
-    profile,
-    loadProfile,
-    updateProfile,
-    getRank,
-    getAllRanks,
-    getXPForNextRank,
-    getProgressToNextRank,
-    setProfilePicture,
-    isLoading: profileLoading,
-    profileReady
-  } = useUserProfileStore();
   const router = useRouter();
   
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
@@ -42,13 +31,13 @@ export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState<'profile' | 'chatbot'>('profile');
   const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
 
+  // Check session when component mounts
   useEffect(() => {
-    // Load profile when component mounts and user is authenticated
-    if (isAuthenticated && !profile && !profileLoading) {
-      console.log('🔄 Profile screen: Loading profile for authenticated user');
-      loadProfile();
+    if (!sessionChecked) {
+      console.log('🔄 Profile screen: Checking session...');
+      checkSession();
     }
-  }, [isAuthenticated, profile, profileLoading, loadProfile]);
+  }, [sessionChecked, checkSession]);
 
   useEffect(() => {
     // Show onboarding if user hasn't completed it
@@ -97,7 +86,8 @@ export default function ProfileScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        await setProfilePicture(result.assets[0].uri);
+        // TODO: Implement profile picture update
+        console.log('Profile picture selected:', result.assets[0].uri);
       }
     } catch (error) {
       console.warn('Error picking image:', error);
@@ -120,7 +110,8 @@ export default function ProfileScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        await setProfilePicture(result.assets[0].uri);
+        // TODO: Implement profile picture update
+        console.log('Photo taken:', result.assets[0].uri);
       }
     } catch (error) {
       console.warn('Error taking photo:', error);
@@ -158,7 +149,7 @@ export default function ProfileScreen() {
     if (!isAuthenticated) {
       Alert.alert(
         'Sign In Required',
-        'Please sign in to track your daily stats and earn XP.',
+        'Please sign in to track your daily stats.',
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Sign In', onPress: () => router.push('/auth/sign-in') }
@@ -167,24 +158,17 @@ export default function ProfileScreen() {
       return;
     }
 
-    if (!profileReady) {
-      Alert.alert(
-        'Profile Loading',
-        'Please wait for your profile to finish loading.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
     setDailyTrackerVisible(true);
   };
 
-  const rankInfo = getRank();
-  const allRanks = getAllRanks();
-  const nextRankXP = getXPForNextRank();
-  const progressToNextRank = getProgressToNextRank();
+  // Mock rank info since we removed the complex ranking system
+  const rankInfo = {
+    title: 'Bar Explorer',
+    subTitle: 'Getting Started',
+    color: '#FF6A00',
+  };
 
-  const isLoading = authLoading || profileLoading;
+  const isLoading = authLoading || !sessionChecked;
 
   if (isLoading) {
     return (
@@ -229,7 +213,7 @@ export default function ProfileScreen() {
           </Text>
           <Pressable 
             style={[styles.signInButton, { backgroundColor: themeColors.primary, marginTop: 20 }]}
-            onPress={() => loadProfile()}
+            onPress={() => checkSession()}
           >
             <Text style={styles.signInButtonText}>Refresh Profile</Text>
           </Pressable>
@@ -250,7 +234,7 @@ export default function ProfileScreen() {
             Your Bar Buddy Profile
           </Text>
         </View>
-        {authProfile && (
+        {profile && (
           <Pressable style={styles.signOutButton} onPress={handleSignOut}>
             <LogOut size={20} color={themeColors.error} />
           </Pressable>
@@ -339,7 +323,7 @@ export default function ProfileScreen() {
                   {profile.xp || 0} XP
                 </Text>
                 <Text style={[styles.nextRankText, { color: themeColors.subtext }]}>
-                  {Math.max(0, nextRankXP - (profile.xp || 0))} XP to next rank
+                  Keep tracking to earn more XP
                 </Text>
               </View>
             </View>
@@ -352,23 +336,6 @@ export default function ProfileScreen() {
                 {rankInfo.subTitle}
               </Text>
             </View>
-
-            {/* Progress Bar */}
-            <View style={[styles.progressBarContainer, { backgroundColor: themeColors.border }]}>
-              <View 
-                style={[
-                  styles.progressBar, 
-                  { 
-                    backgroundColor: rankInfo.color,
-                    width: `${Math.min(progressToNextRank, 100)}%`
-                  }
-                ]} 
-              />
-            </View>
-            
-            <Text style={[styles.tapToViewText, { color: themeColors.subtext }]}>
-              Tap to view all ranks
-            </Text>
           </Pressable>
 
           {/* Daily Tracker Button */}
@@ -380,7 +347,7 @@ export default function ProfileScreen() {
               📊 Daily Tracker
             </Text>
             <Text style={[styles.dailyTrackerSubtext, { color: themeColors.subtext }]}>
-              Track your night & earn XP
+              Track your night & save stats
             </Text>
           </Pressable>
 
@@ -424,67 +391,6 @@ export default function ProfileScreen() {
           visible={friendsModalVisible}
           onClose={() => setFriendsModalVisible(false)}
         />
-      </Modal>
-
-      {/* Rank Details Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={rankDetailsModalVisible}
-        onRequestClose={() => setRankDetailsModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-                All Ranks
-              </Text>
-              <Pressable 
-                style={styles.closeButton}
-                onPress={() => setRankDetailsModalVisible(false)}
-              >
-                <Text style={[styles.closeButtonText, { color: themeColors.subtext }]}>✕</Text>
-              </Pressable>
-            </View>
-            
-            <ScrollView style={styles.modalScrollView}>
-              {allRanks.map((rank, index) => (
-                <View 
-                  key={`${rank.tier}-${rank.subRank}`}
-                  style={[
-                    styles.rankItem,
-                    { 
-                      backgroundColor: rank.tier === rankInfo.tier && rank.subRank === rankInfo.subRank 
-                        ? rank.color + '20' 
-                        : 'transparent',
-                      borderColor: rank.tier === rankInfo.tier && rank.subRank === rankInfo.subRank 
-                        ? rank.color 
-                        : themeColors.border
-                    }
-                  ]}
-                >
-                  <Award size={20} color={rank.color} />
-                  <View style={styles.rankItemInfo}>
-                    <Text style={[styles.rankItemTitle, { color: rank.color }]}>
-                      {rank.title}
-                    </Text>
-                    <Text style={[styles.rankItemSubtitle, { color: themeColors.text }]}>
-                      {rank.subTitle}
-                    </Text>
-                    <Text style={[styles.rankItemXP, { color: themeColors.subtext }]}>
-                      {rank.minXP} - {rank.maxXP} XP
-                    </Text>
-                  </View>
-                  {rank.tier === rankInfo.tier && rank.subRank === rankInfo.subRank && (
-                    <Text style={[styles.currentRankBadge, { color: rank.color }]}>
-                      Current
-                    </Text>
-                  )}
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
       </Modal>
     </View>
   );
@@ -646,20 +552,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  progressBarContainer: {
-    height: 8,
-    borderRadius: 4,
-    marginBottom: 8,
-  },
-  progressBar: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  tapToViewText: {
-    fontSize: 12,
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
   dailyTrackerButton: {
     marginHorizontal: 16,
     marginBottom: 16,
@@ -712,66 +604,5 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-  },
-  modalContent: {
-    width: '90%',
-    maxHeight: '80%',
-    borderRadius: 20,
-    padding: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  closeButton: {
-    padding: 8,
-  },
-  closeButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  modalScrollView: {
-    maxHeight: 400,
-  },
-  rankItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-  },
-  rankItemInfo: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  rankItemTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  rankItemSubtitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  rankItemXP: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  currentRankBadge: {
-    fontSize: 12,
-    fontWeight: '700',
   },
 });
