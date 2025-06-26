@@ -171,62 +171,64 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
 
   if (compact) {
     return (
-      <Pressable 
-        style={[styles.compactCard, { backgroundColor: themeColors.card }]} 
-        onPress={handlePress}
-        disabled={isInteracting || isLiking}
-      >
-        <Image source={{ uri: venue.featuredImage }} style={styles.compactImage} />
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.7)']}
-          style={styles.compactGradient}
-        />
-        
-        {/* Total likes display - top left */}
-        {interactionData.likeCount > 0 && (
-          <View style={[styles.compactTotalLikes, { backgroundColor: themeColors.primary }]}>
-            <Flame size={12} color="white" fill="white" />
-            <Text style={styles.compactTotalLikesText}>{interactionData.likeCount}</Text>
-          </View>
-        )}
-
-        {/* Like button - top right with semi-transparent state */}
+      <View>
         <Pressable 
-          style={[
-            styles.compactLikeButton, 
-            { 
-              backgroundColor: interactionData.canLikeThisVenue ? themeColors.primary : themeColors.border,
-              opacity: interactionData.canLikeThisVenue ? 1 : 0.5 // Semi-transparent when used
-            }
-          ]}
-          onPress={handleLikePress}
-          disabled={!interactionData.canLikeThisVenue || isLiking}
+          style={[styles.compactCard, { backgroundColor: themeColors.card }]} 
+          onPress={handlePress}
+          disabled={isInteracting || isLiking}
         >
-          <Flame size={12} color="white" fill={interactionData.canLikeThisVenue ? "transparent" : "white"} />
-        </Pressable>
+          <Image source={{ uri: venue.featuredImage }} style={styles.compactImage} />
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.7)']}
+            style={styles.compactGradient}
+          />
+          
+          {/* Total likes display - top left */}
+          {interactionData.likeCount > 0 && (
+            <View style={[styles.compactTotalLikes, { backgroundColor: themeColors.primary }]}>
+              <Flame size={12} color="white" fill="white" />
+              <Text style={styles.compactTotalLikesText}>{interactionData.likeCount}</Text>
+            </View>
+          )}
 
-        {/* Chat Button */}
-        <Pressable 
-          style={[styles.compactChatButton, { backgroundColor: themeColors.primary }]}
-          onPress={handleChatPress}
-        >
-          <MessageCircle size={14} color="white" />
-        </Pressable>
-        
-        <View style={styles.compactContent}>
-          <Text style={[styles.compactName, { color: themeColors.text }]} numberOfLines={1}>
-            {venue.name}
-          </Text>
-          <View style={styles.compactDetails}>
-            <Text style={[styles.compactType, { color: themeColors.subtext }]} numberOfLines={1}>
-              {venue.types.map(t => t.replace('-', ' ')).join(' • ')}
+          {/* Like button - top right with semi-transparent state */}
+          <Pressable 
+            style={[
+              styles.compactLikeButton, 
+              { 
+                backgroundColor: interactionData.canLikeThisVenue ? themeColors.primary : themeColors.border,
+                opacity: interactionData.canLikeThisVenue ? 1 : 0.5 // Semi-transparent when used
+              }
+            ]}
+            onPress={handleLikePress}
+            disabled={!interactionData.canLikeThisVenue || isLiking}
+          >
+            <Flame size={12} color="white" fill={interactionData.canLikeThisVenue ? "transparent" : "white"} />
+          </Pressable>
+
+          {/* Chat Button */}
+          <Pressable 
+            style={[styles.compactChatButton, { backgroundColor: themeColors.primary }]}
+            onPress={handleChatPress}
+          >
+            <MessageCircle size={14} color="white" />
+          </Pressable>
+          
+          <View style={styles.compactContent}>
+            <Text style={[styles.compactName, { color: themeColors.text }]} numberOfLines={1}>
+              {venue.name}
             </Text>
-            <View style={styles.ratingContainer}>
-              <Star size={12} color={themeColors.primary} fill={themeColors.primary} />
-              <Text style={[styles.rating, { color: themeColors.subtext }]}>{venue.rating}</Text>
+            <View style={styles.compactDetails}>
+              <Text style={[styles.compactType, { color: themeColors.subtext }]} numberOfLines={1}>
+                {venue.types.map(t => t.replace('-', ' ')).join(' • ')}
+              </Text>
+              <View style={styles.ratingContainer}>
+                <Star size={12} color={themeColors.primary} fill={themeColors.primary} />
+                <Text style={[styles.rating, { color: themeColors.subtext }]}>{venue.rating}</Text>
+              </View>
             </View>
           </View>
-        </View>
+        </Pressable>
 
         {/* Like Time Slot Modal */}
         <Modal
@@ -304,128 +306,130 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           onClose={() => setChatModalVisible(false)}
           venue={venue}
         />
-      </Pressable>
+      </View>
     );
   }
 
   return (
-    <Pressable 
-      style={[styles.card, { backgroundColor: themeColors.card }]} 
-      onPress={handlePress}
-      disabled={isInteracting || isLiking}
-    >
-      <Image source={{ uri: venue.featuredImage }} style={styles.image} />
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.7)']}
-        style={styles.imageGradient}
-      />
-      
-      {/* Total likes display - top left */}
-      {interactionData.likeCount > 0 && (
-        <View style={[styles.totalLikesDisplay, { backgroundColor: themeColors.primary }]}>
-          <Flame size={18} color="white" fill="white" />
-          <Text style={styles.totalLikesText}>{interactionData.likeCount}</Text>
-        </View>
-      )}
-
-      {/* Like button - top right with semi-transparent state */}
+    <View>
       <Pressable 
-        style={[
-          styles.likeButton, 
-          { 
-            backgroundColor: interactionData.canLikeThisVenue ? themeColors.primary : themeColors.border,
-            opacity: interactionData.canLikeThisVenue ? 1 : 0.5 // Semi-transparent when used
-          }
-        ]}
-        onPress={handleLikePress}
-        disabled={!interactionData.canLikeThisVenue || isLiking}
+        style={[styles.card, { backgroundColor: themeColors.card }]} 
+        onPress={handlePress}
+        disabled={isInteracting || isLiking}
       >
-        <Flame 
-          size={18} 
-          color="white"
-          fill={interactionData.canLikeThisVenue ? "transparent" : "white"}
+        <Image source={{ uri: venue.featuredImage }} style={styles.image} />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.7)']}
+          style={styles.imageGradient}
         />
-      </Pressable>
-
-      {/* Chat Button */}
-      <Pressable 
-        style={[styles.chatButton, { backgroundColor: themeColors.primary }]}
-        onPress={handleChatPress}
-      >
-        <MessageCircle size={18} color="white" />
-      </Pressable>
-
-      {/* Analytics indicator for venues with data */}
-      {interactionData.likeCount > 5 && (
-        <View style={[styles.analyticsIndicator, { backgroundColor: themeColors.primary + '20' }]}>
-          <TrendingUp size={12} color={themeColors.primary} />
-        </View>
-      )}
-      
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={[styles.name, { color: themeColors.text }]}>{venue.name}</Text>
-          <View style={styles.ratingContainer}>
-            <Star size={16} color={themeColors.primary} fill={themeColors.primary} />
-            <Text style={[styles.rating, { color: themeColors.text }]}>{venue.rating}</Text>
-          </View>
-        </View>
         
-        <View style={styles.typeContainer}>
-          {venue.types.map((type, index) => (
-            <View 
-              key={index} 
-              style={[styles.typeTag, { backgroundColor: themeColors.primary + '20' }]}
-            >
-              <Text style={[styles.typeText, { color: themeColors.primary }]}>
-                {type.replace('-', ' ')}
+        {/* Total likes display - top left */}
+        {interactionData.likeCount > 0 && (
+          <View style={[styles.totalLikesDisplay, { backgroundColor: themeColors.primary }]}>
+            <Flame size={18} color="white" fill="white" />
+            <Text style={styles.totalLikesText}>{interactionData.likeCount}</Text>
+          </View>
+        )}
+
+        {/* Like button - top right with semi-transparent state */}
+        <Pressable 
+          style={[
+            styles.likeButton, 
+            { 
+              backgroundColor: interactionData.canLikeThisVenue ? themeColors.primary : themeColors.border,
+              opacity: interactionData.canLikeThisVenue ? 1 : 0.5 // Semi-transparent when used
+            }
+          ]}
+          onPress={handleLikePress}
+          disabled={!interactionData.canLikeThisVenue || isLiking}
+        >
+          <Flame 
+            size={18} 
+            color="white"
+            fill={interactionData.canLikeThisVenue ? "transparent" : "white"}
+          />
+        </Pressable>
+
+        {/* Chat Button */}
+        <Pressable 
+          style={[styles.chatButton, { backgroundColor: themeColors.primary }]}
+          onPress={handleChatPress}
+        >
+          <MessageCircle size={18} color="white" />
+        </Pressable>
+
+        {/* Analytics indicator for venues with data */}
+        {interactionData.likeCount > 5 && (
+          <View style={[styles.analyticsIndicator, { backgroundColor: themeColors.primary + '20' }]}>
+            <TrendingUp size={12} color={themeColors.primary} />
+          </View>
+        )}
+        
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text style={[styles.name, { color: themeColors.text }]}>{venue.name}</Text>
+            <View style={styles.ratingContainer}>
+              <Star size={16} color={themeColors.primary} fill={themeColors.primary} />
+              <Text style={[styles.rating, { color: themeColors.text }]}>{venue.rating}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.typeContainer}>
+            {venue.types.map((type, index) => (
+              <View 
+                key={index} 
+                style={[styles.typeTag, { backgroundColor: themeColors.primary + '20' }]}
+              >
+                <Text style={[styles.typeText, { color: themeColors.primary }]}>
+                  {type.replace('-', ' ')}
+                </Text>
+              </View>
+            ))}
+            <Text style={[styles.price, { color: themeColors.subtext }]}>
+              {renderPriceLevel()}
+            </Text>
+          </View>
+
+          {/* Hot Time Display with like count */}
+          {interactionData.hotTimeData && (
+            <View style={[styles.hotTimeBadge, { backgroundColor: themeColors.primary + '20' }]}>
+              <Flame size={14} color={themeColors.primary} />
+              <Text style={[styles.hotTimeText, { color: themeColors.primary }]}>
+                Hot Time: {formatTimeSlot(interactionData.hotTimeData.time)} — {interactionData.hotTimeData.likes} Likes
               </Text>
             </View>
-          ))}
-          <Text style={[styles.price, { color: themeColors.subtext }]}>
-            {renderPriceLevel()}
-          </Text>
-        </View>
-
-        {/* Hot Time Display with like count */}
-        {interactionData.hotTimeData && (
-          <View style={[styles.hotTimeBadge, { backgroundColor: themeColors.primary + '20' }]}>
-            <Flame size={14} color={themeColors.primary} />
-            <Text style={[styles.hotTimeText, { color: themeColors.primary }]}>
-              Hot Time: {formatTimeSlot(interactionData.hotTimeData.time)} — {interactionData.hotTimeData.likes} Likes
-            </Text>
-          </View>
-        )}
-        
-        {todaySpecials.length > 0 && (
-          <View style={[styles.specialsContainer, { backgroundColor: 'rgba(255,106,0,0.1)' }]}>
-            <Text style={[styles.specialsTitle, { color: themeColors.primary }]}>
-              Today's Specials:
-            </Text>
-            {todaySpecials.map((special, index) => (
-              <Text key={index} style={[styles.specialText, { color: themeColors.text }]}>
-                • {special.title}: {special.description}
+          )}
+          
+          {todaySpecials.length > 0 && (
+            <View style={[styles.specialsContainer, { backgroundColor: 'rgba(255,106,0,0.1)' }]}>
+              <Text style={[styles.specialsTitle, { color: themeColors.primary }]}>
+                Today's Specials:
               </Text>
-            ))}
-          </View>
-        )}
-        
-        <View style={styles.infoRow}>
-          <MapPin size={16} color={themeColors.subtext} />
-          <Text style={[styles.infoText, { color: themeColors.subtext }]} numberOfLines={1}>
-            {venue.address.split(',')[0]}
-          </Text>
-        </View>
-        
-        {venue.openHours.find(h => h.day === getCurrentDay() && !h.closed) && (
+              {todaySpecials.map((special, index) => (
+                <Text key={index} style={[styles.specialText, { color: themeColors.text }]}>
+                  • {special.title}: {special.description}
+                </Text>
+              ))}
+            </View>
+          )}
+          
           <View style={styles.infoRow}>
-            <Clock size={16} color={themeColors.subtext} />
-            <Text style={[styles.infoText, { color: themeColors.subtext }]}>
-              {formatOpenHours(venue.openHours.find(h => h.day === getCurrentDay()))}
+            <MapPin size={16} color={themeColors.subtext} />
+            <Text style={[styles.infoText, { color: themeColors.subtext }]} numberOfLines={1}>
+              {venue.address.split(',')[0]}
             </Text>
           </View>
-        )}
-      </View>
+          
+          {venue.openHours.find(h => h.day === getCurrentDay() && !h.closed) && (
+            <View style={styles.infoRow}>
+              <Clock size={16} color={themeColors.subtext} />
+              <Text style={[styles.infoText, { color: themeColors.subtext }]}>
+                {formatOpenHours(venue.openHours.find(h => h.day === getCurrentDay()))}
+              </Text>
+            </View>
+          )}
+        </View>
+      </Pressable>
 
       {/* RSVP Modal for check-ins (separate from likes) */}
       <Modal
@@ -494,86 +498,87 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
               </Pressable>
             </View>
           </View>
-        </Modal>
+        </View>
+      </Modal>
 
-        {/* Like Time Slot Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={likeModalVisible}
-          onRequestClose={handleLikeCancel}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { 
-              backgroundColor: themeColors.glass?.background || themeColors.card,
-              borderColor: themeColors.glass?.border || themeColors.border,
-            }]}>
-              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-                What time are you most likely to visit {venue.name}?
-              </Text>
-              
-              <View style={styles.timeSlotContainer}>
-                {timeSlots.map((time, index) => (
-                  <Pressable
-                    key={index}
-                    style={[
-                      styles.timeSlot,
-                      { 
-                        backgroundColor: selectedLikeTime === time 
-                          ? themeColors.primary 
-                          : 'transparent',
-                        borderColor: themeColors.primary
-                      }
-                    ]}
-                    onPress={() => setSelectedLikeTime(time)}
-                  >
-                    <Text 
-                      style={[
-                        styles.timeSlotText, 
-                        { color: selectedLikeTime === time ? 'white' : themeColors.primary }
-                      ]}
-                    >
-                      {formatTimeSlot(time)}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-              
-              <View style={styles.modalActions}>
-                <Pressable 
-                  style={[styles.modalButton, styles.cancelButton]} 
-                  onPress={handleLikeCancel}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </Pressable>
-                
-                <Pressable 
+      {/* Like Time Slot Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={likeModalVisible}
+        onRequestClose={handleLikeCancel}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { 
+            backgroundColor: themeColors.glass?.background || themeColors.card,
+            borderColor: themeColors.glass?.border || themeColors.border,
+          }]}>
+            <Text style={[styles.modalTitle, { color: themeColors.text }]}>
+              What time are you most likely to visit {venue.name}?
+            </Text>
+            
+            <View style={styles.timeSlotContainer}>
+              {timeSlots.map((time, index) => (
+                <Pressable
+                  key={index}
                   style={[
-                    styles.modalButton, 
-                    styles.submitButton, 
+                    styles.timeSlot,
                     { 
-                      backgroundColor: selectedLikeTime ? themeColors.primary : themeColors.card,
-                      opacity: selectedLikeTime ? 1 : 0.5
+                      backgroundColor: selectedLikeTime === time 
+                        ? themeColors.primary 
+                        : 'transparent',
+                      borderColor: themeColors.primary
                     }
-                  ]} 
-                  onPress={handleLikeSubmit}
-                  disabled={!selectedLikeTime}
+                  ]}
+                  onPress={() => setSelectedLikeTime(time)}
                 >
-                  <Text style={styles.submitButtonText}>Like This Bar 🔥</Text>
+                  <Text 
+                    style={[
+                      styles.timeSlotText, 
+                      { color: selectedLikeTime === time ? 'white' : themeColors.primary }
+                    ]}
+                  >
+                    {formatTimeSlot(time)}
+                  </Text>
                 </Pressable>
-              </View>
+              ))}
+            </View>
+            
+            <View style={styles.modalActions}>
+              <Pressable 
+                style={[styles.modalButton, styles.cancelButton]} 
+                onPress={handleLikeCancel}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
+              
+              <Pressable 
+                style={[
+                  styles.modalButton, 
+                  styles.submitButton, 
+                  { 
+                    backgroundColor: selectedLikeTime ? themeColors.primary : themeColors.card,
+                    opacity: selectedLikeTime ? 1 : 0.5
+                  }
+                ]} 
+                onPress={handleLikeSubmit}
+                disabled={!selectedLikeTime}
+              >
+                <Text style={styles.submitButtonText}>Like This Bar 🔥</Text>
+              </Pressable>
             </View>
           </View>
-        </Modal>
+        </View>
+      </Modal>
 
-        {/* Chat Modal */}
-        <ChatModal
-          visible={chatModalVisible}
-          onClose={() => setChatModalVisible(false)}
-          venue={venue}
-        />
-      </Pressable>
-    );
+      {/* Chat Modal */}
+      <ChatModal
+        visible={chatModalVisible}
+        onClose={() => setChatModalVisible(false)}
+        venue={venue}
+      />
+    </View>
+  );
 }
 
 function getCurrentDay(): string {
