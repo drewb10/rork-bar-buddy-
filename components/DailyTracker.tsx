@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { StyleSheet, View, Text, Pressable, ScrollView, Alert, Platform, Modal } from 'react-native';
-import { X, Plus, Minus, TrendingUp, Award, Target } from 'lucide-react-native';
+import { X, Plus, Minus, TrendingUp, Award, Target, Loader2 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
@@ -51,6 +51,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   });
   const [selectedDrunkScale, setSelectedDrunkScale] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveProgress, setSaveProgress] = useState('');
 
   // Reset local stats when modal opens - use useCallback to prevent unnecessary re-renders
   const resetLocalStats = useCallback(() => {
@@ -66,6 +67,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     });
     setSelectedDrunkScale(null);
     setIsSaving(false);
+    setSaveProgress('');
   }, []);
 
   // Load profile when modal opens
@@ -88,6 +90,8 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   }, [isSaving, onClose]);
 
   const handleStatChange = useCallback((statKey: keyof typeof localStats, delta: number) => {
+    if (isSaving) return; // Prevent changes while saving
+    
     setLocalStats(prev => {
       const currentValue = prev[statKey];
       const newValue = Math.max(0, currentValue + delta);
@@ -97,7 +101,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         [statKey]: newValue
       };
     });
-  }, []);
+  }, [isSaving]);
 
   const handleSaveStats = useCallback(async () => {
     // Prevent duplicate saves
@@ -130,7 +134,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     if (profileIsUpdating) {
       Alert.alert(
         'Update in Progress',
-        'Update in progress. Try again in a second.',
+        'Another update is in progress. Please wait a moment and try again.',
         [{ text: 'OK' }]
       );
       return;
@@ -148,6 +152,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     
     try {
       setIsSaving(true);
+      setSaveProgress('Saving your stats...');
       console.log('🔄 Saving daily tracker stats:', localStats);
       
       // Check if there are any stats to save
@@ -160,17 +165,21 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
           [{ text: 'OK' }]
         );
         setIsSaving(false);
+        setSaveProgress('');
         return;
       }
       
       // Submit drunk scale if selected
       if (selectedDrunkScale !== null && canSubmitDrunkScale()) {
+        setSaveProgress('Submitting drunk scale rating...');
         console.log('🔄 Submitting drunk scale rating:', selectedDrunkScale);
         await addDrunkScaleRating(selectedDrunkScale);
       }
       
       // Only update tracker totals if there are actual stats
       if (hasStats) {
+        setSaveProgress('Updating your stats...');
+        
         // Calculate new totals by adding current stats to existing totals
         const newTotals = {
           shots: (profile?.total_shots || 0) + localStats.shots,
@@ -189,6 +198,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         await updateDailyTrackerTotals(newTotals);
       }
       
+      setSaveProgress('Finalizing...');
       console.log('✅ Stats saved successfully');
       
       // Reset local state to zero
@@ -202,9 +212,23 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     } catch (error) {
       console.error('❌ Error saving stats:', error);
       setIsSaving(false);
+      setSaveProgress('');
+      
+      let errorMessage = 'Failed to save stats. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Profile not loaded')) {
+          errorMessage = 'Profile not loaded. Please wait for your profile to load and try again.';
+        } else if (error.message.includes('Profile is still loading')) {
+          errorMessage = 'Profile is still loading. Please wait and try again.';
+        } else if (error.message.includes('Another update is in progress')) {
+          errorMessage = 'Another update is in progress. Please wait a moment and try again.';
+        }
+      }
+      
       Alert.alert(
         'Error',
-        'Failed to save stats. Please try again.',
+        errorMessage,
         [{ text: 'OK' }]
       );
     }
@@ -251,6 +275,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
 
   // Determine what status message to show
   const getStatusMessage = () => {
+    if (isSaving) return saveProgress || 'Saving...';
     if (profileIsLoading) return 'Loading your profile...';
     if (!profile) return 'Sign in to save your stats and earn XP';
     if (!profileReady) return 'Preparing your profile...';
@@ -288,10 +313,31 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
 
           {/* Profile Status Banner */}
           {statusMessage && (
-            <View style={[styles.warningBanner, { backgroundColor: themeColors.warning + '20' }]}>
-              <Text style={[styles.warningText, { color: themeColors.warning }]}>
-                {statusMessage}
-              </Text>
+            <View style={[
+              styles.statusBanner, 
+              { 
+                backgroundColor: isSaving 
+                  ? themeColors.primary + '20' 
+                  : themeColors.warning + '20' 
+              }
+            ]}>
+              <View style={styles.statusContent}>
+                {isSaving && (
+                  <Loader2 
+                    size={16} 
+                    color={themeColors.primary} 
+                    style={styles.loadingIcon} 
+                  />
+                )}
+                <Text style={[
+                  styles.statusText, 
+                  { 
+                    color: isSaving ? themeColors.primary : themeColors.warning 
+                  }
+                ]}>
+                  {statusMessage}
+                </Text>
+              </View>
             </View>
           )}
 
@@ -323,7 +369,13 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                   
                   <View style={styles.statControls}>
                     <Pressable
-                      style={[styles.controlButton, { backgroundColor: themeColors.border }]}
+                      style={[
+                        styles.controlButton, 
+                        { 
+                          backgroundColor: themeColors.border,
+                          opacity: (isSaving || !canSaveStats) ? 0.5 : 1
+                        }
+                      ]}
                       onPress={() => handleStatChange(item.key, -1)}
                       disabled={isSaving || !canSaveStats}
                     >
@@ -335,7 +387,13 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                     </Text>
                     
                     <Pressable
-                      style={[styles.controlButton, { backgroundColor: themeColors.primary }]}
+                      style={[
+                        styles.controlButton, 
+                        { 
+                          backgroundColor: themeColors.primary,
+                          opacity: (isSaving || !canSaveStats) ? 0.5 : 1
+                        }
+                      ]}
                       onPress={() => handleStatChange(item.key, 1)}
                       disabled={isSaving || !canSaveStats}
                     >
@@ -375,9 +433,10 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                             borderColor: selectedDrunkScale === option.value 
                               ? themeColors.primary 
                               : themeColors.border,
+                            opacity: (isSaving || !canSaveStats) ? 0.5 : 1
                           }
                         ]}
-                        onPress={() => setSelectedDrunkScale(option.value)}
+                        onPress={() => !isSaving && canSaveStats && setSelectedDrunkScale(option.value)}
                         disabled={isSaving || !canSaveStats}
                       >
                         <Text style={styles.drunkScaleEmoji}>{option.emoji}</Text>
@@ -429,9 +488,23 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
               onPress={handleSaveStats}
               disabled={!canSaveStats}
             >
-              <Text style={styles.saveButtonText}>
-                {isSaving ? 'Saving...' : statusMessage ? 'Loading Profile...' : 'Save My Stats & Earn XP'}
-              </Text>
+              <View style={styles.saveButtonContent}>
+                {isSaving && (
+                  <Loader2 
+                    size={20} 
+                    color="white" 
+                    style={styles.saveButtonIcon} 
+                  />
+                )}
+                <Text style={styles.saveButtonText}>
+                  {isSaving 
+                    ? 'Saving...' 
+                    : statusMessage && !profileReady
+                      ? 'Loading Profile...' 
+                      : 'Save My Stats & Earn XP'
+                  }
+                </Text>
+              </View>
             </Pressable>
           </View>
         </View>
@@ -477,12 +550,19 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 20,
   },
-  warningBanner: {
+  statusBanner: {
     padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  warningText: {
+  statusContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  loadingIcon: {
+    marginRight: 8,
+  },
+  statusText: {
     fontSize: 14,
     fontWeight: '600',
   },
@@ -623,6 +703,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 12,
     elevation: 12,
+  },
+  saveButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  saveButtonIcon: {
+    marginRight: 8,
   },
   saveButtonText: {
     color: 'white',
