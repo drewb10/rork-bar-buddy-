@@ -1,7 +1,6 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { StyleSheet, View, Text, Pressable, ScrollView, Alert, Platform, Modal } from 'react-native';
-import { X, Plus, Minus, TrendingUp, Target } from 'lucide-react-native';
-import Slider from '@react-native-community/slider';
+import { X, Plus, Minus, TrendingUp, Award, Target } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
@@ -11,6 +10,21 @@ interface DailyTrackerProps {
   onClose: () => void;
 }
 
+interface DrunkScaleOption {
+  value: number;
+  label: string;
+  emoji: string;
+  description: string;
+}
+
+const drunkScaleOptions: DrunkScaleOption[] = [
+  { value: 1, label: 'Sober', emoji: '😐', description: 'Completely sober' },
+  { value: 2, label: 'Buzzed', emoji: '🙂', description: 'Feeling relaxed' },
+  { value: 3, label: 'Tipsy', emoji: '😊', description: 'Feeling good' },
+  { value: 4, label: 'Drunk', emoji: '😵', description: 'Pretty drunk' },
+  { value: 5, label: 'Wasted', emoji: '🤢', description: 'Very drunk' },
+];
+
 export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
@@ -18,7 +32,9 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     updateDailyTrackerTotals, 
     canSubmitDrunkScale, 
     addDrunkScaleRating,
-    profile
+    profile,
+    isLoading: profileIsLoading,
+    isUpdating: profileIsUpdating
   } = useUserProfileStore();
 
   const [localStats, setLocalStats] = useState({
@@ -31,26 +47,31 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     poolGamesWon: 0,
     dartGamesWon: 0,
   });
-  const [drunkScaleValue, setDrunkScaleValue] = useState<number>(1);
+  const [selectedDrunkScale, setSelectedDrunkScale] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Reset local stats when modal opens
-  React.useEffect(() => {
+  // Reset local stats when modal opens - use useCallback to prevent unnecessary re-renders
+  const resetLocalStats = useCallback(() => {
+    setLocalStats({
+      shots: 0,
+      scoopAndScores: 0,
+      beers: 0,
+      beerTowers: 0,
+      funnels: 0,
+      shotguns: 0,
+      poolGamesWon: 0,
+      dartGamesWon: 0,
+    });
+    setSelectedDrunkScale(null);
+    setIsSaving(false);
+  }, []);
+
+  // Only reset when modal becomes visible, not on every render
+  useEffect(() => {
     if (visible) {
-      setLocalStats({
-        shots: 0,
-        scoopAndScores: 0,
-        beers: 0,
-        beerTowers: 0,
-        funnels: 0,
-        shotguns: 0,
-        poolGamesWon: 0,
-        dartGamesWon: 0,
-      });
-      setDrunkScaleValue(1);
-      setIsSaving(false);
+      resetLocalStats();
     }
-  }, [visible]);
+  }, [visible, resetLocalStats]);
 
   const handleClose = useCallback(() => {
     if (!isSaving) {
@@ -71,6 +92,25 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   }, []);
 
   const handleSaveStats = useCallback(async () => {
+    // Check if profile is available and not already saving
+    if (!profile) {
+      Alert.alert(
+        'Profile Not Available',
+        'Please sign in or wait for your profile to load before saving stats.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
+    if (profileIsLoading || profileIsUpdating) {
+      Alert.alert(
+        'Profile Update in Progress',
+        'Please wait for the current profile update to complete.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
     if (isSaving) return;
     
     try {
@@ -79,21 +119,20 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       
       // Check if there are any stats to save
       const hasStats = Object.values(localStats).some(value => value > 0);
-      const canSubmitScale = canSubmitDrunkScale();
       
-      if (!hasStats && !canSubmitScale) {
+      if (!hasStats && !selectedDrunkScale) {
         Alert.alert(
           'No Stats to Save',
-          'Please add some activities before saving.',
+          'Please add some activities or select a drunk scale rating before saving.',
           [{ text: 'OK' }]
         );
         setIsSaving(false);
         return;
       }
       
-      // Save drunk scale if user can submit it
-      if (canSubmitScale) {
-        await addDrunkScaleRating(drunkScaleValue);
+      // Submit drunk scale if selected
+      if (selectedDrunkScale !== null && canSubmitDrunkScale()) {
+        await addDrunkScaleRating(selectedDrunkScale);
       }
       
       // Only update tracker totals if there are actual stats
@@ -119,27 +158,11 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       console.log('✅ Stats saved successfully');
       
       // Reset local state to zero
-      setLocalStats({
-        shots: 0,
-        scoopAndScores: 0,
-        beers: 0,
-        beerTowers: 0,
-        funnels: 0,
-        shotguns: 0,
-        poolGamesWon: 0,
-        dartGamesWon: 0,
-      });
-      setDrunkScaleValue(1);
-      
-      const message = hasStats && canSubmitScale 
-        ? 'Your stats and drunk scale rating have been updated and XP awarded! Check your trophies to see any new achievements.'
-        : hasStats 
-        ? 'Your stats have been updated and XP awarded! Check your trophies to see any new achievements.'
-        : 'Your drunk scale rating has been recorded!';
+      resetLocalStats();
       
       Alert.alert(
         'Stats Saved! 🎉',
-        message,
+        'Your stats have been updated and XP awarded! Check your trophies to see any new achievements.',
         [{ text: 'Awesome!', onPress: handleClose }]
       );
     } catch (error) {
@@ -151,7 +174,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         [{ text: 'OK' }]
       );
     }
-  }, [isSaving, localStats, profile, updateDailyTrackerTotals, handleClose, canSubmitDrunkScale, addDrunkScaleRating, drunkScaleValue]);
+  }, [isSaving, localStats, profile, profileIsLoading, profileIsUpdating, updateDailyTrackerTotals, resetLocalStats, handleClose, selectedDrunkScale, canSubmitDrunkScale, addDrunkScaleRating]);
 
   // Memoize canSubmitScale to prevent unnecessary re-calculations
   const canSubmitScale = useMemo(() => {
@@ -174,21 +197,10 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     { key: 'dartGamesWon' as const, label: 'Dart Games Won', emoji: '🎯', xp: 15 },
   ], []);
 
-  const getDrunkScaleLabel = (value: number): string => {
-    if (value <= 2) return 'Sober';
-    if (value <= 4) return 'Buzzed';
-    if (value <= 6) return 'Tipsy';
-    if (value <= 8) return 'Drunk';
-    return 'Wasted';
-  };
-
-  const getDrunkScaleEmoji = (value: number): string => {
-    if (value <= 2) return '😐';
-    if (value <= 4) return '🙂';
-    if (value <= 6) return '😊';
-    if (value <= 8) return '😵';
-    return '🤢';
-  };
+  // Check if we can save stats (profile is available and not loading/updating)
+  const canSaveStats = useMemo(() => {
+    return !!profile && !profileIsLoading && !profileIsUpdating && !isSaving;
+  }, [profile, profileIsLoading, profileIsUpdating, isSaving]);
 
   return (
     <Modal
@@ -215,6 +227,15 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
               <X size={28} color={themeColors.text} />
             </Pressable>
           </View>
+
+          {/* Profile Status Banner */}
+          {!profile && (
+            <View style={[styles.warningBanner, { backgroundColor: themeColors.warning + '20' }]}>
+              <Text style={[styles.warningText, { color: themeColors.warning }]}>
+                Sign in to save your stats and earn XP
+              </Text>
+            </View>
+          )}
 
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {/* Stats Section */}
@@ -282,38 +303,50 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
               </View>
 
               {canSubmitScale ? (
-                <View style={[styles.drunkScaleContainer, { backgroundColor: themeColors.background }]}>
-                  <View style={styles.drunkScaleHeader}>
-                    <Text style={styles.drunkScaleEmoji}>
-                      {getDrunkScaleEmoji(drunkScaleValue)}
-                    </Text>
-                    <View style={styles.drunkScaleInfo}>
-                      <Text style={[styles.drunkScaleValue, { color: themeColors.text }]}>
-                        {drunkScaleValue}/10
-                      </Text>
-                      <Text style={[styles.drunkScaleLabel, { color: themeColors.primary }]}>
-                        {getDrunkScaleLabel(drunkScaleValue)}
-                      </Text>
-                    </View>
+                <>
+                  <View style={styles.drunkScaleOptions}>
+                    {drunkScaleOptions.map((option) => (
+                      <Pressable
+                        key={option.value}
+                        style={[
+                          styles.drunkScaleOption,
+                          {
+                            backgroundColor: selectedDrunkScale === option.value 
+                              ? themeColors.primary 
+                              : themeColors.background,
+                            borderColor: selectedDrunkScale === option.value 
+                              ? themeColors.primary 
+                              : themeColors.border,
+                          }
+                        ]}
+                        onPress={() => setSelectedDrunkScale(option.value)}
+                        disabled={isSaving}
+                      >
+                        <Text style={styles.drunkScaleEmoji}>{option.emoji}</Text>
+                        <Text style={[
+                          styles.drunkScaleLabel, 
+                          { 
+                            color: selectedDrunkScale === option.value 
+                              ? 'white' 
+                              : themeColors.text 
+                          }
+                        ]}>
+                          {option.label}
+                        </Text>
+                        <Text style={[
+                          styles.drunkScaleDescription, 
+                          { 
+                            color: selectedDrunkScale === option.value 
+                              ? 'rgba(255,255,255,0.8)' 
+                              : themeColors.subtext 
+                          }
+                        ]}>
+                          {option.description}
+                        </Text>
+                      </Pressable>
+                    ))}
                   </View>
-                  
-                  <View style={styles.sliderContainer}>
-                    <Text style={[styles.sliderLabel, { color: themeColors.subtext }]}>1</Text>
-                    <Slider
-                      style={styles.slider}
-                      minimumValue={1}
-                      maximumValue={10}
-                      step={1}
-                      value={drunkScaleValue}
-                      onValueChange={setDrunkScaleValue}
-                      minimumTrackTintColor={themeColors.primary}
-                      maximumTrackTintColor={themeColors.border}
-                      thumbStyle={{ backgroundColor: themeColors.primary }}
-                      disabled={isSaving}
-                    />
-                    <Text style={[styles.sliderLabel, { color: themeColors.subtext }]}>10</Text>
-                  </View>
-                </View>
+                </>
               ) : (
                 <View style={[styles.drunkScaleDisabled, { backgroundColor: themeColors.background }]}>
                   <Target size={40} color={themeColors.subtext} />
@@ -332,11 +365,11 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                 styles.saveButton, 
                 { 
                   backgroundColor: themeColors.primary,
-                  opacity: isSaving ? 0.7 : 1,
+                  opacity: canSaveStats ? 1 : 0.5,
                 }
               ]}
               onPress={handleSaveStats}
-              disabled={isSaving}
+              disabled={!canSaveStats}
             >
               <Text style={styles.saveButtonText}>
                 {isSaving ? 'Saving...' : 'Save My Stats & Earn XP'}
@@ -385,6 +418,15 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 8,
     borderRadius: 20,
+  },
+  warningBanner: {
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  warningText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   content: {
     maxHeight: 520,
@@ -467,52 +509,35 @@ const styles = StyleSheet.create({
     minWidth: 28,
     textAlign: 'center',
   },
-  drunkScaleContainer: {
+  drunkScaleOptions: {
+    marginBottom: 24,
+  },
+  drunkScaleOption: {
     padding: 20,
     borderRadius: 20,
-    marginBottom: 24,
+    borderWidth: 2,
+    marginBottom: 16,
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 5,
   },
-  drunkScaleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
   drunkScaleEmoji: {
-    fontSize: 48,
-    marginRight: 16,
-  },
-  drunkScaleInfo: {
-    flex: 1,
-  },
-  drunkScaleValue: {
-    fontSize: 32,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    fontSize: 36,
+    marginBottom: 10,
   },
   drunkScaleLabel: {
     fontSize: 18,
-    fontWeight: '700',
-    marginTop: 4,
+    fontWeight: '800',
+    marginBottom: 6,
+    letterSpacing: 0.3,
   },
-  sliderContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sliderLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    minWidth: 20,
+  drunkScaleDescription: {
+    fontSize: 15,
+    fontWeight: '500',
     textAlign: 'center',
-  },
-  slider: {
-    flex: 1,
-    height: 40,
-    marginHorizontal: 16,
   },
   drunkScaleDisabled: {
     padding: 40,
@@ -546,5 +571,37 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     letterSpacing: 0.4,
+  },
+  drunkScaleContainer: {
+    padding: 20,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  drunkScaleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  drunkScaleInfo: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  drunkScaleValue: {
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  sliderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  slider: {
+    flex: 1,
+    height: 40,
+  },
+  sliderLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    width: 20,
+    textAlign: 'center',
   },
 });
