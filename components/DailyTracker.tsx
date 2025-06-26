@@ -35,6 +35,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     profile,
     isLoading: profileIsLoading,
     isUpdating: profileIsUpdating,
+    profileReady,
     loadProfile
   } = useUserProfileStore();
 
@@ -50,7 +51,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   });
   const [selectedDrunkScale, setSelectedDrunkScale] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [profileReady, setProfileReady] = useState(false);
 
   // Reset local stats when modal opens - use useCallback to prevent unnecessary re-renders
   const resetLocalStats = useCallback(() => {
@@ -68,29 +68,18 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     setIsSaving(false);
   }, []);
 
-  // Load profile when modal opens and check if it's ready
+  // Load profile when modal opens
   useEffect(() => {
     if (visible) {
       resetLocalStats();
-      setProfileReady(false);
       
-      // Load profile if not already loaded
-      if (!profile && !profileIsLoading) {
+      // Load profile if not already loaded or ready
+      if (!profile || !profileReady) {
         console.log('🔄 Loading profile for Daily Tracker...');
         loadProfile();
       }
     }
-  }, [visible, resetLocalStats, profile, profileIsLoading, loadProfile]);
-
-  // Check if profile is ready for operations
-  useEffect(() => {
-    if (profile && !profileIsLoading && !profileIsUpdating) {
-      setProfileReady(true);
-      console.log('✅ Profile ready for Daily Tracker operations');
-    } else {
-      setProfileReady(false);
-    }
-  }, [profile, profileIsLoading, profileIsUpdating]);
+  }, [visible, resetLocalStats, profile, profileReady, loadProfile]);
 
   const handleClose = useCallback(() => {
     if (!isSaving) {
@@ -257,8 +246,19 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
 
   // Check if we can save stats (profile is ready and not saving)
   const canSaveStats = useMemo(() => {
-    return profileReady && !isSaving && !profileIsLoading && !profileIsUpdating;
-  }, [profileReady, isSaving, profileIsLoading, profileIsUpdating]);
+    return profileReady && !isSaving && !profileIsLoading && !profileIsUpdating && profile;
+  }, [profileReady, isSaving, profileIsLoading, profileIsUpdating, profile]);
+
+  // Determine what status message to show
+  const getStatusMessage = () => {
+    if (profileIsLoading) return 'Loading your profile...';
+    if (!profile) return 'Sign in to save your stats and earn XP';
+    if (!profileReady) return 'Preparing your profile...';
+    if (profileIsUpdating) return 'Updating your profile...';
+    return null;
+  };
+
+  const statusMessage = getStatusMessage();
 
   return (
     <Modal
@@ -287,10 +287,10 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
           </View>
 
           {/* Profile Status Banner */}
-          {!profileReady && (
+          {statusMessage && (
             <View style={[styles.warningBanner, { backgroundColor: themeColors.warning + '20' }]}>
               <Text style={[styles.warningText, { color: themeColors.warning }]}>
-                {profileIsLoading ? 'Loading your profile...' : !profile ? 'Sign in to save your stats and earn XP' : 'Preparing your profile...'}
+                {statusMessage}
               </Text>
             </View>
           )}
@@ -325,7 +325,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                     <Pressable
                       style={[styles.controlButton, { backgroundColor: themeColors.border }]}
                       onPress={() => handleStatChange(item.key, -1)}
-                      disabled={isSaving || !profileReady}
+                      disabled={isSaving || !canSaveStats}
                     >
                       <Minus size={18} color={themeColors.text} />
                     </Pressable>
@@ -337,7 +337,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                     <Pressable
                       style={[styles.controlButton, { backgroundColor: themeColors.primary }]}
                       onPress={() => handleStatChange(item.key, 1)}
-                      disabled={isSaving || !profileReady}
+                      disabled={isSaving || !canSaveStats}
                     >
                       <Plus size={18} color="white" />
                     </Pressable>
@@ -378,7 +378,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                           }
                         ]}
                         onPress={() => setSelectedDrunkScale(option.value)}
-                        disabled={isSaving || !profileReady}
+                        disabled={isSaving || !canSaveStats}
                       >
                         <Text style={styles.drunkScaleEmoji}>{option.emoji}</Text>
                         <Text style={[
@@ -430,7 +430,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
               disabled={!canSaveStats}
             >
               <Text style={styles.saveButtonText}>
-                {isSaving ? 'Saving...' : profileIsLoading ? 'Loading Profile...' : 'Save My Stats & Earn XP'}
+                {isSaving ? 'Saving...' : statusMessage ? 'Loading Profile...' : 'Save My Stats & Earn XP'}
               </Text>
             </Pressable>
           </View>
@@ -629,37 +629,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     letterSpacing: 0.4,
-  },
-  drunkScaleContainer: {
-    padding: 20,
-    borderRadius: 20,
-    marginBottom: 16,
-  },
-  drunkScaleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  drunkScaleInfo: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  drunkScaleValue: {
-    fontSize: 24,
-    fontWeight: '800',
-  },
-  sliderContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  slider: {
-    flex: 1,
-    height: 40,
-  },
-  sliderLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    width: 20,
-    textAlign: 'center',
   },
 });

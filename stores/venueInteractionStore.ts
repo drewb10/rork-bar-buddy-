@@ -98,9 +98,9 @@ const canInteractWithVenue = (lastInteraction: string | undefined): boolean => {
   }
 };
 
-// Debounce function to prevent rapid successive calls
+// Debounce function to prevent rapid successive calls - Fixed timeout type
 const debounce = <T extends (...args: any[]) => any>(func: T, wait: number): T => {
-  let timeout: NodeJS.Timeout;
+  let timeout: ReturnType<typeof setTimeout>;
   return ((...args: any[]) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func.apply(null, args), wait);
@@ -225,6 +225,12 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
 
           // Award XP for liking a bar with debouncing
           debouncedAwardLikeXP(venueId);
+          
+          // Force re-render of components that depend on this data
+          setTimeout(() => {
+            // Trigger a state update to force re-render
+            set((state) => ({ ...state }));
+          }, 100);
         } catch (error) {
           console.warn('Error liking venue:', error);
         }

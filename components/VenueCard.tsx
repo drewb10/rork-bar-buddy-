@@ -100,13 +100,13 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const handleLikeSubmit = useCallback(async () => {
     if (selectedLikeTime) {
       try {
-        // Immediately update the like state for real-time feedback
-        setIsLiking(false);
+        // Submit the like first
+        likeVenue(venue.id, selectedLikeTime);
+        
+        // Close modal and reset state
         setLikeModalVisible(false);
         setSelectedLikeTime(null);
-        
-        // Submit the like
-        likeVenue(venue.id, selectedLikeTime);
+        setIsLiking(false);
       } catch (error) {
         console.error('Error submitting like:', error);
         setIsLiking(false);
@@ -494,87 +494,86 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
               </Pressable>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
 
-      {/* Like Time Slot Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={likeModalVisible}
-        onRequestClose={handleLikeCancel}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { 
-            backgroundColor: themeColors.glass?.background || themeColors.card,
-            borderColor: themeColors.glass?.border || themeColors.border,
-          }]}>
-            <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-              What time are you most likely to visit {venue.name}?
-            </Text>
-            
-            <View style={styles.timeSlotContainer}>
-              {timeSlots.map((time, index) => (
-                <Pressable
-                  key={index}
-                  style={[
-                    styles.timeSlot,
-                    { 
-                      backgroundColor: selectedLikeTime === time 
-                        ? themeColors.primary 
-                        : 'transparent',
-                      borderColor: themeColors.primary
-                    }
-                  ]}
-                  onPress={() => setSelectedLikeTime(time)}
-                >
-                  <Text 
-                    style={[
-                      styles.timeSlotText, 
-                      { color: selectedLikeTime === time ? 'white' : themeColors.primary }
-                    ]}
-                  >
-                    {formatTimeSlot(time)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            
-            <View style={styles.modalActions}>
-              <Pressable 
-                style={[styles.modalButton, styles.cancelButton]} 
-                onPress={handleLikeCancel}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </Pressable>
+        {/* Like Time Slot Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={likeModalVisible}
+          onRequestClose={handleLikeCancel}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { 
+              backgroundColor: themeColors.glass?.background || themeColors.card,
+              borderColor: themeColors.glass?.border || themeColors.border,
+            }]}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
+                What time are you most likely to visit {venue.name}?
+              </Text>
               
-              <Pressable 
-                style={[
-                  styles.modalButton, 
-                  styles.submitButton, 
-                  { 
-                    backgroundColor: selectedLikeTime ? themeColors.primary : themeColors.card,
-                    opacity: selectedLikeTime ? 1 : 0.5
-                  }
-                ]} 
-                onPress={handleLikeSubmit}
-                disabled={!selectedLikeTime}
-              >
-                <Text style={styles.submitButtonText}>Like This Bar 🔥</Text>
-              </Pressable>
+              <View style={styles.timeSlotContainer}>
+                {timeSlots.map((time, index) => (
+                  <Pressable
+                    key={index}
+                    style={[
+                      styles.timeSlot,
+                      { 
+                        backgroundColor: selectedLikeTime === time 
+                          ? themeColors.primary 
+                          : 'transparent',
+                        borderColor: themeColors.primary
+                      }
+                    ]}
+                    onPress={() => setSelectedLikeTime(time)}
+                  >
+                    <Text 
+                      style={[
+                        styles.timeSlotText, 
+                        { color: selectedLikeTime === time ? 'white' : themeColors.primary }
+                      ]}
+                    >
+                      {formatTimeSlot(time)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              
+              <View style={styles.modalActions}>
+                <Pressable 
+                  style={[styles.modalButton, styles.cancelButton]} 
+                  onPress={handleLikeCancel}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </Pressable>
+                
+                <Pressable 
+                  style={[
+                    styles.modalButton, 
+                    styles.submitButton, 
+                    { 
+                      backgroundColor: selectedLikeTime ? themeColors.primary : themeColors.card,
+                      opacity: selectedLikeTime ? 1 : 0.5
+                    }
+                  ]} 
+                  onPress={handleLikeSubmit}
+                  disabled={!selectedLikeTime}
+                >
+                  <Text style={styles.submitButtonText}>Like This Bar 🔥</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
 
-      {/* Chat Modal */}
-      <ChatModal
-        visible={chatModalVisible}
-        onClose={() => setChatModalVisible(false)}
-        venue={venue}
-      />
-    </Pressable>
-  );
+        {/* Chat Modal */}
+        <ChatModal
+          visible={chatModalVisible}
+          onClose={() => setChatModalVisible(false)}
+          venue={venue}
+        />
+      </Pressable>
+    );
 }
 
 function getCurrentDay(): string {

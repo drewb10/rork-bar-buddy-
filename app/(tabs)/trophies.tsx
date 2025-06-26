@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, RefreshControl } from 'react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
@@ -9,7 +9,7 @@ import BarBuddyLogo from '@/components/BarBuddyLogo';
 export default function TrophiesScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { profile } = useUserProfileStore();
+  const { profile, loadProfile, isLoading } = useUserProfileStore();
   const { 
     completedAchievements, 
     initializeAchievements, 
@@ -17,6 +17,7 @@ export default function TrophiesScreen() {
   } = useAchievementStoreSafe();
 
   const [activeTab, setActiveTab] = useState<'stats' | 'trophies'>('stats');
+  const [refreshing, setRefreshing] = useState(false);
 
   // Initialize achievements when component mounts
   useEffect(() => {
@@ -24,6 +25,24 @@ export default function TrophiesScreen() {
       initializeAchievements();
     }
   }, [isInitialized, initializeAchievements]);
+
+  // Load profile when component mounts if not already loaded
+  useEffect(() => {
+    if (!profile && !isLoading) {
+      loadProfile();
+    }
+  }, [profile, isLoading, loadProfile]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadProfile();
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Memoize lifetime stats to prevent unnecessary recalculations
   const lifetimeStats = useMemo(() => {
@@ -41,6 +60,7 @@ export default function TrophiesScreen() {
         nightsOut: 0,
         totalDrinksLogged: 0,
         drunkScaleAvg: 0,
+        totalXP: 0,
       };
     }
 
@@ -68,6 +88,7 @@ export default function TrophiesScreen() {
       nightsOut: profile.nights_out || 0,
       totalDrinksLogged: totalDrinks,
       drunkScaleAvg,
+      totalXP: profile.xp || 0,
     };
   }, [profile]);
 
@@ -142,6 +163,14 @@ export default function TrophiesScreen() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={themeColors.primary}
+            colors={[themeColors.primary]}
+          />
+        }
       >
         {/* Header with Logo */}
         <View style={styles.header}>
@@ -155,6 +184,11 @@ export default function TrophiesScreen() {
           <Text style={[styles.pageTitle, { color: themeColors.text }]}>
             Your Trophies
           </Text>
+          {profile && (
+            <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
+              @{profile.username} • {lifetimeStats.totalXP} XP
+            </Text>
+          )}
         </View>
 
         {/* Tab Navigation */}
@@ -227,7 +261,17 @@ export default function TrophiesScreen() {
               <StatCard 
                 title="Average Drunk Scale" 
                 value={lifetimeStats.drunkScaleAvg}
-                subtitle="out of 10"
+                subtitle="out of 5"
+                size="large"
+              />
+            </View>
+
+            {/* XP Card */}
+            <View style={styles.bottomStatsGrid}>
+              <StatCard 
+                title="Total XP Earned" 
+                value={lifetimeStats.totalXP}
+                subtitle="Experience Points"
                 size="large"
               />
             </View>
@@ -299,6 +343,12 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '800',
     letterSpacing: 0.5,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 16,
+    fontWeight: '500',
     textAlign: 'center',
   },
   tabContainer: {

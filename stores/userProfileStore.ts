@@ -89,6 +89,7 @@ interface UserProfileState {
   profile: UserProfile | null;
   isLoading: boolean;
   isUpdating: boolean;
+  profileReady: boolean;
   loadProfile: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   incrementNightsOut: () => Promise<void>;
@@ -112,6 +113,7 @@ interface UserProfileState {
   loadFriendRequests: () => Promise<void>;
   loadFriends: () => Promise<void>;
   checkAndResetDrunkScaleIfNeeded: () => void;
+  setProfileReady: (ready: boolean) => void;
 }
 
 const XP_VALUES = {
@@ -205,7 +207,7 @@ const getTodayString = (): string => {
   return new Date().toISOString().split('T')[0];
 };
 
-// Debounce function to prevent rapid successive calls
+// Debounce function to prevent rapid successive calls - Fixed timeout type
 const debounce = <T extends (...args: any[]) => any>(func: T, wait: number): T => {
   let timeout: ReturnType<typeof setTimeout>;
   return ((...args: any[]) => {
@@ -220,6 +222,11 @@ export const useUserProfileStore = create<UserProfileState>()(
       profile: null,
       isLoading: false,
       isUpdating: false,
+      profileReady: false,
+      
+      setProfileReady: (ready: boolean) => {
+        set({ profileReady: ready });
+      },
       
       loadProfile: async () => {
         const state = get();
@@ -229,13 +236,13 @@ export const useUserProfileStore = create<UserProfileState>()(
         }
         
         try {
-          set({ isLoading: true });
+          set({ isLoading: true, profileReady: false });
           console.log('🔄 Starting profile load...');
           
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) {
             console.log('🔄 No authenticated user found');
-            set({ isLoading: false, profile: null });
+            set({ isLoading: false, profile: null, profileReady: false });
             return;
           }
 
@@ -315,7 +322,8 @@ export const useUserProfileStore = create<UserProfileState>()(
                     friends: get().profile?.friends || [],
                     friend_requests: get().profile?.friend_requests || [],
                   }, 
-                  isLoading: false 
+                  isLoading: false,
+                  profileReady: true
                 });
                 return;
               } else {
@@ -323,7 +331,7 @@ export const useUserProfileStore = create<UserProfileState>()(
               }
             }
             
-            set({ isLoading: false, profile: null });
+            set({ isLoading: false, profile: null, profileReady: false });
             return;
           }
 
@@ -341,11 +349,12 @@ export const useUserProfileStore = create<UserProfileState>()(
               friends: get().profile?.friends || [],
               friend_requests: get().profile?.friend_requests || [],
             }, 
-            isLoading: false 
+            isLoading: false,
+            profileReady: true
           });
         } catch (error) {
           console.error('Error loading profile:', error);
-          set({ isLoading: false, profile: null });
+          set({ isLoading: false, profile: null, profileReady: false });
         }
       },
 
@@ -590,12 +599,17 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
       
       updateDailyTrackerTotals: async (stats) => {
-        const { profile, isUpdating } = get();
+        const { profile, isUpdating, profileReady } = get();
         
         // Enhanced validation with better error messages
         if (!profile) {
           console.error('❌ No profile available for updating daily tracker totals');
           throw new Error('Profile not loaded. Please wait for your profile to load and try again.');
+        }
+        
+        if (!profileReady) {
+          console.error('❌ Profile not ready for updates');
+          throw new Error('Profile is still loading. Please wait and try again.');
         }
         
         if (isUpdating) {
