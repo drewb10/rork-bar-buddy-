@@ -268,7 +268,6 @@ export const authService = {
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
           // First try to find profile by phone, then by email, then by user ID
-          const identifier = authData.user.phone || authData.user.email || authData.user.id;
           let query = supabase.from('profiles').select('*');
           
           if (authData.user.phone) {

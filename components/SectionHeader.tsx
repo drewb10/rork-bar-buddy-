@@ -70,6 +70,7 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center', // Center the title horizontally
   },
   iconContainer: {
     marginRight: 8,
@@ -77,6 +78,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '600',
+    textAlign: 'center', // Center text alignment
   },
   centeredTitle: {
     fontSize: 24,

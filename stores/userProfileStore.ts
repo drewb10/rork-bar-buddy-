@@ -112,7 +112,6 @@ interface UserProfileState {
   loadFriendRequests: () => Promise<void>;
   loadFriends: () => Promise<void>;
   checkAndResetDrunkScaleIfNeeded: () => void;
-  initializeDefaultProfile: () => void;
 }
 
 const XP_VALUES = {
@@ -206,49 +205,9 @@ const getTodayString = (): string => {
   return new Date().toISOString().split('T')[0];
 };
 
-// Create a default profile for testing/debugging
-const createDefaultProfile = (): UserProfile => ({
-  id: 'debug-user-' + Date.now(),
-  username: 'DebugUser',
-  phone: '+1234567890',
-  email: 'debug@barbuddy.com',
-  xp: 0,
-  nights_out: 0,
-  bars_hit: 0,
-  drunk_scale_ratings: [],
-  friends: [],
-  friend_requests: [],
-  xp_activities: [],
-  visited_bars: [],
-  total_shots: 0,
-  total_scoop_and_scores: 0,
-  total_beers: 0,
-  total_beer_towers: 0,
-  total_funnels: 0,
-  total_shotguns: 0,
-  pool_games_won: 0,
-  dart_games_won: 0,
-  photos_taken: 0,
-  daily_stats: {
-    shots: 0,
-    scoopAndScores: 0,
-    beers: 0,
-    beerTowers: 0,
-    funnels: 0,
-    shotguns: 0,
-    poolGamesWon: 0,
-    dartGamesWon: 0,
-    date: getTodayString(),
-    lastResetAt: new Date().toISOString(),
-  },
-  has_completed_onboarding: true,
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-});
-
 // Debounce function to prevent rapid successive calls
 const debounce = <T extends (...args: any[]) => any>(func: T, wait: number): T => {
-  let timeout: ReturnType<typeof setTimeout>;
+  let timeout: NodeJS.Timeout;
   return ((...args: any[]) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func.apply(null, args), wait);
@@ -262,17 +221,6 @@ export const useUserProfileStore = create<UserProfileState>()(
       isLoading: false,
       isUpdating: false,
       
-      // Initialize default profile for debugging
-      initializeDefaultProfile: () => {
-        const state = get();
-        if (state.profile || state.isUpdating) return; // Prevent multiple initializations
-        
-        console.log('🔄 Initializing default profile for debugging...');
-        const defaultProfile = createDefaultProfile();
-        set({ profile: defaultProfile });
-        console.log('✅ Default profile initialized:', defaultProfile);
-      },
-      
       loadProfile: async () => {
         const state = get();
         if (state.isLoading || state.isUpdating) return; // Prevent concurrent loads
@@ -282,12 +230,12 @@ export const useUserProfileStore = create<UserProfileState>()(
           
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) {
-            // If no user, create a default profile for debugging
-            console.log('🔄 No authenticated user, creating default profile...');
-            get().initializeDefaultProfile();
-            set({ isLoading: false });
+            console.log('🔄 No authenticated user found');
+            set({ isLoading: false, profile: null });
             return;
           }
+
+          console.log('🔄 Loading profile for authenticated user:', user.id);
 
           // Use phone-first logic for profile lookup
           let query = supabase.from('profiles').select('*');
@@ -307,6 +255,7 @@ export const useUserProfileStore = create<UserProfileState>()(
             
             // If profile doesn't exist, create it
             if (error.code === 'PGRST116') {
+              console.log('🔄 Profile not found, creating new profile...');
               const newProfileData = {
                 id: user.id,
                 username: user.user_metadata?.username || `guest_${Math.floor(Math.random() * 100000)}`,
@@ -348,7 +297,8 @@ export const useUserProfileStore = create<UserProfileState>()(
                 .select('*')
                 .single();
               
-              if (!createError) {
+              if (!createError && newProfile) {
+                console.log('✅ New profile created successfully');
                 // Load friends and friend requests
                 await Promise.all([
                   get().loadFriends(),
@@ -364,12 +314,16 @@ export const useUserProfileStore = create<UserProfileState>()(
                   isLoading: false 
                 });
                 return;
+              } else {
+                console.error('Failed to create new profile:', createError);
               }
             }
             
-            set({ isLoading: false });
+            set({ isLoading: false, profile: null });
             return;
           }
+
+          console.log('✅ Profile loaded successfully:', profileData.username);
 
           // Load friends and friend requests
           await Promise.all([
@@ -387,9 +341,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           });
         } catch (error) {
           console.error('Error loading profile:', error);
-          // Fallback to default profile for debugging
-          get().initializeDefaultProfile();
-          set({ isLoading: false });
+          set({ isLoading: false, profile: null });
         }
       },
 
@@ -1047,6 +999,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           updated_at: state.profile.updated_at,
           drunk_scale_ratings: state.profile.drunk_scale_ratings,
           last_drunk_scale_date: state.profile.last_drunk_scale_date,
+          profile_picture: state.profile.profile_picture,
         } : null,
       }),
     }

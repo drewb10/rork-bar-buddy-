@@ -11,29 +11,16 @@ import VenueCard from '@/components/VenueCard';
 import TopPickCard from '@/components/TopPickCard';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import DailyTracker from '@/components/DailyTracker';
-import SectionHeader from '@/components/SectionHeader';
 import FilterBar from '@/components/FilterBar';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { profile, initializeDefaultProfile } = useUserProfileStore();
+  const { profile } = useUserProfileStore();
   const { getMostPopularVenues } = useVenueInteractionStore();
   const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
-
-  // Initialize default profile if none exists (for debugging)
-  useEffect(() => {
-    if (!profile) {
-      console.log('🔄 No profile found, initializing default profile...');
-      initializeDefaultProfile();
-    }
-  }, [profile, initializeDefaultProfile]);
-
-  const handleViewAllVenues = () => {
-    router.push('/all-venues');
-  };
 
   const handleDailyTrackerPress = () => {
     setDailyTrackerVisible(true);
@@ -112,10 +99,11 @@ export default function HomeScreen() {
         </View>
 
         {/* Macon Bars Section */}
-        <SectionHeader 
-          title="Macon Bars"
-          onViewAll={handleViewAllVenues}
-        />
+        <View style={styles.maconBarsSection}>
+          <Text style={[styles.maconBarsTitle, { color: themeColors.text }]}>
+            Macon Bars
+          </Text>
+        </View>
         
         <View style={styles.venueList}>
           {maconBars.map((venue) => (
@@ -192,6 +180,16 @@ const styles = StyleSheet.create({
   },
   topPicksScrollContent: {
     paddingHorizontal: 16,
+  },
+  maconBarsSection: {
+    marginBottom: 16,
+    paddingHorizontal: 16,
+  },
+  maconBarsTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 0.5,
   },
   venueList: {
     paddingHorizontal: 16,

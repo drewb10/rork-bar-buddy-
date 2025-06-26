@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, Image, ActivityIndicator } from 'react-native';
-import { User, Award, Camera, Users, Info, LogOut } from 'lucide-react-native';
+import { User, Award, Camera, Users, LogOut } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
-import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import FriendsModal from '@/components/FriendsModal';
 import BarBuddyChatbot from '@/components/BarBuddyChatbot';
@@ -31,11 +30,8 @@ export default function ProfileScreen() {
     getProgressToNextRank,
     setProfilePicture,
     isLoading: profileLoading,
-    initializeDefaultProfile
   } = useUserProfileStore();
   const router = useRouter();
-  
-  const { interactions } = useVenueInteractionStore();
   
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
   const [rankDetailsModalVisible, setRankDetailsModalVisible] = useState(false);
@@ -43,15 +39,11 @@ export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState<'profile' | 'chatbot'>('profile');
 
   useEffect(() => {
-    // Load profile when component mounts or initialize default if none exists
+    // Load profile when component mounts
     if (authProfile && !profile) {
       loadProfile();
-    } else if (!authProfile && !profile) {
-      // For debugging - create a default profile if no auth profile exists
-      console.log('🔄 No auth profile, initializing default profile for debugging...');
-      initializeDefaultProfile();
     }
-  }, [authProfile, profile, loadProfile, initializeDefaultProfile]);
+  }, [authProfile, profile, loadProfile]);
 
   useEffect(() => {
     // Show onboarding if user hasn't completed it
@@ -184,13 +176,13 @@ export default function ProfileScreen() {
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
           <Text style={[styles.loadingText, { color: themeColors.text }]}>
-            No profile found. Creating default profile...
+            No profile found. Please sign in to continue.
           </Text>
           <Pressable 
             style={[styles.signInButton, { backgroundColor: themeColors.primary, marginTop: 20 }]}
-            onPress={() => initializeDefaultProfile()}
+            onPress={() => router.replace('/auth/sign-in')}
           >
-            <Text style={styles.signInButtonText}>Initialize Profile</Text>
+            <Text style={styles.signInButtonText}>Sign In</Text>
           </Pressable>
         </View>
       </View>
@@ -329,27 +321,6 @@ export default function ProfileScreen() {
               Tap to view all ranks
             </Text>
           </Pressable>
-
-          {/* Stats Cards */}
-          <View style={styles.statsGrid}>
-            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
-              <Text style={[styles.statNumber, { color: themeColors.text }]}>
-                {profile.nights_out || 0}
-              </Text>
-              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                Nights Out
-              </Text>
-            </View>
-
-            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
-              <Text style={[styles.statNumber, { color: themeColors.text }]}>
-                {profile.bars_hit || 0}
-              </Text>
-              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                Bars Hit
-              </Text>
-            </View>
-          </View>
 
           {/* Friends Button */}
           <Pressable 
@@ -620,32 +591,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     fontStyle: 'italic',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    gap: 16,
-  },
-  statCard: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 14,
-    fontWeight: '500',
   },
   friendsButton: {
     flexDirection: 'row',

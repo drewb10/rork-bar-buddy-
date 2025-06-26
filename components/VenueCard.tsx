@@ -100,10 +100,13 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const handleLikeSubmit = useCallback(async () => {
     if (selectedLikeTime) {
       try {
-        likeVenue(venue.id, selectedLikeTime);
+        // Immediately update the like state for real-time feedback
+        setIsLiking(false);
         setLikeModalVisible(false);
         setSelectedLikeTime(null);
-        setIsLiking(false);
+        
+        // Submit the like
+        likeVenue(venue.id, selectedLikeTime);
       } catch (error) {
         console.error('Error submitting like:', error);
         setIsLiking(false);
@@ -187,13 +190,13 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           </View>
         )}
 
-        {/* Like button - top right */}
+        {/* Like button - top right with semi-transparent state */}
         <Pressable 
           style={[
             styles.compactLikeButton, 
             { 
               backgroundColor: interactionData.canLikeThisVenue ? themeColors.primary : themeColors.border,
-              opacity: interactionData.canLikeThisVenue ? 1 : 0.3
+              opacity: interactionData.canLikeThisVenue ? 1 : 0.5 // Semi-transparent when used
             }
           ]}
           onPress={handleLikePress}
@@ -219,7 +222,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
               {venue.types.map(t => t.replace('-', ' ')).join(' • ')}
             </Text>
             <View style={styles.ratingContainer}>
-              <Star size={12} color={themeColors.accent} fill={themeColors.accent} />
+              <Star size={12} color={themeColors.primary} fill={themeColors.primary} />
               <Text style={[styles.rating, { color: themeColors.subtext }]}>{venue.rating}</Text>
             </View>
           </View>
@@ -325,13 +328,13 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         </View>
       )}
 
-      {/* Like button - top right */}
+      {/* Like button - top right with semi-transparent state */}
       <Pressable 
         style={[
           styles.likeButton, 
           { 
             backgroundColor: interactionData.canLikeThisVenue ? themeColors.primary : themeColors.border,
-            opacity: interactionData.canLikeThisVenue ? 1 : 0.3
+            opacity: interactionData.canLikeThisVenue ? 1 : 0.5 // Semi-transparent when used
           }
         ]}
         onPress={handleLikePress}
@@ -363,7 +366,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         <View style={styles.header}>
           <Text style={[styles.name, { color: themeColors.text }]}>{venue.name}</Text>
           <View style={styles.ratingContainer}>
-            <Star size={16} color={themeColors.accent} fill={themeColors.accent} />
+            <Star size={16} color={themeColors.primary} fill={themeColors.primary} />
             <Text style={[styles.rating, { color: themeColors.text }]}>{venue.rating}</Text>
           </View>
         </View>

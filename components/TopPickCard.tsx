@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, View, Text, Pressable, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Flame } from 'lucide-react-native';
@@ -17,18 +17,29 @@ export default function TopPickCard({ venue }: TopPickCardProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const { getLikeCount, getHotTimeWithLikes } = useVenueInteractionStore();
-  
-  const likeCount = getLikeCount(venue.id);
-  const hotTimeData = getHotTimeWithLikes(venue.id);
+
+  // Memoize interaction data to prevent unnecessary re-calculations
+  const interactionData = useMemo(() => ({
+    likeCount: getLikeCount(venue.id),
+    hotTimeData: getHotTimeWithLikes(venue.id),
+  }), [venue.id, getLikeCount, getHotTimeWithLikes]);
 
   const handlePress = () => {
     router.push(`/venue/${venue.id}`);
   };
 
+  const formatTimeSlot = (timeSlot: string) => {
+    const [hours, minutes] = timeSlot.split(':');
+    const hour = parseInt(hours);
+    return `${hour % 12 || 12}:${minutes} ${hour >= 12 ? 'PM' : 'AM'}`;
+  };
+
   // Get today's specials
-  const todaySpecials = venue.specials.filter(
-    special => special.day === getCurrentDay()
-  );
+  const todaySpecials = useMemo(() => {
+    return venue.specials.filter(
+      special => special.day === getCurrentDay()
+    );
+  }, [venue.specials]);
 
   return (
     <Pressable 
@@ -45,10 +56,10 @@ export default function TopPickCard({ venue }: TopPickCardProps) {
       />
       
       {/* Flame count badge - top left */}
-      {likeCount > 0 && (
+      {interactionData.likeCount > 0 && (
         <View style={[styles.flameBadge, { backgroundColor: themeColors.primary }]}>
           <Flame size={10} color="white" fill="white" />
-          <Text style={styles.flameText}>{likeCount}</Text>
+          <Text style={styles.flameText}>{interactionData.likeCount}</Text>
         </View>
       )}
       
@@ -61,19 +72,19 @@ export default function TopPickCard({ venue }: TopPickCardProps) {
           {venue.types[0]?.replace('-', ' ')}
         </Text>
 
-        {/* Hot Time Display */}
-        {hotTimeData && (
+        {/* Hot Time Display - increased size by 20% */}
+        {interactionData.hotTimeData && (
           <View style={[styles.hotTimeBadge, { backgroundColor: themeColors.primary + '20' }]}>
             <Flame size={10} color={themeColors.primary} />
             <Text style={[styles.hotTimeText, { color: themeColors.primary }]}>
-              Hot: {formatTimeSlot(hotTimeData.time)}
+              Hot: {formatTimeSlot(interactionData.hotTimeData.time)}
             </Text>
           </View>
         )}
 
         {/* Today's Special */}
         {todaySpecials.length > 0 && (
-          <Text style={[styles.specialText, { color: themeColors.accent }]} numberOfLines={2}>
+          <Text style={[styles.specialText, { color: themeColors.primary }]} numberOfLines={2}>
             {todaySpecials[0].title}
           </Text>
         )}
@@ -87,15 +98,9 @@ function getCurrentDay(): string {
   return days[new Date().getDay()];
 }
 
-function formatTimeSlot(timeSlot: string): string {
-  const [hours, minutes] = timeSlot.split(':');
-  const hour = parseInt(hours);
-  return `${hour % 12 || 12}${minutes !== '00' ? ':' + minutes : ''} ${hour >= 12 ? 'PM' : 'AM'}`;
-}
-
 const styles = StyleSheet.create({
   card: {
-    width: 150, // Increased from 120 to 150 (25% increase)
+    width: 188, // Increased by 25% from 150
     height: 180,
     borderRadius: 12,
     overflow: 'hidden',
@@ -148,14 +153,14 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   venueName: {
-    fontSize: 12, // Slightly increased for better readability with wider card
+    fontSize: 13, // Increased by ~10% from 12
     fontWeight: '700',
     marginBottom: 4,
     letterSpacing: 0.2,
-    lineHeight: 15,
+    lineHeight: 16,
   },
   venueType: {
-    fontSize: 10,
+    fontSize: 14, // Increased by ~40% from 10
     fontWeight: '500',
     textTransform: 'capitalize',
     marginBottom: 6,
@@ -170,13 +175,13 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   hotTimeText: {
-    fontSize: 8,
+    fontSize: 12, // Increased by 20% from 10
     fontWeight: '700',
     marginLeft: 3,
   },
   specialText: {
-    fontSize: 9,
+    fontSize: 13, // Increased by 40% from 9, changed color to orange
     fontWeight: '600',
-    lineHeight: 12,
+    lineHeight: 16,
   },
 });

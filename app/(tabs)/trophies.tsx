@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable } from 'react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
@@ -16,6 +16,8 @@ export default function TrophiesScreen() {
     isInitialized 
   } = useAchievementStoreSafe();
 
+  const [activeTab, setActiveTab] = useState<'stats' | 'trophies'>('stats');
+
   // Initialize achievements when component mounts
   useEffect(() => {
     if (!isInitialized) {
@@ -27,11 +29,18 @@ export default function TrophiesScreen() {
   const lifetimeStats = useMemo(() => {
     if (!profile) {
       return {
+        shotsTaken: 0,
+        scoopAndScores: 0,
+        beersLogged: 0,
+        beerTowers: 0,
+        funnels: 0,
+        shotguns: 0,
+        poolGamesWon: 0,
+        dartGamesWon: 0,
         barsHit: 0,
         nightsOut: 0,
-        drinksLogged: 0,
+        totalDrinksLogged: 0,
         drunkScaleAvg: 0,
-        totalShots: 0,
       };
     }
 
@@ -47,11 +56,18 @@ export default function TrophiesScreen() {
       : 0;
 
     return {
+      shotsTaken: profile.total_shots || 0,
+      scoopAndScores: profile.total_scoop_and_scores || 0,
+      beersLogged: profile.total_beers || 0,
+      beerTowers: profile.total_beer_towers || 0,
+      funnels: profile.total_funnels || 0,
+      shotguns: profile.total_shotguns || 0,
+      poolGamesWon: profile.pool_games_won || 0,
+      dartGamesWon: profile.dart_games_won || 0,
       barsHit: profile.bars_hit || 0,
       nightsOut: profile.nights_out || 0,
-      drinksLogged: totalDrinks,
+      totalDrinksLogged: totalDrinks,
       drunkScaleAvg,
-      totalShots: profile.total_shots || 0,
     };
   }, [profile]);
 
@@ -71,12 +87,30 @@ export default function TrophiesScreen() {
     }).filter(category => category.count > 0); // Only show categories with trophies
   }, [completedAchievements]);
 
-  const StatCard = ({ title, value, subtitle }: { title: string; value: number | string; subtitle?: string }) => (
-    <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
-      <Text style={[styles.statValue, { color: themeColors.primary }]}>{value}</Text>
-      <Text style={[styles.statTitle, { color: themeColors.text }]}>{title}</Text>
+  const StatCard = ({ title, value, subtitle, size = 'normal' }: { title: string; value: number | string; subtitle?: string; size?: 'normal' | 'large' }) => (
+    <View style={[
+      styles.statCard, 
+      { backgroundColor: themeColors.card },
+      size === 'large' && styles.statCardLarge
+    ]}>
+      <Text style={[
+        styles.statValue, 
+        { color: themeColors.primary },
+        size === 'large' && styles.statValueLarge
+      ]}>
+        {value}
+      </Text>
+      <Text style={[
+        styles.statTitle, 
+        { color: themeColors.text },
+        size === 'large' && styles.statTitleLarge
+      ]}>
+        {title}
+      </Text>
       {subtitle && (
-        <Text style={[styles.statSubtitle, { color: themeColors.subtext }]}>{subtitle}</Text>
+        <Text style={[styles.statSubtitle, { color: themeColors.subtext }]}>
+          {subtitle}
+        </Text>
       )}
     </View>
   );
@@ -123,67 +157,113 @@ export default function TrophiesScreen() {
           </Text>
         </View>
 
-        {/* Lifetime Stats Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-            Lifetime Stats
-          </Text>
-          
-          <View style={styles.statsGrid}>
-            <StatCard 
-              title="Bars Hit" 
-              value={lifetimeStats.barsHit}
-            />
-            <StatCard 
-              title="Nights Out" 
-              value={lifetimeStats.nightsOut}
-            />
-            <StatCard 
-              title="Drinks Logged" 
-              value={lifetimeStats.drinksLogged}
-            />
-            <StatCard 
-              title="Drunk Scale Avg" 
-              value={lifetimeStats.drunkScaleAvg}
-              subtitle="out of 5"
-            />
-          </View>
+        {/* Tab Navigation */}
+        <View style={styles.tabContainer}>
+          <Pressable 
+            style={[
+              styles.tab, 
+              activeTab === 'stats' && { backgroundColor: themeColors.primary + '20', borderColor: themeColors.primary }
+            ]}
+            onPress={() => setActiveTab('stats')}
+          >
+            <Text style={[
+              styles.tabText, 
+              { color: activeTab === 'stats' ? themeColors.primary : themeColors.subtext }
+            ]}>
+              Lifetime Stats
+            </Text>
+          </Pressable>
+          <Pressable 
+            style={[
+              styles.tab, 
+              activeTab === 'trophies' && { backgroundColor: themeColors.primary + '20', borderColor: themeColors.primary }
+            ]}
+            onPress={() => setActiveTab('trophies')}
+          >
+            <Text style={[
+              styles.tabText, 
+              { color: activeTab === 'trophies' ? themeColors.primary : themeColors.subtext }
+            ]}>
+              Trophies ({completedAchievements.length})
+            </Text>
+          </Pressable>
         </View>
 
-        {/* Trophies Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-            Trophies ({completedAchievements.length})
-          </Text>
-          
-          {completedAchievements.length === 0 ? (
-            <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
-              <Text style={styles.emptyEmoji}>🏆</Text>
-              <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
-                No Trophies Yet
-              </Text>
-              <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
-                Start tracking your activities to earn your first trophy!
-              </Text>
+        {activeTab === 'stats' ? (
+          /* Lifetime Stats Section */
+          <View style={styles.section}>
+            {/* Activity Stats Grid */}
+            <View style={styles.statsGrid}>
+              <StatCard title="Shots Taken" value={lifetimeStats.shotsTaken} />
+              <StatCard title="Scoop & Scores" value={lifetimeStats.scoopAndScores} />
+              <StatCard title="Beers Logged" value={lifetimeStats.beersLogged} />
+              <StatCard title="Beer Towers" value={lifetimeStats.beerTowers} />
+              <StatCard title="Funnels" value={lifetimeStats.funnels} />
+              <StatCard title="Shotguns" value={lifetimeStats.shotguns} />
+              <StatCard title="Pool Games Won" value={lifetimeStats.poolGamesWon} />
+              <StatCard title="Dart Games Won" value={lifetimeStats.dartGamesWon} />
             </View>
-          ) : (
-            <>
-              {trophyCategories.map((category) => (
-                <View key={category.name} style={styles.categorySection}>
-                  <Text style={[styles.categoryTitle, { color: themeColors.primary }]}>
-                    {category.displayName} ({category.count})
-                  </Text>
-                  
-                  <View style={styles.trophyList}>
-                    {category.trophies.map((trophy) => (
-                      <TrophyCard key={trophy.id} trophy={trophy} />
-                    ))}
+
+            {/* Bottom Row - Larger Stats */}
+            <View style={styles.bottomStatsGrid}>
+              <StatCard 
+                title="Bars Hit" 
+                value={lifetimeStats.barsHit}
+                size="large"
+              />
+              <StatCard 
+                title="Nights Out" 
+                value={lifetimeStats.nightsOut}
+                size="large"
+              />
+            </View>
+
+            <View style={styles.bottomStatsGrid}>
+              <StatCard 
+                title="Total Drinks Logged" 
+                value={lifetimeStats.totalDrinksLogged}
+                size="large"
+              />
+              <StatCard 
+                title="Average Drunk Scale" 
+                value={lifetimeStats.drunkScaleAvg}
+                subtitle="out of 10"
+                size="large"
+              />
+            </View>
+          </View>
+        ) : (
+          /* Trophies Section */
+          <View style={styles.section}>
+            {completedAchievements.length === 0 ? (
+              <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
+                <Text style={styles.emptyEmoji}>🏆</Text>
+                <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
+                  No Trophies Yet
+                </Text>
+                <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
+                  Start tracking your activities to earn your first trophy!
+                </Text>
+              </View>
+            ) : (
+              <>
+                {trophyCategories.map((category) => (
+                  <View key={category.name} style={styles.categorySection}>
+                    <Text style={[styles.categoryTitle, { color: themeColors.primary }]}>
+                      {category.displayName} ({category.count})
+                    </Text>
+                    
+                    <View style={styles.trophyList}>
+                      {category.trophies.map((trophy) => (
+                        <TrophyCard key={trophy.id} trophy={trophy} />
+                      ))}
+                    </View>
                   </View>
-                </View>
-              ))}
-            </>
-          )}
-        </View>
+                ))}
+              </>
+            )}
+          </View>
+        )}
 
         <View style={styles.footer} />
       </ScrollView>
@@ -221,26 +301,45 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textAlign: 'center',
   },
+  tabContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 24,
+    gap: 12,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
   section: {
     paddingHorizontal: 16,
     marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 20,
-    letterSpacing: 0.3,
-    textAlign: 'center',
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     gap: 12,
+    marginBottom: 16,
+  },
+  bottomStatsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 16,
   },
   statCard: {
     width: '48%',
-    padding: 20,
+    padding: 16,
     borderRadius: 16,
     alignItems: 'center',
     shadowColor: '#000',
@@ -251,20 +350,31 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
+  statCardLarge: {
+    padding: 20,
+  },
   statValue: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '800',
     marginBottom: 4,
     letterSpacing: 0.5,
   },
+  statValueLarge: {
+    fontSize: 36,
+    marginBottom: 8,
+  },
   statTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     textAlign: 'center',
     letterSpacing: 0.2,
   },
+  statTitleLarge: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
   statSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
     marginTop: 2,
     textAlign: 'center',

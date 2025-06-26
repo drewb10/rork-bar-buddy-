@@ -25,26 +25,6 @@ interface AuthState {
   checkConfiguration: () => void;
 }
 
-// Default state for when store isn't ready
-const defaultState: AuthState = {
-  user: null,
-  profile: null,
-  isLoading: false,
-  isAuthenticated: false,
-  error: null,
-  isConfigured: false,
-  isHydrated: false,
-  signUp: async () => false,
-  signIn: async () => false,
-  signOut: async () => {},
-  clearError: () => {},
-  checkUsernameAvailable: async () => false,
-  updateProfile: async () => false,
-  searchUser: async () => null,
-  initialize: async () => {},
-  checkConfiguration: () => {},
-};
-
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -191,8 +171,6 @@ export const useAuthStore = create<AuthState>()(
       },
 
       initialize: async (): Promise<void> => {
-        const currentState = get();
-        
         // Check configuration first
         const configured = isSupabaseConfigured();
         set({ isConfigured: configured });
@@ -262,11 +240,6 @@ export const useAuthStore = create<AuthState>()(
       onRehydrateStorage: () => (state, error) => {
         if (error) {
           console.warn('Error rehydrating auth store:', error);
-          return { ...defaultState, isHydrated: true };
-        }
-        
-        if (!state) {
-          return { ...defaultState, isHydrated: true };
         }
         
         return { ...state, isHydrated: true };
@@ -274,20 +247,6 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
-
-// Safe hook that always returns valid state
-export const useAuthStoreSafe = () => {
-  try {
-    const store = useAuthStore();
-    if (!store || !store.isHydrated) {
-      return defaultState;
-    }
-    return store;
-  } catch (error) {
-    console.warn('Error accessing auth store:', error);
-    return defaultState;
-  }
-};
 
 // Set up auth state listener only if configured
 if (isSupabaseConfigured()) {

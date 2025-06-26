@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { StyleSheet, View, Text, Pressable, ScrollView, Alert, Platform, Modal } from 'react-native';
-import { X, Plus, Minus, TrendingUp, Award, Target } from 'lucide-react-native';
+import { X, Plus, Minus, TrendingUp, Target } from 'lucide-react-native';
+import Slider from '@react-native-community/slider';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
@@ -9,21 +10,6 @@ interface DailyTrackerProps {
   visible: boolean;
   onClose: () => void;
 }
-
-interface DrunkScaleOption {
-  value: number;
-  label: string;
-  emoji: string;
-  description: string;
-}
-
-const drunkScaleOptions: DrunkScaleOption[] = [
-  { value: 1, label: 'Sober', emoji: '😐', description: 'Completely sober' },
-  { value: 2, label: 'Buzzed', emoji: '🙂', description: 'Feeling relaxed' },
-  { value: 3, label: 'Tipsy', emoji: '😊', description: 'Feeling good' },
-  { value: 4, label: 'Drunk', emoji: '😵', description: 'Pretty drunk' },
-  { value: 5, label: 'Wasted', emoji: '🤢', description: 'Very drunk' },
-];
 
 export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const { theme } = useThemeStore();
@@ -45,31 +31,26 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     poolGamesWon: 0,
     dartGamesWon: 0,
   });
-  const [selectedDrunkScale, setSelectedDrunkScale] = useState<number | null>(null);
+  const [drunkScaleValue, setDrunkScaleValue] = useState<number>(1);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Reset local stats when modal opens - use useCallback to prevent unnecessary re-renders
-  const resetLocalStats = useCallback(() => {
-    setLocalStats({
-      shots: 0,
-      scoopAndScores: 0,
-      beers: 0,
-      beerTowers: 0,
-      funnels: 0,
-      shotguns: 0,
-      poolGamesWon: 0,
-      dartGamesWon: 0,
-    });
-    setSelectedDrunkScale(null);
-    setIsSaving(false);
-  }, []);
-
-  // Only reset when modal becomes visible, not on every render
-  useEffect(() => {
+  // Reset local stats when modal opens
+  React.useEffect(() => {
     if (visible) {
-      resetLocalStats();
+      setLocalStats({
+        shots: 0,
+        scoopAndScores: 0,
+        beers: 0,
+        beerTowers: 0,
+        funnels: 0,
+        shotguns: 0,
+        poolGamesWon: 0,
+        dartGamesWon: 0,
+      });
+      setDrunkScaleValue(1);
+      setIsSaving(false);
     }
-  }, [visible, resetLocalStats]);
+  }, [visible]);
 
   const handleClose = useCallback(() => {
     if (!isSaving) {
@@ -98,8 +79,9 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       
       // Check if there are any stats to save
       const hasStats = Object.values(localStats).some(value => value > 0);
+      const canSubmitScale = canSubmitDrunkScale();
       
-      if (!hasStats) {
+      if (!hasStats && !canSubmitScale) {
         Alert.alert(
           'No Stats to Save',
           'Please add some activities before saving.',
@@ -109,31 +91,55 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         return;
       }
       
-      // Calculate new totals by adding current stats to existing totals
-      const newTotals = {
-        shots: (profile?.total_shots || 0) + localStats.shots,
-        scoopAndScores: (profile?.total_scoop_and_scores || 0) + localStats.scoopAndScores,
-        beers: (profile?.total_beers || 0) + localStats.beers,
-        beerTowers: (profile?.total_beer_towers || 0) + localStats.beerTowers,
-        funnels: (profile?.total_funnels || 0) + localStats.funnels,
-        shotguns: (profile?.total_shotguns || 0) + localStats.shotguns,
-        poolGamesWon: (profile?.pool_games_won || 0) + localStats.poolGamesWon,
-        dartGamesWon: (profile?.dart_games_won || 0) + localStats.dartGamesWon,
-      };
+      // Save drunk scale if user can submit it
+      if (canSubmitScale) {
+        await addDrunkScaleRating(drunkScaleValue);
+      }
       
-      console.log('🔄 New totals will be:', newTotals);
-      
-      // Update user profile totals (this handles XP awarding and achievement updates)
-      await updateDailyTrackerTotals(newTotals);
+      // Only update tracker totals if there are actual stats
+      if (hasStats) {
+        // Calculate new totals by adding current stats to existing totals
+        const newTotals = {
+          shots: (profile?.total_shots || 0) + localStats.shots,
+          scoopAndScores: (profile?.total_scoop_and_scores || 0) + localStats.scoopAndScores,
+          beers: (profile?.total_beers || 0) + localStats.beers,
+          beerTowers: (profile?.total_beer_towers || 0) + localStats.beerTowers,
+          funnels: (profile?.total_funnels || 0) + localStats.funnels,
+          shotguns: (profile?.total_shotguns || 0) + localStats.shotguns,
+          poolGamesWon: (profile?.pool_games_won || 0) + localStats.poolGamesWon,
+          dartGamesWon: (profile?.dart_games_won || 0) + localStats.dartGamesWon,
+        };
+        
+        console.log('🔄 New totals will be:', newTotals);
+        
+        // Update user profile totals (this handles XP awarding and achievement updates)
+        await updateDailyTrackerTotals(newTotals);
+      }
       
       console.log('✅ Stats saved successfully');
       
       // Reset local state to zero
-      resetLocalStats();
+      setLocalStats({
+        shots: 0,
+        scoopAndScores: 0,
+        beers: 0,
+        beerTowers: 0,
+        funnels: 0,
+        shotguns: 0,
+        poolGamesWon: 0,
+        dartGamesWon: 0,
+      });
+      setDrunkScaleValue(1);
+      
+      const message = hasStats && canSubmitScale 
+        ? 'Your stats and drunk scale rating have been updated and XP awarded! Check your trophies to see any new achievements.'
+        : hasStats 
+        ? 'Your stats have been updated and XP awarded! Check your trophies to see any new achievements.'
+        : 'Your drunk scale rating has been recorded!';
       
       Alert.alert(
         'Stats Saved! 🎉',
-        'Your stats have been updated and XP awarded! Check your trophies to see any new achievements.',
+        message,
         [{ text: 'Awesome!', onPress: handleClose }]
       );
     } catch (error) {
@@ -145,30 +151,10 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         [{ text: 'OK' }]
       );
     }
-  }, [isSaving, localStats, profile, updateDailyTrackerTotals, resetLocalStats, handleClose]);
-
-  const handleDrunkScaleSubmit = useCallback(async () => {
-    if (selectedDrunkScale === null) {
-      Alert.alert('Please select a rating', 'Choose how you are feeling right now.');
-      return;
-    }
-
-    try {
-      await addDrunkScaleRating(selectedDrunkScale);
-      
-      Alert.alert(
-        'Thanks for sharing! 🍻',
-        'Your drunk scale has been recorded. Stay safe and have fun!',
-        [{ text: 'Got it!', onPress: handleClose }]
-      );
-    } catch (error) {
-      console.error('Error submitting drunk scale:', error);
-      Alert.alert('Error', 'Failed to submit drunk scale. Please try again.');
-    }
-  }, [selectedDrunkScale, addDrunkScaleRating, handleClose]);
+  }, [isSaving, localStats, profile, updateDailyTrackerTotals, handleClose, canSubmitDrunkScale, addDrunkScaleRating, drunkScaleValue]);
 
   // Memoize canSubmitScale to prevent unnecessary re-calculations
-  const canSubmitScale = React.useMemo(() => {
+  const canSubmitScale = useMemo(() => {
     try {
       return canSubmitDrunkScale();
     } catch (error) {
@@ -177,7 +163,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     }
   }, [canSubmitDrunkScale]);
 
-  const statItems = React.useMemo(() => [
+  const statItems = useMemo(() => [
     { key: 'shots' as const, label: 'Shots', emoji: '🥃', xp: 5 },
     { key: 'scoopAndScores' as const, label: 'Scoop & Scores', emoji: '🍺', xp: 10 },
     { key: 'beers' as const, label: 'Beers', emoji: '🍻', xp: 5 },
@@ -187,6 +173,22 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     { key: 'poolGamesWon' as const, label: 'Pool Games Won', emoji: '🎱', xp: 15 },
     { key: 'dartGamesWon' as const, label: 'Dart Games Won', emoji: '🎯', xp: 15 },
   ], []);
+
+  const getDrunkScaleLabel = (value: number): string => {
+    if (value <= 2) return 'Sober';
+    if (value <= 4) return 'Buzzed';
+    if (value <= 6) return 'Tipsy';
+    if (value <= 8) return 'Drunk';
+    return 'Wasted';
+  };
+
+  const getDrunkScaleEmoji = (value: number): string => {
+    if (value <= 2) return '😐';
+    if (value <= 4) return '🙂';
+    if (value <= 6) return '😊';
+    if (value <= 8) return '😵';
+    return '🤢';
+  };
 
   return (
     <Modal
@@ -280,69 +282,38 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
               </View>
 
               {canSubmitScale ? (
-                <>
-                  <View style={styles.drunkScaleOptions}>
-                    {drunkScaleOptions.map((option) => (
-                      <Pressable
-                        key={option.value}
-                        style={[
-                          styles.drunkScaleOption,
-                          {
-                            backgroundColor: selectedDrunkScale === option.value 
-                              ? themeColors.primary 
-                              : themeColors.background,
-                            borderColor: selectedDrunkScale === option.value 
-                              ? themeColors.primary 
-                              : themeColors.border,
-                          }
-                        ]}
-                        onPress={() => setSelectedDrunkScale(option.value)}
-                        disabled={isSaving}
-                      >
-                        <Text style={styles.drunkScaleEmoji}>{option.emoji}</Text>
-                        <Text style={[
-                          styles.drunkScaleLabel, 
-                          { 
-                            color: selectedDrunkScale === option.value 
-                              ? 'white' 
-                              : themeColors.text 
-                          }
-                        ]}>
-                          {option.label}
-                        </Text>
-                        <Text style={[
-                          styles.drunkScaleDescription, 
-                          { 
-                            color: selectedDrunkScale === option.value 
-                              ? 'rgba(255,255,255,0.8)' 
-                              : themeColors.subtext 
-                          }
-                        ]}>
-                          {option.description}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-
-                  <Pressable
-                    style={[
-                      styles.submitDrunkScaleButton,
-                      {
-                        backgroundColor: selectedDrunkScale !== null 
-                          ? themeColors.primary 
-                          : themeColors.border,
-                        opacity: (selectedDrunkScale !== null && !isSaving) ? 1 : 0.5,
-                      }
-                    ]}
-                    onPress={handleDrunkScaleSubmit}
-                    disabled={selectedDrunkScale === null || isSaving}
-                  >
-                    <Award size={22} color="white" />
-                    <Text style={styles.submitDrunkScaleText}>
-                      Submit Rating (+25 XP)
+                <View style={[styles.drunkScaleContainer, { backgroundColor: themeColors.background }]}>
+                  <View style={styles.drunkScaleHeader}>
+                    <Text style={styles.drunkScaleEmoji}>
+                      {getDrunkScaleEmoji(drunkScaleValue)}
                     </Text>
-                  </Pressable>
-                </>
+                    <View style={styles.drunkScaleInfo}>
+                      <Text style={[styles.drunkScaleValue, { color: themeColors.text }]}>
+                        {drunkScaleValue}/10
+                      </Text>
+                      <Text style={[styles.drunkScaleLabel, { color: themeColors.primary }]}>
+                        {getDrunkScaleLabel(drunkScaleValue)}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.sliderContainer}>
+                    <Text style={[styles.sliderLabel, { color: themeColors.subtext }]}>1</Text>
+                    <Slider
+                      style={styles.slider}
+                      minimumValue={1}
+                      maximumValue={10}
+                      step={1}
+                      value={drunkScaleValue}
+                      onValueChange={setDrunkScaleValue}
+                      minimumTrackTintColor={themeColors.primary}
+                      maximumTrackTintColor={themeColors.border}
+                      thumbStyle={{ backgroundColor: themeColors.primary }}
+                      disabled={isSaving}
+                    />
+                    <Text style={[styles.sliderLabel, { color: themeColors.subtext }]}>10</Text>
+                  </View>
+                </View>
               ) : (
                 <View style={[styles.drunkScaleDisabled, { backgroundColor: themeColors.background }]}>
                   <Target size={40} color={themeColors.subtext} />
@@ -496,54 +467,52 @@ const styles = StyleSheet.create({
     minWidth: 28,
     textAlign: 'center',
   },
-  drunkScaleOptions: {
-    marginBottom: 24,
-  },
-  drunkScaleOption: {
+  drunkScaleContainer: {
     padding: 20,
     borderRadius: 20,
-    borderWidth: 2,
-    marginBottom: 16,
-    alignItems: 'center',
+    marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 5,
   },
+  drunkScaleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   drunkScaleEmoji: {
-    fontSize: 36,
-    marginBottom: 10,
+    fontSize: 48,
+    marginRight: 16,
+  },
+  drunkScaleInfo: {
+    flex: 1,
+  },
+  drunkScaleValue: {
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   drunkScaleLabel: {
     fontSize: 18,
-    fontWeight: '800',
-    marginBottom: 6,
-    letterSpacing: 0.3,
+    fontWeight: '700',
+    marginTop: 4,
   },
-  drunkScaleDescription: {
-    fontSize: 15,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  submitDrunkScaleButton: {
+  sliderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-    borderRadius: 28,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 12,
   },
-  submitDrunkScaleText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '800',
-    marginLeft: 10,
-    letterSpacing: 0.4,
+  sliderLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    minWidth: 20,
+    textAlign: 'center',
+  },
+  slider: {
+    flex: 1,
+    height: 40,
+    marginHorizontal: 16,
   },
   drunkScaleDisabled: {
     padding: 40,

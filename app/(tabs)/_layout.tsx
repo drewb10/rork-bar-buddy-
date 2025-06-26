@@ -16,11 +16,11 @@ export default function TabLayout() {
         tabBarInactiveTintColor: themeColors.subtext,
         tabBarStyle: {
           backgroundColor: '#000000',
-          borderTopColor: themeColors.glass.border,
+          borderTopColor: themeColors.glass?.border || 'rgba(255, 255, 255, 0.1)',
           paddingTop: Platform.OS === 'ios' ? 8 : 4,
           height: Platform.OS === 'ios' ? 88 : 64,
           // Enhanced shadow system for premium depth
-          shadowColor: themeColors.shadow.heavy,
+          shadowColor: themeColors.shadow?.heavy || '#000000',
           shadowOffset: { width: 0, height: -4 },
           shadowOpacity: 1,
           shadowRadius: 12,

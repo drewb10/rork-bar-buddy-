@@ -100,7 +100,7 @@ const canInteractWithVenue = (lastInteraction: string | undefined): boolean => {
 
 // Debounce function to prevent rapid successive calls
 const debounce = <T extends (...args: any[]) => any>(func: T, wait: number): T => {
-  let timeout: ReturnType<typeof setTimeout>;
+  let timeout: NodeJS.Timeout;
   return ((...args: any[]) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func.apply(null, args), wait);
