@@ -494,8 +494,8 @@ export const useUserProfileStore = create<UserProfileState>()(
         });
       },
       
-      addDrunkScaleRating: async () => {
-        return new Promise((resolve) => {
+      addDrunkScaleRating: async (rating: number) => {
+        return new Promise<void>((resolve) => {
           const updateFunction = async () => {
             const { profile } = get();
             if (!profile) {
@@ -622,7 +622,7 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
       
       updateDailyTrackerTotals: async (stats) => {
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
           const updateFunction = async () => {
             try {
               const { profile, profileReady } = get();
@@ -1147,7 +1147,7 @@ export const useUserProfileStore = create<UserProfileState>()(
 
 // Debounced achievement update function to prevent rapid successive calls
 const debouncedUpdateAchievements = (() => {
-  let timeoutId: NodeJS.Timeout | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
   
   return (stats: any) => {
     if (timeoutId) {
