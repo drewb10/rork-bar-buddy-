@@ -162,8 +162,35 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
 
           console.log('📊 DailyTracker: Saving stats to Supabase...', localStats);
 
-          // Save to daily_stats table
-          await dailyStatsHelpers.saveTodayStats(userId, localStats);
+          // Save to daily_stats table with error handling for missing columns
+          try {
+            await dailyStatsHelpers.saveTodayStats(userId, localStats);
+          } catch (saveError: any) {
+            // If we get a column error, try saving with only basic columns
+            if (saveError?.message?.includes('column') || saveError?.code === 'PGRST204') {
+              console.warn('📊 DailyTracker: Column error, trying with basic stats only');
+              
+              const basicStats = {
+                drunk_scale: localStats.drunk_scale,
+                beers: localStats.beers,
+                shots: localStats.shots,
+                pool_games_won: localStats.pool_games_won,
+                dart_games_won: localStats.dart_games_won,
+              };
+              
+              await dailyStatsHelpers.saveTodayStats(userId, basicStats);
+              
+              // Update local stats to reflect what was actually saved
+              set((state) => ({
+                localStats: {
+                  ...defaultStats,
+                  ...basicStats,
+                }
+              }));
+            } else {
+              throw saveError;
+            }
+          }
 
           const today = getTodayString();
           set({ 

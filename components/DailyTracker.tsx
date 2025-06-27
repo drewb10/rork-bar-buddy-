@@ -144,6 +144,8 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
           errorMessage = 'Please sign in to save your stats.';
         } else if (error.message.includes('not configured')) {
           errorMessage = 'Database not configured. Please contact support.';
+        } else if (error.message.includes('column')) {
+          errorMessage = 'Some stats could not be saved due to database limitations. Basic stats were saved successfully.';
         }
       }
       
@@ -170,7 +172,13 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     if (saveSuccess) return 'Stats saved successfully! 🎉';
     if (isSaving) return 'Saving your stats...';
     if (isLoading) return 'Loading your stats...';
-    if (error) return `Error: ${error}`;
+    if (error) {
+      // Show a user-friendly error message
+      if (error.includes('column')) {
+        return 'Some features unavailable - basic tracking works';
+      }
+      return `Error: ${error}`;
+    }
     if (!isAuthenticated) return 'Sign in to save your stats';
     return null;
   };

@@ -108,7 +108,7 @@ export const dailyStatsHelpers = {
     return data;
   },
 
-  // Save today's daily stats (insert or update)
+  // Save today's daily stats (insert or update) with error handling for missing columns
   saveTodayStats: async (userId: string, stats: {
     drunk_scale?: number | null;
     beers?: number;
@@ -126,42 +126,110 @@ export const dailyStatsHelpers = {
 
     const today = dailyStatsHelpers.getTodayDate();
     
-    // Try to update first
-    const { data: updateData, error: updateError } = await supabase
-      .from('daily_stats')
-      .update({
-        ...stats,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId)
-      .eq('date', today)
-      .select()
-      .single();
+    // Filter out any undefined values and ensure we only include supported columns
+    const cleanStats = Object.fromEntries(
+      Object.entries(stats).filter(([key, value]) => value !== undefined)
+    );
 
-    if (updateError && updateError.code === 'PGRST116') {
-      // Record doesn't exist, insert new one
-      const { data: insertData, error: insertError } = await supabase
+    try {
+      // Try to update first
+      const { data: updateData, error: updateError } = await supabase
         .from('daily_stats')
-        .insert({
-          user_id: userId,
-          date: today,
-          ...stats,
+        .update({
+          ...cleanStats,
+          updated_at: new Date().toISOString(),
         })
+        .eq('user_id', userId)
+        .eq('date', today)
         .select()
         .single();
 
-      if (insertError) {
-        throw insertError;
+      if (updateError && updateError.code === 'PGRST116') {
+        // Record doesn't exist, insert new one
+        const { data: insertData, error: insertError } = await supabase
+          .from('daily_stats')
+          .insert({
+            user_id: userId,
+            date: today,
+            ...cleanStats,
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          // If we get a column not found error, try with a subset of columns
+          if (insertError.message?.includes('column') && insertError.message?.includes('not found')) {
+            console.warn('Column not found, trying with basic columns only:', insertError.message);
+            
+            // Try with only the basic columns that should definitely exist
+            const basicStats = {
+              drunk_scale: stats.drunk_scale,
+              beers: stats.beers || 0,
+              shots: stats.shots || 0,
+              pool_games_won: stats.pool_games_won || 0,
+              dart_games_won: stats.dart_games_won || 0,
+            };
+
+            const { data: basicInsertData, error: basicInsertError } = await supabase
+              .from('daily_stats')
+              .insert({
+                user_id: userId,
+                date: today,
+                ...basicStats,
+              })
+              .select()
+              .single();
+
+            if (basicInsertError) {
+              throw basicInsertError;
+            }
+
+            return basicInsertData;
+          }
+          
+          throw insertError;
+        }
+
+        return insertData;
       }
 
-      return insertData;
-    }
+      if (updateError) {
+        // If we get a column not found error on update, try with basic columns
+        if (updateError.message?.includes('column') && updateError.message?.includes('not found')) {
+          console.warn('Column not found on update, trying with basic columns only:', updateError.message);
+          
+          const basicStats = {
+            drunk_scale: stats.drunk_scale,
+            beers: stats.beers || 0,
+            shots: stats.shots || 0,
+            pool_games_won: stats.pool_games_won || 0,
+            dart_games_won: stats.dart_games_won || 0,
+            updated_at: new Date().toISOString(),
+          };
 
-    if (updateError) {
-      throw updateError;
-    }
+          const { data: basicUpdateData, error: basicUpdateError } = await supabase
+            .from('daily_stats')
+            .update(basicStats)
+            .eq('user_id', userId)
+            .eq('date', today)
+            .select()
+            .single();
 
-    return updateData;
+          if (basicUpdateError) {
+            throw basicUpdateError;
+          }
+
+          return basicUpdateData;
+        }
+        
+        throw updateError;
+      }
+
+      return updateData;
+    } catch (error) {
+      console.error('Error saving daily stats:', error);
+      throw error;
+    }
   },
 
   // Get lifetime stats aggregated from all daily_stats
@@ -170,62 +238,81 @@ export const dailyStatsHelpers = {
       throw new Error('Supabase not configured');
     }
 
-    // Get all daily stats for the user
-    const { data: dailyStats, error: dailyError } = await supabase
-      .from('daily_stats')
-      .select('*')
-      .eq('user_id', userId);
+    try {
+      // Get all daily stats for the user
+      const { data: dailyStats, error: dailyError } = await supabase
+        .from('daily_stats')
+        .select('*')
+        .eq('user_id', userId);
 
-    if (dailyError) {
-      throw dailyError;
+      if (dailyError) {
+        throw dailyError;
+      }
+
+      // Get unique venue interactions for bars hit count
+      const { data: venueInteractions, error: venueError } = await supabase
+        .from('venue_interactions')
+        .select('venue_id')
+        .eq('user_id', userId);
+
+      if (venueError) {
+        console.warn('Error fetching venue interactions:', venueError);
+      }
+
+      // Calculate aggregated stats
+      const stats = dailyStats || [];
+      const uniqueVenues = new Set((venueInteractions || []).map(v => v.venue_id));
+
+      const totalBeers = stats.reduce((sum, day) => sum + (day.beers || 0), 0);
+      const totalShots = stats.reduce((sum, day) => sum + (day.shots || 0), 0);
+      const totalScoopAndScores = stats.reduce((sum, day) => sum + (day.scoop_and_scores || 0), 0);
+      const totalBeerTowers = stats.reduce((sum, day) => sum + (day.beer_towers || 0), 0);
+      const totalFunnels = stats.reduce((sum, day) => sum + (day.funnels || 0), 0);
+      const totalShotguns = stats.reduce((sum, day) => sum + (day.shotguns || 0), 0);
+      const totalPoolGames = stats.reduce((sum, day) => sum + (day.pool_games_won || 0), 0);
+      const totalDartGames = stats.reduce((sum, day) => sum + (day.dart_games_won || 0), 0);
+
+      // Calculate average drunk scale (only from non-null values)
+      const drunkScaleRatings = stats
+        .map(day => day.drunk_scale)
+        .filter(rating => rating !== null && rating !== undefined) as number[];
+      
+      const avgDrunkScale = drunkScaleRatings.length > 0
+        ? Math.round((drunkScaleRatings.reduce((sum, rating) => sum + rating, 0) / drunkScaleRatings.length) * 10) / 10
+        : 0;
+
+      return {
+        totalBeers,
+        totalShots,
+        totalScoopAndScores,
+        totalBeerTowers,
+        totalFunnels,
+        totalShotguns,
+        totalPoolGames,
+        totalDartGames,
+        totalDrinksLogged: totalBeers + totalShots + totalScoopAndScores + totalBeerTowers + totalFunnels + totalShotguns,
+        avgDrunkScale,
+        barsHit: uniqueVenues.size,
+        nightsOut: stats.length, // Each day with stats counts as a night out
+      };
+    } catch (error) {
+      console.error('Error getting lifetime stats:', error);
+      // Return default stats if there's an error
+      return {
+        totalBeers: 0,
+        totalShots: 0,
+        totalScoopAndScores: 0,
+        totalBeerTowers: 0,
+        totalFunnels: 0,
+        totalShotguns: 0,
+        totalPoolGames: 0,
+        totalDartGames: 0,
+        totalDrinksLogged: 0,
+        avgDrunkScale: 0,
+        barsHit: 0,
+        nightsOut: 0,
+      };
     }
-
-    // Get unique venue interactions for bars hit count
-    const { data: venueInteractions, error: venueError } = await supabase
-      .from('venue_interactions')
-      .select('venue_id')
-      .eq('user_id', userId);
-
-    if (venueError) {
-      console.warn('Error fetching venue interactions:', venueError);
-    }
-
-    // Calculate aggregated stats
-    const stats = dailyStats || [];
-    const uniqueVenues = new Set((venueInteractions || []).map(v => v.venue_id));
-
-    const totalBeers = stats.reduce((sum, day) => sum + (day.beers || 0), 0);
-    const totalShots = stats.reduce((sum, day) => sum + (day.shots || 0), 0);
-    const totalScoopAndScores = stats.reduce((sum, day) => sum + (day.scoop_and_scores || 0), 0);
-    const totalBeerTowers = stats.reduce((sum, day) => sum + (day.beer_towers || 0), 0);
-    const totalFunnels = stats.reduce((sum, day) => sum + (day.funnels || 0), 0);
-    const totalShotguns = stats.reduce((sum, day) => sum + (day.shotguns || 0), 0);
-    const totalPoolGames = stats.reduce((sum, day) => sum + (day.pool_games_won || 0), 0);
-    const totalDartGames = stats.reduce((sum, day) => sum + (day.dart_games_won || 0), 0);
-
-    // Calculate average drunk scale (only from non-null values)
-    const drunkScaleRatings = stats
-      .map(day => day.drunk_scale)
-      .filter(rating => rating !== null && rating !== undefined) as number[];
-    
-    const avgDrunkScale = drunkScaleRatings.length > 0
-      ? Math.round((drunkScaleRatings.reduce((sum, rating) => sum + rating, 0) / drunkScaleRatings.length) * 10) / 10
-      : 0;
-
-    return {
-      totalBeers,
-      totalShots,
-      totalScoopAndScores,
-      totalBeerTowers,
-      totalFunnels,
-      totalShotguns,
-      totalPoolGames,
-      totalDartGames,
-      totalDrinksLogged: totalBeers + totalShots + totalScoopAndScores + totalBeerTowers + totalFunnels + totalShotguns,
-      avgDrunkScale,
-      barsHit: uniqueVenues.size,
-      nightsOut: stats.length, // Each day with stats counts as a night out
-    };
   },
 
   // Check if user can submit drunk scale today
