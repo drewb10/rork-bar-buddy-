@@ -144,8 +144,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
           errorMessage = 'Please sign in to save your stats.';
         } else if (error.message.includes('not configured')) {
           errorMessage = 'Database not configured. Please contact support.';
-        } else if (error.message.includes('column')) {
-          errorMessage = 'Some stats could not be saved due to database limitations. Basic stats were saved successfully.';
         }
       }
       
@@ -155,7 +153,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
 
   const statItems = useMemo(() => [
     { key: 'shots' as const, label: 'Shots', emoji: '🥃', xp: 5 },
-    { key: 'scoop_and_scores' as const, label: 'Scoop & Scores', emoji: '🍺', xp: 10 },
     { key: 'beers' as const, label: 'Beers', emoji: '🍻', xp: 5 },
     { key: 'beer_towers' as const, label: 'Beer Towers', emoji: '🗼', xp: 15 },
     { key: 'funnels' as const, label: 'Funnels', emoji: '🌪️', xp: 10 },
@@ -172,13 +169,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     if (saveSuccess) return 'Stats saved successfully! 🎉';
     if (isSaving) return 'Saving your stats...';
     if (isLoading) return 'Loading your stats...';
-    if (error) {
-      // Show a user-friendly error message
-      if (error.includes('column')) {
-        return 'Some features unavailable - basic tracking works';
-      }
-      return `Error: ${error}`;
-    }
+    if (error) return `Error: ${error}`;
     if (!isAuthenticated) return 'Sign in to save your stats';
     return null;
   };

@@ -45,6 +45,10 @@ export const colors = {
 
 export type Theme = 'light' | 'dark';
 
+export function getThemeColors(theme: Theme) {
+  return colors[theme] || colors.dark;
+}
+
 export function getThemeColorsSafe(theme: Theme) {
   try {
     return colors[theme] || colors.dark;

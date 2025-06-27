@@ -7,7 +7,6 @@ interface DailyStats {
   drunk_scale: number | null;
   beers: number;
   shots: number;
-  scoop_and_scores: number;
   beer_towers: number;
   funnels: number;
   shotguns: number;
@@ -35,7 +34,6 @@ const defaultStats: DailyStats = {
   drunk_scale: null,
   beers: 0,
   shots: 0,
-  scoop_and_scores: 0,
   beer_towers: 0,
   funnels: 0,
   shotguns: 0,
@@ -114,7 +112,6 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
               drunk_scale: todayStats.drunk_scale,
               beers: todayStats.beers || 0,
               shots: todayStats.shots || 0,
-              scoop_and_scores: todayStats.scoop_and_scores || 0,
               beer_towers: todayStats.beer_towers || 0,
               funnels: todayStats.funnels || 0,
               shotguns: todayStats.shotguns || 0,
@@ -162,35 +159,8 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
 
           console.log('📊 DailyTracker: Saving stats to Supabase...', localStats);
 
-          // Save to daily_stats table with error handling for missing columns
-          try {
-            await dailyStatsHelpers.saveTodayStats(userId, localStats);
-          } catch (saveError: any) {
-            // If we get a column error, try saving with only basic columns
-            if (saveError?.message?.includes('column') || saveError?.code === 'PGRST204') {
-              console.warn('📊 DailyTracker: Column error, trying with basic stats only');
-              
-              const basicStats = {
-                drunk_scale: localStats.drunk_scale,
-                beers: localStats.beers,
-                shots: localStats.shots,
-                pool_games_won: localStats.pool_games_won,
-                dart_games_won: localStats.dart_games_won,
-              };
-              
-              await dailyStatsHelpers.saveTodayStats(userId, basicStats);
-              
-              // Update local stats to reflect what was actually saved
-              set((state) => ({
-                localStats: {
-                  ...defaultStats,
-                  ...basicStats,
-                }
-              }));
-            } else {
-              throw saveError;
-            }
-          }
+          // Save to daily_stats table
+          await dailyStatsHelpers.saveTodayStats(userId, localStats);
 
           const today = getTodayString();
           set({ 

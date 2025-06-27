@@ -94,7 +94,6 @@ export const dailyStatsHelpers = {
         drunk_scale: null,
         beers: 0,
         shots: 0,
-        scoop_and_scores: 0,
         beer_towers: 0,
         funnels: 0,
         shotguns: 0,
@@ -108,12 +107,11 @@ export const dailyStatsHelpers = {
     return data;
   },
 
-  // Save today's daily stats (insert or update) with error handling for missing columns
+  // Save today's daily stats (insert or update)
   saveTodayStats: async (userId: string, stats: {
     drunk_scale?: number | null;
     beers?: number;
     shots?: number;
-    scoop_and_scores?: number;
     beer_towers?: number;
     funnels?: number;
     shotguns?: number;
@@ -126,106 +124,31 @@ export const dailyStatsHelpers = {
 
     const today = dailyStatsHelpers.getTodayDate();
     
-    // Filter out any undefined values and ensure we only include supported columns
+    // Filter out any undefined values
     const cleanStats = Object.fromEntries(
       Object.entries(stats).filter(([key, value]) => value !== undefined)
     );
 
     try {
-      // Try to update first
-      const { data: updateData, error: updateError } = await supabase
+      // Use upsert to insert or update
+      const { data, error } = await supabase
         .from('daily_stats')
-        .update({
+        .upsert({
+          user_id: userId,
+          date: today,
           ...cleanStats,
           updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id,date'
         })
-        .eq('user_id', userId)
-        .eq('date', today)
         .select()
         .single();
 
-      if (updateError && updateError.code === 'PGRST116') {
-        // Record doesn't exist, insert new one
-        const { data: insertData, error: insertError } = await supabase
-          .from('daily_stats')
-          .insert({
-            user_id: userId,
-            date: today,
-            ...cleanStats,
-          })
-          .select()
-          .single();
-
-        if (insertError) {
-          // If we get a column not found error, try with a subset of columns
-          if (insertError.message?.includes('column') && insertError.message?.includes('not found')) {
-            console.warn('Column not found, trying with basic columns only:', insertError.message);
-            
-            // Try with only the basic columns that should definitely exist
-            const basicStats = {
-              drunk_scale: stats.drunk_scale,
-              beers: stats.beers || 0,
-              shots: stats.shots || 0,
-              pool_games_won: stats.pool_games_won || 0,
-              dart_games_won: stats.dart_games_won || 0,
-            };
-
-            const { data: basicInsertData, error: basicInsertError } = await supabase
-              .from('daily_stats')
-              .insert({
-                user_id: userId,
-                date: today,
-                ...basicStats,
-              })
-              .select()
-              .single();
-
-            if (basicInsertError) {
-              throw basicInsertError;
-            }
-
-            return basicInsertData;
-          }
-          
-          throw insertError;
-        }
-
-        return insertData;
+      if (error) {
+        throw error;
       }
 
-      if (updateError) {
-        // If we get a column not found error on update, try with basic columns
-        if (updateError.message?.includes('column') && updateError.message?.includes('not found')) {
-          console.warn('Column not found on update, trying with basic columns only:', updateError.message);
-          
-          const basicStats = {
-            drunk_scale: stats.drunk_scale,
-            beers: stats.beers || 0,
-            shots: stats.shots || 0,
-            pool_games_won: stats.pool_games_won || 0,
-            dart_games_won: stats.dart_games_won || 0,
-            updated_at: new Date().toISOString(),
-          };
-
-          const { data: basicUpdateData, error: basicUpdateError } = await supabase
-            .from('daily_stats')
-            .update(basicStats)
-            .eq('user_id', userId)
-            .eq('date', today)
-            .select()
-            .single();
-
-          if (basicUpdateError) {
-            throw basicUpdateError;
-          }
-
-          return basicUpdateData;
-        }
-        
-        throw updateError;
-      }
-
-      return updateData;
+      return data;
     } catch (error) {
       console.error('Error saving daily stats:', error);
       throw error;
@@ -265,7 +188,6 @@ export const dailyStatsHelpers = {
 
       const totalBeers = stats.reduce((sum, day) => sum + (day.beers || 0), 0);
       const totalShots = stats.reduce((sum, day) => sum + (day.shots || 0), 0);
-      const totalScoopAndScores = stats.reduce((sum, day) => sum + (day.scoop_and_scores || 0), 0);
       const totalBeerTowers = stats.reduce((sum, day) => sum + (day.beer_towers || 0), 0);
       const totalFunnels = stats.reduce((sum, day) => sum + (day.funnels || 0), 0);
       const totalShotguns = stats.reduce((sum, day) => sum + (day.shotguns || 0), 0);
@@ -284,13 +206,12 @@ export const dailyStatsHelpers = {
       return {
         totalBeers,
         totalShots,
-        totalScoopAndScores,
         totalBeerTowers,
         totalFunnels,
         totalShotguns,
         totalPoolGames,
         totalDartGames,
-        totalDrinksLogged: totalBeers + totalShots + totalScoopAndScores + totalBeerTowers + totalFunnels + totalShotguns,
+        totalDrinksLogged: totalBeers + totalShots + totalBeerTowers + totalFunnels + totalShotguns,
         avgDrunkScale,
         barsHit: uniqueVenues.size,
         nightsOut: stats.length, // Each day with stats counts as a night out
@@ -301,7 +222,6 @@ export const dailyStatsHelpers = {
       return {
         totalBeers: 0,
         totalShots: 0,
-        totalScoopAndScores: 0,
         totalBeerTowers: 0,
         totalFunnels: 0,
         totalShotguns: 0,

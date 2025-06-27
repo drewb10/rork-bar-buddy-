@@ -191,32 +191,18 @@ export const useAuthStore = create<AuthState>()(
           const { data: { session }, error } = await supabase.auth.refreshSession();
           
           if (error) {
-            console.error('🎯 AuthStore: Session refresh failed:', error);
-            // Clear auth state if refresh fails
-            set({
-              user: null,
-              profile: null,
-              isAuthenticated: false,
-              error: null,
-              sessionChecked: true,
-            });
+            console.warn('🎯 AuthStore: Session refresh failed:', error.message);
+            // Don't clear auth state on refresh failure - user might still be valid
             return;
           }
 
           if (session?.user) {
             console.log('🎯 AuthStore: Session refreshed successfully');
-            // Re-initialize with fresh session
-            await get().initialize();
+            set({ user: session.user });
           }
         } catch (error) {
-          console.error('🎯 AuthStore: Session refresh error:', error);
-          set({
-            user: null,
-            profile: null,
-            isAuthenticated: false,
-            error: null,
-            sessionChecked: true,
-          });
+          console.warn('🎯 AuthStore: Session refresh error:', error);
+          // Don't clear auth state on network errors
         }
       },
 
@@ -231,14 +217,10 @@ export const useAuthStore = create<AuthState>()(
           const { data: { session }, error } = await supabase.auth.getSession();
           
           if (error) {
-            console.error('🎯 AuthStore: Session check error:', error);
-            set({ 
-              sessionChecked: true, 
-              isAuthenticated: false,
-              user: null,
-              profile: null 
-            });
-            return false;
+            console.warn('🎯 AuthStore: Session check error:', error.message);
+            // Don't clear auth state on session check errors
+            set({ sessionChecked: true });
+            return get().isAuthenticated; // Return current state
           }
 
           const isValid = !!session?.user;
@@ -267,14 +249,9 @@ export const useAuthStore = create<AuthState>()(
 
           return isValid;
         } catch (error) {
-          console.error('🎯 AuthStore: Session check failed:', error);
-          set({ 
-            sessionChecked: true, 
-            isAuthenticated: false,
-            user: null,
-            profile: null 
-          });
-          return false;
+          console.warn('🎯 AuthStore: Session check failed:', error);
+          set({ sessionChecked: true });
+          return get().isAuthenticated; // Return current state instead of clearing
         }
       },
 
@@ -305,7 +282,7 @@ export const useAuthStore = create<AuthState>()(
           const { data: { session }, error: sessionError } = await supabase.auth.getSession();
           
           if (sessionError) {
-            console.error('🎯 AuthStore: Session error:', sessionError);
+            console.warn('🎯 AuthStore: Session error:', sessionError.message);
             set({
               user: null,
               profile: null,
@@ -346,16 +323,16 @@ export const useAuthStore = create<AuthState>()(
           } else {
             console.log('🎯 AuthStore: Session exists but no profile found');
             set({
-              user: null,
+              user: session.user,
               profile: null,
-              isAuthenticated: false,
+              isAuthenticated: true, // Keep authenticated even without profile
               isLoading: false,
               error: null,
               sessionChecked: true,
             });
           }
         } catch (error) {
-          console.error('🎯 AuthStore: Auth initialization error:', error);
+          console.warn('🎯 AuthStore: Auth initialization error:', error);
           set({
             user: null,
             profile: null,
@@ -410,7 +387,10 @@ if (isSupabaseConfigured()) {
       });
     } else if (event === 'TOKEN_REFRESHED' && session) {
       console.log('🎯 Token refreshed, updating state...');
-      await initialize();
+      useAuthStore.setState({
+        user: session.user,
+        isAuthenticated: true,
+      });
     }
   });
 } else {
