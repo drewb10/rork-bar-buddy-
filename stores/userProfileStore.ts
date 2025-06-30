@@ -25,7 +25,7 @@ interface FriendRequest {
 
 interface XPActivity {
   id: string;
-  type: 'visit_new_bar' | 'participate_event' | 'bring_friend' | 'complete_night_out' | 'special_achievement' | 'live_music' | 'featured_drink' | 'bar_game' | 'photo_taken' | 'shots' | 'scoop_and_scores' | 'beers' | 'beer_towers' | 'funnels' | 'shotguns' | 'pool_games' | 'dart_games' | 'drunk_scale_submission' | 'like_bar' | 'check_in';
+  type: 'visit_new_bar' | 'participate_event' | 'bring_friend' | 'complete_night_out' | 'special_achievement' | 'live_music' | 'featured_drink' | 'bar_game' | 'photo_taken' | 'shots' | 'beers' | 'beer_towers' | 'funnels' | 'shotguns' | 'pool_games' | 'dart_games' | 'drunk_scale_submission' | 'like_bar' | 'check_in';
   xpAwarded: number;
   timestamp: string;
   description: string;
@@ -48,7 +48,6 @@ interface UserProfile {
   xp_activities: XPActivity[];
   visited_bars: string[];
   total_shots: number;
-  total_scoop_and_scores: number;
   total_beers: number;
   total_beer_towers: number;
   total_funnels: number;
@@ -97,7 +96,6 @@ const XP_VALUES = {
   bar_game: 35,
   photo_taken: 10,
   shots: 5,
-  scoop_and_scores: 10,
   beers: 5,
   beer_towers: 15,
   funnels: 10,
@@ -202,7 +200,6 @@ export const useUserProfileStore = create<UserProfileState>()(
                 bars_hit: 0,
                 drunk_scale_ratings: [],
                 total_shots: 0,
-                total_scoop_and_scores: 0,
                 total_beers: 0,
                 total_beer_towers: 0,
                 total_funnels: 0,
@@ -695,7 +692,6 @@ export const useUserProfileStore = create<UserProfileState>()(
           nights_out: state.profile.nights_out,
           bars_hit: state.profile.bars_hit,
           total_shots: state.profile.total_shots,
-          total_scoop_and_scores: state.profile.total_scoop_and_scores,
           total_beers: state.profile.total_beers,
           total_beer_towers: state.profile.total_beer_towers,
           total_funnels: state.profile.total_funnels,

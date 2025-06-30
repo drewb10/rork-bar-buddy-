@@ -22,7 +22,6 @@ export default function TrophiesScreen() {
   const [lifetimeStats, setLifetimeStats] = useState({
     totalBeers: 0,
     totalShots: 0,
-    totalScoopAndScores: 0,
     totalBeerTowers: 0,
     totalFunnels: 0,
     totalShotguns: 0,
@@ -72,7 +71,6 @@ export default function TrophiesScreen() {
       setLifetimeStats({
         totalBeers: stats.totalBeers,
         totalShots: stats.totalShots,
-        totalScoopAndScores: stats.totalScoopAndScores,
         totalBeerTowers: stats.totalBeerTowers,
         totalFunnels: stats.totalFunnels,
         totalShotguns: stats.totalShotguns,
@@ -270,7 +268,6 @@ export default function TrophiesScreen() {
                 {/* Activity Stats Grid */}
                 <View style={styles.statsGrid}>
                   <StatCard title="Shots Taken" value={lifetimeStats.totalShots} />
-                  <StatCard title="Scoop & Scores" value={lifetimeStats.totalScoopAndScores} />
                   <StatCard title="Beers Logged" value={lifetimeStats.totalBeers} />
                   <StatCard title="Beer Towers" value={lifetimeStats.totalBeerTowers} />
                   <StatCard title="Funnels" value={lifetimeStats.totalFunnels} />
