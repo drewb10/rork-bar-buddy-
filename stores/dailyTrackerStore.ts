@@ -231,7 +231,6 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
       resetLocalStats: () => {
         set({ 
           localStats: defaultStats,
-          lastSyncDate: null,
           error: null,
         });
       },

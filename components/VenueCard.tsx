@@ -217,7 +217,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
               styles.compactLikeButton, 
               { 
                 backgroundColor: interactionData.canLikeThisVenue ? themeColors.primary : themeColors.border,
-                opacity: interactionData.canLikeThisVenue ? 1 : 0.5 // Semi-transparent when used
+                opacity: interactionData.canLikeThisVenue ? 1 : 0.3 // More transparent when used
               }
             ]}
             onPress={handleLikePress}
@@ -357,7 +357,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
             styles.likeButton, 
             { 
               backgroundColor: interactionData.canLikeThisVenue ? themeColors.primary : themeColors.border,
-              opacity: interactionData.canLikeThisVenue ? 1 : 0.5 // Semi-transparent when used
+              opacity: interactionData.canLikeThisVenue ? 1 : 0.3 // More transparent when used
             }
           ]}
           onPress={handleLikePress}

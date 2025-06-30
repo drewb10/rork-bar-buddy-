@@ -157,11 +157,11 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         console.log('🔄 Daily tracker form reset to default values');
       }, 1000);
       
-      // Auto-close modal after 3 seconds
+      // Auto-close modal after 2 seconds
       setTimeout(() => {
         setSaveSuccess(false);
         handleClose();
-      }, 3000);
+      }, 2000);
       
     } catch (error) {
       console.error('❌ Error saving stats:', error);
@@ -196,7 +196,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   }, [isAuthenticated, isSaving, isLoading]);
 
   const getStatusMessage = () => {
-    if (saveSuccess) return 'Stats saved successfully! Form will reset... 🎉';
+    if (saveSuccess) return 'Stats saved successfully! Closing... 🎉';
     if (isSaving) return 'Saving your stats...';
     if (isLoading) return 'Loading your stats...';
     if (error) return `Error: ${error}`;
@@ -445,7 +445,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                       ? 'Saving...' 
                       : statusMessage && !isAuthenticated
                         ? 'Sign In to Save' 
-                        : 'Save My Stats'
+                        : 'Save My Stats & Earn XP'
                   }
                 </Text>
               </View>

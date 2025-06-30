@@ -366,7 +366,7 @@ export const useUserProfileStore = create<UserProfileState>()(
                   totalBeers: currentProfile.total_beers || 0,
                   totalShots: currentProfile.total_shots || 0,
                   totalBeerTowers: currentProfile.total_beer_towers || 0,
-                  totalScoopAndScores: 0,
+                  totalScoopAndScores: 0, // Not tracked in daily stats
                   totalFunnels: currentProfile.total_funnels || 0,
                   totalShotguns: currentProfile.total_shotguns || 0,
                   poolGamesWon: currentProfile.pool_games_won || 0,

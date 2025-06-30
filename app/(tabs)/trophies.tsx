@@ -4,7 +4,7 @@ import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useAchievementStoreSafe } from '@/stores/achievementStore';
-import { dailyStatsHelpers, getCurrentUserId, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 
 export default function TrophiesScreen() {
@@ -58,28 +58,71 @@ export default function TrophiesScreen() {
     setIsLoadingStats(true);
 
     try {
-      const userId = await getCurrentUserId();
-      if (!userId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         console.log('🏆 Trophies: No authenticated user');
         setIsLoadingStats(false);
         return;
       }
 
       console.log('🏆 Trophies: Loading lifetime stats from daily_stats table...');
-      const stats = await dailyStatsHelpers.getLifetimeStats(userId);
+      
+      // Get all daily stats for the user
+      const { data: dailyStats, error } = await supabase
+        .from('daily_stats')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('🏆 Trophies: Error loading daily stats:', error);
+        setIsLoadingStats(false);
+        return;
+      }
+
+      // Calculate lifetime totals from daily stats
+      const totals = (dailyStats || []).reduce((acc, day) => ({
+        totalBeers: acc.totalBeers + (day.beers || 0),
+        totalShots: acc.totalShots + (day.shots || 0),
+        totalBeerTowers: acc.totalBeerTowers + (day.beer_towers || 0),
+        totalFunnels: acc.totalFunnels + (day.funnels || 0),
+        totalShotguns: acc.totalShotguns + (day.shotguns || 0),
+        totalPoolGames: acc.totalPoolGames + (day.pool_games_won || 0),
+        totalDartGames: acc.totalDartGames + (day.dart_games_won || 0),
+        totalDrinksLogged: acc.totalDrinksLogged + (day.beers || 0) + (day.shots || 0) + (day.beer_towers || 0) + (day.funnels || 0) + (day.shotguns || 0),
+        drunkScaleSum: acc.drunkScaleSum + (day.drunk_scale || 0),
+        drunkScaleCount: acc.drunkScaleCount + (day.drunk_scale ? 1 : 0),
+        nightsOut: acc.nightsOut + 1, // Each day with stats counts as a night out
+      }), {
+        totalBeers: 0,
+        totalShots: 0,
+        totalBeerTowers: 0,
+        totalFunnels: 0,
+        totalShotguns: 0,
+        totalPoolGames: 0,
+        totalDartGames: 0,
+        totalDrinksLogged: 0,
+        drunkScaleSum: 0,
+        drunkScaleCount: 0,
+        nightsOut: 0,
+      });
+
+      // Calculate average drunk scale
+      const avgDrunkScale = totals.drunkScaleCount > 0 
+        ? Math.round((totals.drunkScaleSum / totals.drunkScaleCount) * 10) / 10 
+        : 0;
 
       setLifetimeStats({
-        totalBeers: stats.totalBeers,
-        totalShots: stats.totalShots,
-        totalBeerTowers: stats.totalBeerTowers,
-        totalFunnels: stats.totalFunnels,
-        totalShotguns: stats.totalShotguns,
-        totalPoolGames: stats.totalPoolGames,
-        totalDartGames: stats.totalDartGames,
-        totalDrinksLogged: stats.totalDrinksLogged,
-        avgDrunkScale: stats.avgDrunkScale,
-        barsHit: stats.barsHit,
-        nightsOut: stats.nightsOut,
+        totalBeers: totals.totalBeers,
+        totalShots: totals.totalShots,
+        totalBeerTowers: totals.totalBeerTowers,
+        totalFunnels: totals.totalFunnels,
+        totalShotguns: totals.totalShotguns,
+        totalPoolGames: totals.totalPoolGames,
+        totalDartGames: totals.totalDartGames,
+        totalDrinksLogged: totals.totalDrinksLogged,
+        avgDrunkScale: avgDrunkScale,
+        barsHit: profile?.bars_hit || 0, // Still from profile
+        nightsOut: totals.nightsOut,
         totalXP: profile?.xp || 0, // XP still comes from profile
       });
 

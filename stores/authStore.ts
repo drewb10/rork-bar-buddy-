@@ -221,7 +221,6 @@ export const useAuthStore = create<AuthState>()(
           
           if (error) {
             console.warn('🎯 AuthStore: Session check error:', error.message);
-            // Don't clear auth state on session check errors
             set({ sessionChecked: true });
             return get().isAuthenticated; // Return current state
           }

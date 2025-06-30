@@ -167,22 +167,6 @@ const defaultAchievements: Achievement[] = [
     5
   ),
 
-  // Scoop and Scores Achievements
-  ...createAchievementLevels(
-    'scoop-and-scores',
-    'Scoop and Scores',
-    'activities',
-    '🍻',
-    [
-      { threshold: 10, title: 'Rookie Scooper', description: 'Consumed 10 Scoop and Scores' },
-      { threshold: 25, title: 'Scoop Enthusiast', description: 'Consumed 25 Scoop and Scores' },
-      { threshold: 50, title: 'Scoop Pro', description: 'Consumed 50 Scoop and Scores' },
-      { threshold: 100, title: 'Scoop Master', description: 'Consumed 100 Scoop and Scores' },
-      { threshold: 200, title: 'Scoop Champion', description: 'Consumed 200 Scoop and Scores' },
-    ],
-    6
-  ),
-
   // Funnels Achievements
   ...createAchievementLevels(
     'funnels',
@@ -196,7 +180,7 @@ const defaultAchievements: Achievement[] = [
       { threshold: 50, title: 'Funnel Master', description: 'Completed 50 funnels' },
       { threshold: 75, title: 'Funnel Champion', description: 'Completed 75 funnels' },
     ],
-    7
+    6
   ),
 
   // Shotguns Achievements
@@ -212,7 +196,7 @@ const defaultAchievements: Achievement[] = [
       { threshold: 75, title: 'Shotgun Master', description: 'Completed 75 shotguns' },
       { threshold: 100, title: 'Shotgun Champion', description: 'Completed 100 shotguns' },
     ],
-    8
+    7
   ),
 
   // Pool Games Won Achievements
@@ -228,7 +212,7 @@ const defaultAchievements: Achievement[] = [
       { threshold: 50, title: 'Pool Master', description: 'Won 50 pool games' },
       { threshold: 75, title: 'Pool Champion', description: 'Won 75 pool games' },
     ],
-    9
+    8
   ),
 
   // Dart Games Won Achievements
@@ -244,7 +228,7 @@ const defaultAchievements: Achievement[] = [
       { threshold: 50, title: 'Dart Master', description: 'Won 50 dart games' },
       { threshold: 75, title: 'Dart Champion', description: 'Won 75 dart games' },
     ],
-    10
+    9
   ),
 
   // Social Achievements
@@ -257,7 +241,7 @@ const defaultAchievements: Achievement[] = [
     category: 'social',
     completed: false,
     icon: '🤝',
-    order: 11,
+    order: 10,
     level: 1,
     maxLevel: 1,
   },
@@ -272,7 +256,7 @@ const defaultAchievements: Achievement[] = [
     category: 'milestones',
     completed: false,
     icon: '🌟',
-    order: 12,
+    order: 11,
     level: 1,
     maxLevel: 1,
   },
@@ -469,7 +453,6 @@ export const useAchievementStore = create<AchievementState>()(
           updateAchievementProgress('beers', stats.totalBeers);
           updateAchievementProgress('shots', stats.totalShots);
           updateAchievementProgress('beer-towers', stats.totalBeerTowers);
-          updateAchievementProgress('scoop-and-scores', stats.totalScoopAndScores);
           updateAchievementProgress('funnels', stats.totalFunnels);
           updateAchievementProgress('shotguns', stats.totalShotguns);
           updateAchievementProgress('pool-games', stats.poolGamesWon);
