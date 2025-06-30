@@ -5,6 +5,8 @@ import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useUserProfileStore } from '@/stores/userProfileStore';
+import { useAchievementStore } from '@/stores/achievementStore';
 
 interface DailyTrackerProps {
   visible: boolean;
@@ -30,6 +32,8 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const { isAuthenticated, checkSession } = useAuthStore();
+  const { profile } = useUserProfileStore();
+  const { checkAndUpdateMultiLevelAchievements } = useAchievementStore();
   const { 
     localStats,
     isLoading,
@@ -39,7 +43,8 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     loadTodayStats,
     saveTodayStats,
     canSubmitDrunkScale,
-    clearError
+    clearError,
+    resetLocalStats
   } = useDailyTrackerStore();
 
   const [canSubmitScale, setCanSubmitScale] = useState(true);
@@ -126,12 +131,37 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       
       setSaveSuccess(true);
       console.log('✅ Stats saved successfully');
+
+      // Update achievements with current profile stats
+      if (profile) {
+        const updatedStats = {
+          totalBeers: (profile.total_beers || 0) + localStats.beers,
+          totalShots: (profile.total_shots || 0) + localStats.shots,
+          totalBeerTowers: (profile.total_beer_towers || 0) + localStats.beer_towers,
+          totalScoopAndScores: 0, // Not tracked in daily stats
+          totalFunnels: (profile.total_funnels || 0) + localStats.funnels,
+          totalShotguns: (profile.total_shotguns || 0) + localStats.shotguns,
+          poolGamesWon: (profile.pool_games_won || 0) + localStats.pool_games_won,
+          dartGamesWon: (profile.dart_games_won || 0) + localStats.dart_games_won,
+          barsHit: profile.bars_hit || 0,
+          nightsOut: profile.nights_out || 0,
+        };
+        
+        // Update achievements
+        checkAndUpdateMultiLevelAchievements(updatedStats);
+      }
+
+      // Reset the form after successful submission
+      setTimeout(() => {
+        resetLocalStats();
+        console.log('🔄 Daily tracker form reset to default values');
+      }, 1000);
       
-      // Auto-close modal after 2 seconds
+      // Auto-close modal after 3 seconds
       setTimeout(() => {
         setSaveSuccess(false);
         handleClose();
-      }, 2000);
+      }, 3000);
       
     } catch (error) {
       console.error('❌ Error saving stats:', error);
@@ -149,7 +179,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       
       Alert.alert('Error', errorMessage, [{ text: 'OK' }]);
     }
-  }, [isSaving, isAuthenticated, localStats, saveTodayStats, handleClose]);
+  }, [isSaving, isAuthenticated, localStats, saveTodayStats, handleClose, resetLocalStats, profile, checkAndUpdateMultiLevelAchievements]);
 
   const statItems = useMemo(() => [
     { key: 'shots' as const, label: 'Shots', emoji: '🥃', xp: 5 },
@@ -166,7 +196,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   }, [isAuthenticated, isSaving, isLoading]);
 
   const getStatusMessage = () => {
-    if (saveSuccess) return 'Stats saved successfully! 🎉';
+    if (saveSuccess) return 'Stats saved successfully! Form will reset... 🎉';
     if (isSaving) return 'Saving your stats...';
     if (isLoading) return 'Loading your stats...';
     if (error) return `Error: ${error}`;

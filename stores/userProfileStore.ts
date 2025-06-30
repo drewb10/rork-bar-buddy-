@@ -83,6 +83,7 @@ interface UserProfileState {
   loadFriends: () => Promise<void>;
   checkAndResetDrunkScaleIfNeeded: () => void;
   setProfileReady: (ready: boolean) => void;
+  syncStatsFromDailyStats: () => Promise<void>;
 }
 
 const XP_VALUES = {
@@ -253,6 +254,9 @@ export const useUserProfileStore = create<UserProfileState>()(
             get().loadFriendRequests()
           ]);
 
+          // Sync stats from daily_stats table
+          await get().syncStatsFromDailyStats();
+
           set({ 
             profile: {
               ...profileData,
@@ -265,6 +269,54 @@ export const useUserProfileStore = create<UserProfileState>()(
         } catch (error) {
           console.error('Error loading profile:', error);
           set({ isLoading: false, profile: null, profileReady: false });
+        }
+      },
+
+      syncStatsFromDailyStats: async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          // Get lifetime stats from daily_stats table
+          const { data: dailyStats, error } = await supabase
+            .from('daily_stats')
+            .select('*')
+            .eq('user_id', user.id);
+
+          if (error) {
+            console.warn('Error syncing stats from daily_stats:', error);
+            return;
+          }
+
+          if (!dailyStats || dailyStats.length === 0) return;
+
+          // Calculate totals
+          const totals = dailyStats.reduce((acc, day) => ({
+            total_beers: acc.total_beers + (day.beers || 0),
+            total_shots: acc.total_shots + (day.shots || 0),
+            total_beer_towers: acc.total_beer_towers + (day.beer_towers || 0),
+            total_funnels: acc.total_funnels + (day.funnels || 0),
+            total_shotguns: acc.total_shotguns + (day.shotguns || 0),
+            pool_games_won: acc.pool_games_won + (day.pool_games_won || 0),
+            dart_games_won: acc.dart_games_won + (day.dart_games_won || 0),
+            nights_out: acc.nights_out + 1, // Each day with stats counts as a night out
+          }), {
+            total_beers: 0,
+            total_shots: 0,
+            total_beer_towers: 0,
+            total_funnels: 0,
+            total_shotguns: 0,
+            pool_games_won: 0,
+            dart_games_won: 0,
+            nights_out: 0,
+          });
+
+          // Update profile with synced stats
+          await get().updateProfile(totals);
+
+          console.log('✅ Stats synced from daily_stats table');
+        } catch (error) {
+          console.warn('Error syncing stats from daily_stats:', error);
         }
       },
 
@@ -301,6 +353,29 @@ export const useUserProfileStore = create<UserProfileState>()(
             }
           } catch (supabaseError) {
             console.warn('Supabase not available, keeping local changes:', supabaseError);
+          }
+
+          // Update achievements with new stats
+          if (typeof window !== 'undefined' && (window as any).__achievementStore) {
+            const achievementStore = (window as any).__achievementStore;
+            if (achievementStore?.getState) {
+              const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
+              const currentProfile = get().profile;
+              if (currentProfile) {
+                checkAndUpdateMultiLevelAchievements({
+                  totalBeers: currentProfile.total_beers || 0,
+                  totalShots: currentProfile.total_shots || 0,
+                  totalBeerTowers: currentProfile.total_beer_towers || 0,
+                  totalScoopAndScores: 0,
+                  totalFunnels: currentProfile.total_funnels || 0,
+                  totalShotguns: currentProfile.total_shotguns || 0,
+                  poolGamesWon: currentProfile.pool_games_won || 0,
+                  dartGamesWon: currentProfile.dart_games_won || 0,
+                  barsHit: currentProfile.bars_hit || 0,
+                  nightsOut: currentProfile.nights_out || 0,
+                });
+              }
+            }
           }
         } catch (error) {
           console.error('Error updating profile:', error);

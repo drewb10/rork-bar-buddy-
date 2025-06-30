@@ -30,14 +30,19 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   } = useVenueInteractionStore();
   const { incrementNightsOut, incrementBarsHit, canIncrementNightsOut } = useUserProfileStore();
   
+  // Local state for real-time UI updates
+  const [localLikeCount, setLocalLikeCount] = useState<number | null>(null);
+  const [localCanLike, setLocalCanLike] = useState<boolean | null>(null);
+  const [localHotTime, setLocalHotTime] = useState<{ time: string; likes: number } | null>(null);
+  
   // Memoize interaction data to prevent unnecessary re-calculations
   const interactionData = useMemo(() => ({
     interactionCount: getInteractionCount(venue.id),
-    likeCount: getLikeCount(venue.id),
-    hotTimeData: getHotTimeWithLikes(venue.id),
+    likeCount: localLikeCount !== null ? localLikeCount : getLikeCount(venue.id),
+    hotTimeData: localHotTime !== null ? localHotTime : getHotTimeWithLikes(venue.id),
     canInteractWithVenue: canInteract(venue.id),
-    canLikeThisVenue: canLikeVenue(venue.id),
-  }), [venue.id, getInteractionCount, getLikeCount, getHotTimeWithLikes, canInteract, canLikeVenue]);
+    canLikeThisVenue: localCanLike !== null ? localCanLike : canLikeVenue(venue.id),
+  }), [venue.id, getInteractionCount, getLikeCount, getHotTimeWithLikes, canInteract, canLikeVenue, localLikeCount, localCanLike, localHotTime]);
 
   const [rsvpModalVisible, setRsvpModalVisible] = useState(false);
   const [likeModalVisible, setLikeModalVisible] = useState(false);
@@ -100,7 +105,16 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const handleLikeSubmit = useCallback(async () => {
     if (selectedLikeTime) {
       try {
-        // Submit the like first
+        // Immediately update local state for real-time UI feedback
+        const currentLikeCount = getLikeCount(venue.id);
+        setLocalLikeCount(currentLikeCount + 1);
+        setLocalCanLike(false);
+        
+        // Update hot time data immediately
+        const newHotTime = { time: selectedLikeTime, likes: 1 };
+        setLocalHotTime(newHotTime);
+        
+        // Submit the like to the store
         likeVenue(venue.id, selectedLikeTime);
         
         // Close modal and reset state
@@ -108,16 +122,17 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         setSelectedLikeTime(null);
         setIsLiking(false);
         
-        // Force a re-render to update the UI immediately
-        setTimeout(() => {
-          // This will trigger a re-render of the component
-        }, 100);
+        console.log('✅ Like venue completed with real-time UI update');
       } catch (error) {
         console.error('Error submitting like:', error);
+        // Revert local state on error
+        setLocalLikeCount(null);
+        setLocalCanLike(null);
+        setLocalHotTime(null);
         setIsLiking(false);
       }
     }
-  }, [selectedLikeTime, venue.id, likeVenue]);
+  }, [selectedLikeTime, venue.id, likeVenue, getLikeCount]);
 
   const handleRsvpCancel = useCallback(() => {
     setRsvpModalVisible(false);
