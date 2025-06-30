@@ -188,7 +188,7 @@ export const useAuthStore = create<AuthState>()(
 
         try {
           console.log('🎯 AuthStore: Refreshing session...');
-          const { data: { session }, error } = await supabase.auth.refreshSession();
+          const { data, error } = await supabase.auth.refreshSession();
           
           if (error) {
             console.warn('🎯 AuthStore: Session refresh failed:', error.message);
@@ -196,9 +196,12 @@ export const useAuthStore = create<AuthState>()(
             return;
           }
 
-          if (session?.user) {
+          if (data?.session?.user) {
             console.log('🎯 AuthStore: Session refreshed successfully');
-            set({ user: session.user });
+            set({ 
+              user: data.session.user,
+              isAuthenticated: true 
+            });
           }
         } catch (error) {
           console.warn('🎯 AuthStore: Session refresh error:', error);
@@ -214,7 +217,7 @@ export const useAuthStore = create<AuthState>()(
         }
 
         try {
-          const { data: { session }, error } = await supabase.auth.getSession();
+          const { data, error } = await supabase.auth.getSession();
           
           if (error) {
             console.warn('🎯 AuthStore: Session check error:', error.message);
@@ -223,10 +226,10 @@ export const useAuthStore = create<AuthState>()(
             return get().isAuthenticated; // Return current state
           }
 
-          const isValid = !!session?.user;
+          const isValid = !!data?.session?.user;
           console.log('🎯 AuthStore: Session check result:', isValid);
           
-          if (isValid && session?.user) {
+          if (isValid && data?.session?.user) {
             // If we have a valid session but no profile loaded, initialize
             const currentState = get();
             if (!currentState.profile) {
@@ -235,7 +238,7 @@ export const useAuthStore = create<AuthState>()(
               set({ 
                 sessionChecked: true, 
                 isAuthenticated: true,
-                user: session.user 
+                user: data.session.user 
               });
             }
           } else {
@@ -279,7 +282,7 @@ export const useAuthStore = create<AuthState>()(
           console.log('🎯 AuthStore: Initializing auth state...');
           
           // First check if we have a valid session
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          const { data, error: sessionError } = await supabase.auth.getSession();
           
           if (sessionError) {
             console.warn('🎯 AuthStore: Session error:', sessionError.message);
@@ -294,7 +297,7 @@ export const useAuthStore = create<AuthState>()(
             return;
           }
 
-          if (!session?.user) {
+          if (!data?.session?.user) {
             console.log('🎯 AuthStore: No valid session found');
             set({
               user: null,
@@ -323,7 +326,7 @@ export const useAuthStore = create<AuthState>()(
           } else {
             console.log('🎯 AuthStore: Session exists but no profile found');
             set({
-              user: session.user,
+              user: data.session.user,
               profile: null,
               isAuthenticated: true, // Keep authenticated even without profile
               isLoading: false,

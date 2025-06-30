@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { dailyStatsHelpers, getCurrentUserId, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 interface DailyStats {
   drunk_scale: number | null;
@@ -43,6 +43,16 @@ const defaultStats: DailyStats = {
 
 const getTodayString = (): string => {
   return new Date().toISOString().split('T')[0];
+};
+
+const getCurrentUserId = async (): Promise<string | null> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user?.id || null;
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    return null;
+  }
 };
 
 export const useDailyTrackerStore = create<DailyTrackerState>()(
@@ -105,18 +115,30 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
           }
 
           console.log('📊 DailyTracker: Loading today stats from Supabase...');
-          const todayStats = await dailyStatsHelpers.getTodayStats(userId);
+          
+          const { data: todayStats, error } = await supabase
+            .from('daily_stats')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('date', today)
+            .single();
+
+          if (error && error.code !== 'PGRST116') {
+            throw error;
+          }
+
+          const stats = todayStats || {};
 
           set({
             localStats: {
-              drunk_scale: todayStats.drunk_scale,
-              beers: todayStats.beers || 0,
-              shots: todayStats.shots || 0,
-              beer_towers: todayStats.beer_towers || 0,
-              funnels: todayStats.funnels || 0,
-              shotguns: todayStats.shotguns || 0,
-              pool_games_won: todayStats.pool_games_won || 0,
-              dart_games_won: todayStats.dart_games_won || 0,
+              drunk_scale: stats.drunk_scale || null,
+              beers: stats.beers || 0,
+              shots: stats.shots || 0,
+              beer_towers: stats.beer_towers || 0,
+              funnels: stats.funnels || 0,
+              shotguns: stats.shotguns || 0,
+              pool_games_won: stats.pool_games_won || 0,
+              dart_games_won: stats.dart_games_won || 0,
             },
             isLoading: false,
             lastSyncDate: today,
@@ -157,12 +179,34 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
             throw new Error('User not authenticated');
           }
 
+          const today = getTodayString();
           console.log('📊 DailyTracker: Saving stats to Supabase...', localStats);
 
-          // Save to daily_stats table
-          await dailyStatsHelpers.saveTodayStats(userId, localStats);
+          // Prepare the data for insertion/update
+          const statsData = {
+            user_id: userId,
+            date: today,
+            drunk_scale: localStats.drunk_scale,
+            beers: localStats.beers,
+            shots: localStats.shots,
+            beer_towers: localStats.beer_towers,
+            funnels: localStats.funnels,
+            shotguns: localStats.shotguns,
+            pool_games_won: localStats.pool_games_won,
+            dart_games_won: localStats.dart_games_won,
+          };
 
-          const today = getTodayString();
+          // Use upsert to insert or update
+          const { error } = await supabase
+            .from('daily_stats')
+            .upsert(statsData, {
+              onConflict: 'user_id,date'
+            });
+
+          if (error) {
+            throw error;
+          }
+
           set({ 
             isSaving: false,
             lastSyncDate: today,
@@ -200,7 +244,22 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
             return true;
           }
 
-          return await dailyStatsHelpers.canSubmitDrunkScaleToday(userId);
+          const today = getTodayString();
+          
+          const { data, error } = await supabase
+            .from('daily_stats')
+            .select('drunk_scale')
+            .eq('user_id', userId)
+            .eq('date', today)
+            .single();
+
+          if (error && error.code !== 'PGRST116') {
+            console.warn('📊 DailyTracker: Error checking drunk scale submission:', error);
+            return true;
+          }
+
+          // If no record exists or drunk_scale is null, user can submit
+          return !data || data.drunk_scale === null;
         } catch (error) {
           console.warn('📊 DailyTracker: Error checking drunk scale submission:', error);
           return true;
