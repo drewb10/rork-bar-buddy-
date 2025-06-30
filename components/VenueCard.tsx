@@ -107,6 +107,11 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         setLikeModalVisible(false);
         setSelectedLikeTime(null);
         setIsLiking(false);
+        
+        // Force a re-render to update the UI immediately
+        setTimeout(() => {
+          // This will trigger a re-render of the component
+        }, 100);
       } catch (error) {
         console.error('Error submitting like:', error);
         setIsLiking(false);

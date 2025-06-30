@@ -226,11 +226,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           // Award XP for liking a bar with debouncing
           debouncedAwardLikeXP(venueId);
           
-          // Force re-render of components that depend on this data
-          setTimeout(() => {
-            // Trigger a state update to force re-render
-            set((state) => ({ ...state }));
-          }, 100);
+          console.log('✅ Like venue completed, triggering re-render...');
         } catch (error) {
           console.warn('Error liking venue:', error);
         }

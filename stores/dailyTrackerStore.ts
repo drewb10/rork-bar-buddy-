@@ -182,7 +182,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
           const today = getTodayString();
           console.log('📊 DailyTracker: Saving stats to Supabase...', localStats);
 
-          // Prepare the data for insertion/update
+          // Prepare the data for insertion/update - only include valid columns
           const statsData = {
             user_id: userId,
             date: today,
@@ -206,6 +206,9 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
           if (error) {
             throw error;
           }
+
+          // Update profile lifetime stats
+          await updateProfileLifetimeStats(userId, localStats);
 
           set({ 
             isSaving: false,
@@ -276,3 +279,45 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
     }
   )
 );
+
+// Helper function to update profile lifetime stats
+async function updateProfileLifetimeStats(userId: string, todayStats: DailyStats) {
+  try {
+    // Get current profile stats
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('total_beers, total_shots, total_beer_towers, total_funnels, total_shotguns, pool_games_won, dart_games_won')
+      .eq('id', userId)
+      .single();
+
+    if (profileError) {
+      console.warn('Error fetching profile for lifetime stats update:', profileError);
+      return;
+    }
+
+    // Calculate new totals by adding today's stats
+    const updatedStats = {
+      total_beers: (profile.total_beers || 0) + todayStats.beers,
+      total_shots: (profile.total_shots || 0) + todayStats.shots,
+      total_beer_towers: (profile.total_beer_towers || 0) + todayStats.beer_towers,
+      total_funnels: (profile.total_funnels || 0) + todayStats.funnels,
+      total_shotguns: (profile.total_shotguns || 0) + todayStats.shotguns,
+      pool_games_won: (profile.pool_games_won || 0) + todayStats.pool_games_won,
+      dart_games_won: (profile.dart_games_won || 0) + todayStats.dart_games_won,
+    };
+
+    // Update profile with new lifetime totals
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update(updatedStats)
+      .eq('id', userId);
+
+    if (updateError) {
+      console.warn('Error updating profile lifetime stats:', updateError);
+    } else {
+      console.log('✅ Profile lifetime stats updated successfully');
+    }
+  } catch (error) {
+    console.warn('Error in updateProfileLifetimeStats:', error);
+  }
+}
