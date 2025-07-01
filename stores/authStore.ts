@@ -217,27 +217,36 @@ export const useAuthStore = create<AuthState>()(
         }
 
         try {
+          console.log('🎯 AuthStore: Checking session...');
           const { data, error } = await supabase.auth.getSession();
           
           if (error) {
             console.warn('🎯 AuthStore: Session check error:', error.message);
-            set({ sessionChecked: true });
-            return get().isAuthenticated; // Return current state
+            set({ sessionChecked: true, isAuthenticated: false });
+            return false;
           }
 
           const isValid = !!data?.session?.user;
           console.log('🎯 AuthStore: Session check result:', isValid);
           
           if (isValid && data?.session?.user) {
-            // If we have a valid session but no profile loaded, initialize
-            const currentState = get();
-            if (!currentState.profile) {
-              await get().initialize();
-            } else {
+            // If we have a valid session, try to get the profile
+            try {
+              const { user, profile } = await authService.getCurrentUser();
               set({ 
                 sessionChecked: true, 
                 isAuthenticated: true,
-                user: data.session.user 
+                user: user || data.session.user,
+                profile: profile
+              });
+            } catch (profileError) {
+              console.warn('🎯 AuthStore: Error loading profile during session check:', profileError);
+              // Still mark as authenticated even if profile fails to load
+              set({ 
+                sessionChecked: true, 
+                isAuthenticated: true,
+                user: data.session.user,
+                profile: null
               });
             }
           } else {
@@ -252,8 +261,8 @@ export const useAuthStore = create<AuthState>()(
           return isValid;
         } catch (error) {
           console.warn('🎯 AuthStore: Session check failed:', error);
-          set({ sessionChecked: true });
-          return get().isAuthenticated; // Return current state instead of clearing
+          set({ sessionChecked: true, isAuthenticated: false });
+          return false;
         }
       },
 
@@ -310,24 +319,36 @@ export const useAuthStore = create<AuthState>()(
           }
 
           // If session exists, get current user and profile
-          const { user, profile } = await authService.getCurrentUser();
-          
-          if (user && profile) {
-            console.log('🎯 AuthStore: Found existing session with profile');
-            set({
-              user,
-              profile,
-              isAuthenticated: true,
-              isLoading: false,
-              error: null,
-              sessionChecked: true,
-            });
-          } else {
-            console.log('🎯 AuthStore: Session exists but no profile found');
+          try {
+            const { user, profile } = await authService.getCurrentUser();
+            
+            if (user && profile) {
+              console.log('🎯 AuthStore: Found existing session with profile');
+              set({
+                user,
+                profile,
+                isAuthenticated: true,
+                isLoading: false,
+                error: null,
+                sessionChecked: true,
+              });
+            } else {
+              console.log('🎯 AuthStore: Session exists but no profile found');
+              set({
+                user: data.session.user,
+                profile: null,
+                isAuthenticated: true, // Keep authenticated even without profile
+                isLoading: false,
+                error: null,
+                sessionChecked: true,
+              });
+            }
+          } catch (profileError) {
+            console.warn('🎯 AuthStore: Error loading profile during initialization:', profileError);
             set({
               user: data.session.user,
               profile: null,
-              isAuthenticated: true, // Keep authenticated even without profile
+              isAuthenticated: true, // Keep authenticated even if profile fails
               isLoading: false,
               error: null,
               sessionChecked: true,

@@ -22,7 +22,8 @@ export default function ProfileScreen() {
     isLoading: authLoading,
     isAuthenticated,
     checkSession,
-    sessionChecked
+    sessionChecked,
+    user
   } = useAuthStore();
   const { setProfilePicture } = useUserProfileStore();
   const router = useRouter();
@@ -32,13 +33,24 @@ export default function ProfileScreen() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'chatbot'>('profile');
   const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   // Check session when component mounts
   useEffect(() => {
-    if (!sessionChecked) {
-      console.log('🔄 Profile screen: Checking session...');
-      checkSession();
-    }
+    const initializeProfile = async () => {
+      try {
+        if (!sessionChecked) {
+          console.log('🔄 Profile screen: Checking session...');
+          await checkSession();
+        }
+      } catch (error) {
+        console.warn('Error checking session:', error);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    initializeProfile();
   }, [sessionChecked, checkSession]);
 
   useEffect(() => {
@@ -182,7 +194,7 @@ export default function ProfileScreen() {
     color: '#FF6A00',
   };
 
-  const isLoading = authLoading || !sessionChecked;
+  const isLoading = authLoading || isInitializing;
 
   if (isLoading) {
     return (
@@ -217,7 +229,10 @@ export default function ProfileScreen() {
     );
   }
 
-  if (!profile) {
+  // Use profile from auth store or user data as fallback
+  const displayProfile = profile || user;
+
+  if (!displayProfile) {
     return (
       <View style={[styles.container, { backgroundColor: '#000000' }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -248,7 +263,7 @@ export default function ProfileScreen() {
             Your Bar Buddy Profile
           </Text>
         </View>
-        {profile && (
+        {displayProfile && (
           <Pressable style={styles.signOutButton} onPress={handleSignOut}>
             <LogOut size={20} color={themeColors.error} />
           </Pressable>
@@ -296,8 +311,8 @@ export default function ProfileScreen() {
           {/* Profile Card */}
           <View style={[styles.profileCard, { backgroundColor: themeColors.card }]}>
             <Pressable style={styles.avatarContainer} onPress={handleProfilePicturePress}>
-              {profile.profile_picture ? (
-                <Image source={{ uri: profile.profile_picture }} style={styles.avatarImage} />
+              {displayProfile.profile_picture ? (
+                <Image source={{ uri: displayProfile.profile_picture }} style={styles.avatarImage} />
               ) : (
                 <View style={[styles.avatar, { backgroundColor: themeColors.primary }]}>
                   <User size={32} color="white" />
@@ -310,17 +325,17 @@ export default function ProfileScreen() {
             
             <View style={styles.nameContainer}>
               <Text style={[styles.userName, { color: themeColors.text }]}>
-                @{profile.username}
+                @{displayProfile.username || displayProfile.user_metadata?.username || 'user'}
               </Text>
             </View>
             
             <Text style={[styles.joinDate, { color: themeColors.subtext }]}>
-              Member since {formatJoinDate(profile.created_at)}
+              Member since {formatJoinDate(displayProfile.created_at || new Date().toISOString())}
             </Text>
 
-            {profile.email && (
+            {(displayProfile.email || displayProfile.phone) && (
               <Text style={[styles.email, { color: themeColors.subtext }]}>
-                {profile.email}
+                {displayProfile.email || displayProfile.phone}
               </Text>
             )}
           </View>
@@ -334,7 +349,7 @@ export default function ProfileScreen() {
               <Award size={24} color={rankInfo.color} />
               <View style={styles.xpInfo}>
                 <Text style={[styles.xpAmount, { color: themeColors.text }]}>
-                  {profile.xp || 0} XP
+                  {displayProfile.xp || 0} XP
                 </Text>
                 <Text style={[styles.nextRankText, { color: themeColors.subtext }]}>
                   Keep tracking to earn more XP
