@@ -50,7 +50,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const [isInteracting, setIsInteracting] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
 
-  // Memoized interaction data
+  // Memoized interaction data - fix the null to undefined conversion
   const interactionData = useMemo(() => {
     const hotTimeData = localHotTime !== null ? localHotTime : getHotTimeWithLikes(venue.id);
     

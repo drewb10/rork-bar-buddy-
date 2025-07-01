@@ -35,6 +35,84 @@ export default function VenueModals({
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
 
+  const ModalContent = ({ 
+    title, 
+    selectedValue, 
+    onSelect, 
+    onSubmit, 
+    onCancelPress,
+    submitText 
+  }: {
+    title: string;
+    selectedValue: string | null;
+    onSelect: (value: string) => void;
+    onSubmit: () => void;
+    onCancelPress: () => void;
+    submitText: string;
+  }) => (
+    <View style={styles.modalOverlay}>
+      <View style={[styles.modalContent, { 
+        backgroundColor: themeColors.glass?.background || themeColors.card,
+        borderColor: themeColors.glass?.border || themeColors.border,
+      }]}>
+        <Text style={[styles.modalTitle, { color: themeColors.text }]}>
+          {title}
+        </Text>
+        
+        <View style={styles.timeSlotContainer}>
+          {timeSlots.map((time, index) => (
+            <Pressable
+              key={index}
+              style={[
+                styles.timeSlot,
+                { 
+                  backgroundColor: selectedValue === time 
+                    ? themeColors.primary 
+                    : 'transparent',
+                  borderColor: themeColors.primary
+                }
+              ]}
+              onPress={() => onSelect(time)}
+            >
+              <Text 
+                style={[
+                  styles.timeSlotText, 
+                  { color: selectedValue === time ? 'white' : themeColors.primary }
+                ]}
+              >
+                {formatTimeSlot(time)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        
+        <View style={styles.modalActions}>
+          <Pressable 
+            style={[styles.modalButton, styles.cancelButton]} 
+            onPress={onCancelPress}
+          >
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </Pressable>
+          
+          <Pressable 
+            style={[
+              styles.modalButton, 
+              styles.submitButton, 
+              { 
+                backgroundColor: selectedValue ? themeColors.primary : themeColors.card,
+                opacity: selectedValue ? 1 : 0.5
+              }
+            ]} 
+            onPress={onSubmit}
+            disabled={!selectedValue}
+          >
+            <Text style={styles.submitButtonText}>{submitText}</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <>
       {/* RSVP Modal */}
@@ -44,67 +122,14 @@ export default function VenueModals({
         visible={rsvpModalVisible}
         onRequestClose={() => onCancel('rsvp')}
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { 
-            backgroundColor: themeColors.glass?.background || themeColors.card,
-            borderColor: themeColors.glass?.border || themeColors.border,
-          }]}>
-            <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-              What time are you heading to {venue.name}?
-            </Text>
-            
-            <View style={styles.timeSlotContainer}>
-              {timeSlots.map((time, index) => (
-                <Pressable
-                  key={index}
-                  style={[
-                    styles.timeSlot,
-                    { 
-                      backgroundColor: selectedTime === time 
-                        ? themeColors.primary 
-                        : 'transparent',
-                      borderColor: themeColors.primary
-                    }
-                  ]}
-                  onPress={() => onTimeSelect(time)}
-                >
-                  <Text 
-                    style={[
-                      styles.timeSlotText, 
-                      { color: selectedTime === time ? 'white' : themeColors.primary }
-                    ]}
-                  >
-                    {formatTimeSlot(time)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            
-            <View style={styles.modalActions}>
-              <Pressable 
-                style={[styles.modalButton, styles.cancelButton]} 
-                onPress={() => onCancel('rsvp')}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </Pressable>
-              
-              <Pressable 
-                style={[
-                  styles.modalButton, 
-                  styles.submitButton, 
-                  { 
-                    backgroundColor: selectedTime ? themeColors.primary : themeColors.card,
-                    opacity: selectedTime ? 1 : 0.5
-                  }
-                ]} 
-                onPress={onRsvpSubmit}
-                disabled={!selectedTime}
-              >
-                <Text style={styles.submitButtonText}>Submit (+35 XP)</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
+        <ModalContent
+          title={`What time are you heading to ${venue.name}?`}
+          selectedValue={selectedTime}
+          onSelect={onTimeSelect}
+          onSubmit={onRsvpSubmit}
+          onCancelPress={() => onCancel('rsvp')}
+          submitText="Submit (+35 XP)"
+        />
       </Modal>
 
       {/* Like Time Slot Modal */}
@@ -114,67 +139,14 @@ export default function VenueModals({
         visible={likeModalVisible}
         onRequestClose={() => onCancel('like')}
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { 
-            backgroundColor: themeColors.glass?.background || themeColors.card,
-            borderColor: themeColors.glass?.border || themeColors.border,
-          }]}>
-            <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-              What time are you most likely to visit {venue.name}?
-            </Text>
-            
-            <View style={styles.timeSlotContainer}>
-              {timeSlots.map((time, index) => (
-                <Pressable
-                  key={index}
-                  style={[
-                    styles.timeSlot,
-                    { 
-                      backgroundColor: selectedLikeTime === time 
-                        ? themeColors.primary 
-                        : 'transparent',
-                      borderColor: themeColors.primary
-                    }
-                  ]}
-                  onPress={() => onLikeTimeSelect(time)}
-                >
-                  <Text 
-                    style={[
-                      styles.timeSlotText, 
-                      { color: selectedLikeTime === time ? 'white' : themeColors.primary }
-                    ]}
-                  >
-                    {formatTimeSlot(time)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            
-            <View style={styles.modalActions}>
-              <Pressable 
-                style={[styles.modalButton, styles.cancelButton]} 
-                onPress={() => onCancel('like')}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </Pressable>
-              
-              <Pressable 
-                style={[
-                  styles.modalButton, 
-                  styles.submitButton, 
-                  { 
-                    backgroundColor: selectedLikeTime ? themeColors.primary : themeColors.card,
-                    opacity: selectedLikeTime ? 1 : 0.5
-                  }
-                ]} 
-                onPress={onLikeSubmit}
-                disabled={!selectedLikeTime}
-              >
-                <Text style={styles.submitButtonText}>Like This Bar 🔥</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
+        <ModalContent
+          title={`What time are you most likely to visit ${venue.name}?`}
+          selectedValue={selectedLikeTime}
+          onSelect={onLikeTimeSelect}
+          onSubmit={onLikeSubmit}
+          onCancelPress={() => onCancel('like')}
+          submitText="Like This Bar 🔥"
+        />
       </Modal>
     </>
   );
