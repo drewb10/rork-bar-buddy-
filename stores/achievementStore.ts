@@ -447,6 +447,8 @@ export const useAchievementStore = create<AchievementState>()(
         try {
           const { updateAchievementProgress } = get();
           
+          console.log('🏆 Updating achievement progress with stats:', stats);
+          
           // Update all achievement progress
           updateAchievementProgress('bars-visited', stats.barsHit);
           updateAchievementProgress('nights-out', stats.nightsOut);
@@ -457,6 +459,8 @@ export const useAchievementStore = create<AchievementState>()(
           updateAchievementProgress('shotguns', stats.totalShotguns);
           updateAchievementProgress('pool-games', stats.poolGamesWon);
           updateAchievementProgress('dart-games', stats.dartGamesWon);
+          
+          console.log('✅ Achievement progress updated successfully');
         } catch (error) {
           console.warn('Error checking and updating achievements:', error);
         }

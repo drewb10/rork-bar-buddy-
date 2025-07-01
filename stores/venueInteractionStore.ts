@@ -33,6 +33,9 @@ interface VenueInteractionState {
   getTimeSlotData: (venueId: string) => { time: string; count: number; likes: number }[];
   getAllInteractionsForVenue: (venueId: string) => VenueInteraction[];
   getDetailedTimeSlotData: (venueId: string) => { time: string; visits: number; likes: number; isCurrentHour: boolean; isPeak: boolean }[];
+  // New methods for better syncing
+  forceUpdate: () => void;
+  getTotalBarsVisited: () => number;
 }
 
 const RESET_HOUR = 5;
@@ -164,6 +167,9 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           // Award XP through user profile store with debouncing
           debouncedAwardXP(venueId, isNewBar);
           
+          // Update achievements
+          debouncedUpdateAchievements();
+          
           // Sync to Supabase
           get().syncToSupabase(venueId, arrivalTime);
         } catch (error) {
@@ -226,7 +232,13 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           // Award XP for liking a bar with debouncing
           debouncedAwardLikeXP(venueId);
           
+          // Update achievements for bars visited
+          debouncedUpdateAchievements();
+          
           console.log('✅ Like venue completed, triggering re-render...');
+          
+          // Force update to trigger re-renders across components
+          get().forceUpdate();
         } catch (error) {
           console.warn('Error liking venue:', error);
         }
@@ -259,6 +271,17 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           return interactions
             .filter(Boolean)
             .reduce((total, interaction) => total + (interaction?.likes || 0), 0);
+        } catch {
+          return 0;
+        }
+      },
+      
+      getTotalBarsVisited: () => {
+        try {
+          const { interactions } = get();
+          return interactions
+            .filter(i => i && i.venueId && (i.likes > 0 || i.count > 0))
+            .length;
         } catch {
           return 0;
         }
@@ -516,6 +539,11 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
         }
       },
 
+      forceUpdate: () => {
+        // Force a state update to trigger re-renders
+        set((state) => ({ ...state }));
+      },
+
       syncToSupabase: async (venueId: string, arrivalTime?: string) => {
         try {
           // Mock implementation - would sync to Supabase in real app
@@ -574,6 +602,38 @@ const debouncedAwardLikeXP = debounce((venueId: string) => {
     console.warn('Error awarding like XP:', error);
   }
 }, 300);
+
+// Debounced achievement update function
+const debouncedUpdateAchievements = debounce(() => {
+  try {
+    if (typeof window !== 'undefined' && (window as any).__achievementStore && (window as any).__userProfileStore) {
+      const achievementStore = (window as any).__achievementStore;
+      const userProfileStore = (window as any).__userProfileStore;
+      
+      if (achievementStore?.getState && userProfileStore?.getState) {
+        const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
+        const { profile } = userProfileStore.getState();
+        
+        if (profile) {
+          checkAndUpdateMultiLevelAchievements({
+            totalBeers: profile.total_beers || 0,
+            totalShots: profile.total_shots || 0,
+            totalBeerTowers: profile.total_beer_towers || 0,
+            totalScoopAndScores: 0, // Not tracked
+            totalFunnels: profile.total_funnels || 0,
+            totalShotguns: profile.total_shotguns || 0,
+            poolGamesWon: profile.pool_games_won || 0,
+            dartGamesWon: profile.dart_games_won || 0,
+            barsHit: profile.bars_hit || 0,
+            nightsOut: profile.nights_out || 0,
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Error updating achievements:', error);
+  }
+}, 500);
 
 // Store reference for cross-store access
 if (typeof window !== 'undefined') {

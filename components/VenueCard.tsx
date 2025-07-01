@@ -26,7 +26,8 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     canInteract, 
     getHotTimeWithLikes,
     likeVenue,
-    canLikeVenue
+    canLikeVenue,
+    forceUpdate
   } = useVenueInteractionStore();
   const { incrementNightsOut, incrementBarsHit, canIncrementNightsOut } = useUserProfileStore();
   
@@ -117,12 +118,17 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         // Submit the like to the store
         likeVenue(venue.id, selectedLikeTime);
         
+        // Force update to trigger re-renders across all components
+        setTimeout(() => {
+          forceUpdate();
+        }, 100);
+        
         // Close modal and reset state
         setLikeModalVisible(false);
         setSelectedLikeTime(null);
         setIsLiking(false);
         
-        console.log('✅ Like venue completed with real-time UI update');
+        console.log('✅ Like venue completed with real-time UI update and force refresh');
       } catch (error) {
         console.error('Error submitting like:', error);
         // Revert local state on error
@@ -132,7 +138,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         setIsLiking(false);
       }
     }
-  }, [selectedLikeTime, venue.id, likeVenue, getLikeCount]);
+  }, [selectedLikeTime, venue.id, likeVenue, getLikeCount, forceUpdate]);
 
   const handleRsvpCancel = useCallback(() => {
     setRsvpModalVisible(false);

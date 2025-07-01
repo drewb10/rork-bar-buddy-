@@ -11,6 +11,7 @@ import OnboardingModal from '@/components/OnboardingModal';
 import DailyTracker from '@/components/DailyTracker';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
+import { useUserProfileStore } from '@/stores/userProfileStore';
 
 export default function ProfileScreen() {
   const { theme } = useThemeStore();
@@ -23,6 +24,7 @@ export default function ProfileScreen() {
     checkSession,
     sessionChecked
   } = useAuthStore();
+  const { setProfilePicture } = useUserProfileStore();
   const router = useRouter();
   
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
@@ -86,8 +88,9 @@ export default function ProfileScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        // TODO: Implement profile picture update
-        console.log('Profile picture selected:', result.assets[0].uri);
+        // Save profile picture
+        await setProfilePicture(result.assets[0].uri);
+        console.log('✅ Profile picture updated from library:', result.assets[0].uri);
       }
     } catch (error) {
       console.warn('Error picking image:', error);
@@ -110,8 +113,19 @@ export default function ProfileScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        // TODO: Implement profile picture update
-        console.log('Photo taken:', result.assets[0].uri);
+        // Save profile picture and award XP for photo taken
+        await setProfilePicture(result.assets[0].uri);
+        
+        // Award XP for taking a photo
+        if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
+          const userProfileStore = (window as any).__userProfileStore;
+          if (userProfileStore?.getState) {
+            const { incrementPhotosTaken } = userProfileStore.getState();
+            await incrementPhotosTaken();
+          }
+        }
+        
+        console.log('✅ Profile picture updated from camera:', result.assets[0].uri);
       }
     } catch (error) {
       console.warn('Error taking photo:', error);

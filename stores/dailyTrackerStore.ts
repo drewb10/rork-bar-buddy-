@@ -78,6 +78,14 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
         }));
       },
 
+      resetLocalStats: () => {
+        console.log('🔄 Resetting daily tracker stats to default values');
+        set({ 
+          localStats: { ...defaultStats },
+          error: null,
+        });
+      },
+
       loadTodayStats: async () => {
         if (!isSupabaseConfigured()) {
           console.log('📊 DailyTracker: Supabase not configured, using local stats');
@@ -106,7 +114,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
           if (!userId) {
             console.log('📊 DailyTracker: No authenticated user, using default stats');
             set({ 
-              localStats: defaultStats, 
+              localStats: { ...defaultStats }, 
               isLoading: false,
               lastSyncDate: today,
               error: null,
@@ -150,7 +158,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
           console.error('📊 DailyTracker: Error loading today stats:', error);
           const errorMessage = error instanceof Error ? error.message : 'Failed to load stats';
           set({ 
-            localStats: defaultStats, 
+            localStats: { ...defaultStats }, 
             isLoading: false,
             lastSyncDate: today,
             error: errorMessage,
@@ -226,13 +234,6 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
           });
           throw error;
         }
-      },
-
-      resetLocalStats: () => {
-        set({ 
-          localStats: defaultStats,
-          error: null,
-        });
       },
 
       canSubmitDrunkScale: async () => {

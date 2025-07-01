@@ -55,7 +55,7 @@ export default function TopPickCard({ venue }: TopPickCardProps) {
         style={styles.gradient}
       />
       
-      {/* Flame count badge - top left */}
+      {/* Flame count badge - top left - DISPLAY ONLY (no interaction) */}
       {interactionData.likeCount > 0 && (
         <View style={[styles.flameBadge, { backgroundColor: themeColors.primary }]}>
           <Flame size={10} color="white" fill="white" />
@@ -72,7 +72,7 @@ export default function TopPickCard({ venue }: TopPickCardProps) {
           {venue.types[0]?.replace('-', ' ')}
         </Text>
 
-        {/* Hot Time Display - increased size by 20% */}
+        {/* Hot Time Display - increased size by 20% - DISPLAY ONLY */}
         {interactionData.hotTimeData && (
           <View style={[styles.hotTimeBadge, { backgroundColor: themeColors.primary + '20' }]}>
             <Flame size={10} color={themeColors.primary} />

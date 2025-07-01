@@ -84,6 +84,7 @@ interface UserProfileState {
   checkAndResetDrunkScaleIfNeeded: () => void;
   setProfileReady: (ready: boolean) => void;
   syncStatsFromDailyStats: () => Promise<void>;
+  incrementPhotosTaken: () => Promise<void>;
 }
 
 const XP_VALUES = {
@@ -426,6 +427,20 @@ export const useUserProfileStore = create<UserProfileState>()(
         // Award XP for bar visit
         await get().awardXP('visit_new_bar', 'Visited a new bar');
       },
+
+      incrementPhotosTaken: async () => {
+        const { profile } = get();
+        if (!profile) return;
+
+        const newPhotosTaken = (profile.photos_taken || 0) + 1;
+        
+        await get().updateProfile({
+          photos_taken: newPhotosTaken
+        });
+        
+        // Award XP for photo taken
+        await get().awardXP('photo_taken', 'Took a photo');
+      },
       
       addDrunkScaleRating: async (rating: number) => {
         const { profile } = get();
@@ -490,6 +505,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           case 'visit_new_bar':
             if (venueId && !profile.visited_bars?.includes(venueId)) {
               updates.visited_bars = [...(profile.visited_bars || []), venueId];
+              updates.bars_hit = (profile.bars_hit || 0) + 1;
             }
             break;
           case 'photo_taken':
@@ -527,7 +543,14 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
 
       setProfilePicture: async (uri: string) => {
-        await get().updateProfile({ profile_picture: uri });
+        try {
+          // For now, just store the URI directly
+          // In a real app, you'd upload to Supabase Storage first
+          await get().updateProfile({ profile_picture: uri });
+          console.log('✅ Profile picture updated successfully');
+        } catch (error) {
+          console.error('Error setting profile picture:', error);
+        }
       },
 
       searchUserByUsername: async (username: string): Promise<Friend | null> => {
@@ -781,6 +804,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           drunk_scale_ratings: state.profile.drunk_scale_ratings,
           last_drunk_scale_date: state.profile.last_drunk_scale_date,
           profile_picture: state.profile.profile_picture,
+          photos_taken: state.profile.photos_taken,
         } : null,
       }),
     }
