@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, Pressable, Image, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MapPin, Clock, Star, Flame, TrendingUp, MessageCircle } from 'lucide-react-native';
 import { Venue } from '@/types/venue';
-import { colors } from '@/constants/colors';
+import { getThemeColors, spacing, typography, borderRadius, shadows } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
@@ -18,7 +18,7 @@ interface VenueCardProps {
 export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const router = useRouter();
   const { theme } = useThemeStore();
-  const themeColors = colors[theme];
+  const themeColors = getThemeColors(theme);
   const { 
     incrementInteraction, 
     getInteractionCount, 
@@ -31,12 +31,12 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   } = useVenueInteractionStore();
   const { incrementNightsOut, incrementBarsHit, canIncrementNightsOut } = useUserProfileStore();
   
-  // Local state for real-time UI updates - CRITICAL FIX
+  // Local state for real-time UI updates
   const [localLikeCount, setLocalLikeCount] = useState<number | null>(null);
   const [localCanLike, setLocalCanLike] = useState<boolean | null>(null);
   const [localHotTime, setLocalHotTime] = useState<{ time: string; likes: number } | null>(null);
   
-  // Memoize interaction data to prevent unnecessary re-calculations
+  // Memoize interaction data
   const interactionData = useMemo(() => ({
     interactionCount: getInteractionCount(venue.id),
     likeCount: localLikeCount !== null ? localLikeCount : getLikeCount(venue.id),
@@ -54,12 +54,12 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const [isLiking, setIsLiking] = useState(false);
 
   const handlePress = useCallback(() => {
-    if (isInteracting || isLiking) return; // Prevent multiple clicks
+    if (isInteracting || isLiking) return;
     router.push(`/venue/${venue.id}`);
   }, [isInteracting, isLiking, router, venue.id]);
 
   const handleChatPress = useCallback((e: any) => {
-    e.stopPropagation(); // Prevent venue navigation
+    e.stopPropagation();
     setChatModalVisible(true);
   }, []);
 
@@ -67,13 +67,11 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     if (!interactionData.canInteractWithVenue || isInteracting) return;
     
     setIsInteracting(true);
-    
-    // Show RSVP modal
     setRsvpModalVisible(true);
   }, [interactionData.canInteractWithVenue, isInteracting]);
 
   const handleLikePress = useCallback((e: any) => {
-    e.stopPropagation(); // Prevent venue navigation
+    e.stopPropagation();
     if (!interactionData.canLikeThisVenue || isLiking) return;
     
     setIsLiking(true);
@@ -85,10 +83,8 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
       try {
         incrementInteraction(venue.id, selectedTime);
         
-        // Increment bars hit (always increments and awards XP)
         await incrementBarsHit();
         
-        // Increment nights out (only once per day and awards XP)
         if (canIncrementNightsOut()) {
           await incrementNightsOut();
         }
@@ -106,32 +102,24 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const handleLikeSubmit = useCallback(async () => {
     if (selectedLikeTime) {
       try {
-        // CRITICAL FIX: Immediately update local state for real-time UI feedback
         const currentLikeCount = getLikeCount(venue.id);
         setLocalLikeCount(currentLikeCount + 1);
         setLocalCanLike(false);
         
-        // Update hot time data immediately
         const newHotTime = { time: selectedLikeTime, likes: 1 };
         setLocalHotTime(newHotTime);
         
-        // Submit the like to the store
         likeVenue(venue.id, selectedLikeTime);
         
-        // Force update to trigger re-renders across all components
         setTimeout(() => {
           forceUpdate();
         }, 100);
         
-        // Close modal and reset state
         setLikeModalVisible(false);
         setSelectedLikeTime(null);
         setIsLiking(false);
-        
-        console.log('✅ Like venue completed with real-time UI update and force refresh');
       } catch (error) {
         console.error('Error submitting like:', error);
-        // Revert local state on error
         setLocalLikeCount(null);
         setLocalCanLike(null);
         setLocalHotTime(null);
@@ -160,18 +148,16 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     return symbols.join('');
   }, [venue.priceLevel]);
 
-  // Get today's specials - memoized
   const todaySpecials = useMemo(() => {
     return venue.specials.filter(
       special => special.day === getCurrentDay()
     );
   }, [venue.specials]);
 
-  // Generate time slots for RSVP and likes - memoized
   const timeSlots = useMemo(() => {
     const slots = [];
-    const startHour = 19; // 7 PM
-    const endHour = 2; // 2 AM
+    const startHour = 19;
+    const endHour = 2;
     
     for (let hour = startHour; hour <= 23; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
@@ -179,7 +165,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
       }
     }
     
-    // Add early morning hours
     for (let hour = 0; hour <= endHour; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
         slots.push(`${hour}:${minute === 0 ? '00' : minute}`);
@@ -205,11 +190,10 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         >
           <Image source={{ uri: venue.featuredImage }} style={styles.compactImage} />
           <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.7)']}
+            colors={['transparent', 'rgba(0,0,0,0.6)']}
             style={styles.compactGradient}
           />
           
-          {/* Total likes display - top left */}
           {interactionData.likeCount > 0 && (
             <View style={[styles.compactTotalLikes, { backgroundColor: themeColors.primary }]}>
               <Flame size={12} color="white" fill="white" />
@@ -217,10 +201,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
             </View>
           )}
 
-          {/* NO LIKE BUTTON FOR COMPACT CARDS (Top Picks) - CRITICAL FIX */}
-          {/* This ensures Top Picks only show like count, not like button */}
-
-          {/* Chat Button */}
           <Pressable 
             style={[styles.compactChatButton, { backgroundColor: themeColors.primary }]}
             onPress={handleChatPress}
@@ -244,7 +224,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           </View>
         </Pressable>
 
-        {/* Chat Modal for Compact Cards */}
         <ChatModal
           visible={chatModalVisible}
           onClose={() => setChatModalVisible(false)}
@@ -263,46 +242,42 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
       >
         <Image source={{ uri: venue.featuredImage }} style={styles.image} />
         <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.7)']}
+          colors={['transparent', 'rgba(0,0,0,0.6)']}
           style={styles.imageGradient}
         />
         
-        {/* Total likes display - top left */}
         {interactionData.likeCount > 0 && (
           <View style={[styles.totalLikesDisplay, { backgroundColor: themeColors.primary }]}>
-            <Flame size={18} color="white" fill="white" />
+            <Flame size={16} color="white" fill="white" />
             <Text style={styles.totalLikesText}>{interactionData.likeCount}</Text>
           </View>
         )}
 
-        {/* Like button - top right with semi-transparent state - CRITICAL FIX */}
         <Pressable 
           style={[
             styles.likeButton, 
             { 
               backgroundColor: interactionData.canLikeThisVenue ? themeColors.primary : themeColors.border,
-              opacity: interactionData.canLikeThisVenue ? 1 : 0.3 // More transparent when used
+              opacity: interactionData.canLikeThisVenue ? 1 : 0.4
             }
           ]}
           onPress={handleLikePress}
           disabled={!interactionData.canLikeThisVenue || isLiking}
         >
           <Flame 
-            size={18} 
+            size={16} 
             color="white"
             fill={interactionData.canLikeThisVenue ? "transparent" : "white"}
           />
         </Pressable>
 
-        {/* Chat Button */}
         <Pressable 
           style={[styles.chatButton, { backgroundColor: themeColors.primary }]}
           onPress={handleChatPress}
         >
-          <MessageCircle size={18} color="white" />
+          <MessageCircle size={16} color="white" />
         </Pressable>
 
-        {/* Analytics indicator for venues with data */}
         {interactionData.likeCount > 5 && (
           <View style={[styles.analyticsIndicator, { backgroundColor: themeColors.primary + '20' }]}>
             <TrendingUp size={12} color={themeColors.primary} />
@@ -313,7 +288,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           <View style={styles.header}>
             <Text style={[styles.name, { color: themeColors.text }]}>{venue.name}</Text>
             <View style={styles.ratingContainer}>
-              <Star size={16} color={themeColors.primary} fill={themeColors.primary} />
+              <Star size={14} color={themeColors.primary} fill={themeColors.primary} />
               <Text style={[styles.rating, { color: themeColors.text }]}>{venue.rating}</Text>
             </View>
           </View>
@@ -322,7 +297,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
             {venue.types.map((type, index) => (
               <View 
                 key={index} 
-                style={[styles.typeTag, { backgroundColor: themeColors.primary + '20' }]}
+                style={[styles.typeTag, { backgroundColor: themeColors.primary + '15' }]}
               >
                 <Text style={[styles.typeText, { color: themeColors.primary }]}>
                   {type.replace('-', ' ')}
@@ -334,10 +309,9 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
             </Text>
           </View>
 
-          {/* Hot Time Display with like count */}
           {interactionData.hotTimeData && (
-            <View style={[styles.hotTimeBadge, { backgroundColor: themeColors.primary + '20' }]}>
-              <Flame size={14} color={themeColors.primary} />
+            <View style={[styles.hotTimeBadge, { backgroundColor: themeColors.primary + '15' }]}>
+              <Flame size={12} color={themeColors.primary} />
               <Text style={[styles.hotTimeText, { color: themeColors.primary }]}>
                 Hot Time: {formatTimeSlot(interactionData.hotTimeData.time)} — {interactionData.hotTimeData.likes} Likes
               </Text>
@@ -345,7 +319,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           )}
           
           {todaySpecials.length > 0 && (
-            <View style={[styles.specialsContainer, { backgroundColor: 'rgba(255,106,0,0.1)' }]}>
+            <View style={[styles.specialsContainer, { backgroundColor: themeColors.primary + '10' }]}>
               <Text style={[styles.specialsTitle, { color: themeColors.primary }]}>
                 Today's Specials:
               </Text>
@@ -358,7 +332,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           )}
           
           <View style={styles.infoRow}>
-            <MapPin size={16} color={themeColors.subtext} />
+            <MapPin size={14} color={themeColors.subtext} />
             <Text style={[styles.infoText, { color: themeColors.subtext }]} numberOfLines={1}>
               {venue.address.split(',')[0]}
             </Text>
@@ -366,7 +340,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           
           {venue.openHours.find(h => h.day === getCurrentDay() && !h.closed) && (
             <View style={styles.infoRow}>
-              <Clock size={16} color={themeColors.subtext} />
+              <Clock size={14} color={themeColors.subtext} />
               <Text style={[styles.infoText, { color: themeColors.subtext }]}>
                 {formatOpenHours(venue.openHours.find(h => h.day === getCurrentDay()))}
               </Text>
@@ -375,7 +349,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         </View>
       </Pressable>
 
-      {/* RSVP Modal for check-ins (separate from likes) */}
+      {/* RSVP Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -515,7 +489,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         </View>
       </Modal>
 
-      {/* Chat Modal */}
       <ChatModal
         visible={chatModalVisible}
         onClose={() => setChatModalVisible(false)}
@@ -544,273 +517,215 @@ function formatOpenHours(hours?: { open: string; close: string; closed?: boolean
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 20,
-    marginBottom: 16,
+    borderRadius: borderRadius.xl,
+    marginBottom: spacing.lg,
     overflow: 'hidden',
     position: 'relative',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    ...shadows.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   image: {
     width: '100%',
-    height: 180,
+    height: 200,
   },
   imageGradient: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 180,
+    height: 200,
   },
   totalLikesDisplay: {
     position: 'absolute',
-    top: 12,
-    left: 12,
+    top: spacing.md,
+    left: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    borderWidth: 0.5,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    ...shadows.md,
+    borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   totalLikesText: {
     color: 'white',
-    fontSize: 12,
-    fontWeight: '700',
-    marginLeft: 4,
+    ...typography.smallMedium,
+    marginLeft: spacing.xs,
   },
   likeButton: {
     position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    top: spacing.md,
+    right: spacing.md,
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    borderWidth: 0.5,
+    ...shadows.md,
+    borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   chatButton: {
     position: 'absolute',
-    top: 12,
-    right: 60,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    top: spacing.md,
+    right: spacing.md + 52,
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    borderWidth: 0.5,
+    ...shadows.md,
+    borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   analyticsIndicator: {
     position: 'absolute',
-    top: 60,
-    left: 12,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    top: spacing.md + 52,
+    left: spacing.md,
+    width: 32,
+    height: 32,
+    borderRadius: borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    ...shadows.sm,
   },
   content: {
-    padding: 20,
+    padding: spacing.xl,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
   },
   name: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...typography.heading3,
     flex: 1,
-    letterSpacing: 0.3,
+    marginRight: spacing.md,
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   rating: {
-    marginLeft: 4,
-    fontWeight: '700',
+    marginLeft: spacing.xs,
+    ...typography.bodyMedium,
   },
   typeContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
     alignItems: 'center',
   },
   typeTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 8,
-    marginBottom: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    marginRight: spacing.sm,
+    marginBottom: spacing.xs,
+    ...shadows.sm,
   },
   typeText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...typography.captionMedium,
     textTransform: 'capitalize',
-    letterSpacing: 0.2,
   },
   price: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...typography.bodyMedium,
   },
   hotTimeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 16,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.lg,
     alignSelf: 'flex-start',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...shadows.sm,
   },
   hotTimeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginLeft: 6,
-    letterSpacing: 0.2,
+    ...typography.captionMedium,
+    marginLeft: spacing.sm,
   },
   specialsContainer: {
-    marginBottom: 16,
-    padding: 12,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    marginBottom: spacing.lg,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    ...shadows.sm,
   },
   specialsTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 6,
-    letterSpacing: 0.2,
+    ...typography.captionMedium,
+    marginBottom: spacing.sm,
   },
   specialText: {
-    fontSize: 13,
-    marginBottom: 2,
+    ...typography.caption,
+    marginBottom: spacing.xs,
     lineHeight: 18,
-    fontWeight: '500',
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: spacing.sm,
   },
   infoText: {
-    marginLeft: 8,
-    fontSize: 14,
-    fontWeight: '500',
+    marginLeft: spacing.sm,
+    ...typography.caption,
   },
   compactCard: {
-    width: 160,
-    borderRadius: 16,
+    width: 180,
+    borderRadius: borderRadius.lg,
     overflow: 'hidden',
-    marginRight: 12,
+    marginRight: spacing.md,
     position: 'relative',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 6,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    ...shadows.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   compactImage: {
     width: '100%',
-    height: 100,
+    height: 120,
   },
   compactGradient: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 100,
+    height: 120,
   },
   compactTotalLikes: {
     position: 'absolute',
-    top: 8,
-    left: 8,
+    top: spacing.sm,
+    left: spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
+    ...shadows.sm,
   },
   compactTotalLikesText: {
     color: 'white',
-    fontSize: 10,
-    fontWeight: '700',
-    marginLeft: 3,
+    ...typography.small,
+    marginLeft: spacing.xs,
   },
   compactChatButton: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    top: spacing.sm,
+    right: spacing.sm,
+    width: 32,
+    height: 32,
+    borderRadius: borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
+    ...shadows.sm,
   },
   compactContent: {
-    padding: 12,
+    padding: spacing.md,
   },
   compactName: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 4,
-    letterSpacing: 0.2,
+    ...typography.bodyMedium,
+    marginBottom: spacing.xs,
   },
   compactDetails: {
     flexDirection: 'row',
@@ -818,10 +733,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   compactType: {
-    fontSize: 12,
+    ...typography.caption,
     flex: 1,
     textTransform: 'capitalize',
-    fontWeight: '500',
   },
   modalOverlay: {
     flex: 1,
@@ -832,80 +746,62 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '90%',
     maxHeight: '80%',
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: borderRadius.xxl,
+    padding: spacing.xl,
     alignItems: 'center',
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.3,
-    shadowRadius: 24,
-    elevation: 20,
+    ...shadows.xl,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 24,
+    ...typography.heading3,
+    marginBottom: spacing.xl,
     textAlign: 'center',
-    letterSpacing: 0.3,
   },
   timeSlotContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   timeSlot: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-    borderWidth: 1.5,
-    margin: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.xl,
+    borderWidth: 2,
+    margin: spacing.sm,
+    ...shadows.sm,
   },
   timeSlotText: {
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.2,
+    ...typography.bodyMedium,
   },
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    gap: 16,
+    gap: spacing.lg,
   },
   modalButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 28,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.xl,
     minWidth: 120,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    ...shadows.md,
   },
   cancelButton: {
     backgroundColor: 'transparent',
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: '#999',
   },
   cancelButtonText: {
     color: '#999',
-    fontWeight: '600',
-    letterSpacing: 0.3,
+    ...typography.bodyMedium,
   },
   submitButton: {
     backgroundColor: '#FF6A00',
   },
   submitButtonText: {
     color: 'white',
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    ...typography.bodyMedium,
   },
 });

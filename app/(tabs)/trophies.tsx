@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, RefreshControl } from 'react-native';
-import { colors } from '@/constants/colors';
+import { getThemeColors, spacing, typography, borderRadius, shadows } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useAchievementStoreSafe } from '@/stores/achievementStore';
@@ -9,7 +9,7 @@ import BarBuddyLogo from '@/components/BarBuddyLogo';
 
 export default function TrophiesScreen() {
   const { theme } = useThemeStore();
-  const themeColors = colors[theme];
+  const themeColors = getThemeColors(theme);
   const { isAuthenticated, profile } = useAuthStore();
   const { 
     completedAchievements, 
@@ -35,14 +35,12 @@ export default function TrophiesScreen() {
   });
   const [isLoadingStats, setIsLoadingStats] = useState(false);
 
-  // Initialize achievements when component mounts
   useEffect(() => {
     if (!isInitialized) {
       initializeAchievements();
     }
   }, [isInitialized, initializeAchievements]);
 
-  // Load lifetime stats when component mounts or when authenticated
   useEffect(() => {
     if (isAuthenticated) {
       loadLifetimeStats();
@@ -67,7 +65,6 @@ export default function TrophiesScreen() {
 
       console.log('🏆 Trophies: Loading lifetime stats from daily_stats table...');
       
-      // Get all daily stats for the user
       const { data: dailyStats, error } = await supabase
         .from('daily_stats')
         .select('*')
@@ -79,7 +76,6 @@ export default function TrophiesScreen() {
         return;
       }
 
-      // Calculate lifetime totals from daily stats
       const totals = (dailyStats || []).reduce((acc, day) => ({
         totalBeers: acc.totalBeers + (day.beers || 0),
         totalShots: acc.totalShots + (day.shots || 0),
@@ -91,7 +87,7 @@ export default function TrophiesScreen() {
         totalDrinksLogged: acc.totalDrinksLogged + (day.beers || 0) + (day.shots || 0) + (day.beer_towers || 0) + (day.funnels || 0) + (day.shotguns || 0),
         drunkScaleSum: acc.drunkScaleSum + (day.drunk_scale || 0),
         drunkScaleCount: acc.drunkScaleCount + (day.drunk_scale ? 1 : 0),
-        nightsOut: acc.nightsOut + 1, // Each day with stats counts as a night out
+        nightsOut: acc.nightsOut + 1,
       }), {
         totalBeers: 0,
         totalShots: 0,
@@ -106,7 +102,6 @@ export default function TrophiesScreen() {
         nightsOut: 0,
       });
 
-      // Calculate average drunk scale
       const avgDrunkScale = totals.drunkScaleCount > 0 
         ? Math.round((totals.drunkScaleSum / totals.drunkScaleCount) * 10) / 10 
         : 0;
@@ -121,9 +116,9 @@ export default function TrophiesScreen() {
         totalDartGames: totals.totalDartGames,
         totalDrinksLogged: totals.totalDrinksLogged,
         avgDrunkScale: avgDrunkScale,
-        barsHit: profile?.bars_hit || 0, // Still from profile
+        barsHit: profile?.bars_hit || 0,
         nightsOut: totals.nightsOut,
-        totalXP: profile?.xp || 0, // XP still comes from profile
+        totalXP: profile?.xp || 0,
       });
 
       console.log('🏆 Trophies: Lifetime stats loaded successfully from daily_stats');
@@ -147,7 +142,6 @@ export default function TrophiesScreen() {
     }
   };
 
-  // Memoize trophy categories
   const trophyCategories = useMemo(() => {
     const categories = ['bars', 'activities', 'social', 'milestones'] as const;
     
@@ -160,7 +154,7 @@ export default function TrophiesScreen() {
         trophies: categoryTrophies,
         count: categoryTrophies.length
       };
-    }).filter(category => category.count > 0); // Only show categories with trophies
+    }).filter(category => category.count > 0);
   }, [completedAchievements]);
 
   const StatCard = ({ title, value, subtitle, size = 'normal' }: { title: string; value: number | string; subtitle?: string; size?: 'normal' | 'large' }) => (
@@ -211,7 +205,7 @@ export default function TrophiesScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: '#000000' }]}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       <ScrollView 
@@ -284,7 +278,6 @@ export default function TrophiesScreen() {
         </View>
 
         {activeTab === 'stats' ? (
-          /* Lifetime Stats Section */
           <View style={styles.section}>
             {!isAuthenticated ? (
               <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
@@ -308,7 +301,6 @@ export default function TrophiesScreen() {
               </View>
             ) : (
               <>
-                {/* Activity Stats Grid */}
                 <View style={styles.statsGrid}>
                   <StatCard title="Shots Taken" value={lifetimeStats.totalShots} />
                   <StatCard title="Beers Logged" value={lifetimeStats.totalBeers} />
@@ -319,7 +311,6 @@ export default function TrophiesScreen() {
                   <StatCard title="Dart Games Won" value={lifetimeStats.totalDartGames} />
                 </View>
 
-                {/* Bottom Row - Larger Stats */}
                 <View style={styles.bottomStatsGrid}>
                   <StatCard 
                     title="Bars Hit" 
@@ -348,7 +339,6 @@ export default function TrophiesScreen() {
                   />
                 </View>
 
-                {/* XP Card */}
                 <View style={styles.bottomStatsGrid}>
                   <StatCard 
                     title="Total XP Earned" 
@@ -361,7 +351,6 @@ export default function TrophiesScreen() {
             )}
           </View>
         ) : (
-          /* Trophies Section */
           <View style={styles.section}>
             {!isAuthenticated ? (
               <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
@@ -417,172 +406,145 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: spacing.xxl,
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 50 : 30,
-    paddingBottom: 8,
-    paddingHorizontal: 16,
+    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   logoContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   titleSection: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
     alignItems: 'center',
   },
   pageTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    ...typography.heading1,
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   subtitle: {
-    fontSize: 16,
-    fontWeight: '500',
+    ...typography.body,
     textAlign: 'center',
   },
   tabContainer: {
     flexDirection: 'row',
-    marginHorizontal: 16,
-    marginBottom: 24,
-    gap: 12,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.xl,
+    gap: spacing.md,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'transparent',
   },
   tabText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.bodyMedium,
   },
   section: {
-    paddingHorizontal: 16,
-    marginBottom: 32,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.xl,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 16,
+    gap: spacing.md,
+    marginBottom: spacing.lg,
   },
   bottomStatsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 16,
+    gap: spacing.md,
+    marginBottom: spacing.lg,
   },
   statCard: {
     width: '48%',
-    padding: 16,
-    borderRadius: 16,
+    padding: spacing.lg,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    ...shadows.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   statCardLarge: {
-    padding: 20,
+    padding: spacing.xl,
   },
   statValue: {
-    fontSize: 28,
-    fontWeight: '800',
-    marginBottom: 4,
-    letterSpacing: 0.5,
+    ...typography.heading1,
+    marginBottom: spacing.xs,
   },
   statValueLarge: {
     fontSize: 36,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   statTitle: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...typography.caption,
     textAlign: 'center',
-    letterSpacing: 0.2,
   },
   statTitleLarge: {
-    fontSize: 15,
-    fontWeight: '700',
+    ...typography.captionMedium,
   },
   statSubtitle: {
-    fontSize: 11,
-    fontWeight: '500',
-    marginTop: 2,
+    ...typography.small,
+    marginTop: spacing.xs,
     textAlign: 'center',
   },
   emptyState: {
-    padding: 40,
-    borderRadius: 20,
+    padding: spacing.xxl,
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    ...shadows.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   emptyEmoji: {
     fontSize: 48,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 8,
-    letterSpacing: 0.3,
+    ...typography.heading3,
+    marginBottom: spacing.sm,
   },
   emptyDescription: {
-    fontSize: 16,
+    ...typography.body,
     textAlign: 'center',
     lineHeight: 22,
-    fontWeight: '500',
   },
   categorySection: {
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   categoryTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 16,
-    letterSpacing: 0.3,
+    ...typography.heading3,
+    marginBottom: spacing.lg,
   },
   trophyList: {
-    gap: 12,
+    gap: spacing.md,
   },
   trophyCard: {
     flexDirection: 'row',
-    padding: 16,
-    borderRadius: 16,
+    padding: spacing.lg,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    ...shadows.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   trophyIcon: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: borderRadius.xl,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: spacing.lg,
   },
   trophyEmoji: {
     fontSize: 28,
@@ -591,30 +553,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   trophyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 4,
-    letterSpacing: 0.2,
+    ...typography.bodyMedium,
+    marginBottom: spacing.xs,
   },
   trophyDescription: {
-    fontSize: 14,
+    ...typography.caption,
     lineHeight: 20,
-    fontWeight: '500',
   },
   levelBadge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 8,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
+    marginTop: spacing.sm,
   },
   levelText: {
     color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.2,
+    ...typography.captionMedium,
   },
   footer: {
-    height: 24,
+    height: spacing.xl,
   },
 });

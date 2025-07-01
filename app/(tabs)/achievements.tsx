@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal, Alert } from 'react-native';
 import { Trophy, Target, Users, Star, RotateCcw, X, Info } from 'lucide-react-native';
-import { colors } from '@/constants/colors';
+import { getThemeColors, spacing, typography, borderRadius, shadows } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAchievementStore, Achievement } from '@/stores/achievementStore';
 import AchievementPopup from '@/components/AchievementPopup';
@@ -9,7 +9,7 @@ import BarBuddyLogo from '@/components/BarBuddyLogo';
 
 export default function AchievementsScreen() {
   const { theme } = useThemeStore();
-  const themeColors = colors[theme];
+  const themeColors = getThemeColors(theme);
   const { 
     achievements, 
     initializeAchievements, 
@@ -145,7 +145,6 @@ export default function AchievementsScreen() {
                 )}
               </View>
               
-              {/* Progress Bar */}
               {renderProgressBar(achievement)}
             </Pressable>
           ))}
@@ -155,7 +154,7 @@ export default function AchievementsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: '#000000' }]}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       <ScrollView 
@@ -174,7 +173,7 @@ export default function AchievementsScreen() {
           </Text>
         </View>
 
-        {/* Progress Overview with enhanced styling */}
+        {/* Progress Overview */}
         <View style={[styles.progressCard, { backgroundColor: themeColors.card }]}>
           <View style={styles.progressHeader}>
             <Text style={[styles.progressTitle, { color: themeColors.text }]}>
@@ -207,7 +206,7 @@ export default function AchievementsScreen() {
           {(['bars', 'activities', 'social', 'milestones'] as const).map(renderAchievementCategory)}
         </View>
 
-        {/* Info Card with enhanced styling */}
+        {/* Info Card */}
         <View style={[styles.infoCard, { backgroundColor: themeColors.card }]}>
           <Text style={[styles.infoTitle, { color: themeColors.text }]}>
             💡 How it works
@@ -217,7 +216,7 @@ export default function AchievementsScreen() {
           </Text>
         </View>
 
-        {/* Reset Button with enhanced styling */}
+        {/* Reset Button */}
         <Pressable 
           style={[styles.resetButton, { backgroundColor: themeColors.card }]}
           onPress={() => {
@@ -240,7 +239,7 @@ export default function AchievementsScreen() {
         <View style={styles.footer} />
       </ScrollView>
 
-      {/* Achievement Detail Modal with glassmorphism */}
+      {/* Achievement Detail Modal */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -302,134 +301,106 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 28,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    marginTop: 12,
-    marginBottom: 8,
-    letterSpacing: 0.5,
+    ...typography.heading2,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
   headerSubtitle: {
-    fontSize: 16,
+    ...typography.body,
     textAlign: 'center',
     lineHeight: 22,
-    fontWeight: '500',
   },
   progressCard: {
-    marginHorizontal: 16,
-    marginBottom: 20,
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.xl,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
+    ...shadows.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   progressTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    ...typography.heading3,
   },
   progressPercentage: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    ...typography.heading1,
   },
   progressBar: {
-    height: 10,
-    borderRadius: 5,
-    marginBottom: 12,
+    height: 12,
+    borderRadius: borderRadius.sm,
+    marginBottom: spacing.md,
   },
   progressFill: {
     height: '100%',
-    borderRadius: 5,
+    borderRadius: borderRadius.sm,
   },
   progressText: {
-    fontSize: 14,
+    ...typography.caption,
     textAlign: 'center',
-    fontWeight: '600',
-    letterSpacing: 0.2,
   },
   categoriesContainer: {
-    paddingHorizontal: 16,
-    gap: 24,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.xl,
   },
   categorySection: {
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
+    ...shadows.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   categoryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   categoryTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginLeft: 8,
+    ...typography.heading3,
+    marginLeft: spacing.sm,
     flex: 1,
-    letterSpacing: 0.3,
   },
   categoryProgress: {
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.2,
+    ...typography.bodyMedium,
   },
   achievementList: {
-    gap: 16,
+    gap: spacing.lg,
   },
   achievementCard: {
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
     borderWidth: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 6,
+    ...shadows.sm,
   },
   achievementHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   achievementEmoji: {
     fontSize: 28,
-    marginRight: 16,
+    marginRight: spacing.lg,
   },
   achievementInfo: {
     flex: 1,
   },
   achievementName: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 6,
+    ...typography.bodyMedium,
+    marginBottom: spacing.sm,
     lineHeight: 20,
-    letterSpacing: 0.3,
   },
   achievementDescription: {
-    fontSize: 14,
+    ...typography.caption,
     lineHeight: 18,
-    fontWeight: '500',
   },
   completedBadge: {
     fontSize: 24,
@@ -438,138 +409,108 @@ const styles = StyleSheet.create({
   progressBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: spacing.lg,
   },
   progressBarBackground: {
     flex: 1,
     height: 8,
-    borderRadius: 4,
+    borderRadius: borderRadius.xs,
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: borderRadius.xs,
   },
   progressBarText: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.2,
+    ...typography.captionMedium,
   },
   infoCard: {
-    marginHorizontal: 16,
-    marginTop: 28,
-    marginBottom: 20,
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.xl,
+    marginBottom: spacing.xl,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
+    ...shadows.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   infoTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 12,
-    letterSpacing: 0.3,
+    ...typography.bodyMedium,
+    marginBottom: spacing.md,
   },
   infoText: {
-    fontSize: 14,
+    ...typography.caption,
     lineHeight: 20,
-    fontWeight: '500',
   },
   resetButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 16,
-    marginBottom: 20,
-    borderRadius: 16,
-    padding: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 6,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.xl,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    ...shadows.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   resetButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginLeft: 8,
-    letterSpacing: 0.3,
+    ...typography.captionMedium,
+    marginLeft: spacing.sm,
   },
   footer: {
-    height: 32,
+    height: spacing.xl,
   },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    padding: 20,
+    padding: spacing.xl,
   },
   modalContent: {
     width: '100%',
     maxWidth: 400,
-    borderRadius: 24,
-    padding: 28,
+    borderRadius: borderRadius.xxl,
+    padding: spacing.xl,
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.3,
-    shadowRadius: 24,
-    elevation: 20,
+    ...shadows.xl,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '800',
+    ...typography.heading3,
     flex: 1,
     lineHeight: 26,
-    letterSpacing: 0.3,
   },
   modalCloseButton: {
-    padding: 8,
-    marginLeft: 12,
+    padding: spacing.sm,
+    marginLeft: spacing.md,
   },
   modalDescription: {
-    fontSize: 16,
+    ...typography.body,
     lineHeight: 22,
-    marginBottom: 24,
-    fontWeight: '500',
+    marginBottom: spacing.xl,
   },
   modalProgress: {
-    marginBottom: 28,
+    marginBottom: spacing.xl,
   },
   modalProgressTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 16,
-    letterSpacing: 0.3,
+    ...typography.bodyMedium,
+    marginBottom: spacing.lg,
   },
   modalButton: {
-    paddingVertical: 16,
-    paddingHorizontal: 28,
-    borderRadius: 16,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...shadows.md,
   },
   modalButtonText: {
     color: 'white',
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    ...typography.bodyMedium,
   },
 });

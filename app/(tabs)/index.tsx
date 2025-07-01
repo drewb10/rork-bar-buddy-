@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { TrendingUp } from 'lucide-react-native';
-import { colors } from '@/constants/colors';
+import { getThemeColors, spacing, typography, borderRadius, shadows } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
@@ -16,7 +16,7 @@ import FilterBar from '@/components/FilterBar';
 export default function HomeScreen() {
   const router = useRouter();
   const { theme } = useThemeStore();
-  const themeColors = colors[theme];
+  const themeColors = getThemeColors(theme);
   const { profile } = useUserProfileStore();
   const { getMostPopularVenues } = useVenueInteractionStore();
   const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
@@ -26,16 +26,13 @@ export default function HomeScreen() {
     setDailyTrackerVisible(true);
   };
 
-  // Filter venues based on selected filters
   const filteredVenues = selectedFilters.length > 0 
     ? venues.filter(venue => venue.types && venue.types.some(venueType => selectedFilters.includes(venueType)))
     : venues;
 
-  // Top picks - exactly 3 specific venues for promo placement
   const topPickIds = ['library-taphouse', 'late-night-library', 'jba-sports-bar'];
   const topPicks = venues.filter(venue => topPickIds.includes(venue.id)).slice(0, 3);
 
-  // Rest of venues sorted by daily likes (including top picks)
   const popularVenues = getMostPopularVenues();
   const maconBars = filteredVenues
     .sort((a, b) => {
@@ -45,7 +42,7 @@ export default function HomeScreen() {
     });
 
   return (
-    <View style={[styles.container, { backgroundColor: '#000000' }]}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       <ScrollView 
@@ -71,11 +68,11 @@ export default function HomeScreen() {
 
         {/* Daily Stat Tracker Tab */}
         <Pressable 
-          style={[styles.dailyTrackerTab, { backgroundColor: '#111111' }]}
+          style={[styles.dailyTrackerTab, { backgroundColor: themeColors.card }]}
           onPress={handleDailyTrackerPress}
         >
           <TrendingUp size={20} color={themeColors.primary} />
-          <Text style={[styles.dailyTrackerText, { color: '#FFFFFF' }]}>
+          <Text style={[styles.dailyTrackerText, { color: themeColors.text }]}>
             Daily Stat Tracker
           </Text>
         </Pressable>
@@ -114,7 +111,6 @@ export default function HomeScreen() {
         <View style={styles.footer} />
       </ScrollView>
 
-      {/* Daily Tracker Modal */}
       <DailyTracker
         visible={dailyTrackerVisible}
         onClose={() => setDailyTrackerVisible(false)}
@@ -131,71 +127,61 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: spacing.xxl,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 30,
-    paddingBottom: 8,
-    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   logoContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   filterContainer: {
-    marginBottom: 8,
+    marginBottom: spacing.md,
   },
   dailyTrackerTab: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    marginHorizontal: 16,
-    marginBottom: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    paddingVertical: spacing.lg,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.xl,
+    borderRadius: borderRadius.lg,
+    ...shadows.sm,
   },
   dailyTrackerText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-    letterSpacing: 0.3,
+    ...typography.bodyMedium,
+    marginLeft: spacing.sm,
   },
   topPicksSection: {
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   topPicksTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...typography.heading3,
     textAlign: 'center',
-    marginBottom: 16,
-    letterSpacing: 0.5,
+    marginBottom: spacing.lg,
   },
   topPicksScroll: {
     marginBottom: 0,
   },
   topPicksScrollContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
   },
   maconBarsSection: {
-    marginBottom: 16,
-    paddingHorizontal: 16,
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   maconBarsTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...typography.heading2,
     textAlign: 'center',
-    letterSpacing: 0.5,
   },
   venueList: {
-    paddingHorizontal: 16,
-    marginBottom: 32,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.xl,
   },
   footer: {
-    height: 24,
+    height: spacing.xl,
   },
 });

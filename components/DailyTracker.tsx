@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { StyleSheet, View, Text, Pressable, ScrollView, Alert, Platform, Modal } from 'react-native';
 import { X, Plus, Minus, TrendingUp, Target, Loader2, CheckCircle } from 'lucide-react-native';
-import { colors } from '@/constants/colors';
+import { getThemeColors, spacing, typography, borderRadius, shadows } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -30,7 +30,7 @@ const drunkScaleOptions: DrunkScaleOption[] = [
 
 export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const { theme } = useThemeStore();
-  const themeColors = colors[theme];
+  const themeColors = getThemeColors(theme);
   const { isAuthenticated, checkSession } = useAuthStore();
   const { profile } = useUserProfileStore();
   const { checkAndUpdateMultiLevelAchievements } = useAchievementStore();
@@ -50,7 +50,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const [canSubmitScale, setCanSubmitScale] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Load today's stats when modal opens
   useEffect(() => {
     if (visible) {
       console.log('📊 DailyTracker: Modal opened, loading today stats...');
@@ -58,12 +57,10 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       clearError();
       loadTodayStats();
       
-      // Check drunk scale submission eligibility
       canSubmitDrunkScale().then(setCanSubmitScale);
     }
   }, [visible, loadTodayStats, canSubmitDrunkScale, clearError]);
 
-  // Check session when modal opens
   useEffect(() => {
     if (visible && !isAuthenticated) {
       console.log('📊 DailyTracker: Checking session...');
@@ -109,7 +106,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       return;
     }
 
-    // Check if there are any stats to save
     const hasStats = Object.entries(localStats).some(([key, value]) => {
       if (key === 'drunk_scale') return value !== null;
       return value > 0;
@@ -132,13 +128,12 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       setSaveSuccess(true);
       console.log('✅ Stats saved successfully');
 
-      // Update achievements with current profile stats
       if (profile) {
         const updatedStats = {
           totalBeers: (profile.total_beers || 0) + localStats.beers,
           totalShots: (profile.total_shots || 0) + localStats.shots,
           totalBeerTowers: (profile.total_beer_towers || 0) + localStats.beer_towers,
-          totalScoopAndScores: 0, // Not tracked in daily stats
+          totalScoopAndScores: 0,
           totalFunnels: (profile.total_funnels || 0) + localStats.funnels,
           totalShotguns: (profile.total_shotguns || 0) + localStats.shotguns,
           poolGamesWon: (profile.pool_games_won || 0) + localStats.pool_games_won,
@@ -147,17 +142,14 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
           nightsOut: profile.nights_out || 0,
         };
         
-        // Update achievements
         checkAndUpdateMultiLevelAchievements(updatedStats);
       }
 
-      // CRITICAL FIX: Reset the form after successful submission
       setTimeout(() => {
         resetLocalStats();
         console.log('🔄 Daily tracker form reset to default values');
       }, 1000);
       
-      // Auto-close modal after 2 seconds
       setTimeout(() => {
         setSaveSuccess(false);
         handleClose();
@@ -465,19 +457,15 @@ const styles = StyleSheet.create({
   },
   container: {
     maxHeight: '92%',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -12 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 25,
+    borderTopLeftRadius: borderRadius.xxl,
+    borderTopRightRadius: borderRadius.xxl,
+    ...shadows.xl,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 24,
+    padding: spacing.xl,
     borderBottomWidth: 1,
   },
   headerContent: {
@@ -485,17 +473,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 24,
-    fontWeight: '800',
-    marginLeft: 12,
-    letterSpacing: 0.5,
+    ...typography.heading2,
+    marginLeft: spacing.md,
   },
   closeButton: {
-    padding: 8,
-    borderRadius: 20,
+    padding: spacing.sm,
+    borderRadius: borderRadius.lg,
   },
   statusBanner: {
-    padding: 12,
+    padding: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -504,32 +490,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statusIcon: {
-    marginRight: 8,
+    marginRight: spacing.sm,
   },
   statusText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...typography.captionMedium,
   },
   content: {
     maxHeight: 520,
   },
   section: {
-    padding: 24,
+    padding: spacing.xl,
   },
   sectionHeader: {
-    marginBottom: 20,
+    marginBottom: spacing.xl,
     alignItems: 'center',
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    marginBottom: 6,
-    letterSpacing: 0.4,
+    ...typography.heading3,
+    marginBottom: spacing.sm,
     textAlign: 'center',
   },
   sectionSubtitle: {
-    fontSize: 15,
-    fontWeight: '500',
+    ...typography.body,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -537,14 +519,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
-    borderRadius: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 5,
+    padding: spacing.xl,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.lg,
+    ...shadows.sm,
   },
   statInfo: {
     flexDirection: 'row',
@@ -553,107 +531,86 @@ const styles = StyleSheet.create({
   },
   statEmoji: {
     fontSize: 28,
-    marginRight: 16,
+    marginRight: spacing.lg,
   },
   statTextContainer: {
     flex: 1,
   },
   statLabel: {
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    ...typography.bodyMedium,
   },
   statControls: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   controlButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 6,
+    ...shadows.sm,
   },
   statValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    marginHorizontal: 20,
-    minWidth: 28,
+    ...typography.heading3,
+    marginHorizontal: spacing.xl,
+    minWidth: 32,
     textAlign: 'center',
   },
   drunkScaleOptions: {
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   drunkScaleOption: {
-    padding: 20,
-    borderRadius: 20,
+    padding: spacing.xl,
+    borderRadius: borderRadius.lg,
     borderWidth: 2,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 5,
+    ...shadows.sm,
   },
   drunkScaleEmoji: {
     fontSize: 36,
-    marginBottom: 10,
+    marginBottom: spacing.md,
   },
   drunkScaleLabel: {
-    fontSize: 18,
-    fontWeight: '800',
-    marginBottom: 6,
-    letterSpacing: 0.3,
+    ...typography.bodyMedium,
+    marginBottom: spacing.sm,
   },
   drunkScaleDescription: {
-    fontSize: 15,
-    fontWeight: '500',
+    ...typography.body,
     textAlign: 'center',
   },
   drunkScaleDisabled: {
-    padding: 40,
-    borderRadius: 20,
+    padding: spacing.xxl,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   drunkScaleDisabledText: {
-    fontSize: 17,
-    fontWeight: '600',
+    ...typography.bodyMedium,
     textAlign: 'center',
-    marginTop: 16,
+    marginTop: spacing.lg,
     lineHeight: 24,
   },
   footer: {
-    padding: 24,
+    padding: spacing.xl,
     borderTopWidth: 1,
   },
   saveButton: {
-    padding: 20,
-    borderRadius: 28,
+    padding: spacing.xl,
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 12,
+    ...shadows.lg,
   },
   saveButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   saveButtonIcon: {
-    marginRight: 8,
+    marginRight: spacing.sm,
   },
   saveButtonText: {
     color: 'white',
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: 0.4,
+    ...typography.bodyMedium,
   },
 });
