@@ -51,13 +51,17 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const [isLiking, setIsLiking] = useState(false);
 
   // Memoized interaction data
-  const interactionData = useMemo(() => ({
-    interactionCount: getInteractionCount(venue.id),
-    likeCount: localLikeCount !== null ? localLikeCount : getLikeCount(venue.id),
-    hotTimeData: localHotTime !== null ? localHotTime : getHotTimeWithLikes(venue.id),
-    canInteractWithVenue: canInteract(venue.id),
-    canLikeThisVenue: localCanLike !== null ? localCanLike : canLikeVenue(venue.id),
-  }), [venue.id, localLikeCount, localCanLike, localHotTime, getInteractionCount, getLikeCount, getHotTimeWithLikes, canInteract, canLikeVenue]);
+  const interactionData = useMemo(() => {
+    const hotTimeData = localHotTime !== null ? localHotTime : getHotTimeWithLikes(venue.id);
+    
+    return {
+      interactionCount: getInteractionCount(venue.id),
+      likeCount: localLikeCount !== null ? localLikeCount : getLikeCount(venue.id),
+      hotTimeData: hotTimeData || undefined, // Convert null to undefined
+      canInteractWithVenue: canInteract(venue.id),
+      canLikeThisVenue: localCanLike !== null ? localCanLike : canLikeVenue(venue.id),
+    };
+  }, [venue.id, localLikeCount, localCanLike, localHotTime, getInteractionCount, getLikeCount, getHotTimeWithLikes, canInteract, canLikeVenue]);
 
   // Memoized venue data
   const venueData = useMemo(() => ({
