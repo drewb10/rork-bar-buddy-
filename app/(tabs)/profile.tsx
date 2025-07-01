@@ -34,24 +34,40 @@ export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState<'profile' | 'chatbot'>('profile');
   const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [initializationComplete, setInitializationComplete] = useState(false);
 
-  // Check session when component mounts
+  // Check session when component mounts with timeout fallback
   useEffect(() => {
     const initializeProfile = async () => {
       try {
+        console.log('🔄 Profile screen: Starting initialization...');
+        
+        // Set a timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+          console.warn('⚠️ Profile initialization timeout, proceeding anyway...');
+          setIsInitializing(false);
+          setInitializationComplete(true);
+        }, 5000); // 5 second timeout
+
         if (!sessionChecked) {
           console.log('🔄 Profile screen: Checking session...');
           await checkSession();
         }
+        
+        clearTimeout(timeoutId);
+        console.log('✅ Profile initialization complete');
       } catch (error) {
         console.warn('Error checking session:', error);
       } finally {
         setIsInitializing(false);
+        setInitializationComplete(true);
       }
     };
 
-    initializeProfile();
-  }, [sessionChecked, checkSession]);
+    if (!initializationComplete) {
+      initializeProfile();
+    }
+  }, [sessionChecked, checkSession, initializationComplete]);
 
   useEffect(() => {
     // Show onboarding if user hasn't completed it
@@ -194,7 +210,8 @@ export default function ProfileScreen() {
     color: '#FF6A00',
   };
 
-  const isLoading = authLoading || isInitializing;
+  // Show loading only if still initializing AND auth is loading
+  const isLoading = isInitializing && authLoading;
 
   if (isLoading) {
     return (
