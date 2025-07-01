@@ -31,7 +31,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   } = useVenueInteractionStore();
   const { incrementNightsOut, incrementBarsHit, canIncrementNightsOut } = useUserProfileStore();
   
-  // Local state for real-time UI updates
+  // Local state for real-time UI updates - CRITICAL FIX
   const [localLikeCount, setLocalLikeCount] = useState<number | null>(null);
   const [localCanLike, setLocalCanLike] = useState<boolean | null>(null);
   const [localHotTime, setLocalHotTime] = useState<{ time: string; likes: number } | null>(null);
@@ -106,7 +106,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const handleLikeSubmit = useCallback(async () => {
     if (selectedLikeTime) {
       try {
-        // Immediately update local state for real-time UI feedback
+        // CRITICAL FIX: Immediately update local state for real-time UI feedback
         const currentLikeCount = getLikeCount(venue.id);
         setLocalLikeCount(currentLikeCount + 1);
         setLocalCanLike(false);
@@ -217,20 +217,8 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
             </View>
           )}
 
-          {/* Like button - top right with semi-transparent state */}
-          <Pressable 
-            style={[
-              styles.compactLikeButton, 
-              { 
-                backgroundColor: interactionData.canLikeThisVenue ? themeColors.primary : themeColors.border,
-                opacity: interactionData.canLikeThisVenue ? 1 : 0.3 // More transparent when used
-              }
-            ]}
-            onPress={handleLikePress}
-            disabled={!interactionData.canLikeThisVenue || isLiking}
-          >
-            <Flame size={12} color="white" fill={interactionData.canLikeThisVenue ? "transparent" : "white"} />
-          </Pressable>
+          {/* NO LIKE BUTTON FOR COMPACT CARDS (Top Picks) - CRITICAL FIX */}
+          {/* This ensures Top Picks only show like count, not like button */}
 
           {/* Chat Button */}
           <Pressable 
@@ -255,76 +243,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
             </View>
           </View>
         </Pressable>
-
-        {/* Like Time Slot Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={likeModalVisible}
-          onRequestClose={handleLikeCancel}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { 
-              backgroundColor: themeColors.glass?.background || themeColors.card,
-              borderColor: themeColors.glass?.border || themeColors.border,
-            }]}>
-              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-                What time are you most likely to visit {venue.name}?
-              </Text>
-              
-              <View style={styles.timeSlotContainer}>
-                {timeSlots.map((time, index) => (
-                  <Pressable
-                    key={index}
-                    style={[
-                      styles.timeSlot,
-                      { 
-                        backgroundColor: selectedLikeTime === time 
-                          ? themeColors.primary 
-                          : 'transparent',
-                        borderColor: themeColors.primary
-                      }
-                    ]}
-                    onPress={() => setSelectedLikeTime(time)}
-                  >
-                    <Text 
-                      style={[
-                        styles.timeSlotText, 
-                        { color: selectedLikeTime === time ? 'white' : themeColors.primary }
-                      ]}
-                    >
-                      {formatTimeSlot(time)}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-              
-              <View style={styles.modalActions}>
-                <Pressable 
-                  style={[styles.modalButton, styles.cancelButton]} 
-                  onPress={handleLikeCancel}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </Pressable>
-                
-                <Pressable 
-                  style={[
-                    styles.modalButton, 
-                    styles.submitButton, 
-                    { 
-                      backgroundColor: selectedLikeTime ? themeColors.primary : themeColors.card,
-                      opacity: selectedLikeTime ? 1 : 0.5
-                    }
-                  ]} 
-                  onPress={handleLikeSubmit}
-                  disabled={!selectedLikeTime}
-                >
-                  <Text style={styles.submitButtonText}>Like This Bar 🔥</Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </Modal>
 
         {/* Chat Modal for Compact Cards */}
         <ChatModal
@@ -357,7 +275,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
           </View>
         )}
 
-        {/* Like button - top right with semi-transparent state */}
+        {/* Like button - top right with semi-transparent state - CRITICAL FIX */}
         <Pressable 
           style={[
             styles.likeButton, 
@@ -870,25 +788,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginLeft: 3,
   },
-  compactLikeButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
   compactChatButton: {
     position: 'absolute',
     top: 8,
-    right: 44,
+    right: 8,
     width: 28,
     height: 28,
     borderRadius: 14,

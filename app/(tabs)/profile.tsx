@@ -34,40 +34,23 @@ export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState<'profile' | 'chatbot'>('profile');
   const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
-  const [initializationComplete, setInitializationComplete] = useState(false);
 
-  // Check session when component mounts with timeout fallback
+  // Simplified initialization - just check session once
   useEffect(() => {
     const initializeProfile = async () => {
       try {
-        console.log('🔄 Profile screen: Starting initialization...');
-        
-        // Set a timeout to prevent infinite loading
-        const timeoutId = setTimeout(() => {
-          console.warn('⚠️ Profile initialization timeout, proceeding anyway...');
-          setIsInitializing(false);
-          setInitializationComplete(true);
-        }, 5000); // 5 second timeout
-
         if (!sessionChecked) {
-          console.log('🔄 Profile screen: Checking session...');
           await checkSession();
         }
-        
-        clearTimeout(timeoutId);
-        console.log('✅ Profile initialization complete');
       } catch (error) {
         console.warn('Error checking session:', error);
       } finally {
         setIsInitializing(false);
-        setInitializationComplete(true);
       }
     };
 
-    if (!initializationComplete) {
-      initializeProfile();
-    }
-  }, [sessionChecked, checkSession, initializationComplete]);
+    initializeProfile();
+  }, [sessionChecked, checkSession]);
 
   useEffect(() => {
     // Show onboarding if user hasn't completed it
@@ -116,7 +99,6 @@ export default function ProfileScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        // Save profile picture
         await setProfilePicture(result.assets[0].uri);
         console.log('✅ Profile picture updated from library:', result.assets[0].uri);
       }
@@ -141,7 +123,6 @@ export default function ProfileScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        // Save profile picture and award XP for photo taken
         await setProfilePicture(result.assets[0].uri);
         
         // Award XP for taking a photo
@@ -210,10 +191,8 @@ export default function ProfileScreen() {
     color: '#FF6A00',
   };
 
-  // Show loading only if still initializing AND auth is loading
-  const isLoading = isInitializing && authLoading;
-
-  if (isLoading) {
+  // Show loading only during initial setup
+  if (isInitializing && authLoading) {
     return (
       <View style={[styles.container, { backgroundColor: '#000000' }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />

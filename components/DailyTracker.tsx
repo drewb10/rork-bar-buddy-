@@ -151,7 +151,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         checkAndUpdateMultiLevelAchievements(updatedStats);
       }
 
-      // Reset the form after successful submission - CRITICAL FIX
+      // CRITICAL FIX: Reset the form after successful submission
       setTimeout(() => {
         resetLocalStats();
         console.log('🔄 Daily tracker form reset to default values');
