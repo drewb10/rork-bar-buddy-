@@ -2,7 +2,7 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
 import { Home, Award, Camera, Trophy, User } from 'lucide-react-native';
-import { getThemeColors, spacing, borderRadius, shadows } from '@/constants/colors';
+import { getThemeColors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 
 export default function TabLayout() {
@@ -15,67 +15,64 @@ export default function TabLayout() {
         tabBarActiveTintColor: themeColors.primary,
         tabBarInactiveTintColor: themeColors.subtext,
         tabBarStyle: {
-          backgroundColor: themeColors.card,
-          borderTopColor: themeColors.border,
-          borderTopWidth: 1,
-          paddingTop: spacing.sm,
-          paddingBottom: Platform.OS === 'ios' ? spacing.lg : spacing.md,
-          paddingHorizontal: spacing.md,
-          height: Platform.OS === 'ios' ? 88 : 72,
-          ...shadows.lg,
-          borderTopLeftRadius: borderRadius.xl,
-          borderTopRightRadius: borderRadius.xl,
+          backgroundColor: '#000000',
+          borderTopColor: themeColors.glass?.border || 'rgba(255, 255, 255, 0.1)',
+          paddingTop: Platform.OS === 'ios' ? 8 : 4,
+          height: Platform.OS === 'ios' ? 88 : 64,
+          // Enhanced shadow system for premium depth
+          shadowColor: themeColors.shadow?.heavy || '#000000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 1,
+          shadowRadius: 12,
+          elevation: 20,
+          // Subtle border for definition
+          borderTopWidth: 0.5,
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '500',
-          marginBottom: Platform.OS === 'ios' ? spacing.xs : spacing.sm,
-          letterSpacing: 0.1,
+          fontWeight: '600', // Slightly bolder for better readability
+          marginBottom: Platform.OS === 'ios' ? 4 : 8,
+          letterSpacing: 0.3, // Subtle letter spacing for premium feel
         },
         tabBarIconStyle: {
-          marginTop: spacing.xs,
+          marginTop: 2,
         },
         headerShown: false,
-        tabBarItemStyle: {
-          paddingVertical: spacing.xs,
-          borderRadius: borderRadius.md,
-          marginHorizontal: spacing.xs,
-        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => <Home size={size - 2} color={color} />,
+          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="achievements"
         options={{
           title: 'Tasks',
-          tabBarIcon: ({ color, size }) => <Award size={size - 2} color={color} />,
+          tabBarIcon: ({ color, size }) => <Award size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="camera"
         options={{
           title: 'Camera',
-          tabBarIcon: ({ color, size }) => <Camera size={size - 2} color={color} />,
+          tabBarIcon: ({ color, size }) => <Camera size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="trophies"
         options={{
           title: 'Trophies',
-          tabBarIcon: ({ color, size }) => <Trophy size={size - 2} color={color} />,
+          tabBarIcon: ({ color, size }) => <Trophy size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => <User size={size - 2} color={color} />,
+          tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
         }}
       />
     </Tabs>

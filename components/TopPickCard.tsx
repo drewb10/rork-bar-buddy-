@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, Pressable, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Flame } from 'lucide-react-native';
 import { Venue } from '@/types/venue';
-import { getThemeColors, spacing, typography, borderRadius, shadows } from '@/constants/colors';
+import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,9 +15,10 @@ interface TopPickCardProps {
 export default function TopPickCard({ venue }: TopPickCardProps) {
   const router = useRouter();
   const { theme } = useThemeStore();
-  const themeColors = getThemeColors(theme);
+  const themeColors = colors[theme];
   const { getLikeCount, getHotTimeWithLikes } = useVenueInteractionStore();
 
+  // Memoize interaction data to prevent unnecessary re-calculations
   const interactionData = useMemo(() => ({
     likeCount: getLikeCount(venue.id),
     hotTimeData: getHotTimeWithLikes(venue.id),
@@ -33,6 +34,7 @@ export default function TopPickCard({ venue }: TopPickCardProps) {
     return `${hour % 12 || 12}:${minutes} ${hour >= 12 ? 'PM' : 'AM'}`;
   };
 
+  // Get today's specials
   const todaySpecials = useMemo(() => {
     return venue.specials.filter(
       special => special.day === getCurrentDay()
@@ -49,10 +51,11 @@ export default function TopPickCard({ venue }: TopPickCardProps) {
         style={styles.image} 
       />
       <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.7)']}
+        colors={['transparent', 'rgba(0,0,0,0.8)']}
         style={styles.gradient}
       />
       
+      {/* Flame count badge - top left - DISPLAY ONLY (no interaction) */}
       {interactionData.likeCount > 0 && (
         <View style={[styles.flameBadge, { backgroundColor: themeColors.primary }]}>
           <Flame size={10} color="white" fill="white" />
@@ -69,15 +72,17 @@ export default function TopPickCard({ venue }: TopPickCardProps) {
           {venue.types[0]?.replace('-', ' ')}
         </Text>
 
+        {/* Hot Time Display - increased size by 20% - DISPLAY ONLY */}
         {interactionData.hotTimeData && (
           <View style={[styles.hotTimeBadge, { backgroundColor: themeColors.primary + '20' }]}>
-            <Flame size={8} color={themeColors.primary} />
+            <Flame size={10} color={themeColors.primary} />
             <Text style={[styles.hotTimeText, { color: themeColors.primary }]}>
               Hot: {formatTimeSlot(interactionData.hotTimeData.time)}
             </Text>
           </View>
         )}
 
+        {/* Today's Special */}
         {todaySpecials.length > 0 && (
           <Text style={[styles.specialText, { color: themeColors.primary }]} numberOfLines={2}>
             {todaySpecials[0].title}
@@ -95,74 +100,88 @@ function getCurrentDay(): string {
 
 const styles = StyleSheet.create({
   card: {
-    width: 200,
-    height: 200,
-    borderRadius: borderRadius.lg,
+    width: 188, // Increased by 25% from 150
+    height: 180,
+    borderRadius: 12,
     overflow: 'hidden',
-    marginRight: spacing.md,
+    marginRight: 12,
     position: 'relative',
-    ...shadows.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   image: {
     width: '100%',
-    height: 100,
+    height: 80,
   },
   gradient: {
     position: 'absolute',
     top: 0,
     left: 0,
     width: '100%',
-    height: 100,
+    height: 80,
   },
   flameBadge: {
     position: 'absolute',
-    top: spacing.sm,
-    left: spacing.sm,
+    top: 6,
+    left: 6,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.md,
-    ...shadows.sm,
-    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+    borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   flameText: {
     color: 'white',
-    ...typography.small,
-    marginLeft: spacing.xs,
+    fontSize: 8,
+    fontWeight: '700',
+    marginLeft: 2,
   },
   content: {
     flex: 1,
-    padding: spacing.md,
+    padding: 8,
   },
   venueName: {
-    ...typography.bodyMedium,
-    marginBottom: spacing.xs,
-    lineHeight: 20,
+    fontSize: 13, // Increased by ~10% from 12
+    fontWeight: '700',
+    marginBottom: 4,
+    letterSpacing: 0.2,
+    lineHeight: 16,
   },
   venueType: {
-    ...typography.caption,
+    fontSize: 14, // Increased by ~40% from 10
+    fontWeight: '500',
     textTransform: 'capitalize',
-    marginBottom: spacing.sm,
+    marginBottom: 6,
   },
   hotTimeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-    marginBottom: spacing.xs,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginBottom: 4,
     alignSelf: 'flex-start',
   },
   hotTimeText: {
-    ...typography.small,
-    marginLeft: spacing.xs,
+    fontSize: 12, // Increased by 20% from 10
+    fontWeight: '700',
+    marginLeft: 3,
   },
   specialText: {
-    ...typography.caption,
+    fontSize: 13, // Increased by 40% from 9, changed color to orange
+    fontWeight: '600',
     lineHeight: 16,
   },
 });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, Image, ActivityIndicator } from 'react-native';
 import { User, Award, Camera, Users, LogOut } from 'lucide-react-native';
-import { getThemeColors, spacing, typography, borderRadius, shadows } from '@/constants/colors';
+import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
@@ -15,7 +15,7 @@ import { useUserProfileStore } from '@/stores/userProfileStore';
 
 export default function ProfileScreen() {
   const { theme } = useThemeStore();
-  const themeColors = getThemeColors(theme);
+  const themeColors = colors[theme];
   const { 
     profile, 
     signOut,
@@ -35,6 +35,7 @@ export default function ProfileScreen() {
   const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
+  // Simplified initialization - just check session once
   useEffect(() => {
     const initializeProfile = async () => {
       try {
@@ -52,6 +53,7 @@ export default function ProfileScreen() {
   }, [sessionChecked, checkSession]);
 
   useEffect(() => {
+    // Show onboarding if user hasn't completed it
     if (profile && profile.has_completed_onboarding === false) {
       setShowOnboarding(true);
     }
@@ -123,6 +125,7 @@ export default function ProfileScreen() {
       if (!result.canceled && result.assets[0]) {
         await setProfilePicture(result.assets[0].uri);
         
+        // Award XP for taking a photo
         if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
           const userProfileStore = (window as any).__userProfileStore;
           if (userProfileStore?.getState) {
@@ -181,19 +184,21 @@ export default function ProfileScreen() {
     setDailyTrackerVisible(true);
   };
 
+  // Mock rank info since we removed the complex ranking system
   const rankInfo = {
     title: 'Bar Explorer',
     subTitle: 'Getting Started',
     color: '#FF6A00',
   };
 
+  // Show loading only during initial setup
   if (isInitializing && authLoading) {
     return (
-      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF6A00" />
-          <Text style={[styles.loadingText, { color: themeColors.text, marginTop: spacing.lg }]}>
+          <Text style={[styles.loadingText, { color: themeColors.text, marginTop: 16 }]}>
             Loading profile...
           </Text>
         </View>
@@ -203,14 +208,14 @@ export default function ProfileScreen() {
 
   if (!isAuthenticated) {
     return (
-      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
           <Text style={[styles.loadingText, { color: themeColors.text }]}>
             Please sign in to view your profile.
           </Text>
           <Pressable 
-            style={[styles.signInButton, { backgroundColor: themeColors.primary, marginTop: spacing.xl }]}
+            style={[styles.signInButton, { backgroundColor: themeColors.primary, marginTop: 20 }]}
             onPress={() => router.replace('/auth/sign-in')}
           >
             <Text style={styles.signInButtonText}>Sign In</Text>
@@ -220,18 +225,19 @@ export default function ProfileScreen() {
     );
   }
 
+  // Use profile from auth store or user data as fallback
   const displayProfile = profile || user;
 
   if (!displayProfile) {
     return (
-      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
           <Text style={[styles.loadingText, { color: themeColors.text }]}>
             No profile found. Please try refreshing.
           </Text>
           <Pressable 
-            style={[styles.signInButton, { backgroundColor: themeColors.primary, marginTop: spacing.xl }]}
+            style={[styles.signInButton, { backgroundColor: themeColors.primary, marginTop: 20 }]}
             onPress={() => checkSession()}
           >
             <Text style={styles.signInButtonText}>Refresh Profile</Text>
@@ -242,7 +248,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+    <View style={[styles.container, { backgroundColor: '#000000' }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       {/* Header with Logo and Title */}
@@ -387,16 +393,19 @@ export default function ProfileScreen() {
         <BarBuddyChatbot />
       )}
 
+      {/* Daily Tracker Modal */}
       <DailyTracker
         visible={dailyTrackerVisible}
         onClose={() => setDailyTrackerVisible(false)}
       />
 
+      {/* Onboarding Modal */}
       <OnboardingModal
         visible={showOnboarding}
         onComplete={handleOnboardingComplete}
       />
 
+      {/* Friends Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -422,71 +431,82 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    ...typography.body,
+    fontSize: 16,
+    fontWeight: '500',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: spacing.lg,
-    paddingHorizontal: spacing.lg,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
   },
   headerContent: {
     alignItems: 'flex-start',
     flex: 1,
   },
   headerTitle: {
-    ...typography.heading3,
-    marginTop: spacing.sm,
-    marginLeft: spacing.xs,
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 8,
+    marginLeft: 4,
   },
   signOutButton: {
-    padding: spacing.sm,
+    padding: 8,
   },
   tabContainer: {
     flexDirection: 'row',
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
+    marginHorizontal: 16,
+    marginBottom: 16,
   },
   tab: {
     flex: 1,
-    paddingVertical: spacing.md,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   tabText: {
-    ...typography.bodyMedium,
+    fontSize: 16,
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: spacing.xxl,
+    paddingBottom: 40,
   },
   profileCard: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    borderRadius: borderRadius.xl,
-    padding: spacing.xl,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 20,
+    padding: 24,
     alignItems: 'center',
-    ...shadows.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   avatarContainer: {
     position: 'relative',
-    marginBottom: spacing.lg,
+    marginBottom: 16,
   },
   avatar: {
     width: 80,
     height: 80,
-    borderRadius: borderRadius.full,
+    borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    ...shadows.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   avatarImage: {
     width: 80,
     height: 80,
-    borderRadius: borderRadius.full,
+    borderRadius: 40,
   },
   cameraIcon: {
     position: 'absolute',
@@ -494,7 +514,7 @@ const styles = StyleSheet.create({
     right: 0,
     width: 28,
     height: 28,
-    borderRadius: borderRadius.md,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -502,92 +522,112 @@ const styles = StyleSheet.create({
   },
   nameContainer: {
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
   userName: {
-    ...typography.heading2,
+    fontSize: 22,
+    fontWeight: '700',
   },
   joinDate: {
-    ...typography.caption,
-    marginBottom: spacing.sm,
+    fontSize: 14,
+    marginBottom: 8,
   },
   email: {
-    ...typography.caption,
+    fontSize: 14,
     color: '#888',
   },
   xpCard: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    borderRadius: borderRadius.lg,
-    padding: spacing.xl,
-    ...shadows.md,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   xpHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: 12,
   },
   xpInfo: {
-    marginLeft: spacing.md,
+    marginLeft: 12,
     flex: 1,
   },
   xpAmount: {
-    ...typography.heading3,
+    fontSize: 20,
+    fontWeight: '700',
   },
   nextRankText: {
-    ...typography.small,
-    marginTop: spacing.xs,
+    fontSize: 12,
+    marginTop: 2,
   },
   rankContainer: {
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: 16,
   },
   rankTitle: {
-    ...typography.heading3,
-    marginBottom: spacing.xs,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 2,
   },
   rankSubtitle: {
-    ...typography.caption,
+    fontSize: 14,
+    fontWeight: '500',
   },
   dailyTrackerButton: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    borderRadius: borderRadius.lg,
-    padding: spacing.xl,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    padding: 20,
     alignItems: 'center',
-    ...shadows.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   dailyTrackerButtonText: {
-    ...typography.heading3,
-    marginBottom: spacing.xs,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
   },
   dailyTrackerSubtext: {
-    ...typography.caption,
+    fontSize: 14,
+    fontWeight: '500',
   },
   friendsButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.xl,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    ...shadows.sm,
+    marginHorizontal: 16,
+    marginBottom: 24,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   friendsButtonText: {
-    ...typography.bodyMedium,
-    marginLeft: spacing.sm,
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   footer: {
-    height: spacing.xl,
+    height: 24,
   },
   signInButton: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
-    borderRadius: borderRadius.lg,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
   },
   signInButtonText: {
     color: 'white',
-    ...typography.bodyMedium,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
