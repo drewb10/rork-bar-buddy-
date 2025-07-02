@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { StyleSheet, View, Text, Pressable, ScrollView, Alert, Platform, Modal, Slider } from 'react-native';
+import { StyleSheet, View, Text, Pressable, ScrollView, Alert, Platform, Modal } from 'react-native';
 import { X, Plus, Minus, TrendingUp, CheckCircle, Loader2, Target, Zap } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/constants/colors';
@@ -22,20 +22,6 @@ const STAT_ITEMS = [
   { key: 'shotguns', label: 'Shotguns', emoji: '💥', xp: 10, color: '#FF6B35' },
   { key: 'pool_games_won', label: 'Pool Games Won', emoji: '🎱', xp: 15, color: '#FF6B35' },
   { key: 'dart_games_won', label: 'Dart Games Won', emoji: '🎯', xp: 15, color: '#FF6B35' },
-];
-
-const DRUNK_SCALE_LABELS = [
-  '', // 0 - not used
-  'Sober 😐',
-  'Slightly Buzzed 🙂', 
-  'Buzzed 😊',
-  'Tipsy 😄',
-  'Pretty Drunk 🥴',
-  'Very Drunk 😵',
-  'Hammered 🤪',
-  'Blackout Drunk 🤢',
-  'Wasted 💀',
-  'Legendary 🚀'
 ];
 
 export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
@@ -99,7 +85,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     updateLocalStats({ [statKey]: newValue });
   }, [isSaving, localStats, updateLocalStats]);
 
-  const handleSliderChange = useCallback((value: number) => {
+  const handleFeelingChange = useCallback((value: number) => {
     if (isSaving || !canSubmitScale) return;
     
     updateLocalStats({ drunk_scale: value });
@@ -135,7 +121,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     if (!hasStats) {
       Alert.alert(
         'No Stats to Save',
-        'Please add some activities or select a drunk scale rating before saving.',
+        'Please add some activities or select a feeling rating before saving.',
         [{ text: 'OK' }]
       );
       return;
@@ -168,7 +154,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
         checkAndUpdateMultiLevelAchievements(updatedStats);
       }
 
-      // CRITICAL FIX: Reset the form after successful submission
+      // Reset the form after successful submission
       setTimeout(() => {
         resetLocalStats();
         console.log('🔄 Daily tracker form reset to default values');
@@ -212,6 +198,15 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   };
 
   const statusMessage = getStatusMessage();
+
+  // Helper function to get feeling label based on value
+  const getFeelLabel = (value: number): string => {
+    if (value <= 2) return 'Sober';
+    if (value <= 4) return 'Buzzed';
+    if (value <= 6) return 'Tipsy';
+    if (value <= 8) return 'Drunk';
+    return 'Very Drunk';
+  };
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -319,7 +314,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                 style={[
                   styles.controlButton,
                   styles.plusButton,
-                  { backgroundColor: '#FF6B35' } // Updated to BarBuddy orange
+                  { backgroundColor: '#FF6B35' } // All plus buttons now orange
                 ]}
                 onPress={() => handleStatChange(item.key as keyof typeof localStats, 1)}
                 disabled={isSaving || !canSaveStats}
@@ -335,47 +330,76 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
 
   const renderScaleSection = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>How Are You Feeling?</Text>
+      <Text style={styles.sectionTitle}>How Are You Feeling? (1-10)</Text>
       <Text style={styles.sectionSubtitle}>
         {canSubmitScale 
-          ? 'Use the slider to rate how drunk you are (1-10) for +25 XP'
+          ? 'Tap a number to rate how you feel for +25 XP'
           : 'Already submitted today'
         }
       </Text>
 
       {canSubmitScale ? (
-        <View style={styles.drunkScaleContainer}>
-          <View style={styles.sliderContainer}>
-            <Text style={styles.sliderLabel}>Drunk Scale: {localStats.drunk_scale || 1}</Text>
-            <Text style={styles.sliderDescription}>
-              {DRUNK_SCALE_LABELS[localStats.drunk_scale || 1]}
+        <View style={styles.feelingContainer}>
+          <View style={styles.feelingHeader}>
+            <Text style={styles.feelingValue}>
+              {localStats.drunk_scale || 1}
             </Text>
-            
-            <Slider
-              style={styles.slider}
-              minimumValue={1}
-              maximumValue={10}
-              step={1}
-              value={localStats.drunk_scale || 1}
-              onValueChange={handleSliderChange}
-              minimumTrackTintColor="#FF6B35"
-              maximumTrackTintColor="rgba(255,255,255,0.3)"
-              thumbStyle={styles.sliderThumb}
-              trackStyle={styles.sliderTrack}
-              disabled={isSaving || !canSaveStats}
-            />
-            
-            <View style={styles.sliderLabels}>
-              <Text style={styles.sliderEndLabel}>1 - Sober</Text>
-              <Text style={styles.sliderEndLabel}>10 - Legendary</Text>
+            <Text style={styles.feelingLabel}>
+              {localStats.drunk_scale ? getFeelLabel(localStats.drunk_scale) : 'Not set'}
+            </Text>
+          </View>
+          
+          {/* Custom feeling selector using pressable buttons */}
+          <View style={styles.customFeelingSelector}>
+            <View style={styles.feelingTrack}>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
+                <View key={value} style={styles.feelingDotContainer}>
+                  <View
+                    style={[
+                      styles.feelingDot,
+                      {
+                        backgroundColor: (localStats.drunk_scale || 1) >= value ? '#FF6B35' : 'rgba(255,255,255,0.2)',
+                      }
+                    ]}
+                  />
+                </View>
+              ))}
             </View>
+            
+            <View style={styles.feelingNumbers}>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
+                <Pressable
+                  key={value}
+                  style={[
+                    styles.feelingNumberButton,
+                    {
+                      backgroundColor: (localStats.drunk_scale || 1) === value ? '#FF6B35' : 'transparent',
+                    }
+                  ]}
+                  onPress={() => handleFeelingChange(value)}
+                  disabled={isSaving || !canSaveStats}
+                >
+                  <Text style={[
+                    styles.feelingNumberText,
+                    { color: (localStats.drunk_scale || 1) === value ? 'white' : '#8E8E93' }
+                  ]}>
+                    {value}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+          
+          <View style={styles.feelingLabels}>
+            <Text style={styles.feelingEndLabel}>1 - Sober</Text>
+            <Text style={styles.feelingEndLabel}>10 - Very Drunk</Text>
           </View>
         </View>
       ) : (
         <View style={styles.drunkScaleDisabled}>
           <Target size={40} color="#8E8E93" />
           <Text style={styles.drunkScaleDisabledText}>
-            Drunk scale submitted for today
+            Feeling scale submitted for today
           </Text>
         </View>
       )}
@@ -655,7 +679,7 @@ const styles = StyleSheet.create({
   },
   
   plusButton: {
-    backgroundColor: '#FF6B35', // Updated to BarBuddy orange
+    backgroundColor: '#FF6B35', // All plus buttons now orange
   },
   
   countContainer: {
@@ -669,60 +693,83 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   
-  drunkScaleContainer: {
+  // Custom feeling selector styles
+  feelingContainer: {
     marginBottom: 24,
+    paddingHorizontal: 20,
   },
   
-  sliderContainer: {
-    backgroundColor: '#1C1C1E',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  
-  sliderLabel: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  
-  sliderDescription: {
-    color: '#FF6B35',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
+  feelingHeader: {
+    alignItems: 'center',
     marginBottom: 20,
   },
   
-  slider: {
-    width: '100%',
-    height: 40,
+  feelingValue: {
+    color: '#FF6B35',
+    fontSize: 48,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  
+  feelingLabel: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  
+  customFeelingSelector: {
     marginBottom: 16,
   },
   
-  sliderThumb: {
-    backgroundColor: '#FF6B35',
-    width: 24,
-    height: 24,
+  feelingTrack: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 10,
   },
   
-  sliderTrack: {
+  feelingDotContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  
+  feelingDot: {
+    width: 8,
     height: 8,
     borderRadius: 4,
   },
   
-  sliderLabels: {
+  feelingNumbers: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  
+  feelingNumberButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  
+  feelingNumberText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  
+  feelingLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   
-  sliderEndLabel: {
+  feelingEndLabel: {
     color: '#8E8E93',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   
   drunkScaleDisabled: {
