@@ -1,11 +1,42 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal, Alert } from 'react-native';
-import { Trophy, Target, Users, Star, RotateCcw, X, Info } from 'lucide-react-native';
+import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal } from 'react';
+import { Trophy, Target, Users, Star, CheckCircle2, Circle, Clock, Zap, Calendar } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAchievementStore, Achievement } from '@/stores/achievementStore';
-import AchievementPopup from '@/components/AchievementPopup';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
+
+const CATEGORY_CONFIG = {
+  bars: {
+    label: 'Bar Hopping',
+    icon: Target,
+    color: '#FF6B35',
+    gradient: ['#FF6B35', '#FF8F65'],
+    bgColor: 'rgba(255, 107, 53, 0.1)',
+  },
+  activities: {
+    label: 'Activities',
+    icon: Trophy,
+    color: '#007AFF',
+    gradient: ['#007AFF', '#40A9FF'],
+    bgColor: 'rgba(0, 122, 255, 0.1)',
+  },
+  social: {
+    label: 'Social',
+    icon: Users,
+    color: '#34C759',
+    gradient: ['#34C759', '#52D681'],
+    bgColor: 'rgba(52, 199, 89, 0.1)',
+  },
+  milestones: {
+    label: 'Milestones',
+    icon: Star,
+    color: '#AF52DE',
+    gradient: ['#AF52DE', '#C77DFF'],
+    bgColor: 'rgba(175, 82, 222, 0.1)',
+  },
+};
 
 export default function AchievementsScreen() {
   const { theme } = useThemeStore();
@@ -15,10 +46,11 @@ export default function AchievementsScreen() {
     initializeAchievements, 
     getCompletedCount, 
     getAchievementsByCategory,
-    resetAchievements 
   } = useAchievementStore();
   
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [showCompleted, setShowCompleted] = useState(false);
 
   useEffect(() => {
     initializeAchievements();
@@ -28,25 +60,18 @@ export default function AchievementsScreen() {
   const totalCount = achievements.length;
   const completionPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  const getCategoryIcon = (category: Achievement['category']) => {
-    switch (category) {
-      case 'bars': return <Target size={20} color={themeColors.primary} />;
-      case 'activities': return <Trophy size={20} color={themeColors.primary} />;
-      case 'social': return <Users size={20} color={themeColors.primary} />;
-      case 'milestones': return <Star size={20} color={themeColors.primary} />;
-      default: return <Trophy size={20} color={themeColors.primary} />;
+  const filteredAchievements = achievements.filter(achievement => {
+    if (selectedCategory !== 'all' && achievement.category !== selectedCategory) {
+      return false;
     }
-  };
+    if (!showCompleted && achievement.completed) {
+      return false;
+    }
+    return true;
+  });
 
-  const getCategoryTitle = (category: Achievement['category']) => {
-    switch (category) {
-      case 'bars': return 'Bar Hopping';
-      case 'activities': return 'Activities';
-      case 'social': return 'Social';
-      case 'milestones': return 'Milestones';
-      default: return 'Other';
-    }
-  };
+  const pendingTasks = achievements.filter(task => !task.completed);
+  const completedTasks = achievements.filter(task => task.completed);
 
   const handleAchievementPress = (achievement: Achievement) => {
     setSelectedAchievement(achievement);
@@ -57,23 +82,134 @@ export default function AchievementsScreen() {
     return Math.round(((achievement.progress || 0) / achievement.maxProgress) * 100);
   };
 
+  const renderStatsHeader = () => (
+    <View style={styles.statsContainer}>
+      <LinearGradient
+        colors={['#1C1C1E', '#2C2C2E']}
+        style={styles.statsCard}
+      >
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>{completedCount}</Text>
+          <Text style={styles.statLabel}>Completed</Text>
+        </View>
+        
+        <View style={styles.statDivider} />
+        
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>{pendingTasks.length}</Text>
+          <Text style={styles.statLabel}>Pending</Text>
+        </View>
+        
+        <View style={styles.statDivider} />
+        
+        <View style={styles.statItem}>
+          <Text style={[styles.statNumber, { color: '#FF6B35' }]}>{completionPercentage}%</Text>
+          <Text style={styles.statLabel}>Progress</Text>
+        </View>
+      </LinearGradient>
+    </View>
+  );
+
+  const renderFilters = () => (
+    <View style={styles.filtersSection}>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filtersContent}
+      >
+        <Pressable
+          style={[
+            styles.filterChip,
+            {
+              backgroundColor: selectedCategory === 'all' ? '#FF6B35' : 'rgba(255,255,255,0.05)',
+              borderColor: selectedCategory === 'all' ? '#FF6B35' : 'rgba(255,255,255,0.1)',
+            }
+          ]}
+          onPress={() => setSelectedCategory('all')}
+        >
+          <Text style={[
+            styles.filterText,
+            { color: selectedCategory === 'all' ? 'white' : '#8E8E93' }
+          ]}>
+            All ({achievements.length})
+          </Text>
+        </Pressable>
+
+        {Object.entries(CATEGORY_CONFIG).map(([category, config]) => {
+          const IconComponent = config.icon;
+          const isActive = selectedCategory === category;
+          const categoryTasks = achievements.filter(task => task.category === category);
+          
+          return (
+            <Pressable
+              key={category}
+              style={[
+                styles.filterChip,
+                {
+                  backgroundColor: isActive ? config.color : 'rgba(255,255,255,0.05)',
+                  borderColor: isActive ? config.color : 'rgba(255,255,255,0.1)',
+                }
+              ]}
+              onPress={() => setSelectedCategory(category)}
+            >
+              <IconComponent 
+                size={14} 
+                color={isActive ? 'white' : '#8E8E93'} 
+              />
+              <Text style={[
+                styles.filterText,
+                { color: isActive ? 'white' : '#8E8E93' }
+              ]}>
+                {config.label} ({categoryTasks.length})
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      {/* Show Completed Toggle */}
+      <Pressable
+        style={[
+          styles.toggleChip,
+          {
+            backgroundColor: showCompleted ? '#34C759' : 'rgba(255,255,255,0.05)',
+            borderColor: showCompleted ? '#34C759' : 'rgba(255,255,255,0.1)',
+          }
+        ]}
+        onPress={() => setShowCompleted(!showCompleted)}
+      >
+        <CheckCircle2 
+          size={14} 
+          color={showCompleted ? 'white' : '#8E8E93'} 
+        />
+        <Text style={[
+          styles.filterText,
+          { color: showCompleted ? 'white' : '#8E8E93' }
+        ]}>
+          Completed ({completedTasks.length})
+        </Text>
+      </Pressable>
+    </View>
+  );
+
   const renderProgressBar = (achievement: Achievement) => {
     const percentage = getProgressPercentage(achievement);
+    const category = CATEGORY_CONFIG[achievement.category as keyof typeof CATEGORY_CONFIG];
     
     return (
-      <View style={styles.progressBarContainer}>
-        <View style={[styles.progressBarBackground, { backgroundColor: themeColors.background }]}>
+      <View style={styles.progressContainer}>
+        <View style={styles.progressBar}>
           <View 
             style={[
-              styles.progressBarFill, 
-              { 
-                backgroundColor: achievement.completed ? themeColors.primary : themeColors.primary + '60',
+              styles.progressFill, 
+              {
+                backgroundColor: achievement.completed ? category?.color || '#FF6B35' : '#3A3A3C',
                 width: `${percentage}%`
               }
             ]} 
           />
         </View>
-        <Text style={[styles.progressBarText, { color: themeColors.subtext }]}>
+        <Text style={styles.progressText}>
           {achievement.maxProgress 
             ? `${achievement.progress || 0}/${achievement.maxProgress}`
             : achievement.completed ? 'Complete' : 'Not started'
@@ -83,74 +219,75 @@ export default function AchievementsScreen() {
     );
   };
 
-  const renderAchievementCategory = (category: Achievement['category']) => {
-    const categoryAchievements = getAchievementsByCategory(category);
-    if (categoryAchievements.length === 0) return null;
-
-    const completedInCategory = categoryAchievements.filter(a => a.completed).length;
-
+  const renderTaskCard = (achievement: Achievement) => {
+    const category = CATEGORY_CONFIG[achievement.category as keyof typeof CATEGORY_CONFIG];
+    const IconComponent = category?.icon || Trophy;
+    
     return (
-      <View key={category} style={[styles.categorySection, { backgroundColor: themeColors.card }]}>
-        <View style={styles.categoryHeader}>
-          {getCategoryIcon(category)}
-          <Text style={[styles.categoryTitle, { color: themeColors.text }]}>
-            {getCategoryTitle(category)}
-          </Text>
-          <Text style={[styles.categoryProgress, { color: themeColors.primary }]}>
-            {completedInCategory}/{categoryAchievements.length}
-          </Text>
+      <Pressable
+        key={achievement.id}
+        style={[
+          styles.taskCard,
+          {
+            opacity: achievement.completed ? 0.7 : 1,
+            borderLeftColor: category?.color || '#FF6B35',
+          }
+        ]}
+        onPress={() => handleAchievementPress(achievement)}
+      >
+        {/* Header */}
+        <View style={styles.taskHeader}>
+          <View style={styles.checkboxContainer}>
+            {achievement.completed ? (
+              <CheckCircle2 size={24} color={category?.color || '#FF6B35'} />
+            ) : (
+              <Circle size={24} color="#8E8E93" />
+            )}
+          </View>
+
+          <View style={styles.taskInfo}>
+            <Text style={[
+              styles.taskTitle,
+              { 
+                color: achievement.completed ? '#8E8E93' : 'white',
+                textDecorationLine: achievement.completed ? 'line-through' : 'none',
+              }
+            ]}>
+              {achievement.title}
+            </Text>
+            <Text style={styles.taskDescription}>
+              {achievement.description}
+            </Text>
+          </View>
+
+          <View style={styles.taskMeta}>
+            <View style={[
+              styles.categoryBadge,
+              { backgroundColor: category?.bgColor || 'rgba(255,107,53,0.1)' }
+            ]}>
+              <IconComponent size={12} color={category?.color || '#FF6B35'} />
+            </View>
+          </View>
         </View>
-        
-        <View style={styles.achievementList}>
-          {categoryAchievements.map((achievement) => (
-            <Pressable
-              key={achievement.id}
-              style={[
-                styles.achievementCard,
-                { 
-                  backgroundColor: achievement.completed 
-                    ? themeColors.primary + '20' 
-                    : themeColors.background,
-                  borderColor: achievement.completed 
-                    ? themeColors.primary 
-                    : themeColors.border,
-                }
-              ]}
-              onPress={() => handleAchievementPress(achievement)}
-            >
-              <View style={styles.achievementHeader}>
-                <Text style={styles.achievementEmoji}>{achievement.icon}</Text>
-                <View style={styles.achievementInfo}>
-                  <Text 
-                    style={[
-                      styles.achievementName, 
-                      { 
-                        color: achievement.completed 
-                          ? themeColors.primary 
-                          : themeColors.text 
-                      }
-                    ]}
-                    numberOfLines={2}
-                  >
-                    {achievement.title}
-                  </Text>
-                  <Text style={[styles.achievementDescription, { color: themeColors.subtext }]}>
-                    {achievement.description}
-                  </Text>
-                </View>
-                {achievement.completed && (
-                  <Text style={[styles.completedBadge, { color: themeColors.primary }]}>
-                    ✓
-                  </Text>
-                )}
-              </View>
-              
-              {/* Progress Bar */}
-              {renderProgressBar(achievement)}
-            </Pressable>
-          ))}
+
+        {/* Progress Bar */}
+        {renderProgressBar(achievement)}
+
+        {/* Footer */}
+        <View style={styles.taskFooter}>
+          <View style={styles.taskReward}>
+            <Zap size={14} color="#FFD60A" />
+            <Text style={styles.rewardText}>+{achievement.xpReward || 100} XP</Text>
+          </View>
+
+          <View style={styles.taskDetails}>
+            <View style={styles.detailItem}>
+              <Clock size={12} color="#8E8E93" />
+              <Text style={styles.detailText}>Complete during nights out</Text>
+            </View>
+          </View>
         </View>
-      </View>
+      </Pressable>
     );
   };
 
@@ -174,40 +311,34 @@ export default function AchievementsScreen() {
           </Text>
         </View>
 
-        {/* Progress Overview with enhanced styling */}
-        <View style={[styles.progressCard, { backgroundColor: themeColors.card }]}>
-          <View style={styles.progressHeader}>
-            <Text style={[styles.progressTitle, { color: themeColors.text }]}>
-              Overall Progress
-            </Text>
-            <Text style={[styles.progressPercentage, { color: themeColors.primary }]}>
-              {completionPercentage}%
-            </Text>
-          </View>
-          
-          <View style={[styles.progressBar, { backgroundColor: themeColors.background }]}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { 
-                  backgroundColor: themeColors.primary,
-                  width: `${completionPercentage}%`
-                }
-              ]} 
-            />
-          </View>
-          
-          <Text style={[styles.progressText, { color: themeColors.subtext }]}>
-            {completedCount} of {totalCount} tasks completed
+        {/* Progress Overview */}
+        {renderStatsHeader()}
+
+        {/* Filters */}
+        {renderFilters()}
+
+        {/* Tasks List */}
+        <View style={styles.tasksContainer}>
+          <Text style={styles.sectionTitle}>
+            {selectedCategory === 'all' ? 'All Tasks' : CATEGORY_CONFIG[selectedCategory as keyof typeof CATEGORY_CONFIG]?.label || 'Tasks'}
+            <Text style={styles.countBadge}> ({filteredAchievements.length})</Text>
           </Text>
+
+          {filteredAchievements.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                {showCompleted 
+                  ? 'No completed tasks yet' 
+                  : 'No pending tasks'
+                }
+              </Text>
+            </View>
+          ) : (
+            filteredAchievements.map(renderTaskCard)
+          )}
         </View>
 
-        {/* Achievement Categories */}
-        <View style={styles.categoriesContainer}>
-          {(['bars', 'activities', 'social', 'milestones'] as const).map(renderAchievementCategory)}
-        </View>
-
-        {/* Info Card with enhanced styling */}
+        {/* Info Card */}
         <View style={[styles.infoCard, { backgroundColor: themeColors.card }]}>
           <Text style={[styles.infoTitle, { color: themeColors.text }]}>
             💡 How it works
@@ -217,30 +348,10 @@ export default function AchievementsScreen() {
           </Text>
         </View>
 
-        {/* Reset Button with enhanced styling */}
-        <Pressable 
-          style={[styles.resetButton, { backgroundColor: themeColors.card }]}
-          onPress={() => {
-            Alert.alert(
-              'Reset Tasks',
-              'Are you sure you want to reset all tasks? This cannot be undone.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Reset', style: 'destructive', onPress: resetAchievements }
-              ]
-            );
-          }}
-        >
-          <RotateCcw size={18} color="#FF4444" />
-          <Text style={[styles.resetButtonText, { color: "#FF4444" }]}>
-            Reset All Tasks
-          </Text>
-        </Pressable>
-
         <View style={styles.footer} />
       </ScrollView>
 
-      {/* Achievement Detail Modal with glassmorphism */}
+      {/* Achievement Detail Modal */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -249,8 +360,8 @@ export default function AchievementsScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { 
-            backgroundColor: themeColors.glass.background,
-            borderColor: themeColors.glass.border,
+            backgroundColor: themeColors.glass?.background || themeColors.card,
+            borderColor: themeColors.glass?.border || themeColors.border,
           }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: themeColors.text }]}>
@@ -260,7 +371,7 @@ export default function AchievementsScreen() {
                 style={styles.modalCloseButton}
                 onPress={() => setSelectedAchievement(null)}
               >
-                <X size={24} color={themeColors.subtext} />
+                <Text style={[styles.closeButtonText, { color: themeColors.subtext }]}>✕</Text>
               </Pressable>
             </View>
             
@@ -318,145 +429,195 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontWeight: '500',
   },
-  progressCard: {
-    marginHorizontal: 16,
-    marginBottom: 20,
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+  statsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
   },
-  progressHeader: {
+  statsCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  progressTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  progressPercentage: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  progressBar: {
-    height: 10,
-    borderRadius: 5,
-    marginBottom: 12,
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 5,
-  },
-  progressText: {
-    fontSize: 14,
-    textAlign: 'center',
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
-  categoriesContainer: {
-    paddingHorizontal: 16,
-    gap: 24,
-  },
-  categorySection: {
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  categoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  categoryTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginLeft: 8,
-    flex: 1,
-    letterSpacing: 0.3,
-  },
-  categoryProgress: {
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.2,
-  },
-  achievementList: {
-    gap: 16,
-  },
-  achievementCard: {
     borderRadius: 16,
     padding: 20,
-    borderWidth: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
   },
-  achievementHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  achievementEmoji: {
-    fontSize: 28,
-    marginRight: 16,
-  },
-  achievementInfo: {
+  statItem: {
     flex: 1,
+    alignItems: 'center',
   },
-  achievementName: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 6,
-    lineHeight: 20,
-    letterSpacing: 0.3,
-  },
-  achievementDescription: {
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: '500',
-  },
-  completedBadge: {
+  statNumber: {
+    color: 'white',
     fontSize: 24,
     fontWeight: '800',
+    marginBottom: 4,
   },
-  progressBarContainer: {
+  statLabel: {
+    color: '#8E8E93',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    marginHorizontal: 16,
+  },
+  filtersSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  filtersContent: {
+    marginBottom: 12,
+  },
+  filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 12,
+    marginBottom: 8,
   },
-  progressBarBackground: {
+  toggleChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+  },
+  filterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  tasksContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  sectionTitle: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  countBadge: {
+    color: '#8E8E93',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  taskCard: {
+    backgroundColor: '#1C1C1E',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  taskHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  checkboxContainer: {
+    marginRight: 12,
+    marginTop: 2,
+  },
+  taskInfo: {
     flex: 1,
-    height: 8,
-    borderRadius: 4,
   },
-  progressBarFill: {
+  taskTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+    lineHeight: 20,
+  },
+  taskDescription: {
+    color: '#8E8E93',
+    fontSize: 14,
+    fontWeight: '500',
+    lineHeight: 18,
+  },
+  taskMeta: {
+    alignItems: 'flex-end',
+  },
+  categoryBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  progressBar: {
+    flex: 1,
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 3,
+    marginRight: 12,
+    overflow: 'hidden',
+  },
+  progressFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 3,
   },
-  progressBarText: {
+  progressText: {
+    color: '#8E8E93',
     fontSize: 12,
     fontWeight: '600',
-    letterSpacing: 0.2,
+    minWidth: 60,
+  },
+  taskFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  taskReward: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rewardText: {
+    color: '#FFD60A',
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 4,
+  },
+  taskDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  detailText: {
+    color: '#8E8E93',
+    fontSize: 12,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    color: '#8E8E93',
+    fontSize: 16,
+    fontWeight: '500',
   },
   infoCard: {
-    marginHorizontal: 16,
-    marginTop: 28,
+    marginHorizontal: 20,
     marginBottom: 20,
     borderRadius: 20,
     padding: 24,
@@ -478,28 +639,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '500',
-  },
-  resetButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 16,
-    marginBottom: 20,
-    borderRadius: 16,
-    padding: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 6,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  resetButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginLeft: 8,
-    letterSpacing: 0.3,
   },
   footer: {
     height: 32,
@@ -539,6 +678,10 @@ const styles = StyleSheet.create({
   modalCloseButton: {
     padding: 8,
     marginLeft: 12,
+  },
+  closeButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
   },
   modalDescription: {
     fontSize: 16,

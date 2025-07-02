@@ -1,11 +1,40 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, RefreshControl } from 'react-native';
+import { Trophy, Award, Star, Target, Zap, Crown, Medal } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useAchievementStoreSafe } from '@/stores/achievementStore';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
+
+const CATEGORY_CONFIG = {
+  bars: { 
+    label: 'Bar Hopping', 
+    icon: Target, 
+    color: '#FF6B35',
+    gradient: ['#FF6B35', '#FF8F65']
+  },
+  activities: { 
+    label: 'Activities', 
+    icon: Trophy, 
+    color: '#007AFF',
+    gradient: ['#007AFF', '#40A9FF']
+  },
+  social: { 
+    label: 'Social', 
+    icon: Star, 
+    color: '#34C759',
+    gradient: ['#34C759', '#52D681']
+  },
+  milestones: { 
+    label: 'Milestones', 
+    icon: Crown, 
+    color: '#AF52DE',
+    gradient: ['#AF52DE', '#C77DFF']
+  },
+};
 
 export default function TrophiesScreen() {
   const { theme } = useThemeStore();
@@ -19,6 +48,7 @@ export default function TrophiesScreen() {
 
   const [activeTab, setActiveTab] = useState<'stats' | 'trophies'>('stats');
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [lifetimeStats, setLifetimeStats] = useState({
     totalBeers: 0,
     totalShots: 0,
@@ -163,6 +193,11 @@ export default function TrophiesScreen() {
     }).filter(category => category.count > 0); // Only show categories with trophies
   }, [completedAchievements]);
 
+  const filteredTrophies = useMemo(() => {
+    if (selectedCategory === 'all') return completedAchievements;
+    return completedAchievements.filter(trophy => trophy.category === selectedCategory);
+  }, [completedAchievements, selectedCategory]);
+
   const StatCard = ({ title, value, subtitle, size = 'normal' }: { title: string; value: number | string; subtitle?: string; size?: 'normal' | 'large' }) => (
     <View style={[
       styles.statCard, 
@@ -191,22 +226,97 @@ export default function TrophiesScreen() {
     </View>
   );
 
-  const TrophyCard = ({ trophy }: { trophy: any }) => (
-    <View style={[styles.trophyCard, { backgroundColor: themeColors.card }]}>
-      <View style={[styles.trophyIcon, { backgroundColor: themeColors.primary + '20' }]}>
-        <Text style={styles.trophyEmoji}>{trophy.icon}</Text>
-      </View>
-      <View style={styles.trophyContent}>
-        <Text style={[styles.trophyTitle, { color: themeColors.text }]}>{trophy.title}</Text>
-        <Text style={[styles.trophyDescription, { color: themeColors.subtext }]}>
-          {trophy.description}
-        </Text>
-        {trophy.level > 1 && (
-          <View style={[styles.levelBadge, { backgroundColor: themeColors.primary }]}>
-            <Text style={styles.levelText}>Level {trophy.level}</Text>
+  const TrophyCard = ({ trophy }: { trophy: any }) => {
+    const category = CATEGORY_CONFIG[trophy.category as keyof typeof CATEGORY_CONFIG];
+    const IconComponent = category?.icon || Trophy;
+    
+    return (
+      <View style={[styles.trophyCard, { backgroundColor: themeColors.card }]}>
+        <LinearGradient
+          colors={category?.gradient || ['#FF6B35', '#FF8F65']}
+          style={styles.trophyIconContainer}
+        >
+          <IconComponent size={24} color="white" />
+        </LinearGradient>
+        
+        <View style={styles.trophyContent}>
+          <Text style={[styles.trophyTitle, { color: themeColors.text }]}>{trophy.title}</Text>
+          <Text style={[styles.trophyDescription, { color: themeColors.subtext }]}>
+            {trophy.description}
+          </Text>
+          {trophy.level > 1 && (
+            <View style={[styles.levelBadge, { backgroundColor: category?.color || themeColors.primary }]}>
+              <Text style={styles.levelText}>Level {trophy.level}</Text>
+            </View>
+          )}
+        </View>
+        
+        <View style={styles.trophyMeta}>
+          <View style={[styles.xpBadge, { backgroundColor: '#FFD60A20' }]}>
+            <Zap size={12} color="#FFD60A" />
+            <Text style={styles.xpText}>+{trophy.xpReward || 100}</Text>
           </View>
-        )}
+        </View>
       </View>
+    );
+  };
+
+  const renderCategoryFilters = () => (
+    <View style={styles.filtersContainer}>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filtersContent}
+      >
+        <Pressable
+          style={[
+            styles.filterChip,
+            {
+              backgroundColor: selectedCategory === 'all' ? '#FF6B35' : 'rgba(255,255,255,0.05)',
+              borderColor: selectedCategory === 'all' ? '#FF6B35' : 'rgba(255,255,255,0.1)',
+            }
+          ]}
+          onPress={() => setSelectedCategory('all')}
+        >
+          <Text style={[
+            styles.filterText,
+            { color: selectedCategory === 'all' ? 'white' : '#8E8E93' }
+          ]}>
+            All ({completedAchievements.length})
+          </Text>
+        </Pressable>
+
+        {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
+          const IconComponent = config.icon;
+          const isActive = selectedCategory === key;
+          const categoryCount = completedAchievements.filter(t => t.category === key).length;
+          
+          return (
+            <Pressable
+              key={key}
+              style={[
+                styles.filterChip,
+                {
+                  backgroundColor: isActive ? config.color : 'rgba(255,255,255,0.05)',
+                  borderColor: isActive ? config.color : 'rgba(255,255,255,0.1)',
+                }
+              ]}
+              onPress={() => setSelectedCategory(key)}
+            >
+              <IconComponent 
+                size={14} 
+                color={isActive ? 'white' : '#8E8E93'} 
+              />
+              <Text style={[
+                styles.filterText,
+                { color: isActive ? 'white' : '#8E8E93' }
+              ]}>
+                {config.label} ({categoryCount})
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 
@@ -237,7 +347,7 @@ export default function TrophiesScreen() {
         {/* Page Title */}
         <View style={styles.titleSection}>
           <Text style={[styles.pageTitle, { color: themeColors.text }]}>
-            Your Trophies
+            Your Achievements
           </Text>
           {profile && (
             <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
@@ -373,31 +483,29 @@ export default function TrophiesScreen() {
                   Earn trophies by tracking your activities and achievements!
                 </Text>
               </View>
-            ) : completedAchievements.length === 0 ? (
-              <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
-                <Text style={styles.emptyEmoji}>🏆</Text>
-                <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
-                  No Trophies Yet
-                </Text>
-                <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
-                  Start tracking your activities to earn your first trophy!
-                </Text>
-              </View>
             ) : (
               <>
-                {trophyCategories.map((category) => (
-                  <View key={category.name} style={styles.categorySection}>
-                    <Text style={[styles.categoryTitle, { color: themeColors.primary }]}>
-                      {category.displayName} ({category.count})
+                {/* Category Filters */}
+                {renderCategoryFilters()}
+
+                {/* Trophies List */}
+                {filteredTrophies.length === 0 ? (
+                  <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
+                    <Text style={styles.emptyEmoji}>🏆</Text>
+                    <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
+                      No Trophies Yet
                     </Text>
-                    
-                    <View style={styles.trophyList}>
-                      {category.trophies.map((trophy) => (
-                        <TrophyCard key={trophy.id} trophy={trophy} />
-                      ))}
-                    </View>
+                    <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
+                      Start tracking your activities to earn your first trophy!
+                    </Text>
                   </View>
-                ))}
+                ) : (
+                  <View style={styles.trophyList}>
+                    {filteredTrophies.map((trophy) => (
+                      <TrophyCard key={trophy.id} trophy={trophy} />
+                    ))}
+                  </View>
+                )}
               </>
             )}
           </View>
@@ -523,42 +631,25 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: 'center',
   },
-  emptyState: {
-    padding: 40,
-    borderRadius: 20,
+  filtersContainer: {
+    marginBottom: 20,
+  },
+  filtersContent: {
+    paddingHorizontal: 4,
+  },
+  filterChip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 12,
   },
-  emptyEmoji: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 8,
-    letterSpacing: 0.3,
-  },
-  emptyDescription: {
-    fontSize: 16,
-    textAlign: 'center',
-    lineHeight: 22,
-    fontWeight: '500',
-  },
-  categorySection: {
-    marginBottom: 24,
-  },
-  categoryTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 16,
-    letterSpacing: 0.3,
+  filterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   trophyList: {
     gap: 12,
@@ -576,16 +667,18 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  trophyIcon: {
+  trophyIconContainer: {
     width: 56,
     height: 56,
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
-  },
-  trophyEmoji: {
-    fontSize: 28,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   trophyContent: {
     flex: 1,
@@ -613,6 +706,50 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     letterSpacing: 0.2,
+  },
+  trophyMeta: {
+    alignItems: 'flex-end',
+  },
+  xpBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  xpText: {
+    color: '#FFD60A',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  emptyState: {
+    padding: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  emptyEmoji: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 8,
+    letterSpacing: 0.3,
+  },
+  emptyDescription: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 22,
+    fontWeight: '500',
   },
   footer: {
     height: 24,

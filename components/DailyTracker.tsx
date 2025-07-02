@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { StyleSheet, View, Text, Pressable, ScrollView, Alert, Platform, Modal } from 'react-native';
-import { X, Plus, Minus, TrendingUp, Target, Loader2, CheckCircle } from 'lucide-react-native';
+import { X, Plus, Minus, TrendingUp, CheckCircle, Loader2, Target, Zap } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useDailyTrackerStore } from '@/stores/dailyTrackerStore';
@@ -18,14 +19,25 @@ interface DrunkScaleOption {
   label: string;
   emoji: string;
   description: string;
+  color: string;
 }
 
 const drunkScaleOptions: DrunkScaleOption[] = [
-  { value: 1, label: 'Sober', emoji: '😐', description: 'Completely sober' },
-  { value: 2, label: 'Buzzed', emoji: '🙂', description: 'Feeling relaxed' },
-  { value: 3, label: 'Tipsy', emoji: '😊', description: 'Feeling good' },
-  { value: 4, label: 'Drunk', emoji: '😵', description: 'Pretty drunk' },
-  { value: 5, label: 'Wasted', emoji: '🤢', description: 'Very drunk' },
+  { value: 1, label: 'Sober', emoji: '😐', description: 'Completely sober', color: '#34C759' },
+  { value: 2, label: 'Buzzed', emoji: '🙂', description: 'Feeling relaxed', color: '#FFD60A' },
+  { value: 3, label: 'Tipsy', emoji: '😊', description: 'Feeling good', color: '#FF9500' },
+  { value: 4, label: 'Drunk', emoji: '😵', description: 'Pretty drunk', color: '#FF6B35' },
+  { value: 5, label: 'Wasted', emoji: '🤢', description: 'Very drunk', color: '#FF3B30' },
+];
+
+const STAT_ITEMS = [
+  { key: 'shots', label: 'Shots', emoji: '🥃', xp: 5, color: '#FF6B35' },
+  { key: 'beers', label: 'Beers', emoji: '🍻', xp: 5, color: '#FFD60A' },
+  { key: 'beer_towers', label: 'Beer Towers', emoji: '🗼', xp: 15, color: '#30D158' },
+  { key: 'funnels', label: 'Funnels', emoji: '🌪️', xp: 10, color: '#007AFF' },
+  { key: 'shotguns', label: 'Shotguns', emoji: '💥', xp: 10, color: '#AF52DE' },
+  { key: 'pool_games_won', label: 'Pool Games Won', emoji: '🎱', xp: 15, color: '#FF9500' },
+  { key: 'dart_games_won', label: 'Dart Games Won', emoji: '🎯', xp: 15, color: '#FF3B30' },
 ];
 
 export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
@@ -49,6 +61,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
 
   const [canSubmitScale, setCanSubmitScale] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [activeSection, setActiveSection] = useState<'stats' | 'scale'>('stats');
 
   // Load today's stats when modal opens
   useEffect(() => {
@@ -91,8 +104,14 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
   const handleDrunkScaleSelect = useCallback((rating: number) => {
     if (isSaving || !canSubmitScale) return;
     
-    updateLocalStats({ drunk_scale: rating });
-  }, [isSaving, canSubmitScale, updateLocalStats]);
+    updateLocalStats({ drunk_scale: localStats.drunk_scale === rating ? null : rating });
+  }, [isSaving, canSubmitScale, updateLocalStats, localStats.drunk_scale]);
+
+  const calculateTotalXP = useMemo(() => {
+    return STAT_ITEMS.reduce((total, item) => {
+      return total + ((localStats[item.key as keyof typeof localStats] as number) * item.xp);
+    }, 0) + (localStats.drunk_scale ? 25 : 0);
+  }, [localStats]);
 
   const handleSaveStats = useCallback(async () => {
     if (isSaving) {
@@ -181,16 +200,6 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     }
   }, [isSaving, isAuthenticated, localStats, saveTodayStats, handleClose, resetLocalStats, profile, checkAndUpdateMultiLevelAchievements]);
 
-  const statItems = useMemo(() => [
-    { key: 'shots' as const, label: 'Shots', emoji: '🥃', xp: 5 },
-    { key: 'beers' as const, label: 'Beers', emoji: '🍻', xp: 5 },
-    { key: 'beer_towers' as const, label: 'Beer Towers', emoji: '🗼', xp: 15 },
-    { key: 'funnels' as const, label: 'Funnels', emoji: '🌪️', xp: 10 },
-    { key: 'shotguns' as const, label: 'Shotguns', emoji: '💥', xp: 10 },
-    { key: 'pool_games_won' as const, label: 'Pool Games Won', emoji: '🎱', xp: 15 },
-    { key: 'dart_games_won' as const, label: 'Dart Games Won', emoji: '🎯', xp: 15 },
-  ], []);
-
   const canSaveStats = useMemo(() => {
     return isAuthenticated && !isSaving && !isLoading;
   }, [isAuthenticated, isSaving, isLoading]);
@@ -206,6 +215,227 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
 
   const statusMessage = getStatusMessage();
 
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <View style={styles.headerContent}>
+        <TrendingUp size={24} color="#FF6B35" />
+        <Text style={styles.title}>Daily Tracker</Text>
+      </View>
+      <Pressable style={styles.closeButton} onPress={handleClose}>
+        <X size={24} color="white" />
+      </Pressable>
+    </View>
+  );
+
+  const renderXPSummary = () => (
+    <View style={styles.xpContainer}>
+      <LinearGradient
+        colors={['#FF6B35', '#FF8F65']}
+        style={styles.xpCard}
+      >
+        <View style={styles.xpContent}>
+          <Zap size={20} color="white" />
+          <Text style={styles.xpText}>Total XP: {calculateTotalXP}</Text>
+        </View>
+      </LinearGradient>
+    </View>
+  );
+
+  const renderSectionTabs = () => (
+    <View style={styles.tabsContainer}>
+      <Pressable
+        style={[
+          styles.tab,
+          {
+            backgroundColor: activeSection === 'stats' ? '#FF6B35' : 'rgba(255,255,255,0.05)',
+          }
+        ]}
+        onPress={() => setActiveSection('stats')}
+      >
+        <Target size={18} color={activeSection === 'stats' ? 'white' : '#8E8E93'} />
+        <Text style={[
+          styles.tabText,
+          { color: activeSection === 'stats' ? 'white' : '#8E8E93' }
+        ]}>
+          Activities
+        </Text>
+      </Pressable>
+
+      <Pressable
+        style={[
+          styles.tab,
+          {
+            backgroundColor: activeSection === 'scale' ? '#FF6B35' : 'rgba(255,255,255,0.05)',
+          }
+        ]}
+        onPress={() => setActiveSection('scale')}
+      >
+        <Text style={styles.tabEmoji}>🤔</Text>
+        <Text style={[
+          styles.tabText,
+          { color: activeSection === 'scale' ? 'white' : '#8E8E93' }
+        ]}>
+          How You Feel
+        </Text>
+      </Pressable>
+    </View>
+  );
+
+  const renderStatsSection = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Track Your Activities</Text>
+      <Text style={styles.sectionSubtitle}>
+        Tap to add or remove activities from your night
+      </Text>
+
+      {STAT_ITEMS.map((item) => (
+        <View key={item.key} style={styles.statCard}>
+          <View style={styles.statHeader}>
+            <View style={styles.statInfo}>
+              <Text style={styles.statEmoji}>{item.emoji}</Text>
+              <View style={styles.statLabels}>
+                <Text style={styles.statLabel}>{item.label}</Text>
+                <View style={styles.xpBadge}>
+                  <Zap size={12} color="#FFD60A" />
+                  <Text style={styles.xpBadgeText}>+{item.xp} XP each</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.statControls}>
+              <Pressable
+                style={[styles.controlButton, styles.minusButton]}
+                onPress={() => handleStatChange(item.key as keyof typeof localStats, -1)}
+                disabled={isSaving || !canSaveStats}
+              >
+                <Minus size={18} color="white" />
+              </Pressable>
+
+              <View style={styles.countContainer}>
+                <Text style={styles.countText}>
+                  {localStats[item.key as keyof typeof localStats] as number}
+                </Text>
+              </View>
+
+              <Pressable
+                style={[
+                  styles.controlButton,
+                  styles.plusButton,
+                  { backgroundColor: item.color }
+                ]}
+                onPress={() => handleStatChange(item.key as keyof typeof localStats, 1)}
+                disabled={isSaving || !canSaveStats}
+              >
+                <Plus size={18} color="white" />
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+
+  const renderScaleSection = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>How Are You Feeling?</Text>
+      <Text style={styles.sectionSubtitle}>
+        {canSubmitScale 
+          ? 'Select your current state for +25 XP'
+          : 'Already submitted today'
+        }
+      </Text>
+
+      {canSubmitScale ? (
+        <View style={styles.drunkScaleOptions}>
+          {drunkScaleOptions.map((option) => (
+            <Pressable
+              key={option.value}
+              style={[
+                styles.scaleCard,
+                {
+                  borderColor: localStats.drunk_scale === option.value ? option.color : 'rgba(255,255,255,0.1)',
+                  backgroundColor: localStats.drunk_scale === option.value ? option.color + '20' : '#1C1C1E',
+                }
+              ]}
+              onPress={() => handleDrunkScaleSelect(option.value)}
+              disabled={isSaving || !canSaveStats}
+            >
+              <View style={styles.scaleContent}>
+                <Text style={styles.scaleEmoji}>{option.emoji}</Text>
+                <View style={styles.scaleInfo}>
+                  <Text style={[
+                    styles.scaleLabel,
+                    { color: localStats.drunk_scale === option.value ? option.color : 'white' }
+                  ]}>
+                    {option.label}
+                  </Text>
+                  <Text style={styles.scaleDescription}>
+                    {option.description}
+                  </Text>
+                </View>
+                {localStats.drunk_scale === option.value && (
+                  <CheckCircle size={20} color={option.color} />
+                )}
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      ) : (
+        <View style={styles.drunkScaleDisabled}>
+          <Target size={40} color="#8E8E93" />
+          <Text style={styles.drunkScaleDisabledText}>
+            Drunk scale submitted for today
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+
+  const renderSaveButton = () => (
+    <View style={styles.footer}>
+      <Pressable
+        style={[
+          styles.saveButton,
+          {
+            backgroundColor: saveSuccess 
+              ? '#34C759' 
+              : '#FF6B35',
+            opacity: canSaveStats && !saveSuccess ? 1 : 0.5,
+          }
+        ]}
+        onPress={handleSaveStats}
+        disabled={!canSaveStats || saveSuccess}
+      >
+        <View style={styles.saveButtonContent}>
+          {isSaving && (
+            <Loader2 
+              size={20} 
+              color="white" 
+              style={styles.saveButtonIcon} 
+            />
+          )}
+          {saveSuccess && (
+            <CheckCircle 
+              size={20} 
+              color="white" 
+              style={styles.saveButtonIcon} 
+            />
+          )}
+          <Text style={styles.saveButtonText}>
+            {saveSuccess
+              ? 'Saved Successfully!'
+              : isSaving 
+                ? 'Saving...' 
+                : statusMessage && !isAuthenticated
+                  ? 'Sign In to Save' 
+                  : 'Save My Stats & Earn XP'
+            }
+          </Text>
+        </View>
+      </Pressable>
+    </View>
+  );
+
   return (
     <Modal
       animationType="slide"
@@ -214,243 +444,19 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       onRequestClose={handleClose}
     >
       <View style={styles.overlay}>
-        <View style={[styles.container, { backgroundColor: themeColors.card }]}>
-          {/* Header */}
-          <View style={[styles.header, { borderBottomColor: themeColors.border }]}>
-            <View style={styles.headerContent}>
-              <TrendingUp size={28} color={themeColors.primary} />
-              <Text style={[styles.title, { color: themeColors.text }]}>
-                Daily Tracker
-              </Text>
-            </View>
-            <Pressable 
-              style={[styles.closeButton, { opacity: isSaving ? 0.5 : 1 }]} 
-              onPress={handleClose}
-              disabled={isSaving}
-            >
-              <X size={28} color={themeColors.text} />
-            </Pressable>
-          </View>
+        <View style={styles.container}>
+          {renderHeader()}
+          {renderXPSummary()}
+          {renderSectionTabs()}
 
-          {/* Status Banner */}
-          {statusMessage && (
-            <View style={[
-              styles.statusBanner, 
-              { 
-                backgroundColor: saveSuccess
-                  ? themeColors.success + '20'
-                  : isSaving 
-                    ? themeColors.primary + '20' 
-                    : error
-                      ? themeColors.error + '20'
-                      : themeColors.warning + '20' 
-              }
-            ]}>
-              <View style={styles.statusContent}>
-                {saveSuccess && (
-                  <CheckCircle 
-                    size={16} 
-                    color={themeColors.success} 
-                    style={styles.statusIcon} 
-                  />
-                )}
-                {isSaving && (
-                  <Loader2 
-                    size={16} 
-                    color={themeColors.primary} 
-                    style={styles.statusIcon} 
-                  />
-                )}
-                <Text style={[
-                  styles.statusText, 
-                  { 
-                    color: saveSuccess
-                      ? themeColors.success
-                      : isSaving 
-                        ? themeColors.primary 
-                        : error
-                          ? themeColors.error
-                          : themeColors.warning 
-                  }
-                ]}>
-                  {statusMessage}
-                </Text>
-              </View>
-            </View>
-          )}
-
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            {/* Stats Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-                  Track Your Night 🍻
-                </Text>
-                <Text style={[styles.sectionSubtitle, { color: themeColors.subtext }]}>
-                  Track your activities for the day
-                </Text>
-              </View>
-              
-              {statItems.map((item) => (
-                <View key={item.key} style={[styles.statRow, { backgroundColor: themeColors.background }]}>
-                  <View style={styles.statInfo}>
-                    <Text style={styles.statEmoji}>{item.emoji}</Text>
-                    <View style={styles.statTextContainer}>
-                      <Text style={[styles.statLabel, { color: themeColors.text }]}>
-                        {item.label}
-                      </Text>
-                    </View>
-                  </View>
-                  
-                  <View style={styles.statControls}>
-                    <Pressable
-                      style={[
-                        styles.controlButton, 
-                        { 
-                          backgroundColor: themeColors.border,
-                          opacity: (isSaving || !canSaveStats) ? 0.5 : 1
-                        }
-                      ]}
-                      onPress={() => handleStatChange(item.key, -1)}
-                      disabled={isSaving || !canSaveStats}
-                    >
-                      <Minus size={18} color={themeColors.text} />
-                    </Pressable>
-                    
-                    <Text style={[styles.statValue, { color: themeColors.text }]}>
-                      {localStats[item.key] || 0}
-                    </Text>
-                    
-                    <Pressable
-                      style={[
-                        styles.controlButton, 
-                        { 
-                          backgroundColor: themeColors.primary,
-                          opacity: (isSaving || !canSaveStats) ? 0.5 : 1
-                        }
-                      ]}
-                      onPress={() => handleStatChange(item.key, 1)}
-                      disabled={isSaving || !canSaveStats}
-                    >
-                      <Plus size={18} color="white" />
-                    </Pressable>
-                  </View>
-                </View>
-              ))}
-            </View>
-
-            {/* Drunk Scale Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-                  How are you feeling? 🤔
-                </Text>
-                <Text style={[styles.sectionSubtitle, { color: themeColors.subtext }]}>
-                  {canSubmitScale 
-                    ? 'Submit once per day'
-                    : 'Already submitted today'
-                  }
-                </Text>
-              </View>
-
-              {canSubmitScale ? (
-                <View style={styles.drunkScaleOptions}>
-                  {drunkScaleOptions.map((option) => (
-                    <Pressable
-                      key={option.value}
-                      style={[
-                        styles.drunkScaleOption,
-                        {
-                          backgroundColor: localStats.drunk_scale === option.value 
-                            ? themeColors.primary 
-                            : themeColors.background,
-                          borderColor: localStats.drunk_scale === option.value 
-                            ? themeColors.primary 
-                            : themeColors.border,
-                          opacity: (isSaving || !canSaveStats) ? 0.5 : 1
-                        }
-                      ]}
-                      onPress={() => handleDrunkScaleSelect(option.value)}
-                      disabled={isSaving || !canSaveStats}
-                    >
-                      <Text style={styles.drunkScaleEmoji}>{option.emoji}</Text>
-                      <Text style={[
-                        styles.drunkScaleLabel, 
-                        { 
-                          color: localStats.drunk_scale === option.value 
-                            ? 'white' 
-                            : themeColors.text 
-                        }
-                      ]}>
-                        {option.label}
-                      </Text>
-                      <Text style={[
-                        styles.drunkScaleDescription, 
-                        { 
-                          color: localStats.drunk_scale === option.value 
-                            ? 'rgba(255,255,255,0.8)' 
-                            : themeColors.subtext 
-                        }
-                      ]}>
-                        {option.description}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : (
-                <View style={[styles.drunkScaleDisabled, { backgroundColor: themeColors.background }]}>
-                  <Target size={40} color={themeColors.subtext} />
-                  <Text style={[styles.drunkScaleDisabledText, { color: themeColors.subtext }]}>
-                    Drunk scale submitted for today
-                  </Text>
-                </View>
-              )}
-            </View>
+          <ScrollView 
+            style={styles.content}
+            showsVerticalScrollIndicator={false}
+          >
+            {activeSection === 'stats' ? renderStatsSection() : renderScaleSection()}
           </ScrollView>
 
-          {/* Save Button */}
-          <View style={[styles.footer, { borderTopColor: themeColors.border }]}>
-            <Pressable
-              style={[
-                styles.saveButton, 
-                { 
-                  backgroundColor: saveSuccess 
-                    ? themeColors.success 
-                    : themeColors.primary,
-                  opacity: canSaveStats && !saveSuccess ? 1 : 0.5,
-                }
-              ]}
-              onPress={handleSaveStats}
-              disabled={!canSaveStats || saveSuccess}
-            >
-              <View style={styles.saveButtonContent}>
-                {isSaving && (
-                  <Loader2 
-                    size={20} 
-                    color="white" 
-                    style={styles.saveButtonIcon} 
-                  />
-                )}
-                {saveSuccess && (
-                  <CheckCircle 
-                    size={20} 
-                    color="white" 
-                    style={styles.saveButtonIcon} 
-                  />
-                )}
-                <Text style={styles.saveButtonText}>
-                  {saveSuccess
-                    ? 'Saved Successfully!'
-                    : isSaving 
-                      ? 'Saving...' 
-                      : statusMessage && !isAuthenticated
-                        ? 'Sign In to Save' 
-                        : 'Save My Stats & Earn XP'
-                  }
-                </Text>
-              </View>
-            </Pressable>
-          </View>
+          {renderSaveButton()}
         </View>
       </View>
     </Modal>
@@ -460,200 +466,302 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'flex-end',
   },
+  
   container: {
-    maxHeight: '92%',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    backgroundColor: '#000',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '90%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -12 },
+    shadowOffset: { width: 0, height: -8 },
     shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 25,
+    shadowRadius: 16,
+    elevation: 20,
   },
+  
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 24,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
   },
+  
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  
   title: {
-    fontSize: 24,
-    fontWeight: '800',
+    color: 'white',
+    fontSize: 20,
+    fontWeight: '700',
     marginLeft: 12,
-    letterSpacing: 0.5,
   },
+  
   closeButton: {
     padding: 8,
-    borderRadius: 20,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
-  statusBanner: {
-    padding: 12,
+  
+  xpContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  
+  xpCard: {
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#FF6B35',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  
+  xpContent: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statusContent: {
+  
+  xpText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+  
+  tabsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginBottom: 8,
+    gap: 12,
+  },
+  
+  tab: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  statusIcon: {
-    marginRight: 8,
-  },
-  statusText: {
+  
+  tabText: {
     fontSize: 14,
     fontWeight: '600',
+    marginLeft: 8,
   },
+  
+  tabEmoji: {
+    fontSize: 16,
+  },
+  
   content: {
-    maxHeight: 520,
+    maxHeight: 400,
   },
+  
   section: {
-    padding: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
-  sectionHeader: {
-    marginBottom: 20,
-    alignItems: 'center',
-  },
+  
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    marginBottom: 6,
-    letterSpacing: 0.4,
-    textAlign: 'center',
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
   },
+  
   sectionSubtitle: {
-    fontSize: 15,
+    color: '#8E8E93',
+    fontSize: 14,
     fontWeight: '500',
-    textAlign: 'center',
-    lineHeight: 20,
+    marginBottom: 20,
+    lineHeight: 18,
   },
-  statRow: {
+  
+  statCard: {
+    backgroundColor: '#1C1C1E',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  
+  statHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
-    borderRadius: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 5,
   },
+  
   statInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
+  
   statEmoji: {
-    fontSize: 28,
-    marginRight: 16,
+    fontSize: 24,
+    marginRight: 12,
   },
-  statTextContainer: {
+  
+  statLabels: {
     flex: 1,
   },
+  
   statLabel: {
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
   },
-  statControls: {
+  
+  xpBadge: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  
+  xpBadgeText: {
+    color: '#FFD60A',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  
+  statControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  
   controlButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    marginHorizontal: 20,
-    minWidth: 28,
-    textAlign: 'center',
+  
+  minusButton: {
+    backgroundColor: '#3A3A3C',
   },
+  
+  plusButton: {
+    backgroundColor: '#FF6B35',
+  },
+  
+  countContainer: {
+    minWidth: 32,
+    alignItems: 'center',
+  },
+  
+  countText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  
   drunkScaleOptions: {
     marginBottom: 24,
   },
-  drunkScaleOption: {
-    padding: 20,
-    borderRadius: 20,
+  
+  scaleCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 2,
-    marginBottom: 16,
+  },
+  
+  scaleContent: {
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 5,
   },
-  drunkScaleEmoji: {
-    fontSize: 36,
-    marginBottom: 10,
+  
+  scaleEmoji: {
+    fontSize: 28,
+    marginRight: 16,
   },
-  drunkScaleLabel: {
-    fontSize: 18,
-    fontWeight: '800',
-    marginBottom: 6,
-    letterSpacing: 0.3,
+  
+  scaleInfo: {
+    flex: 1,
   },
-  drunkScaleDescription: {
-    fontSize: 15,
+  
+  scaleLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  
+  scaleDescription: {
+    color: '#8E8E93',
+    fontSize: 14,
     fontWeight: '500',
-    textAlign: 'center',
   },
+  
   drunkScaleDisabled: {
     padding: 40,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#1C1C1E',
   },
+  
   drunkScaleDisabledText: {
+    color: '#8E8E93',
     fontSize: 17,
     fontWeight: '600',
     textAlign: 'center',
     marginTop: 16,
     lineHeight: 24,
   },
+  
   footer: {
-    padding: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
   },
+  
   saveButton: {
-    padding: 20,
-    borderRadius: 28,
+    paddingVertical: 16,
+    borderRadius: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 12,
+    shadowColor: '#FF6B35',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
+  
   saveButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  
   saveButtonIcon: {
     marginRight: 8,
   },
+  
   saveButtonText: {
     color: 'white',
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: 0.4,
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
