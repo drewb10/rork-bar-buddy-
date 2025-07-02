@@ -17,6 +17,7 @@ export interface Achievement {
   level: number;
   maxLevel: number;
   baseId: string;
+  xpReward: number; // Made required instead of optional
 }
 
 export interface CompletedAchievement {
@@ -28,6 +29,7 @@ export interface CompletedAchievement {
   completedAt: string;
   level: number;
   baseId: string;
+  xpReward: number; // Made required instead of optional
 }
 
 interface AchievementState {
@@ -66,7 +68,7 @@ const createAchievementLevels = (
   baseName: string,
   category: Achievement['category'],
   icon: string,
-  levels: { threshold: number; title: string; description: string }[],
+  levels: { threshold: number; title: string; description: string; xpReward: number }[],
   order: number
 ): Achievement[] => {
   return levels.map((level, index) => ({
@@ -83,6 +85,7 @@ const createAchievementLevels = (
     order,
     level: index + 1,
     maxLevel: levels.length,
+    xpReward: level.xpReward,
   }));
 };
 
@@ -94,11 +97,11 @@ const defaultAchievements: Achievement[] = [
     'bars',
     '🏛️',
     [
-      { threshold: 5, title: 'Bar Explorer', description: 'Visited 5 different bars' },
-      { threshold: 15, title: 'Bar Adventurer', description: 'Visited 15 different bars' },
-      { threshold: 30, title: 'Bar Enthusiast', description: 'Visited 30 different bars' },
-      { threshold: 50, title: 'Bar Connoisseur', description: 'Visited 50 different bars' },
-      { threshold: 100, title: 'Bar Legend', description: 'Visited 100 different bars' },
+      { threshold: 5, title: 'Bar Explorer', description: 'Visited 5 different bars', xpReward: 50 },
+      { threshold: 15, title: 'Bar Adventurer', description: 'Visited 15 different bars', xpReward: 100 },
+      { threshold: 30, title: 'Bar Enthusiast', description: 'Visited 30 different bars', xpReward: 200 },
+      { threshold: 50, title: 'Bar Connoisseur', description: 'Visited 50 different bars', xpReward: 300 },
+      { threshold: 100, title: 'Bar Legend', description: 'Visited 100 different bars', xpReward: 500 },
     ],
     1
   ),
@@ -110,11 +113,11 @@ const defaultAchievements: Achievement[] = [
     'milestones',
     '🌙',
     [
-      { threshold: 10, title: 'Night Owl', description: 'Completed 10 nights out' },
-      { threshold: 25, title: 'Party Goer', description: 'Completed 25 nights out' },
-      { threshold: 50, title: 'Social Butterfly', description: 'Completed 50 nights out' },
-      { threshold: 75, title: 'Nightlife Aficionado', description: 'Completed 75 nights out' },
-      { threshold: 100, title: 'Nightlife Legend', description: 'Completed 100 nights out' },
+      { threshold: 10, title: 'Night Owl', description: 'Completed 10 nights out', xpReward: 100 },
+      { threshold: 25, title: 'Party Goer', description: 'Completed 25 nights out', xpReward: 200 },
+      { threshold: 50, title: 'Social Butterfly', description: 'Completed 50 nights out', xpReward: 400 },
+      { threshold: 75, title: 'Nightlife Aficionado', description: 'Completed 75 nights out', xpReward: 600 },
+      { threshold: 100, title: 'Nightlife Legend', description: 'Completed 100 nights out', xpReward: 1000 },
     ],
     2
   ),
@@ -126,11 +129,11 @@ const defaultAchievements: Achievement[] = [
     'activities',
     '🍺',
     [
-      { threshold: 10, title: 'Beer Rookie', description: 'Consumed 10 beers' },
-      { threshold: 25, title: 'Beer Enthusiast', description: 'Consumed 25 beers' },
-      { threshold: 50, title: 'Beer Pro', description: 'Consumed 50 beers' },
-      { threshold: 100, title: 'Beer Master', description: 'Consumed 100 beers' },
-      { threshold: 200, title: 'Beer Champion', description: 'Consumed 200 beers' },
+      { threshold: 10, title: 'Beer Rookie', description: 'Consumed 10 beers', xpReward: 50 },
+      { threshold: 25, title: 'Beer Enthusiast', description: 'Consumed 25 beers', xpReward: 100 },
+      { threshold: 50, title: 'Beer Pro', description: 'Consumed 50 beers', xpReward: 200 },
+      { threshold: 100, title: 'Beer Master', description: 'Consumed 100 beers', xpReward: 400 },
+      { threshold: 200, title: 'Beer Champion', description: 'Consumed 200 beers', xpReward: 800 },
     ],
     3
   ),
@@ -142,11 +145,11 @@ const defaultAchievements: Achievement[] = [
     'activities',
     '🥃',
     [
-      { threshold: 10, title: 'Shot Rookie', description: 'Took 10 shots' },
-      { threshold: 25, title: 'Shot Enthusiast', description: 'Took 25 shots' },
-      { threshold: 50, title: 'Shot Pro', description: 'Took 50 shots' },
-      { threshold: 100, title: 'Shot Master', description: 'Took 100 shots' },
-      { threshold: 200, title: 'Shot Champion', description: 'Took 200 shots' },
+      { threshold: 10, title: 'Shot Rookie', description: 'Took 10 shots', xpReward: 50 },
+      { threshold: 25, title: 'Shot Enthusiast', description: 'Took 25 shots', xpReward: 100 },
+      { threshold: 50, title: 'Shot Pro', description: 'Took 50 shots', xpReward: 200 },
+      { threshold: 100, title: 'Shot Master', description: 'Took 100 shots', xpReward: 400 },
+      { threshold: 200, title: 'Shot Champion', description: 'Took 200 shots', xpReward: 800 },
     ],
     4
   ),
@@ -158,11 +161,11 @@ const defaultAchievements: Achievement[] = [
     'activities',
     '🗼',
     [
-      { threshold: 5, title: 'Tower Rookie', description: 'Consumed 5 beer towers' },
-      { threshold: 15, title: 'Tower Enthusiast', description: 'Consumed 15 beer towers' },
-      { threshold: 30, title: 'Tower Pro', description: 'Consumed 30 beer towers' },
-      { threshold: 50, title: 'Tower Master', description: 'Consumed 50 beer towers' },
-      { threshold: 75, title: 'Tower Champion', description: 'Consumed 75 beer towers' },
+      { threshold: 5, title: 'Tower Rookie', description: 'Consumed 5 beer towers', xpReward: 75 },
+      { threshold: 15, title: 'Tower Enthusiast', description: 'Consumed 15 beer towers', xpReward: 150 },
+      { threshold: 30, title: 'Tower Pro', description: 'Consumed 30 beer towers', xpReward: 300 },
+      { threshold: 50, title: 'Tower Master', description: 'Consumed 50 beer towers', xpReward: 500 },
+      { threshold: 75, title: 'Tower Champion', description: 'Consumed 75 beer towers', xpReward: 750 },
     ],
     5
   ),
@@ -174,11 +177,11 @@ const defaultAchievements: Achievement[] = [
     'activities',
     '🌪️',
     [
-      { threshold: 5, title: 'Funnel Novice', description: 'Completed 5 funnels' },
-      { threshold: 15, title: 'Funnel Enthusiast', description: 'Completed 15 funnels' },
-      { threshold: 30, title: 'Funnel Pro', description: 'Completed 30 funnels' },
-      { threshold: 50, title: 'Funnel Master', description: 'Completed 50 funnels' },
-      { threshold: 75, title: 'Funnel Champion', description: 'Completed 75 funnels' },
+      { threshold: 5, title: 'Funnel Novice', description: 'Completed 5 funnels', xpReward: 75 },
+      { threshold: 15, title: 'Funnel Enthusiast', description: 'Completed 15 funnels', xpReward: 150 },
+      { threshold: 30, title: 'Funnel Pro', description: 'Completed 30 funnels', xpReward: 300 },
+      { threshold: 50, title: 'Funnel Master', description: 'Completed 50 funnels', xpReward: 500 },
+      { threshold: 75, title: 'Funnel Champion', description: 'Completed 75 funnels', xpReward: 750 },
     ],
     6
   ),
@@ -190,11 +193,11 @@ const defaultAchievements: Achievement[] = [
     'activities',
     '💥',
     [
-      { threshold: 10, title: 'Shotgun Novice', description: 'Completed 10 shotguns' },
-      { threshold: 25, title: 'Shotgun Enthusiast', description: 'Completed 25 shotguns' },
-      { threshold: 50, title: 'Shotgun Pro', description: 'Completed 50 shotguns' },
-      { threshold: 75, title: 'Shotgun Master', description: 'Completed 75 shotguns' },
-      { threshold: 100, title: 'Shotgun Champion', description: 'Completed 100 shotguns' },
+      { threshold: 10, title: 'Shotgun Novice', description: 'Completed 10 shotguns', xpReward: 100 },
+      { threshold: 25, title: 'Shotgun Enthusiast', description: 'Completed 25 shotguns', xpReward: 200 },
+      { threshold: 50, title: 'Shotgun Pro', description: 'Completed 50 shotguns', xpReward: 400 },
+      { threshold: 75, title: 'Shotgun Master', description: 'Completed 75 shotguns', xpReward: 600 },
+      { threshold: 100, title: 'Shotgun Champion', description: 'Completed 100 shotguns', xpReward: 1000 },
     ],
     7
   ),
@@ -206,11 +209,11 @@ const defaultAchievements: Achievement[] = [
     'activities',
     '🎱',
     [
-      { threshold: 5, title: 'Pool Rookie', description: 'Won 5 pool games' },
-      { threshold: 15, title: 'Pool Enthusiast', description: 'Won 15 pool games' },
-      { threshold: 30, title: 'Pool Pro', description: 'Won 30 pool games' },
-      { threshold: 50, title: 'Pool Master', description: 'Won 50 pool games' },
-      { threshold: 75, title: 'Pool Champion', description: 'Won 75 pool games' },
+      { threshold: 5, title: 'Pool Rookie', description: 'Won 5 pool games', xpReward: 75 },
+      { threshold: 15, title: 'Pool Enthusiast', description: 'Won 15 pool games', xpReward: 150 },
+      { threshold: 30, title: 'Pool Pro', description: 'Won 30 pool games', xpReward: 300 },
+      { threshold: 50, title: 'Pool Master', description: 'Won 50 pool games', xpReward: 500 },
+      { threshold: 75, title: 'Pool Champion', description: 'Won 75 pool games', xpReward: 750 },
     ],
     8
   ),
@@ -222,11 +225,11 @@ const defaultAchievements: Achievement[] = [
     'activities',
     '🎯',
     [
-      { threshold: 5, title: 'Dart Rookie', description: 'Won 5 dart games' },
-      { threshold: 15, title: 'Dart Enthusiast', description: 'Won 15 dart games' },
-      { threshold: 30, title: 'Dart Pro', description: 'Won 30 dart games' },
-      { threshold: 50, title: 'Dart Master', description: 'Won 50 dart games' },
-      { threshold: 75, title: 'Dart Champion', description: 'Won 75 dart games' },
+      { threshold: 5, title: 'Dart Rookie', description: 'Won 5 dart games', xpReward: 75 },
+      { threshold: 15, title: 'Dart Enthusiast', description: 'Won 15 dart games', xpReward: 150 },
+      { threshold: 30, title: 'Dart Pro', description: 'Won 30 dart games', xpReward: 300 },
+      { threshold: 50, title: 'Dart Master', description: 'Won 50 dart games', xpReward: 500 },
+      { threshold: 75, title: 'Dart Champion', description: 'Won 75 dart games', xpReward: 750 },
     ],
     9
   ),
@@ -244,6 +247,7 @@ const defaultAchievements: Achievement[] = [
     order: 10,
     level: 1,
     maxLevel: 1,
+    xpReward: 100,
   },
 
   // Milestone Achievements
@@ -259,6 +263,7 @@ const defaultAchievements: Achievement[] = [
     order: 11,
     level: 1,
     maxLevel: 1,
+    xpReward: 50,
   },
 ];
 
@@ -359,6 +364,7 @@ export const useAchievementStore = create<AchievementState>()(
               completedAt: new Date().toISOString(),
               level: achievement.level,
               baseId: achievement.baseId,
+              xpReward: achievement.xpReward,
             };
 
             // Remove any lower level completed achievements of the same type
@@ -423,6 +429,7 @@ export const useAchievementStore = create<AchievementState>()(
                 completedAt: completedAchievement.completedAt!,
                 level: completedAchievement.level,
                 baseId: completedAchievement.baseId,
+                xpReward: completedAchievement.xpReward,
               };
 
               // Remove any lower level completed achievements of the same type

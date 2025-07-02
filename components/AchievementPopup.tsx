@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable, Modal, Alert } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Pressable, Modal, Alert, Platform } from 'react-native';
 import { X, CircleCheck as CheckCircle, Circle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAchievementStore, Achievement } from '@/stores/achievementStore';
-import { Platform } from 'react-native';
 
 interface AchievementPopupProps {
   visible: boolean;
@@ -148,6 +147,9 @@ export default function AchievementPopup({ visible, onClose, is3AMPopup = false 
                             Level {achievement.level}
                           </Text>
                         )}
+                        <Text style={[styles.xpReward, { color: '#FFD60A' }]}>
+                          +{achievement.xpReward} XP
+                        </Text>
                       </View>
                       {selectedAchievements.includes(achievement.id) ? (
                         <CheckCircle size={24} color={themeColors.primary} />
@@ -265,6 +267,11 @@ const styles = StyleSheet.create({
   levelIndicator: {
     fontSize: 12,
     fontWeight: '600',
+    marginBottom: 4,
+  },
+  xpReward: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   actions: {
     flexDirection: 'row',

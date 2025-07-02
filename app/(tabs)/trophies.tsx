@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, RefreshControl } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, RefreshControl, Alert } from 'react-native';
 import { Trophy, Award, Star, Target, Zap, Crown, Medal } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/constants/colors';
@@ -14,25 +14,25 @@ const CATEGORY_CONFIG = {
     label: 'Bar Hopping', 
     icon: Target, 
     color: '#FF6B35',
-    gradient: ['#FF6B35', '#FF8F65']
+    gradient: ['#FF6B35', '#FF8F65'] as const
   },
   activities: { 
     label: 'Activities', 
     icon: Trophy, 
     color: '#007AFF',
-    gradient: ['#007AFF', '#40A9FF']
+    gradient: ['#007AFF', '#40A9FF'] as const
   },
   social: { 
     label: 'Social', 
     icon: Star, 
     color: '#34C759',
-    gradient: ['#34C759', '#52D681']
+    gradient: ['#34C759', '#52D681'] as const
   },
   milestones: { 
     label: 'Milestones', 
     icon: Crown, 
     color: '#AF52DE',
-    gradient: ['#AF52DE', '#C77DFF']
+    gradient: ['#AF52DE', '#C77DFF'] as const
   },
 };
 
@@ -88,9 +88,9 @@ export default function TrophiesScreen() {
     setIsLoadingStats(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.log('🏆 Trophies: No authenticated user');
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        console.log('🏆 Trophies: No authenticated user', userError);
         setIsLoadingStats(false);
         return;
       }
@@ -105,24 +105,37 @@ export default function TrophiesScreen() {
 
       if (error) {
         console.error('🏆 Trophies: Error loading daily stats:', error);
+        Alert.alert('Error', 'Failed to load stats. Please try again.');
         setIsLoadingStats(false);
         return;
       }
 
       // Calculate lifetime totals from daily stats
-      const totals = (dailyStats || []).reduce((acc, day) => ({
-        totalBeers: acc.totalBeers + (day.beers || 0),
-        totalShots: acc.totalShots + (day.shots || 0),
-        totalBeerTowers: acc.totalBeerTowers + (day.beer_towers || 0),
-        totalFunnels: acc.totalFunnels + (day.funnels || 0),
-        totalShotguns: acc.totalShotguns + (day.shotguns || 0),
-        totalPoolGames: acc.totalPoolGames + (day.pool_games_won || 0),
-        totalDartGames: acc.totalDartGames + (day.dart_games_won || 0),
-        totalDrinksLogged: acc.totalDrinksLogged + (day.beers || 0) + (day.shots || 0) + (day.beer_towers || 0) + (day.funnels || 0) + (day.shotguns || 0),
-        drunkScaleSum: acc.drunkScaleSum + (day.drunk_scale || 0),
-        drunkScaleCount: acc.drunkScaleCount + (day.drunk_scale ? 1 : 0),
-        nightsOut: acc.nightsOut + 1, // Each day with stats counts as a night out
-      }), {
+      const totals = (dailyStats || []).reduce((acc, day) => {
+        // Ensure all values are numbers and handle null/undefined
+        const beers = Number(day.beers) || 0;
+        const shots = Number(day.shots) || 0;
+        const beerTowers = Number(day.beer_towers) || 0;
+        const funnels = Number(day.funnels) || 0;
+        const shotguns = Number(day.shotguns) || 0;
+        const poolGames = Number(day.pool_games_won) || 0;
+        const dartGames = Number(day.dart_games_won) || 0;
+        const drunkScale = Number(day.drunk_scale) || 0;
+
+        return {
+          totalBeers: acc.totalBeers + beers,
+          totalShots: acc.totalShots + shots,
+          totalBeerTowers: acc.totalBeerTowers + beerTowers,
+          totalFunnels: acc.totalFunnels + funnels,
+          totalShotguns: acc.totalShotguns + shotguns,
+          totalPoolGames: acc.totalPoolGames + poolGames,
+          totalDartGames: acc.totalDartGames + dartGames,
+          totalDrinksLogged: acc.totalDrinksLogged + beers + shots + beerTowers + funnels + shotguns,
+          drunkScaleSum: acc.drunkScaleSum + drunkScale,
+          drunkScaleCount: acc.drunkScaleCount + (drunkScale > 0 ? 1 : 0),
+          nightsOut: acc.nightsOut + 1, // Each day with stats counts as a night out
+        };
+      }, {
         totalBeers: 0,
         totalShots: 0,
         totalBeerTowers: 0,
@@ -156,9 +169,10 @@ export default function TrophiesScreen() {
         totalXP: profile?.xp || 0, // XP still comes from profile
       });
 
-      console.log('🏆 Trophies: Lifetime stats loaded successfully from daily_stats');
+      console.log('✅ Achievement progress updated successfully');
     } catch (error) {
       console.error('🏆 Trophies: Error loading lifetime stats:', error);
+      Alert.alert('Error', 'Failed to load stats. Please try again.');
     } finally {
       setIsLoadingStats(false);
     }
@@ -172,6 +186,7 @@ export default function TrophiesScreen() {
       await loadLifetimeStats();
     } catch (error) {
       console.error('Error refreshing stats:', error);
+      Alert.alert('Error', 'Failed to refresh stats. Please try again.');
     } finally {
       setRefreshing(false);
     }
@@ -233,7 +248,7 @@ export default function TrophiesScreen() {
     return (
       <View style={[styles.trophyCard, { backgroundColor: themeColors.card }]}>
         <LinearGradient
-          colors={category?.gradient || ['#FF6B35', '#FF8F65']}
+          colors={category?.gradient || ['#FF6B35', '#FF8F65'] as const}
           style={styles.trophyIconContainer}
         >
           <IconComponent size={24} color="white" />

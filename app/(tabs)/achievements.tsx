@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal } from 'react';
+import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal, Alert } from 'react-native';
 import { Trophy, Target, Users, Star, CheckCircle2, Circle, Clock, Zap, Calendar } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/constants/colors';
@@ -12,28 +12,28 @@ const CATEGORY_CONFIG = {
     label: 'Bar Hopping',
     icon: Target,
     color: '#FF6B35',
-    gradient: ['#FF6B35', '#FF8F65'],
+    gradient: ['#FF6B35', '#FF8F65'] as const,
     bgColor: 'rgba(255, 107, 53, 0.1)',
   },
   activities: {
     label: 'Activities',
     icon: Trophy,
     color: '#007AFF',
-    gradient: ['#007AFF', '#40A9FF'],
+    gradient: ['#007AFF', '#40A9FF'] as const,
     bgColor: 'rgba(0, 122, 255, 0.1)',
   },
   social: {
     label: 'Social',
     icon: Users,
     color: '#34C759',
-    gradient: ['#34C759', '#52D681'],
+    gradient: ['#34C759', '#52D681'] as const,
     bgColor: 'rgba(52, 199, 89, 0.1)',
   },
   milestones: {
     label: 'Milestones',
     icon: Star,
     color: '#AF52DE',
-    gradient: ['#AF52DE', '#C77DFF'],
+    gradient: ['#AF52DE', '#C77DFF'] as const,
     bgColor: 'rgba(175, 82, 222, 0.1)',
   },
 };
@@ -85,7 +85,7 @@ export default function AchievementsScreen() {
   const renderStatsHeader = () => (
     <View style={styles.statsContainer}>
       <LinearGradient
-        colors={['#1C1C1E', '#2C2C2E']}
+        colors={['#1C1C1E', '#2C2C2E'] as const}
         style={styles.statsCard}
       >
         <View style={styles.statItem}>
