@@ -85,6 +85,13 @@ export default function TrophiesScreen() {
       return;
     }
 
+    // Add null safety check for supabase client
+    if (!supabase) {
+      console.error('🏆 Trophies: Supabase client is not available');
+      Alert.alert('Error', 'Database connection not available. Please try again later.');
+      return;
+    }
+
     setIsLoadingStats(true);
 
     try {
@@ -97,6 +104,13 @@ export default function TrophiesScreen() {
 
       console.log('🏆 Trophies: Loading lifetime stats from daily_stats table...');
       
+      // Add null safety check before using supabase
+      if (!supabase) {
+        console.error('🏆 Trophies: Supabase client became unavailable during operation');
+        setIsLoadingStats(false);
+        return;
+      }
+
       // Get all daily stats for the user
       const { data: dailyStats, error } = await supabase
         .from('daily_stats')
