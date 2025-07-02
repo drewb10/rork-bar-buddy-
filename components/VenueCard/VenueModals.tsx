@@ -3,7 +3,6 @@ import { StyleSheet, View, Text, Pressable, Modal } from 'react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { Venue } from '@/types/venue';
-import { formatTimeSlot } from '@/utils';
 
 interface VenueModalsProps {
   venue: Venue;
@@ -18,6 +17,23 @@ interface VenueModalsProps {
   onLikeSubmit: () => void;
   onCancel: (type: 'rsvp' | 'like') => void;
 }
+
+// Convert 24-hour time to 12-hour format
+const formatTimeSlotTo12Hour = (timeString: string): string => {
+  try {
+    // Handle different time formats
+    if (timeString.includes(':')) {
+      const [hours, minutes] = timeString.split(':');
+      const hour24 = parseInt(hours, 10);
+      const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+      const ampm = hour24 >= 12 ? 'PM' : 'AM';
+      return `${hour12}:${minutes} ${ampm}`;
+    }
+    return timeString;
+  } catch {
+    return timeString;
+  }
+};
 
 export default function VenueModals({
   venue,
@@ -80,7 +96,7 @@ export default function VenueModals({
                   { color: selectedValue === time ? 'white' : themeColors.primary }
                 ]}
               >
-                {formatTimeSlot(time)}
+                {formatTimeSlotTo12Hour(time)}
               </Text>
             </Pressable>
           ))}

@@ -15,6 +15,23 @@ interface VenueContentProps {
   compact?: boolean;
 }
 
+// Convert 24-hour time to 12-hour format
+const formatTo12Hour = (timeString: string): string => {
+  try {
+    // Handle different time formats
+    if (timeString.includes(':')) {
+      const [hours, minutes] = timeString.split(':');
+      const hour24 = parseInt(hours, 10);
+      const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+      const ampm = hour24 >= 12 ? 'PM' : 'AM';
+      return `${hour12}:${minutes} ${ampm}`;
+    }
+    return timeString;
+  } catch {
+    return timeString;
+  }
+};
+
 export default function VenueContent({ 
   venue, 
   interactionData, 
@@ -69,20 +86,20 @@ export default function VenueContent({
         </Text>
       </View>
 
-      {/* Hot Time Display */}
+      {/* Hot Time Display - Convert to 12-hour format */}
       {interactionData.hotTimeData && (
         <View style={[styles.hotTimeBadge, { backgroundColor: themeColors.primary + '20' }]}>
           <Flame size={14} color={themeColors.primary} />
           <Text style={[styles.hotTimeText, { color: themeColors.primary }]}>
-            Hot Time: {formatTimeSlot(interactionData.hotTimeData.time)} — {interactionData.hotTimeData.likes} Likes
+            Hot Time: {formatTo12Hour(interactionData.hotTimeData.time)} — {interactionData.hotTimeData.likes} Likes
           </Text>
         </View>
       )}
       
-      {/* Today's Specials */}
+      {/* Today's Specials - Updated to orange theme */}
       {todaySpecials.length > 0 && (
-        <View style={[styles.specialsContainer, { backgroundColor: 'rgba(255,106,0,0.1)' }]}>
-          <Text style={[styles.specialsTitle, { color: themeColors.primary }]}>
+        <View style={[styles.specialsContainer, { backgroundColor: '#FF6B6B20' }]}>
+          <Text style={[styles.specialsTitle, { color: '#FF6B6B' }]}>
             Today's Specials:
           </Text>
           {todaySpecials.map((special, index) => (

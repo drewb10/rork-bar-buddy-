@@ -18,6 +18,22 @@ interface VenueCardProps {
   compact?: boolean;
 }
 
+// Convert 24-hour time to 12-hour format
+const formatTo12Hour = (timeString: string): string => {
+  try {
+    if (timeString.includes(':')) {
+      const [hours, minutes] = timeString.split(':');
+      const hour24 = parseInt(hours, 10);
+      const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+      const ampm = hour24 >= 12 ? 'PM' : 'AM';
+      return `${hour12}:${minutes} ${ampm}`;
+    }
+    return timeString;
+  } catch {
+    return timeString;
+  }
+};
+
 export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const router = useRouter();
   const { theme } = useThemeStore();
@@ -159,7 +175,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
               style={styles.compactGradient}
             />
             
-            {/* Like button */}
+            {/* Like button - moved to right */}
             <Pressable 
               style={[styles.compactLikeButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
               onPress={handleLikePress}
@@ -221,6 +237,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
               </View>
             )}
             
+            {/* Action buttons moved to right */}
             <View style={styles.actionButtons}>
               <Pressable style={styles.actionButton} onPress={handleChatPress}>
                 <MessageCircle size={16} color="white" />
@@ -266,17 +283,17 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
             </View>
           </View>
 
-          {/* Hot Time */}
+          {/* Hot Time - Convert to 12-hour format */}
           {interactionData.hotTimeData && (
             <View style={styles.hotTimeContainer}>
               <TrendingUp size={14} color="#FF6B35" />
               <Text style={styles.hotTimeText}>
-                Peak: {interactionData.hotTimeData.time} • {interactionData.hotTimeData.likes} likes
+                Peak: {formatTo12Hour(interactionData.hotTimeData.time)} • {interactionData.hotTimeData.likes} likes
               </Text>
             </View>
           )}
 
-          {/* Today's Specials */}
+          {/* Today's Specials - Updated to orange theme */}
           {venueData.todaySpecials.length > 0 && (
             <View style={styles.specialsContainer}>
               <Text style={styles.specialsTitle}>Today's Specials</Text>
@@ -501,16 +518,16 @@ const styles = StyleSheet.create({
   },
   
   specialsContainer: {
-    backgroundColor: 'rgba(255,193,7,0.1)',
+    backgroundColor: '#FF6B6B20', // Updated to orange theme
     padding: 12,
     borderRadius: 12,
     marginBottom: 16,
     borderLeft: 3,
-    borderLeftColor: '#FFC107',
+    borderLeftColor: '#FF6B6B', // Updated to orange theme
   },
   
   specialsTitle: {
-    color: '#FFC107',
+    color: '#FF6B6B', // Updated to orange theme
     fontSize: 14,
     fontWeight: '700',
     marginBottom: 6,
@@ -576,7 +593,7 @@ const styles = StyleSheet.create({
   compactLikeButton: {
     position: 'absolute',
     top: 8,
-    right: 8,
+    right: 8, // Moved to right
     width: 28,
     height: 28,
     borderRadius: 14,

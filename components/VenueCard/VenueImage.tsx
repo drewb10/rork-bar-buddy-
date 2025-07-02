@@ -55,37 +55,40 @@ export default function VenueImage({
         </View>
       )}
 
-      {/* Chat Button */}
-      <Pressable 
-        style={[
-          compact ? styles.compactChatButton : styles.chatButton,
-          { backgroundColor: themeColors.primary }
-        ]}
-        onPress={onChatPress}
-      >
-        <MessageCircle size={compact ? 14 : 18} color="white" />
-      </Pressable>
+      {/* Action buttons moved to right side */}
+      <View style={compact ? styles.compactActionButtons : styles.actionButtons}>
+        {/* Like button - rightmost position */}
+        {!compact && onLikePress && (
+          <Pressable 
+            style={[
+              styles.likeButton, 
+              { 
+                backgroundColor: interactionData.canLikeThisVenue ? themeColors.primary : themeColors.border,
+                opacity: interactionData.canLikeThisVenue ? 1 : 0.3
+              }
+            ]}
+            onPress={onLikePress}
+            disabled={!interactionData.canLikeThisVenue || isLiking}
+          >
+            <Flame 
+              size={18} 
+              color="white"
+              fill={interactionData.canLikeThisVenue ? "transparent" : "white"}
+            />
+          </Pressable>
+        )}
 
-      {/* Like button - only for full cards */}
-      {!compact && onLikePress && (
+        {/* Chat Button - second from right */}
         <Pressable 
           style={[
-            styles.likeButton, 
-            { 
-              backgroundColor: interactionData.canLikeThisVenue ? themeColors.primary : themeColors.border,
-              opacity: interactionData.canLikeThisVenue ? 1 : 0.3
-            }
+            compact ? styles.compactChatButton : styles.chatButton,
+            { backgroundColor: themeColors.primary }
           ]}
-          onPress={onLikePress}
-          disabled={!interactionData.canLikeThisVenue || isLiking}
+          onPress={onChatPress}
         >
-          <Flame 
-            size={18} 
-            color="white"
-            fill={interactionData.canLikeThisVenue ? "transparent" : "white"}
-          />
+          <MessageCircle size={compact ? 14 : 18} color="white" />
         </Pressable>
-      )}
+      </View>
 
       {/* Analytics indicator for venues with data */}
       {!compact && interactionData.likeCount > 5 && (
@@ -154,10 +157,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginLeft: 3,
   },
-  chatButton: {
+  // Action buttons container - moved to right
+  actionButtons: {
     position: 'absolute',
     top: 12,
-    right: 60,
+    right: 12,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  compactActionButtons: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  chatButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -172,9 +187,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   compactChatButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
     width: 28,
     height: 28,
     borderRadius: 14,
@@ -187,9 +199,6 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   likeButton: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
     width: 40,
     height: 40,
     borderRadius: 20,

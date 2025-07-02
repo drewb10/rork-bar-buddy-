@@ -482,7 +482,7 @@ export default function TrophiesScreen() {
                   <StatCard 
                     title="Average Drunk Scale" 
                     value={lifetimeStats.avgDrunkScale}
-                    subtitle="out of 5"
+                    subtitle="out of 10"
                     size="large"
                   />
                 </View>

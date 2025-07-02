@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { StyleSheet, View, Text, Pressable, ScrollView, Alert, Platform, Modal } from 'react-native';
+import { StyleSheet, View, Text, Pressable, ScrollView, Alert, Platform, Modal, Slider } from 'react-native';
 import { X, Plus, Minus, TrendingUp, CheckCircle, Loader2, Target, Zap } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/constants/colors';
@@ -14,30 +14,28 @@ interface DailyTrackerProps {
   onClose: () => void;
 }
 
-interface DrunkScaleOption {
-  value: number;
-  label: string;
-  emoji: string;
-  description: string;
-  color: string;
-}
-
-const drunkScaleOptions: DrunkScaleOption[] = [
-  { value: 1, label: 'Sober', emoji: '😐', description: 'Completely sober', color: '#34C759' },
-  { value: 2, label: 'Buzzed', emoji: '🙂', description: 'Feeling relaxed', color: '#FFD60A' },
-  { value: 3, label: 'Tipsy', emoji: '😊', description: 'Feeling good', color: '#FF9500' },
-  { value: 4, label: 'Drunk', emoji: '😵', description: 'Pretty drunk', color: '#FF6B35' },
-  { value: 5, label: 'Wasted', emoji: '🤢', description: 'Very drunk', color: '#FF3B30' },
-];
-
 const STAT_ITEMS = [
   { key: 'shots', label: 'Shots', emoji: '🥃', xp: 5, color: '#FF6B35' },
-  { key: 'beers', label: 'Beers', emoji: '🍻', xp: 5, color: '#FFD60A' },
-  { key: 'beer_towers', label: 'Beer Towers', emoji: '🗼', xp: 15, color: '#30D158' },
-  { key: 'funnels', label: 'Funnels', emoji: '🌪️', xp: 10, color: '#007AFF' },
-  { key: 'shotguns', label: 'Shotguns', emoji: '💥', xp: 10, color: '#AF52DE' },
-  { key: 'pool_games_won', label: 'Pool Games Won', emoji: '🎱', xp: 15, color: '#FF9500' },
-  { key: 'dart_games_won', label: 'Dart Games Won', emoji: '🎯', xp: 15, color: '#FF3B30' },
+  { key: 'beers', label: 'Beers', emoji: '🍻', xp: 5, color: '#FF6B35' },
+  { key: 'beer_towers', label: 'Beer Towers', emoji: '🗼', xp: 15, color: '#FF6B35' },
+  { key: 'funnels', label: 'Funnels', emoji: '🌪️', xp: 10, color: '#FF6B35' },
+  { key: 'shotguns', label: 'Shotguns', emoji: '💥', xp: 10, color: '#FF6B35' },
+  { key: 'pool_games_won', label: 'Pool Games Won', emoji: '🎱', xp: 15, color: '#FF6B35' },
+  { key: 'dart_games_won', label: 'Dart Games Won', emoji: '🎯', xp: 15, color: '#FF6B35' },
+];
+
+const DRUNK_SCALE_LABELS = [
+  '', // 0 - not used
+  'Sober 😐',
+  'Slightly Buzzed 🙂', 
+  'Buzzed 😊',
+  'Tipsy 😄',
+  'Pretty Drunk 🥴',
+  'Very Drunk 😵',
+  'Hammered 🤪',
+  'Blackout Drunk 🤢',
+  'Wasted 💀',
+  'Legendary 🚀'
 ];
 
 export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
@@ -101,11 +99,11 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
     updateLocalStats({ [statKey]: newValue });
   }, [isSaving, localStats, updateLocalStats]);
 
-  const handleDrunkScaleSelect = useCallback((rating: number) => {
+  const handleSliderChange = useCallback((value: number) => {
     if (isSaving || !canSubmitScale) return;
     
-    updateLocalStats({ drunk_scale: localStats.drunk_scale === rating ? null : rating });
-  }, [isSaving, canSubmitScale, updateLocalStats, localStats.drunk_scale]);
+    updateLocalStats({ drunk_scale: value });
+  }, [isSaving, canSubmitScale, updateLocalStats]);
 
   const calculateTotalXP = useMemo(() => {
     return STAT_ITEMS.reduce((total, item) => {
@@ -321,7 +319,7 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
                 style={[
                   styles.controlButton,
                   styles.plusButton,
-                  { backgroundColor: item.color }
+                  { backgroundColor: '#FF6B35' } // Updated to BarBuddy orange
                 ]}
                 onPress={() => handleStatChange(item.key as keyof typeof localStats, 1)}
                 disabled={isSaving || !canSaveStats}
@@ -340,45 +338,38 @@ export default function DailyTracker({ visible, onClose }: DailyTrackerProps) {
       <Text style={styles.sectionTitle}>How Are You Feeling?</Text>
       <Text style={styles.sectionSubtitle}>
         {canSubmitScale 
-          ? 'Select your current state for +25 XP'
+          ? 'Use the slider to rate how drunk you are (1-10) for +25 XP'
           : 'Already submitted today'
         }
       </Text>
 
       {canSubmitScale ? (
-        <View style={styles.drunkScaleOptions}>
-          {drunkScaleOptions.map((option) => (
-            <Pressable
-              key={option.value}
-              style={[
-                styles.scaleCard,
-                {
-                  borderColor: localStats.drunk_scale === option.value ? option.color : 'rgba(255,255,255,0.1)',
-                  backgroundColor: localStats.drunk_scale === option.value ? option.color + '20' : '#1C1C1E',
-                }
-              ]}
-              onPress={() => handleDrunkScaleSelect(option.value)}
+        <View style={styles.drunkScaleContainer}>
+          <View style={styles.sliderContainer}>
+            <Text style={styles.sliderLabel}>Drunk Scale: {localStats.drunk_scale || 1}</Text>
+            <Text style={styles.sliderDescription}>
+              {DRUNK_SCALE_LABELS[localStats.drunk_scale || 1]}
+            </Text>
+            
+            <Slider
+              style={styles.slider}
+              minimumValue={1}
+              maximumValue={10}
+              step={1}
+              value={localStats.drunk_scale || 1}
+              onValueChange={handleSliderChange}
+              minimumTrackTintColor="#FF6B35"
+              maximumTrackTintColor="rgba(255,255,255,0.3)"
+              thumbStyle={styles.sliderThumb}
+              trackStyle={styles.sliderTrack}
               disabled={isSaving || !canSaveStats}
-            >
-              <View style={styles.scaleContent}>
-                <Text style={styles.scaleEmoji}>{option.emoji}</Text>
-                <View style={styles.scaleInfo}>
-                  <Text style={[
-                    styles.scaleLabel,
-                    { color: localStats.drunk_scale === option.value ? option.color : 'white' }
-                  ]}>
-                    {option.label}
-                  </Text>
-                  <Text style={styles.scaleDescription}>
-                    {option.description}
-                  </Text>
-                </View>
-                {localStats.drunk_scale === option.value && (
-                  <CheckCircle size={20} color={option.color} />
-                )}
-              </View>
-            </Pressable>
-          ))}
+            />
+            
+            <View style={styles.sliderLabels}>
+              <Text style={styles.sliderEndLabel}>1 - Sober</Text>
+              <Text style={styles.sliderEndLabel}>10 - Legendary</Text>
+            </View>
+          </View>
         </View>
       ) : (
         <View style={styles.drunkScaleDisabled}>
@@ -664,7 +655,7 @@ const styles = StyleSheet.create({
   },
   
   plusButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#FF6B35', // Updated to BarBuddy orange
   },
   
   countContainer: {
@@ -678,40 +669,59 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   
-  drunkScaleOptions: {
+  drunkScaleContainer: {
     marginBottom: 24,
   },
   
-  scaleCard: {
+  sliderContainer: {
+    backgroundColor: '#1C1C1E',
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   
-  scaleContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  
-  scaleEmoji: {
-    fontSize: 28,
-    marginRight: 16,
-  },
-  
-  scaleInfo: {
-    flex: 1,
-  },
-  
-  scaleLabel: {
-    fontSize: 16,
+  sliderLabel: {
+    color: 'white',
+    fontSize: 18,
     fontWeight: '700',
-    marginBottom: 4,
+    textAlign: 'center',
+    marginBottom: 8,
   },
   
-  scaleDescription: {
+  sliderDescription: {
+    color: '#FF6B35',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  
+  slider: {
+    width: '100%',
+    height: 40,
+    marginBottom: 16,
+  },
+  
+  sliderThumb: {
+    backgroundColor: '#FF6B35',
+    width: 24,
+    height: 24,
+  },
+  
+  sliderTrack: {
+    height: 8,
+    borderRadius: 4,
+  },
+  
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  
+  sliderEndLabel: {
     color: '#8E8E93',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
   },
   
