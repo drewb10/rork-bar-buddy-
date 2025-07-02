@@ -22,48 +22,42 @@ export const supabase = isSupabaseConfigured()
     })
   : null;
 
-// Safe wrapper for supabase operations
-export const safeSupabase = {
+// Create a mock client for when Supabase is not configured
+const createMockClient = () => ({
   auth: {
-    getUser: async () => {
-      if (!supabase) return { data: { user: null }, error: new Error('Supabase not configured') };
-      return supabase.auth.getUser();
-    },
-    getSession: async () => {
-      if (!supabase) return { data: { session: null }, error: new Error('Supabase not configured') };
-      return supabase.auth.getSession();
-    },
-    signUp: async (credentials: any) => {
-      if (!supabase) return { data: { user: null, session: null }, error: new Error('Supabase not configured') };
-      return supabase.auth.signUp(credentials);
-    },
-    signInWithPassword: async (credentials: any) => {
-      if (!supabase) return { data: { user: null, session: null }, error: new Error('Supabase not configured') };
-      return supabase.auth.signInWithPassword(credentials);
-    },
-    signOut: async () => {
-      if (!supabase) return { error: new Error('Supabase not configured') };
-      return supabase.auth.signOut();
-    },
-    onAuthStateChange: (callback: any) => {
-      if (!supabase) return { data: { subscription: { unsubscribe: () => {} } } };
-      return supabase.auth.onAuthStateChange(callback);
-    },
-    refreshSession: async () => {
-      if (!supabase) return { data: { session: null }, error: new Error('Supabase not configured') };
-      return supabase.auth.refreshSession();
-    }
+    getUser: async () => ({ data: { user: null }, error: new Error('Supabase not configured') }),
+    getSession: async () => ({ data: { session: null }, error: new Error('Supabase not configured') }),
+    signUp: async () => ({ data: { user: null, session: null }, error: new Error('Supabase not configured') }),
+    signInWithPassword: async () => ({ data: { user: null, session: null }, error: new Error('Supabase not configured') }),
+    signOut: async () => ({ error: new Error('Supabase not configured') }),
+    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+    refreshSession: async () => ({ data: { session: null }, error: new Error('Supabase not configured') })
   },
-  from: (table: string) => {
-    if (!supabase) {
-      return {
-        select: () => ({ single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }) }),
-        insert: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-        update: () => ({ eq: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }) }),
-        upsert: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-        delete: () => ({ eq: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }) })
-      };
-    }
-    return supabase.from(table);
-  }
-};
+  from: () => ({
+    select: () => ({
+      single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
+      eq: () => ({
+        single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') })
+      })
+    }),
+    insert: () => ({
+      select: () => ({
+        single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') })
+      })
+    }),
+    update: () => ({
+      eq: () => ({
+        select: () => ({
+          single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') })
+        })
+      })
+    }),
+    upsert: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
+    delete: () => ({
+      eq: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') })
+    })
+  })
+});
+
+// Safe wrapper that returns either the real client or a mock
+export const safeSupabase = supabase || createMockClient();

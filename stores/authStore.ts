@@ -408,7 +408,7 @@ export const useAuthStore = create<AuthState>()(
 // Set up auth state listener only if configured
 if (isSupabaseConfigured()) {
   try {
-    safeSupabase.auth.onAuthStateChange(async (event, session) => {
+    safeSupabase.auth.onAuthStateChange(async (event: string, session: any) => {
       console.log('🎯 Auth state change:', event);
       const { initialize } = useAuthStore.getState();
       
