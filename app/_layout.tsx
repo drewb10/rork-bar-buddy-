@@ -5,13 +5,9 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState, useRef } from "react";
 import { useAgeVerificationStore } from "@/stores/ageVerificationStore";
 import { useAuthStore } from "@/stores/authStore";
-import { useVenueInteractionStore } from "@/stores/venueInteractionStore";
-import { useAchievementStoreSafe } from "@/stores/achievementStore";
-import { useChatStore } from "@/stores/chatStore";
-import AgeVerificationModal from "@/components/AgeVerificationModal";
-import AchievementPopup from "@/components/AchievementPopup";
 import { useFrameworkReady } from "@/hooks/useFrameworkReady";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import AgeVerificationModal from "@/components/AgeVerificationModal";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,41 +21,27 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   // CRITICAL: This hook must be called first and never removed
-  useFrameworkReady();
+  const isFrameworkReady = useFrameworkReady();
 
   const [showAgeVerification, setShowAgeVerification] = useState(false);
-  const [show3AMPopup, setShow3AMPopup] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const initializationRef = useRef(false);
 
   // Safe store access with fallbacks
   const ageVerificationStore = useAgeVerificationStore();
   const authStore = useAuthStore();
-  const venueInteractionStore = useVenueInteractionStore();
-  const achievementStore = useAchievementStoreSafe();
-  const chatStore = useChatStore();
 
   const isVerified = ageVerificationStore?.isVerified || false;
   const setVerified = ageVerificationStore?.setVerified || (() => {});
   const isAuthenticated = authStore?.isAuthenticated || false;
   const isConfigured = authStore?.isConfigured || false;
   const initializeAuth = authStore?.initialize || (() => Promise.resolve());
-  const refreshSession = authStore?.refreshSession || (() => Promise.resolve());
   const checkConfiguration = authStore?.checkConfiguration || (() => {});
-  const loadPopularTimesFromSupabase = venueInteractionStore?.loadPopularTimesFromSupabase || (() => Promise.resolve());
-  const shouldShow3AMPopup = achievementStore?.shouldShow3AMPopup || (() => false);
-  const mark3AMPopupShown = achievementStore?.mark3AMPopupShown || (() => {});
-  const resetChatOnAppReopen = chatStore?.resetChatOnAppReopen || (() => {});
 
   useEffect(() => {
-    if (initializationRef.current) return; // Prevent multiple initializations
+    if (!isFrameworkReady || initializationRef.current) return;
     
     try {
-      // Reset chat messages on app start to ensure anonymous behavior
-      if (resetChatOnAppReopen && typeof resetChatOnAppReopen === 'function') {
-        resetChatOnAppReopen();
-      }
-      
       // Check Supabase configuration
       if (checkConfiguration && typeof checkConfiguration === 'function') {
         checkConfiguration();
@@ -74,27 +56,11 @@ export default function RootLayout() {
           const initTimeout = setTimeout(() => {
             console.warn('App initialization timeout, continuing anyway');
             setIsInitialized(true);
-          }, 10000); // Increased timeout to 10 seconds
+          }, 10000);
 
           // Initialize auth (will handle unconfigured state gracefully)
           if (initializeAuth && typeof initializeAuth === 'function') {
             await initializeAuth();
-          }
-
-          // Refresh session to ensure we have the latest auth state
-          if (isConfigured && refreshSession && typeof refreshSession === 'function') {
-            await refreshSession();
-          }
-          
-          // Load venue data if authenticated and configured
-          if (isAuthenticated && isSupabaseConfigured()) {
-            try {
-              if (loadPopularTimesFromSupabase && typeof loadPopularTimesFromSupabase === 'function') {
-                await loadPopularTimesFromSupabase();
-              }
-            } catch (error) {
-              console.warn('Failed to load venue data:', error);
-            }
           }
           
           clearTimeout(initTimeout);
@@ -108,6 +74,7 @@ export default function RootLayout() {
       // Show age verification if not verified
       if (!isVerified) {
         setShowAgeVerification(true);
+        setIsInitialized(true); // Don't wait for auth if not age verified
       } else {
         // Initialize app if verified
         if (!isInitialized && !initializationRef.current) {
@@ -120,39 +87,7 @@ export default function RootLayout() {
       console.warn('Error in main useEffect:', error);
       setIsInitialized(true);
     }
-  }, [isVerified]); // Only depend on isVerified
-
-  // 3 AM popup check - separate effect to avoid loops
-  useEffect(() => {
-    if (!isVerified || !isInitialized) return;
-
-    const checkFor3AMPopup = () => {
-      try {
-        if (shouldShow3AMPopup && typeof shouldShow3AMPopup === 'function' && shouldShow3AMPopup()) {
-          setShow3AMPopup(true);
-        }
-      } catch (error) {
-        console.warn('Error checking 3AM popup:', error);
-      }
-    };
-
-    const timeoutId = setTimeout(() => {
-      checkFor3AMPopup();
-    }, 1000);
-
-    const interval = setInterval(() => {
-      try {
-        checkFor3AMPopup();
-      } catch (error) {
-        console.warn('Error in 3AM popup interval:', error);
-      }
-    }, 60000);
-
-    return () => {
-      clearTimeout(timeoutId);
-      clearInterval(interval);
-    };
-  }, [shouldShow3AMPopup, isVerified, isInitialized]);
+  }, [isFrameworkReady, isVerified]);
 
   const handleAgeVerification = (verified: boolean) => {
     try {
@@ -166,17 +101,10 @@ export default function RootLayout() {
     }
   };
 
-  const handle3AMPopupClose = () => {
-    try {
-      if (mark3AMPopupShown && typeof mark3AMPopupShown === 'function') {
-        mark3AMPopupShown();
-      }
-      setShow3AMPopup(false);
-    } catch (error) {
-      console.warn('Error closing 3AM popup:', error);
-      setShow3AMPopup(false);
-    }
-  };
+  // Don't render anything until framework is ready
+  if (!isFrameworkReady) {
+    return null;
+  }
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
@@ -226,12 +154,6 @@ export default function RootLayout() {
         <AgeVerificationModal
           visible={showAgeVerification}
           onVerify={handleAgeVerification}
-        />
-
-        <AchievementPopup
-          visible={show3AMPopup}
-          onClose={handle3AMPopupClose}
-          is3AMPopup={true}
         />
       </QueryClientProvider>
     </trpc.Provider>

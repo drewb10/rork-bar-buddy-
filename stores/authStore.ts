@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService, UserProfile, AuthError } from '@/lib/auth';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { safeSupabase, isSupabaseConfigured } from '@/lib/supabase';
 
 interface AuthState {
   user: any | null;
@@ -45,6 +45,11 @@ export const useAuthStore = create<AuthState>()(
         
         try {
           console.log('🎯 AuthStore: Starting signup process...');
+          
+          if (!isSupabaseConfigured()) {
+            throw new Error('Authentication not configured');
+          }
+          
           const { user, profile } = await authService.signUp({ phone, password, username });
           
           console.log('🎯 AuthStore: Signup successful, updating state...');
@@ -79,6 +84,11 @@ export const useAuthStore = create<AuthState>()(
         
         try {
           console.log('🎯 AuthStore: Starting signin process...');
+          
+          if (!isSupabaseConfigured()) {
+            throw new Error('Authentication not configured');
+          }
+          
           const { user, profile } = await authService.signIn({ phone, password });
           
           console.log('🎯 AuthStore: Signin successful, updating state...');
@@ -113,7 +123,11 @@ export const useAuthStore = create<AuthState>()(
         
         try {
           console.log('🎯 AuthStore: Starting signout process...');
-          await authService.signOut();
+          
+          if (isSupabaseConfigured()) {
+            await authService.signOut();
+          }
+          
           set({
             user: null,
             profile: null,
@@ -143,6 +157,7 @@ export const useAuthStore = create<AuthState>()(
 
       checkUsernameAvailable: async (username: string): Promise<boolean> => {
         try {
+          if (!isSupabaseConfigured()) return true;
           return await authService.checkUsernameAvailable(username);
         } catch (error) {
           console.error('Error checking username:', error);
@@ -154,6 +169,10 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         
         try {
+          if (!isSupabaseConfigured()) {
+            throw new Error('Profile updates not available - authentication not configured');
+          }
+          
           const updatedProfile = await authService.updateProfile(updates);
           set({
             profile: updatedProfile,
@@ -173,6 +192,7 @@ export const useAuthStore = create<AuthState>()(
 
       searchUser: async (username: string): Promise<UserProfile | null> => {
         try {
+          if (!isSupabaseConfigured()) return null;
           return await authService.searchUserByUsername(username);
         } catch (error) {
           console.error('Error searching user:', error);
@@ -188,11 +208,10 @@ export const useAuthStore = create<AuthState>()(
 
         try {
           console.log('🎯 AuthStore: Refreshing session...');
-          const { data, error } = await supabase.auth.refreshSession();
+          const { data, error } = await safeSupabase.auth.refreshSession();
           
           if (error) {
             console.warn('🎯 AuthStore: Session refresh failed:', error.message);
-            // Don't clear auth state on refresh failure - user might still be valid
             return;
           }
 
@@ -205,7 +224,6 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (error) {
           console.warn('🎯 AuthStore: Session refresh error:', error);
-          // Don't clear auth state on network errors
         }
       },
 
@@ -218,7 +236,7 @@ export const useAuthStore = create<AuthState>()(
 
         try {
           console.log('🎯 AuthStore: Checking session...');
-          const { data, error } = await supabase.auth.getSession();
+          const { data, error } = await safeSupabase.auth.getSession();
           
           if (error) {
             console.warn('🎯 AuthStore: Session check error:', error.message);
@@ -230,7 +248,6 @@ export const useAuthStore = create<AuthState>()(
           console.log('🎯 AuthStore: Session check result:', isValid);
           
           if (isValid && data?.session?.user) {
-            // If we have a valid session, try to get the profile
             try {
               const { user, profile } = await authService.getCurrentUser();
               set({ 
@@ -241,7 +258,6 @@ export const useAuthStore = create<AuthState>()(
               });
             } catch (profileError) {
               console.warn('🎯 AuthStore: Error loading profile during session check:', profileError);
-              // Still mark as authenticated even if profile fails to load
               set({ 
                 sessionChecked: true, 
                 isAuthenticated: true,
@@ -267,7 +283,6 @@ export const useAuthStore = create<AuthState>()(
       },
 
       initialize: async (): Promise<void> => {
-        // Check configuration first
         const configured = isSupabaseConfigured();
         set({ isConfigured: configured });
         
@@ -289,8 +304,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           console.log('🎯 AuthStore: Initializing auth state...');
           
-          // First check if we have a valid session
-          const { data, error: sessionError } = await supabase.auth.getSession();
+          const { data, error: sessionError } = await safeSupabase.auth.getSession();
           
           if (sessionError) {
             console.warn('🎯 AuthStore: Session error:', sessionError.message);
@@ -318,7 +332,6 @@ export const useAuthStore = create<AuthState>()(
             return;
           }
 
-          // If session exists, get current user and profile
           try {
             const { user, profile } = await authService.getCurrentUser();
             
@@ -337,7 +350,7 @@ export const useAuthStore = create<AuthState>()(
               set({
                 user: data.session.user,
                 profile: null,
-                isAuthenticated: true, // Keep authenticated even without profile
+                isAuthenticated: true,
                 isLoading: false,
                 error: null,
                 sessionChecked: true,
@@ -348,7 +361,7 @@ export const useAuthStore = create<AuthState>()(
             set({
               user: data.session.user,
               profile: null,
-              isAuthenticated: true, // Keep authenticated even if profile fails
+              isAuthenticated: true,
               isLoading: false,
               error: null,
               sessionChecked: true,
@@ -394,28 +407,32 @@ export const useAuthStore = create<AuthState>()(
 
 // Set up auth state listener only if configured
 if (isSupabaseConfigured()) {
-  supabase.auth.onAuthStateChange(async (event, session) => {
-    console.log('🎯 Auth state change:', event);
-    const { initialize } = useAuthStore.getState();
-    
-    if (event === 'SIGNED_IN' && session) {
-      await initialize();
-    } else if (event === 'SIGNED_OUT') {
-      useAuthStore.setState({
-        user: null,
-        profile: null,
-        isAuthenticated: false,
-        error: null,
-        sessionChecked: true,
-      });
-    } else if (event === 'TOKEN_REFRESHED' && session) {
-      console.log('🎯 Token refreshed, updating state...');
-      useAuthStore.setState({
-        user: session.user,
-        isAuthenticated: true,
-      });
-    }
-  });
+  try {
+    safeSupabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🎯 Auth state change:', event);
+      const { initialize } = useAuthStore.getState();
+      
+      if (event === 'SIGNED_IN' && session) {
+        await initialize();
+      } else if (event === 'SIGNED_OUT') {
+        useAuthStore.setState({
+          user: null,
+          profile: null,
+          isAuthenticated: false,
+          error: null,
+          sessionChecked: true,
+        });
+      } else if (event === 'TOKEN_REFRESHED' && session) {
+        console.log('🎯 Token refreshed, updating state...');
+        useAuthStore.setState({
+          user: session.user,
+          isAuthenticated: true,
+        });
+      }
+    });
+  } catch (error) {
+    console.warn('🎯 Error setting up auth state listener:', error);
+  }
 } else {
   console.warn('🎯 Supabase not configured, skipping auth state listener');
 }
