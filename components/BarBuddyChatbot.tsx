@@ -111,16 +111,10 @@ export default function BarBuddyChatbot({ onClose }: BarBuddyChatbotProps) {
       if (todaySpecials.length > 0) {
         const specialsList = todaySpecials.slice(0, 3).map(({ venue, special }) => 
           `🍻 ${venue}: ${special.title} - ${special.description}`
-        ).join('
-
-');
+        ).join('\n\n');
         
         return {
-          text: `Here are tonight's hottest specials! 🔥
-
-${specialsList}
-
-Want me to show you more or help you pick the perfect spot?`,
+          text: `Here are tonight's hottest specials! 🔥\n\n${specialsList}\n\nWant me to show you more or help you pick the perfect spot?`,
           suggestions: ["Show me more specials", "Help me choose", "What's the vibe like?", "Get directions"]
         };
       } else {
@@ -135,18 +129,11 @@ Want me to show you more or help you pick the perfect spot?`,
     if (input.includes('bar') || input.includes('venue') || input.includes('find') || input.includes('near')) {
       const topVenues = venues.slice(0, 3);
       const venuesList = topVenues.map(venue => 
-        `${venue.name} ⭐ ${venue.rating}
-${venue.types.map(t => t.replace('-', ' ')).join(' • ')}`
-      ).join('
-
-');
+        `${venue.name} ⭐ ${venue.rating}\n${venue.types.map(t => t.replace('-', ' ')).join(' • ')}`
+      ).join('\n\n');
       
       return {
-        text: `Here are some awesome spots I'd recommend! 🌟
-
-${venuesList}
-
-Each of these has its own vibe - want me to tell you more about any of them?`,
+        text: `Here are some awesome spots I'd recommend! 🌟\n\n${venuesList}\n\nEach of these has its own vibe - want me to tell you more about any of them?`,
         suggestions: ["Tell me about The Library", "What's the vibe at JBA?", "Show me all venues", "Find sports bars"]
       };
     }
@@ -390,14 +377,13 @@ Each of these has its own vibe - want me to tell you more about any of them?`,
 }
 
 const styles = StyleSheet.create({
-  // 🔥 ENHANCED: Responsive container with proper sizing constraints
   container: {
     flex: 1,
     borderRadius: 20,
     marginHorizontal: 16,
     marginVertical: 20,
-    maxHeight: '80%', // 🔥 NEW: Limit max height
-    minHeight: 400,   // 🔥 NEW: Ensure minimum height
+    maxHeight: '80%',
+    minHeight: 400,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
@@ -409,7 +395,7 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
-    maxHeight: '100%', // 🔥 NEW: Prevent overflow
+    maxHeight: '100%',
   },
   header: {
     flexDirection: 'row',
@@ -417,7 +403,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
-    minHeight: 70, // 🔥 NEW: Ensure header height
+    minHeight: 70,
   },
   headerContent: {
     flexDirection: 'row',
@@ -442,12 +428,12 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     marginBottom: 2,
   },
   headerSubtitle: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '500' as const,
   },
   statusIndicator: {
     width: 8,
@@ -456,7 +442,7 @@ const styles = StyleSheet.create({
   },
   messagesContainer: {
     flex: 1,
-    maxHeight: '70%', // 🔥 NEW: Limit messages area
+    maxHeight: '70%',
   },
   messagesContent: {
     padding: 16,
@@ -488,12 +474,12 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 15,
     lineHeight: 20,
-    fontWeight: '500',
+    fontWeight: '500' as const,
     marginBottom: 4,
   },
   messageTime: {
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: '500' as const,
     textAlign: 'right',
   },
   suggestionsContainer: {
@@ -511,7 +497,7 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
   typingContainer: {
     alignItems: 'flex-start',
@@ -539,8 +525,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderTopWidth: 1,
     gap: 12,
-    minHeight: 70, // 🔥 NEW: Ensure input area height
-    maxHeight: 120, // 🔥 NEW: Limit input area height
+    minHeight: 70,
+    maxHeight: 120,
   },
   textInput: {
     flex: 1,
@@ -548,10 +534,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    maxHeight: 80, // 🔥 NEW: Limit input height
-    minHeight: 40, // 🔥 NEW: Ensure minimum input height
+    maxHeight: 80,
+    minHeight: 40,
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '500' as const,
   },
   sendButton: {
     width: 40,
