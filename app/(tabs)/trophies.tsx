@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, RefreshControl, Alert } from 'react-native';
-import { Trophy, Award, Star, Target, Zap, Crown, Medal } from 'lucide-react-native';
+import { Trophy, Award, Star, Target, Zap, Crown, Medal, RefreshCw } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useAchievementStoreSafe } from '@/stores/achievementStore';
+import { useUserProfileStore } from '@/stores/userProfileStore';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 
@@ -43,8 +44,10 @@ export default function TrophiesScreen() {
   const { 
     completedAchievements, 
     initializeAchievements, 
-    isInitialized 
+    isInitialized,
+    checkAndUpdateMultiLevelAchievements 
   } = useAchievementStoreSafe();
+  const { syncStatsFromDailyStats } = useUserProfileStore();
 
   const [activeTab, setActiveTab] = useState<'stats' | 'trophies'>('stats');
   const [refreshing, setRefreshing] = useState(false);
@@ -64,6 +67,7 @@ export default function TrophiesScreen() {
     totalXP: 0,
   });
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [lastStatsUpdate, setLastStatsUpdate] = useState<string | null>(null);
 
   // Initialize achievements when component mounts
   useEffect(() => {
@@ -74,13 +78,14 @@ export default function TrophiesScreen() {
 
   // Load lifetime stats when component mounts or when authenticated
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && profile) {
       loadLifetimeStats();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, profile]);
 
+  // ✅ FIX 1: Enhanced loadLifetimeStats with proper achievement checking
   const loadLifetimeStats = async () => {
-    if (!isSupabaseConfigured() || !isAuthenticated) {
+    if (!isSupabaseConfigured() || !isAuthenticated || !profile) {
       console.log('🏆 Trophies: Supabase not configured or user not authenticated');
       return;
     }
@@ -95,15 +100,11 @@ export default function TrophiesScreen() {
     setIsLoadingStats(true);
 
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        console.log('🏆 Trophies: No authenticated user', userError);
-        setIsLoadingStats(false);
-        return;
-      }
+      console.log('🏆 Trophies: Loading lifetime stats...');
 
-      console.log('🏆 Trophies: Loading lifetime stats from daily_stats table...');
-      
+      // ✅ FIX 2: Sync stats from daily_stats first to ensure profile is up-to-date
+      await syncStatsFromDailyStats();
+
       // Add null safety check before using supabase
       if (!supabase) {
         console.error('🏆 Trophies: Supabase client became unavailable during operation');
@@ -111,42 +112,47 @@ export default function TrophiesScreen() {
         return;
       }
 
-      // Get all daily stats for the user
-      const { data: dailyStats, error } = await supabase
-        .from('daily_stats')
+      // Get updated profile data after sync
+      const { data: updatedProfile, error: profileError } = await supabase
+        .from('profiles')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('id', profile.id)
+        .single();
 
-      if (error) {
-        console.error('🏆 Trophies: Error loading daily stats:', error);
-        Alert.alert('Error', 'Failed to load stats. Please try again.');
-        setIsLoadingStats(false);
-        return;
+      if (profileError) {
+        throw profileError;
       }
 
-      // Calculate lifetime totals from daily stats
-      const totals = (dailyStats || []).reduce((acc, day) => {
-        // Ensure all values are numbers and handle null/undefined
-        const beers = Number(day.beers) || 0;
-        const shots = Number(day.shots) || 0;
-        const beerTowers = Number(day.beer_towers) || 0;
-        const funnels = Number(day.funnels) || 0;
-        const shotguns = Number(day.shotguns) || 0;
-        const poolGames = Number(day.pool_games_won) || 0;
-        const dartGames = Number(day.dart_games_won) || 0;
-        const drunkScale = Number(day.drunk_scale) || 0;
+      if (!updatedProfile) {
+        throw new Error('Profile not found');
+      }
 
+      // ✅ FIX 3: Load comprehensive stats from daily_stats for accurate lifetime totals
+      const { data: dailyStatsData, error: dailyStatsError } = await supabase
+        .from('daily_stats')
+        .select('*')
+        .eq('user_id', profile.id);
+
+      if (dailyStatsError) {
+        throw dailyStatsError;
+      }
+
+      // Calculate comprehensive totals from daily stats
+      const totals = (dailyStatsData || []).reduce((acc, day) => {
+        const drunkScale = day.drunk_scale;
         return {
-          totalBeers: acc.totalBeers + beers,
-          totalShots: acc.totalShots + shots,
-          totalBeerTowers: acc.totalBeerTowers + beerTowers,
-          totalFunnels: acc.totalFunnels + funnels,
-          totalShotguns: acc.totalShotguns + shotguns,
-          totalPoolGames: acc.totalPoolGames + poolGames,
-          totalDartGames: acc.totalDartGames + dartGames,
-          totalDrinksLogged: acc.totalDrinksLogged + beers + shots + beerTowers + funnels + shotguns,
-          drunkScaleSum: acc.drunkScaleSum + drunkScale,
-          drunkScaleCount: acc.drunkScaleCount + (drunkScale > 0 ? 1 : 0),
+          totalBeers: acc.totalBeers + (day.beers || 0),
+          totalShots: acc.totalShots + (day.shots || 0),
+          totalBeerTowers: acc.totalBeerTowers + (day.beer_towers || 0),
+          totalFunnels: acc.totalFunnels + (day.funnels || 0),
+          totalShotguns: acc.totalShotguns + (day.shotguns || 0),
+          totalPoolGames: acc.totalPoolGames + (day.pool_games_won || 0),
+          totalDartGames: acc.totalDartGames + (day.dart_games_won || 0),
+          totalDrinksLogged: acc.totalDrinksLogged + 
+            (day.beers || 0) + (day.shots || 0) + (day.beer_towers || 0) + 
+            (day.funnels || 0) + (day.shotguns || 0),
+          drunkScaleSum: acc.drunkScaleSum + (drunkScale ? drunkScale : 0),
+          drunkScaleCount: acc.drunkScaleCount + (drunkScale ? 1 : 0),
           nightsOut: acc.nightsOut + 1, // Each day with stats counts as a night out
         };
       }, {
@@ -168,7 +174,7 @@ export default function TrophiesScreen() {
         ? Math.round((totals.drunkScaleSum / totals.drunkScaleCount) * 10) / 10 
         : 0;
 
-      setLifetimeStats({
+      const newLifetimeStats = {
         totalBeers: totals.totalBeers,
         totalShots: totals.totalShots,
         totalBeerTowers: totals.totalBeerTowers,
@@ -178,12 +184,34 @@ export default function TrophiesScreen() {
         totalDartGames: totals.totalDartGames,
         totalDrinksLogged: totals.totalDrinksLogged,
         avgDrunkScale: avgDrunkScale,
-        barsHit: profile?.bars_hit || 0, // Still from profile
+        barsHit: updatedProfile.bars_hit || 0,
         nightsOut: totals.nightsOut,
-        totalXP: profile?.xp || 0, // XP still comes from profile
-      });
+        totalXP: updatedProfile.xp || 0,
+      };
 
-      console.log('✅ Achievement progress updated successfully');
+      setLifetimeStats(newLifetimeStats);
+      setLastStatsUpdate(new Date().toISOString());
+
+      // ✅ FIX 4: Trigger achievement checking with accurate stats
+      console.log('🏆 Trophies: Checking achievements with stats:', newLifetimeStats);
+      
+      const achievementStats = {
+        totalBeers: newLifetimeStats.totalBeers,
+        totalShots: newLifetimeStats.totalShots,
+        totalBeerTowers: newLifetimeStats.totalBeerTowers,
+        totalScoopAndScores: updatedProfile.total_scoop_and_scores || 0,
+        totalFunnels: newLifetimeStats.totalFunnels,
+        totalShotguns: newLifetimeStats.totalShotguns,
+        poolGamesWon: newLifetimeStats.totalPoolGames,
+        dartGamesWon: newLifetimeStats.totalDartGames,
+        barsHit: newLifetimeStats.barsHit,
+        nightsOut: newLifetimeStats.nightsOut,
+      };
+
+      // Force achievement checking
+      checkAndUpdateMultiLevelAchievements(achievementStats);
+
+      console.log('✅ Trophies: Stats loaded and achievements checked successfully');
     } catch (error) {
       console.error('🏆 Trophies: Error loading lifetime stats:', error);
       Alert.alert('Error', 'Failed to load stats. Please try again.');
@@ -204,6 +232,14 @@ export default function TrophiesScreen() {
     } finally {
       setRefreshing(false);
     }
+  };
+
+  // ✅ FIX 5: Manual refresh button for achievement checking
+  const handleManualRefresh = async () => {
+    if (!isAuthenticated || isLoadingStats) return;
+    
+    console.log('🏆 Trophies: Manual refresh triggered');
+    await loadLifetimeStats();
   };
 
   // Memoize trophy categories
@@ -388,6 +424,11 @@ export default function TrophiesScreen() {
               Sign in to track your stats and earn trophies
             </Text>
           )}
+          {lastStatsUpdate && (
+            <Text style={[styles.lastUpdate, { color: themeColors.subtext }]}>
+              Last updated: {new Date(lastStatsUpdate).toLocaleTimeString()}
+            </Text>
+          )}
         </View>
 
         {/* Tab Navigation */}
@@ -419,6 +460,19 @@ export default function TrophiesScreen() {
             ]}>
               Trophies ({completedAchievements.length})
             </Text>
+          </Pressable>
+          
+          {/* Manual Refresh Button */}
+          <Pressable 
+            style={[styles.refreshButton, { backgroundColor: themeColors.primary + '20' }]}
+            onPress={handleManualRefresh}
+            disabled={isLoadingStats}
+          >
+            <RefreshCw 
+              size={16} 
+              color={themeColors.primary}
+              style={[isLoadingStats && { transform: [{ rotate: '45deg' }] }]}
+            />
           </Pressable>
         </View>
 
@@ -527,6 +581,16 @@ export default function TrophiesScreen() {
                     <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
                       Start tracking your activities to earn your first trophy!
                     </Text>
+                    <Pressable 
+                      style={[styles.refreshButtonLarge, { backgroundColor: themeColors.primary }]}
+                      onPress={handleManualRefresh}
+                      disabled={isLoadingStats}
+                    >
+                      <RefreshCw size={16} color="white" />
+                      <Text style={styles.refreshButtonText}>
+                        {isLoadingStats ? 'Checking...' : 'Check for New Trophies'}
+                      </Text>
+                    </Pressable>
                   </View>
                 ) : (
                   <View style={styles.trophyList}>
@@ -582,6 +646,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
   },
+  lastUpdate: {
+    fontSize: 12,
+    fontWeight: '400',
+    textAlign: 'center',
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
   tabContainer: {
     flexDirection: 'row',
     marginHorizontal: 16,
@@ -600,6 +671,13 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  refreshButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   section: {
     paddingHorizontal: 16,
@@ -779,6 +857,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
     fontWeight: '500',
+  },
+  refreshButtonLarge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 16,
+    gap: 8,
+  },
+  refreshButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
   footer: {
     height: 24,

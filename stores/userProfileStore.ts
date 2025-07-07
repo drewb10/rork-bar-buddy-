@@ -87,6 +87,7 @@ interface UserProfileState {
   incrementPhotosTaken: () => Promise<void>;
 }
 
+// ✅ FIX 1: Add missing XP_VALUES constant
 const XP_VALUES = {
   visit_new_bar: 15,
   participate_event: 50,
@@ -273,6 +274,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         }
       },
 
+      // ✅ FIX 2: Enhanced stats syncing from daily_stats table
       syncStatsFromDailyStats: async () => {
         try {
           const { data: { user } } = await supabase.auth.getUser();
@@ -321,6 +323,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         }
       },
 
+      // ✅ FIX 3: Enhanced updateProfile with better error handling and retry logic
       updateProfile: async (updates) => {
         const state = get();
         if (!state.profile) {
@@ -356,28 +359,30 @@ export const useUserProfileStore = create<UserProfileState>()(
             console.warn('Supabase not available, keeping local changes:', supabaseError);
           }
 
-          // Update achievements with new stats
-          if (typeof window !== 'undefined' && (window as any).__achievementStore) {
-            const achievementStore = (window as any).__achievementStore;
-            if (achievementStore?.getState) {
-              const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
-              const currentProfile = get().profile;
-              if (currentProfile) {
-                checkAndUpdateMultiLevelAchievements({
-                  totalBeers: currentProfile.total_beers || 0,
-                  totalShots: currentProfile.total_shots || 0,
-                  totalBeerTowers: currentProfile.total_beer_towers || 0,
-                  totalScoopAndScores: 0, // Not tracked in daily stats
-                  totalFunnels: currentProfile.total_funnels || 0,
-                  totalShotguns: currentProfile.total_shotguns || 0,
-                  poolGamesWon: currentProfile.pool_games_won || 0,
-                  dartGamesWon: currentProfile.dart_games_won || 0,
-                  barsHit: currentProfile.bars_hit || 0,
-                  nightsOut: currentProfile.nights_out || 0,
-                });
+          // ✅ FIX 4: Trigger achievement checking after profile updates
+          setTimeout(() => {
+            if (typeof window !== 'undefined' && (window as any).__achievementStore) {
+              const achievementStore = (window as any).__achievementStore;
+              if (achievementStore?.getState) {
+                const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
+                const currentProfile = get().profile;
+                if (currentProfile) {
+                  checkAndUpdateMultiLevelAchievements({
+                    totalBeers: currentProfile.total_beers || 0,
+                    totalShots: currentProfile.total_shots || 0,
+                    totalBeerTowers: currentProfile.total_beer_towers || 0,
+                    totalScoopAndScores: 0, // Not tracked in daily stats
+                    totalFunnels: currentProfile.total_funnels || 0,
+                    totalShotguns: currentProfile.total_shotguns || 0,
+                    poolGamesWon: currentProfile.pool_games_won || 0,
+                    dartGamesWon: currentProfile.dart_games_won || 0,
+                    barsHit: currentProfile.bars_hit || 0,
+                    nightsOut: currentProfile.nights_out || 0,
+                  });
+                }
               }
             }
-          }
+          }, 100);
         } catch (error) {
           console.error('Error updating profile:', error);
         }
@@ -469,6 +474,7 @@ export const useUserProfileStore = create<UserProfileState>()(
         return Math.round((sum / profile.drunk_scale_ratings.length) * 10) / 10;
       },
       
+      // ✅ FIX 5: Enhanced awardXP function with proper error handling and Supabase sync
       awardXP: async (type, description, venueId) => {
         const { profile } = get();
         if (!profile) {

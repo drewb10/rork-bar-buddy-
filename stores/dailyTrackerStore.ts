@@ -30,6 +30,18 @@ interface DailyTrackerState {
   clearError: () => void;
 }
 
+// ✅ FIX 1: Define XP values for daily activities
+const DAILY_XP_VALUES = {
+  beers: 5,
+  shots: 5,
+  beer_towers: 15,
+  funnels: 10,
+  shotguns: 10,
+  pool_games_won: 15,
+  dart_games_won: 15,
+  drunk_scale: 25,
+} as const;
+
 const defaultStats: DailyStats = {
   drunk_scale: null,
   beers: 0,
@@ -54,6 +66,102 @@ const getCurrentUserId = async (): Promise<string | null> => {
     return null;
   }
 };
+
+// ✅ FIX 2: Enhanced function to update profile lifetime stats with XP awarding
+async function updateProfileLifetimeStats(userId: string, todayStats: DailyStats) {
+  try {
+    // Get current profile stats
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (profileError) {
+      console.warn('Error fetching profile for lifetime stats update:', profileError);
+      return;
+    }
+
+    // Calculate new totals by adding today's stats
+    const updatedStats = {
+      total_beers: (profile.total_beers || 0) + todayStats.beers,
+      total_shots: (profile.total_shots || 0) + todayStats.shots,
+      total_beer_towers: (profile.total_beer_towers || 0) + todayStats.beer_towers,
+      total_funnels: (profile.total_funnels || 0) + todayStats.funnels,
+      total_shotguns: (profile.total_shotguns || 0) + todayStats.shotguns,
+      pool_games_won: (profile.pool_games_won || 0) + todayStats.pool_games_won,
+      dart_games_won: (profile.dart_games_won || 0) + todayStats.dart_games_won,
+    };
+
+    // ✅ FIX 3: Calculate and award XP for daily activities
+    let totalXPAwarded = 0;
+    const xpActivities = [...(profile.xp_activities || [])];
+
+    // Award XP for each activity
+    Object.entries(todayStats).forEach(([key, value]) => {
+      if (key === 'drunk_scale') {
+        if (value !== null) {
+          totalXPAwarded += DAILY_XP_VALUES.drunk_scale;
+          xpActivities.push({
+            id: Math.random().toString(36).substr(2, 9),
+            type: 'drunk_scale_submission',
+            xpAwarded: DAILY_XP_VALUES.drunk_scale,
+            timestamp: new Date().toISOString(),
+            description: `Submitted drunk scale rating: ${value}/10`,
+          });
+        }
+      } else if (value > 0 && key in DAILY_XP_VALUES) {
+        const xpPerActivity = DAILY_XP_VALUES[key as keyof typeof DAILY_XP_VALUES];
+        const xpForThisActivity = xpPerActivity * value;
+        totalXPAwarded += xpForThisActivity;
+        
+        xpActivities.push({
+          id: Math.random().toString(36).substr(2, 9),
+          type: key as any,
+          xpAwarded: xpForThisActivity,
+          timestamp: new Date().toISOString(),
+          description: `Logged ${value} ${key.replace('_', ' ')}`,
+        });
+      }
+    });
+
+    // Add XP and activities to updates
+    updatedStats.xp = (profile.xp || 0) + totalXPAwarded;
+    updatedStats.xp_activities = xpActivities;
+
+    // Handle drunk scale rating
+    if (todayStats.drunk_scale !== null) {
+      const currentRatings = profile.drunk_scale_ratings || [];
+      updatedStats.drunk_scale_ratings = [...currentRatings, todayStats.drunk_scale];
+      updatedStats.last_drunk_scale_date = new Date().toISOString();
+    }
+
+    // Update profile with new lifetime totals
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update(updatedStats)
+      .eq('id', userId);
+
+    if (updateError) {
+      console.warn('Error updating profile lifetime stats:', updateError);
+    } else {
+      console.log('✅ Profile lifetime stats updated successfully');
+    }
+
+    // ✅ FIX 4: Update local Zustand store with new profile data
+    if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
+      const userProfileStore = (window as any).__userProfileStore;
+      if (userProfileStore?.getState) {
+        const { setProfile } = userProfileStore.getState();
+        setProfile({ ...profile, ...updatedStats });
+      }
+    }
+
+    return totalXPAwarded;
+  } catch (error) {
+    console.warn('Error in updateProfileLifetimeStats:', error);
+  }
+}
 
 export const useDailyTrackerStore = create<DailyTrackerState>()(
   persist(
@@ -166,6 +274,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
         }
       },
 
+      // ✅ FIX 5: Enhanced saveTodayStats with proper XP awarding and achievement triggering
       saveTodayStats: async () => {
         if (!isSupabaseConfigured()) {
           throw new Error('Supabase not configured');
@@ -215,8 +324,36 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
             throw error;
           }
 
-          // Update profile lifetime stats
-          await updateProfileLifetimeStats(userId, localStats);
+          // ✅ FIX 6: Update profile lifetime stats and award XP
+          const xpAwarded = await updateProfileLifetimeStats(userId, localStats);
+
+          // ✅ FIX 7: Trigger achievement checking
+          setTimeout(() => {
+            if (typeof window !== 'undefined' && (window as any).__achievementStore && (window as any).__userProfileStore) {
+              const achievementStore = (window as any).__achievementStore;
+              const userProfileStore = (window as any).__userProfileStore;
+              
+              if (achievementStore?.getState && userProfileStore?.getState) {
+                const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
+                const { profile } = userProfileStore.getState();
+                
+                if (profile) {
+                  checkAndUpdateMultiLevelAchievements({
+                    totalBeers: profile.total_beers || 0,
+                    totalShots: profile.total_shots || 0,
+                    totalBeerTowers: profile.total_beer_towers || 0,
+                    totalScoopAndScores: profile.total_scoop_and_scores || 0,
+                    totalFunnels: profile.total_funnels || 0,
+                    totalShotguns: profile.total_shotguns || 0,
+                    poolGamesWon: profile.pool_games_won || 0,
+                    dartGamesWon: profile.dart_games_won || 0,
+                    barsHit: profile.bars_hit || 0,
+                    nightsOut: profile.nights_out || 0,
+                  });
+                }
+              }
+            }
+          }, 500);
 
           set({ 
             isSaving: false,
@@ -224,7 +361,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
             error: null,
           });
 
-          console.log('📊 DailyTracker: Stats saved successfully');
+          console.log(`📊 DailyTracker: Stats saved successfully. XP awarded: ${xpAwarded}`);
         } catch (error) {
           console.error('📊 DailyTracker: Error saving stats:', error);
           const errorMessage = error instanceof Error ? error.message : 'Failed to save stats';
@@ -279,45 +416,3 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
     }
   )
 );
-
-// Helper function to update profile lifetime stats
-async function updateProfileLifetimeStats(userId: string, todayStats: DailyStats) {
-  try {
-    // Get current profile stats
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('total_beers, total_shots, total_beer_towers, total_funnels, total_shotguns, pool_games_won, dart_games_won')
-      .eq('id', userId)
-      .single();
-
-    if (profileError) {
-      console.warn('Error fetching profile for lifetime stats update:', profileError);
-      return;
-    }
-
-    // Calculate new totals by adding today's stats
-    const updatedStats = {
-      total_beers: (profile.total_beers || 0) + todayStats.beers,
-      total_shots: (profile.total_shots || 0) + todayStats.shots,
-      total_beer_towers: (profile.total_beer_towers || 0) + todayStats.beer_towers,
-      total_funnels: (profile.total_funnels || 0) + todayStats.funnels,
-      total_shotguns: (profile.total_shotguns || 0) + todayStats.shotguns,
-      pool_games_won: (profile.pool_games_won || 0) + todayStats.pool_games_won,
-      dart_games_won: (profile.dart_games_won || 0) + todayStats.dart_games_won,
-    };
-
-    // Update profile with new lifetime totals
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update(updatedStats)
-      .eq('id', userId);
-
-    if (updateError) {
-      console.warn('Error updating profile lifetime stats:', updateError);
-    } else {
-      console.log('✅ Profile lifetime stats updated successfully');
-    }
-  } catch (error) {
-    console.warn('Error in updateProfileLifetimeStats:', error);
-  }
-}

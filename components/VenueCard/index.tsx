@@ -50,7 +50,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     getHotTimeWithLikes,
   } = useVenueInteractionStore();
   
-  const { incrementNightsOut, incrementBarsHit, canIncrementNightsOut } = useUserProfileStore();
+  const { incrementNightsOut, incrementBarsHit, canIncrementNightsOut, awardXP, profile } = useUserProfileStore();
   
   // Local state for real-time UI updates
   const [localLikeCount, setLocalLikeCount] = useState<number | null>(null);
@@ -108,10 +108,19 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     
     try {
       incrementInteraction(venue.id, selectedTime);
+      
+      // ✅ FIX 1: Award XP for checking in to venue
+      await awardXP('check_in', `Checked in at ${venue.name}`, venue.id);
+      
       await incrementBarsHit();
       
       if (canIncrementNightsOut()) {
         await incrementNightsOut();
+      }
+
+      // ✅ FIX 2: Award additional XP if this is a new bar
+      if (profile && !profile.visited_bars?.includes(venue.id)) {
+        await awardXP('visit_new_bar', `Visited new bar: ${venue.name}`, venue.id);
       }
       
       setRsvpModalVisible(false);
@@ -121,7 +130,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
       console.error('Error submitting RSVP:', error);
       setIsInteracting(false);
     }
-  }, [selectedTime, venue.id, incrementInteraction, incrementBarsHit, canIncrementNightsOut, incrementNightsOut]);
+  }, [selectedTime, venue.id, venue.name, incrementInteraction, incrementBarsHit, canIncrementNightsOut, incrementNightsOut, awardXP, profile]);
 
   const handleLikeSubmit = useCallback(async () => {
     if (!selectedLikeTime) return;
@@ -135,6 +144,9 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
       
       // Submit like
       likeVenue(venue.id, selectedLikeTime);
+      
+      // ✅ FIX 3: Award XP for liking a venue
+      await awardXP('like_bar', `Liked ${venue.name}`, venue.id);
       
       // Force update
       setTimeout(() => forceUpdate(), 100);
@@ -150,7 +162,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
       setLocalHotTime(null);
       setIsLiking(false);
     }
-  }, [selectedLikeTime, venue.id, likeVenue, getLikeCount, forceUpdate]);
+  }, [selectedLikeTime, venue.id, venue.name, likeVenue, getLikeCount, awardXP, forceUpdate]);
 
   const handleModalCancel = useCallback((type: 'rsvp' | 'like') => {
     if (type === 'rsvp') {
