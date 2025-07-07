@@ -1,7 +1,7 @@
-// app/(tabs)/profile.tsx - Simplified fix to resolve TypeScript errors
+// app/(tabs)/profile.tsx - Minimal working version to fix startup issues
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, Image, ActivityIndicator } from 'react-native';
-import { User, Award, Camera, Users, LogOut, Crown, TrendingUp } from 'lucide-react-native';
+import { User, Camera, Users, LogOut, TrendingUp } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -10,11 +10,9 @@ import FriendsModal from '@/components/FriendsModal';
 import BarBuddyChatbot from '@/components/BarBuddyChatbot';
 import OnboardingModal from '@/components/OnboardingModal';
 import DailyTracker from '@/components/DailyTracker';
-import RankModal, { getRankInfo } from '@/components/RankModal';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useUserProfileStore } from '@/stores/userProfileStore';
-import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ProfileScreen() {
   const { theme } = useThemeStore();
@@ -32,13 +30,12 @@ export default function ProfileScreen() {
   const router = useRouter();
   
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
-  const [rankModalVisible, setRankModalVisible] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showChatbot, setShowChatbot] = useState(false); // ✅ Simplified: boolean instead of string union
+  const [showChatbot, setShowChatbot] = useState(false);
   const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
-  // Simplified initialization - just check session once
+  // Simplified initialization
   useEffect(() => {
     const initializeProfile = async () => {
       try {
@@ -62,9 +59,6 @@ export default function ProfileScreen() {
     }
   }, [profile]);
 
-  // ✅ FIX 1: Get rank information based on current XP
-  const rankInfo = getRankInfo(profile?.xp || 0);
-  
   // Create display profile with fallback values
   const displayProfile = profile || {
     username: 'Guest User',
@@ -291,62 +285,17 @@ export default function ProfileScreen() {
             )}
           </View>
 
-          {/* ✅ FIX 2: Enhanced XP and Rank Section */}
-          <Pressable 
-            style={[styles.xpSection, { backgroundColor: themeColors.card }]}
-            onPress={() => setRankModalVisible(true)}
-            disabled={!isAuthenticated}
-          >
-            <LinearGradient
-              colors={rankInfo.current.gradient}
-              style={styles.xpGradient}
-            >
-              <View style={styles.xpHeader}>
-                <rankInfo.current.icon size={24} color="white" />
-                <View style={styles.xpInfo}>
-                  <Text style={styles.xpAmount}>
-                    {displayProfile.xp || 0} XP
-                  </Text>
-                  {isAuthenticated && rankInfo.next ? (
-                    <Text style={styles.nextRankText}>
-                      {rankInfo.xpToNext} XP to {rankInfo.next.title}
-                    </Text>
-                  ) : (
-                    <Text style={styles.nextRankText}>
-                      {isAuthenticated ? 'Max rank achieved!' : 'Sign in to start earning XP'}
-                    </Text>
-                  )}
-                </View>
-                <Crown size={20} color="white" />
-              </View>
-              
-              <View style={styles.rankContainer}>
-                <Text style={styles.rankTitle}>
-                  {rankInfo.current.title}
-                </Text>
-                <Text style={styles.rankSubtitle}>
-                  {rankInfo.current.subTitle}
-                </Text>
-              </View>
-
-              {/* Progress Bar for Next Rank */}
-              {isAuthenticated && rankInfo.next && (
-                <View style={styles.progressSection}>
-                  <View style={styles.progressBar}>
-                    <View 
-                      style={[
-                        styles.progressFill,
-                        { width: `${Math.min(rankInfo.progress, 100)}%` }
-                      ]} 
-                    />
-                  </View>
-                  <Text style={styles.progressText}>
-                    {Math.round(rankInfo.progress)}% to next rank
-                  </Text>
-                </View>
-              )}
-            </LinearGradient>
-          </Pressable>
+          {/* Simple XP Section */}
+          <View style={[styles.xpSection, { backgroundColor: themeColors.card }]}>
+            <View style={styles.xpContent}>
+              <Text style={[styles.xpLabel, { color: themeColors.subtext }]}>
+                Experience Points
+              </Text>
+              <Text style={[styles.xpAmount, { color: themeColors.primary }]}>
+                {displayProfile.xp || 0} XP
+              </Text>
+            </View>
+          </View>
 
           {/* Stats Overview */}
           {isAuthenticated && (
@@ -407,28 +356,6 @@ export default function ProfileScreen() {
                 </View>
               </View>
             </Pressable>
-
-            {/* Rank Details Button */}
-            {isAuthenticated && (
-              <Pressable 
-                style={[styles.actionButton, { backgroundColor: themeColors.card }]}
-                onPress={() => setRankModalVisible(true)}
-              >
-                <View style={styles.buttonContent}>
-                  <View style={styles.buttonIcon}>
-                    <Crown size={20} color={rankInfo.current.color} />
-                  </View>
-                  <View style={styles.buttonText}>
-                    <Text style={[styles.buttonTitle, { color: rankInfo.current.color }]}>
-                      View All Ranks
-                    </Text>
-                    <Text style={[styles.buttonSubtext, { color: themeColors.subtext }]}>
-                      See progression & rewards
-                    </Text>
-                  </View>
-                </View>
-              </Pressable>
-            )}
 
             {/* Friends Button */}
             {isAuthenticated && (
@@ -492,13 +419,6 @@ export default function ProfileScreen() {
       <DailyTracker
         visible={dailyTrackerVisible}
         onClose={() => setDailyTrackerVisible(false)}
-      />
-
-      {/* Rank Modal */}
-      <RankModal
-        visible={rankModalVisible}
-        onClose={() => setRankModalVisible(false)}
-        currentXP={displayProfile.xp || 0}
       />
 
       {/* Onboarding Modal */}
@@ -615,65 +535,19 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 30,
     borderRadius: 16,
-    overflow: 'hidden',
-  },
-  xpGradient: {
     padding: 20,
   },
-  xpHeader: {
-    flexDirection: 'row',
+  xpContent: {
     alignItems: 'center',
-    marginBottom: 12,
   },
-  xpInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  xpAmount: {
-    color: 'white',
-    fontSize: 28,
-    fontWeight: '800',
-    marginBottom: 2,
-  },
-  nextRankText: {
-    color: 'rgba(255,255,255,0.8)',
+  xpLabel: {
     fontSize: 14,
     fontWeight: '500',
-  },
-  rankContainer: {
-    marginBottom: 16,
-  },
-  rankTitle: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  rankSubtitle: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  progressSection: {
-    marginTop: 8,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 4,
-    overflow: 'hidden',
     marginBottom: 8,
   },
-  progressFill: {
-    height: '100%',
-    backgroundColor: 'white',
-    borderRadius: 4,
-  },
-  progressText: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
+  xpAmount: {
+    fontSize: 32,
+    fontWeight: '800',
   },
   statsOverview: {
     marginHorizontal: 20,
