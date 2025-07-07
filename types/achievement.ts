@@ -8,14 +8,19 @@ export interface Achievement {
   maxProgress?: number;
   progress?: number;
   completed: boolean;
-  xpReward?: number; // Add this missing property
+  xpReward: number; // ✅ FIX: Add missing xpReward property
   level?: number;
   unlockedAt?: string;
 }
 
-// Example usage in your stores or components:
-// The xpReward property should typically be set to values like:
-// - Basic achievements: 100 XP
-// - Medium achievements: 250 XP  
-// - Hard achievements: 500 XP
-// - Milestone achievements: 1000+ XP
+export interface CompletedAchievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: 'bars' | 'activities' | 'social' | 'milestones';
+  completedAt: string;
+  level: number;
+  baseId: string;
+  xpReward: number;
+}
