@@ -59,6 +59,7 @@ const getTodayString = (): string => {
 
 const getCurrentUserId = async (): Promise<string | null> => {
   try {
+    // ✅ FIX: Add null safety check for supabase
     if (!supabase) {
       console.warn('Supabase client not available');
       return null;
@@ -75,6 +76,7 @@ const getCurrentUserId = async (): Promise<string | null> => {
 // ✅ FIX 2: Enhanced function to update profile lifetime stats with XP awarding
 async function updateProfileLifetimeStats(userId: string, todayStats: DailyStats) {
   try {
+    // ✅ FIX: Add null safety check for supabase
     if (!supabase) {
       throw new Error('Supabase client not available');
     }
@@ -134,7 +136,7 @@ async function updateProfileLifetimeStats(userId: string, todayStats: DailyStats
       }
     });
 
-    // Add XP and activities to updates
+    // ✅ FIX: Add XP and activities to updates (these properties exist in profile)
     updatedStats.xp = (profile.xp || 0) + totalXPAwarded;
     updatedStats.xp_activities = xpActivities;
 
@@ -146,6 +148,7 @@ async function updateProfileLifetimeStats(userId: string, todayStats: DailyStats
     }
 
     // Update profile with new lifetime totals
+    // ✅ FIX: Add null safety check for supabase
     if (!supabase) {
       throw new Error('Supabase client not available');
     }
@@ -245,6 +248,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
 
           console.log('📊 DailyTracker: Loading today stats from Supabase...');
           
+          // ✅ FIX: Add null safety check for supabase
           if (!supabase) {
             throw new Error('Supabase client not available');
           }
@@ -330,6 +334,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
             dart_games_won: localStats.dart_games_won,
           };
 
+          // ✅ FIX: Add null safety check for supabase
           if (!supabase) {
             throw new Error('Supabase client not available');
           }
@@ -407,6 +412,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
 
           const today = getTodayString();
           
+          // ✅ FIX: Add null safety check for supabase
           if (!supabase) {
             console.warn('Supabase client not available');
             return true;

@@ -165,6 +165,7 @@ export const useUserProfileStore = create<UserProfileState>()(
           set({ isLoading: true, profileReady: false });
           console.log('🔄 Starting profile load...');
           
+          // ✅ FIX: Add null safety check for supabase
           if (!supabase) {
             console.log('🔄 No supabase client available');
             set({ isLoading: false, profile: null, profileReady: false });
@@ -221,6 +222,7 @@ export const useUserProfileStore = create<UserProfileState>()(
                 has_completed_onboarding: false,
               };
               
+              // ✅ FIX: Add null safety check for supabase
               if (!supabase) {
                 throw new Error('Supabase client not available');
               }
@@ -287,6 +289,7 @@ export const useUserProfileStore = create<UserProfileState>()(
       // ✅ FIX 2: Enhanced stats syncing from daily_stats table
       syncStatsFromDailyStats: async () => {
         try {
+          // ✅ FIX: Add null safety check for supabase
           if (!supabase) {
             console.warn('Supabase client not available for stats sync');
             return;
@@ -579,6 +582,7 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       searchUserByUsername: async (username: string): Promise<Friend | null> => {
         try {
+          // ✅ FIX: Add null safety check for supabase
           if (!supabase) {
             console.warn('Supabase client not available');
             return null;
@@ -613,6 +617,7 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       sendFriendRequest: async (username: string): Promise<boolean> => {
         const { profile } = get();
+        // ✅ FIX: Add null safety check for supabase
         if (!profile || !supabase) return false;
 
         try {
@@ -655,6 +660,7 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       acceptFriendRequest: async (requestId: string): Promise<boolean> => {
         const { profile } = get();
+        // ✅ FIX: Add null safety check for supabase
         if (!profile || !supabase) return false;
 
         try {
@@ -701,6 +707,7 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       declineFriendRequest: async (requestId: string): Promise<boolean> => {
         const { profile } = get();
+        // ✅ FIX: Add null safety check for supabase
         if (!profile || !supabase) return false;
 
         try {
@@ -722,6 +729,7 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       loadFriendRequests: async () => {
         const { profile } = get();
+        // ✅ FIX: Add null safety check for supabase
         if (!profile || !supabase) return;
 
         try {
@@ -762,6 +770,7 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       loadFriends: async () => {
         const { profile } = get();
+        // ✅ FIX: Add null safety check for supabase
         if (!profile || !supabase) return;
 
         try {

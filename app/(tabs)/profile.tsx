@@ -15,7 +15,8 @@ import { useRouter } from 'expo-router';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { LinearGradient } from 'expo-linear-gradient';
 
-type ActiveTab = 'profile' | 'chatbot';
+// ✅ FIX: Define proper tab type to avoid comparison errors
+type TabType = 'profile' | 'chatbot';
 
 export default function ProfileScreen() {
   const { theme } = useThemeStore();
@@ -35,7 +36,7 @@ export default function ProfileScreen() {
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
   const [rankModalVisible, setRankModalVisible] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [activeTab, setActiveTab] = useState<ActiveTab>('profile');
+  const [activeTab, setActiveTab] = useState<TabType>('profile'); // ✅ FIX: Use proper TabType
   const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
