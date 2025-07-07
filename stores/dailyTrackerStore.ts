@@ -169,7 +169,9 @@ async function updateProfileLifetimeStats(userId: string, todayStats: DailyStats
       const userProfileStore = (window as any).__userProfileStore;
       if (userProfileStore?.getState) {
         const { setProfile } = userProfileStore.getState();
-        setProfile({ ...profile, ...updatedStats });
+        if (setProfile) {
+          setProfile({ ...profile, ...updatedStats });
+        }
       }
     }
 
@@ -363,7 +365,7 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
                 const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
                 const { profile } = userProfileStore.getState();
                 
-                if (profile) {
+                if (profile && checkAndUpdateMultiLevelAchievements) {
                   checkAndUpdateMultiLevelAchievements({
                     totalBeers: profile.total_beers || 0,
                     totalShots: profile.total_shots || 0,

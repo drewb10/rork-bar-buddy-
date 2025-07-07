@@ -1,4 +1,4 @@
-// app/(tabs)/profile.tsx - Minimal working version to fix startup issues
+// app/(tabs)/profile.tsx - Fixed TypeScript errors and startup issues
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, Image, ActivityIndicator } from 'react-native';
 import { User, Camera, Users, LogOut, TrendingUp } from 'lucide-react-native';

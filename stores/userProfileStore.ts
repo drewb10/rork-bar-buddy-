@@ -85,6 +85,7 @@ interface UserProfileState {
   setProfileReady: (ready: boolean) => void;
   syncStatsFromDailyStats: () => Promise<void>;
   incrementPhotosTaken: () => Promise<void>;
+  setProfile?: (profile: UserProfile) => void;
 }
 
 // ✅ FIX 1: Add missing XP_VALUES constant
@@ -152,6 +153,10 @@ export const useUserProfileStore = create<UserProfileState>()(
       
       setProfileReady: (ready: boolean) => {
         set({ profileReady: ready });
+      },
+
+      setProfile: (profile: UserProfile) => {
+        set({ profile });
       },
       
       loadProfile: async () => {
@@ -386,7 +391,7 @@ export const useUserProfileStore = create<UserProfileState>()(
               if (achievementStore?.getState) {
                 const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
                 const currentProfile = get().profile;
-                if (currentProfile) {
+                if (currentProfile && checkAndUpdateMultiLevelAchievements) {
                   checkAndUpdateMultiLevelAchievements({
                     totalBeers: currentProfile.total_beers || 0,
                     totalShots: currentProfile.total_shots || 0,
