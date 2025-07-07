@@ -113,6 +113,13 @@ export const useUserProfileStore = create<UserProfileStore>()(
         try {
           console.log('🔧 UserProfile: Loading profile for user:', userId);
           
+          // Add null check for supabase
+          if (!supabase) {
+            console.warn('🔄 Supabase client not available');
+            set({ isLoading: false, profile: null, isInitialized: true });
+            return;
+          }
+          
           const { data: profile, error } = await supabase
             .from('profiles')
             .select('*')
@@ -347,6 +354,12 @@ export const useUserProfileStore = create<UserProfileStore>()(
         try {
           console.log('🔄 Syncing stats from daily_stats table...');
           
+          // Add null check for supabase
+          if (!supabase) {
+            console.warn('🔄 Supabase client not available for stats sync');
+            return;
+          }
+          
           const { data: dailyStats, error } = await supabase
             .from('daily_stats')
             .select('*')
@@ -401,6 +414,12 @@ export const useUserProfileStore = create<UserProfileStore>()(
           });
 
           if (isSupabaseConfigured()) {
+            // Add null check for supabase
+            if (!supabase) {
+              console.warn('🔄 Supabase client not available for profile update');
+              return;
+            }
+            
             let retryCount = 0;
             const maxRetries = 3;
             

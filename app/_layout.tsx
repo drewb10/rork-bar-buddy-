@@ -20,7 +20,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// 🔥 NEW: Global popup manager hook
+// Global popup manager hook
 function useCompletionPopups() {
   const [currentPopup, setCurrentPopup] = useState<{
     title: string;
@@ -78,7 +78,7 @@ export default function RootLayout() {
   const [isInitialized, setIsInitialized] = useState(false);
   const initializationRef = useRef(false);
 
-  // 🔥 NEW: Global popup management
+  // Global popup management
   const { currentPopup, closeCurrentPopup } = useCompletionPopups();
 
   // Safe store access with fallbacks
@@ -210,7 +210,7 @@ export default function RootLayout() {
           onVerify={handleAgeVerification}
         />
 
-        {/* 🔥 NEW: Global completion popup */}
+        {/* Global completion popup */}
         <CompletionPopup
           visible={!!currentPopup}
           title={currentPopup?.title || ''}

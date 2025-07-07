@@ -177,7 +177,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
         }
       },
 
-      // 🔥 ENHANCED: Flame icon handles likes with time slot selection AND task sync
+      // Enhanced: Flame icon handles likes with time slot selection AND task sync
       likeVenue: (venueId, timeSlot) => {
         try {
           if (!venueId || !timeSlot) return;
@@ -235,7 +235,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           // Update achievements for bars visited
           debouncedUpdateAchievements();
 
-          // 🔥 NEW: Sync task progress for "Like bars" tasks
+          // Enhanced: Sync task progress for "Like bars" tasks
           setTimeout(() => {
             if (typeof window !== 'undefined' && (window as any).__achievementStore) {
               const achievementStore = (window as any).__achievementStore;

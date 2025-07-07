@@ -17,7 +17,7 @@ export interface Achievement {
   level: number;
   maxLevel: number;
   baseId: string;
-  xpReward: number; // Made required instead of optional
+  xpReward: number;
 }
 
 export interface CompletedAchievement {
@@ -29,7 +29,7 @@ export interface CompletedAchievement {
   completedAt: string;
   level: number;
   baseId: string;
-  xpReward: number; // Made required instead of optional
+  xpReward: number;
 }
 
 interface AchievementState {
@@ -349,7 +349,7 @@ export const useAchievementStore = create<AchievementState>()(
         }
       },
 
-      // 🔥 ENHANCED: Complete achievement with XP award and trophy popup
+      // Enhanced: Complete achievement with XP award and trophy popup
       completeAchievement: (id: string) => {
         try {
           set((state) => {
@@ -378,7 +378,7 @@ export const useAchievementStore = create<AchievementState>()(
               a.id === id ? { ...a, completed: true, completedAt: new Date().toISOString() } : a
             );
 
-            // 🔥 NEW: Award XP when trophy is unlocked
+            // Award XP when trophy is unlocked
             setTimeout(() => {
               if (achievement.xpReward && typeof window !== 'undefined' && (window as any).__userProfileStore) {
                 const userProfileStore = (window as any).__userProfileStore;
@@ -388,7 +388,7 @@ export const useAchievementStore = create<AchievementState>()(
                   
                   console.log(`🏆 Trophy unlocked: ${achievement.title} (+${achievement.xpReward} XP)`);
                   
-                  // 🔥 NEW: Show trophy completion popup
+                  // Show trophy completion popup
                   if (typeof window !== 'undefined') {
                     (window as any).__showTrophyCompletionPopup = {
                       title: achievement.title,
@@ -462,7 +462,7 @@ export const useAchievementStore = create<AchievementState>()(
 
               newCompletedAchievements = [...filteredCompletedAchievements, completedAchievementData];
 
-              // 🔥 NEW: Award XP and show popup for newly completed achievement
+              // Award XP and show popup for newly completed achievement
               setTimeout(() => {
                 if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
                   const userProfileStore = (window as any).__userProfileStore;

@@ -29,7 +29,7 @@ interface DailyTrackerStore {
   clearError: () => void;
 }
 
-// ✅ FIX 1: Define XP values for daily activities
+// XP values for daily activities
 const DAILY_XP_VALUES = {
   beers: 5,
   shots: 5,
@@ -71,7 +71,7 @@ const getCurrentUserId = async () => {
   }
 };
 
-// ✅ FIX 2: Enhanced function to update profile with ACCUMULATIVE stats
+// Enhanced function to update profile with ACCUMULATIVE stats
 const updateProfileLifetimeStats = async (userId: string, newDailyStats: DailyStats, existingDailyStats: DailyStats) => {
   try {
     if (!supabase) {
@@ -89,7 +89,7 @@ const updateProfileLifetimeStats = async (userId: string, newDailyStats: DailySt
       throw new Error('Failed to get profile for stats update');
     }
 
-    // ✅ FIX 3: Calculate INCREMENTAL updates (only the difference from what was saved today)
+    // Calculate INCREMENTAL updates (only the difference from what was saved today)
     const incrementalStats = {
       beers: newDailyStats.beers - existingDailyStats.beers,
       shots: newDailyStats.shots - existingDailyStats.shots,
@@ -112,7 +112,7 @@ const updateProfileLifetimeStats = async (userId: string, newDailyStats: DailySt
       updated_at: new Date().toISOString(),
     };
 
-    // ✅ FIX 4: Calculate and award XP only for incremental activities
+    // Calculate and award XP only for incremental activities
     let totalXPAwarded = 0;
     const xpActivities = [...(profile.xp_activities || [])];
 
@@ -168,7 +168,7 @@ const updateProfileLifetimeStats = async (userId: string, newDailyStats: DailySt
 
     console.log(`✅ Profile updated with incremental stats. XP awarded: ${totalXPAwarded}`);
 
-    // ✅ FIX 5: Update local Zustand store with new profile data
+    // Update local Zustand store with new profile data
     if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
       const userProfileStore = (window as any).__userProfileStore;
       if (userProfileStore?.getState) {
@@ -280,7 +280,7 @@ export const useDailyTrackerStore = create<DailyTrackerStore>()(
             throw error;
           }
 
-          // ✅ FIX 6: Load existing stats to maintain accumulation
+          // Load existing stats to maintain accumulation
           const loadedStats: DailyStats = {
             beers: data?.beers || 0,
             shots: data?.shots || 0,
@@ -313,7 +313,7 @@ export const useDailyTrackerStore = create<DailyTrackerStore>()(
         }
       },
 
-      // ✅ FIX 7: Enhanced saveTodayStats with proper accumulation
+      // Enhanced saveTodayStats with proper accumulation
       saveTodayStats: async () => {
         if (!isSupabaseConfigured()) {
           throw new Error('Supabase not configured');
@@ -342,7 +342,7 @@ export const useDailyTrackerStore = create<DailyTrackerStore>()(
             throw new Error('Supabase client not available');
           }
 
-          // ✅ FIX 8: Get existing stats before saving to calculate incremental changes
+          // Get existing stats before saving to calculate incremental changes
           const { data: existingData } = await supabase
             .from('daily_stats')
             .select('*')
@@ -386,10 +386,10 @@ export const useDailyTrackerStore = create<DailyTrackerStore>()(
             throw error;
           }
 
-          // ✅ FIX 9: Update profile with incremental changes only
+          // Update profile with incremental changes only
           const xpAwarded = await updateProfileLifetimeStats(userId, localStats, existingStats);
 
-          // ✅ FIX 10: Trigger achievement checking
+          // Trigger achievement checking
           setTimeout(() => {
             if (typeof window !== 'undefined' && (window as any).__achievementStore && (window as any).__userProfileStore) {
               const achievementStore = (window as any).__achievementStore;
