@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 interface Friend {
   id: string;
@@ -165,6 +165,12 @@ export const useUserProfileStore = create<UserProfileState>()(
           set({ isLoading: true, profileReady: false });
           console.log('🔄 Starting profile load...');
           
+          if (!supabase) {
+            console.log('🔄 No supabase client available');
+            set({ isLoading: false, profile: null, profileReady: false });
+            return;
+          }
+
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) {
             console.log('🔄 No authenticated user found');
@@ -215,6 +221,10 @@ export const useUserProfileStore = create<UserProfileState>()(
                 has_completed_onboarding: false,
               };
               
+              if (!supabase) {
+                throw new Error('Supabase client not available');
+              }
+
               const { data: newProfile, error: createError } = await supabase
                 .from('profiles')
                 .insert(newProfileData)
@@ -277,6 +287,11 @@ export const useUserProfileStore = create<UserProfileState>()(
       // ✅ FIX 2: Enhanced stats syncing from daily_stats table
       syncStatsFromDailyStats: async () => {
         try {
+          if (!supabase) {
+            console.warn('Supabase client not available for stats sync');
+            return;
+          }
+
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) return;
 
@@ -340,23 +355,25 @@ export const useUserProfileStore = create<UserProfileState>()(
           }));
 
           // Try to update in Supabase if available
-          try {
-            const { error } = await supabase
-              .from('profiles')
-              .update({
-                ...updates,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', state.profile.id);
+          if (isSupabaseConfigured() && supabase) {
+            try {
+              const { error } = await supabase
+                .from('profiles')
+                .update({
+                  ...updates,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', state.profile.id);
 
-            if (error) {
-              console.warn('Error updating profile in Supabase:', error);
-              // Don't revert local changes - keep them for offline functionality
-            } else {
-              console.log('✅ Profile updated in Supabase successfully');
+              if (error) {
+                console.warn('Error updating profile in Supabase:', error);
+                // Don't revert local changes - keep them for offline functionality
+              } else {
+                console.log('✅ Profile updated in Supabase successfully');
+              }
+            } catch (supabaseError) {
+              console.warn('Supabase not available, keeping local changes:', supabaseError);
             }
-          } catch (supabaseError) {
-            console.warn('Supabase not available, keeping local changes:', supabaseError);
           }
 
           // ✅ FIX 4: Trigger achievement checking after profile updates
@@ -477,6 +494,7 @@ export const useUserProfileStore = create<UserProfileState>()(
       // ✅ FIX 5: Enhanced awardXP function with proper error handling and Supabase sync
       awardXP: async (type, description, venueId) => {
         const { profile } = get();
+
         if (!profile) {
           console.warn('❌ No profile available for XP award');
           return;
@@ -561,6 +579,11 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       searchUserByUsername: async (username: string): Promise<Friend | null> => {
         try {
+          if (!supabase) {
+            console.warn('Supabase client not available');
+            return null;
+          }
+
           const { data, error } = await supabase
             .from('profiles')
             .select('id, username, phone, email, xp, nights_out, bars_hit, created_at')
@@ -590,7 +613,7 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       sendFriendRequest: async (username: string): Promise<boolean> => {
         const { profile } = get();
-        if (!profile) return false;
+        if (!profile || !supabase) return false;
 
         try {
           // First find the user by username
@@ -632,7 +655,7 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       acceptFriendRequest: async (requestId: string): Promise<boolean> => {
         const { profile } = get();
-        if (!profile) return false;
+        if (!profile || !supabase) return false;
 
         try {
           // Get the friend request
@@ -678,7 +701,7 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       declineFriendRequest: async (requestId: string): Promise<boolean> => {
         const { profile } = get();
-        if (!profile) return false;
+        if (!profile || !supabase) return false;
 
         try {
           const { error } = await supabase
@@ -699,7 +722,7 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       loadFriendRequests: async () => {
         const { profile } = get();
-        if (!profile) return;
+        if (!profile || !supabase) return;
 
         try {
           const { data, error } = await supabase
@@ -739,7 +762,7 @@ export const useUserProfileStore = create<UserProfileState>()(
 
       loadFriends: async () => {
         const { profile } = get();
-        if (!profile) return;
+        if (!profile || !supabase) return;
 
         try {
           const { data, error } = await supabase

@@ -15,6 +15,8 @@ import { useRouter } from 'expo-router';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { LinearGradient } from 'expo-linear-gradient';
 
+type ActiveTab = 'profile' | 'chatbot';
+
 export default function ProfileScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
@@ -33,7 +35,7 @@ export default function ProfileScreen() {
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
   const [rankModalVisible, setRankModalVisible] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'chatbot'>('profile');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('profile');
   const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
@@ -190,18 +192,6 @@ export default function ProfileScreen() {
   };
 
   const handleDailyTrackerPress = () => {
-    if (!isAuthenticated) {
-      Alert.alert(
-        'Sign In Required',
-        'Please sign in to track your daily stats.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Sign In', onPress: () => router.push('/auth/sign-in') }
-        ]
-      );
-      return;
-    }
-
     setDailyTrackerVisible(true);
   };
 

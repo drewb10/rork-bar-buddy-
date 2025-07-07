@@ -59,6 +59,11 @@ const getTodayString = (): string => {
 
 const getCurrentUserId = async (): Promise<string | null> => {
   try {
+    if (!supabase) {
+      console.warn('Supabase client not available');
+      return null;
+    }
+    
     const { data: { user } } = await supabase.auth.getUser();
     return user?.id || null;
   } catch (error) {
@@ -70,6 +75,10 @@ const getCurrentUserId = async (): Promise<string | null> => {
 // ✅ FIX 2: Enhanced function to update profile lifetime stats with XP awarding
 async function updateProfileLifetimeStats(userId: string, todayStats: DailyStats) {
   try {
+    if (!supabase) {
+      throw new Error('Supabase client not available');
+    }
+
     // Get current profile stats
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -83,7 +92,7 @@ async function updateProfileLifetimeStats(userId: string, todayStats: DailyStats
     }
 
     // Calculate new totals by adding today's stats
-    const updatedStats = {
+    const updatedStats: any = {
       total_beers: (profile.total_beers || 0) + todayStats.beers,
       total_shots: (profile.total_shots || 0) + todayStats.shots,
       total_beer_towers: (profile.total_beer_towers || 0) + todayStats.beer_towers,
@@ -137,6 +146,10 @@ async function updateProfileLifetimeStats(userId: string, todayStats: DailyStats
     }
 
     // Update profile with new lifetime totals
+    if (!supabase) {
+      throw new Error('Supabase client not available');
+    }
+
     const { error: updateError } = await supabase
       .from('profiles')
       .update(updatedStats)
@@ -232,6 +245,10 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
 
           console.log('📊 DailyTracker: Loading today stats from Supabase...');
           
+          if (!supabase) {
+            throw new Error('Supabase client not available');
+          }
+
           const { data: todayStats, error } = await supabase
             .from('daily_stats')
             .select('*')
@@ -313,6 +330,10 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
             dart_games_won: localStats.dart_games_won,
           };
 
+          if (!supabase) {
+            throw new Error('Supabase client not available');
+          }
+
           // Use upsert to insert or update
           const { error } = await supabase
             .from('daily_stats')
@@ -386,6 +407,11 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
 
           const today = getTodayString();
           
+          if (!supabase) {
+            console.warn('Supabase client not available');
+            return true;
+          }
+
           const { data, error } = await supabase
             .from('daily_stats')
             .select('drunk_scale')
