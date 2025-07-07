@@ -8,6 +8,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useFrameworkReady } from "@/hooks/useFrameworkReady";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
+import CompletionPopup from "@/components/CompletionPopup";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,6 +20,56 @@ const queryClient = new QueryClient({
   },
 });
 
+// 🔥 NEW: Global popup manager hook
+function useCompletionPopups() {
+  const [currentPopup, setCurrentPopup] = useState<{
+    title: string;
+    xpReward: number;
+    type: 'task' | 'trophy';
+  } | null>(null);
+
+  useEffect(() => {
+    // Listen for global popup events
+    const checkForPopups = () => {
+      if (typeof window !== 'undefined') {
+        // Check for trophy completion
+        if ((window as any).__showTrophyCompletionPopup) {
+          const popup = (window as any).__showTrophyCompletionPopup;
+          setCurrentPopup({
+            title: popup.title,
+            xpReward: popup.xpReward,
+            type: 'trophy'
+          });
+          delete (window as any).__showTrophyCompletionPopup;
+        }
+        
+        // Check for task completion
+        if ((window as any).__showTaskCompletionPopup) {
+          const popup = (window as any).__showTaskCompletionPopup;
+          setCurrentPopup({
+            title: popup.title,
+            xpReward: popup.xpReward,
+            type: 'task'
+          });
+          delete (window as any).__showTaskCompletionPopup;
+        }
+      }
+    };
+
+    const interval = setInterval(checkForPopups, 500);
+    return () => clearInterval(interval);
+  }, []);
+
+  const closeCurrentPopup = () => {
+    setCurrentPopup(null);
+  };
+
+  return {
+    currentPopup,
+    closeCurrentPopup
+  };
+}
+
 export default function RootLayout() {
   // CRITICAL: This hook must be called first and never removed
   const isFrameworkReady = useFrameworkReady();
@@ -26,6 +77,9 @@ export default function RootLayout() {
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const initializationRef = useRef(false);
+
+  // 🔥 NEW: Global popup management
+  const { currentPopup, closeCurrentPopup } = useCompletionPopups();
 
   // Safe store access with fallbacks
   const ageVerificationStore = useAgeVerificationStore();
@@ -154,6 +208,15 @@ export default function RootLayout() {
         <AgeVerificationModal
           visible={showAgeVerification}
           onVerify={handleAgeVerification}
+        />
+
+        {/* 🔥 NEW: Global completion popup */}
+        <CompletionPopup
+          visible={!!currentPopup}
+          title={currentPopup?.title || ''}
+          xpReward={currentPopup?.xpReward || 0}
+          type={currentPopup?.type || 'task'}
+          onClose={closeCurrentPopup}
         />
       </QueryClientProvider>
     </trpc.Provider>

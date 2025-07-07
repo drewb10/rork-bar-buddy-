@@ -263,31 +263,37 @@ export default function TrophiesScreen() {
     return completedAchievements.filter(trophy => trophy.category === selectedCategory);
   }, [completedAchievements, selectedCategory]);
 
+  // 🔥 ENHANCED: Modern StatCard component with better styling
   const StatCard = ({ title, value, subtitle, size = 'normal' }: { title: string; value: number | string; subtitle?: string; size?: 'normal' | 'large' }) => (
     <View style={[
       styles.statCard, 
       { backgroundColor: themeColors.card },
       size === 'large' && styles.statCardLarge
     ]}>
-      <Text style={[
-        styles.statValue, 
-        { color: themeColors.primary },
-        size === 'large' && styles.statValueLarge
-      ]}>
-        {value}
-      </Text>
-      <Text style={[
-        styles.statTitle, 
-        { color: themeColors.text },
-        size === 'large' && styles.statTitleLarge
-      ]}>
-        {title}
-      </Text>
-      {subtitle && (
-        <Text style={[styles.statSubtitle, { color: themeColors.subtext }]}>
-          {subtitle}
+      <View style={styles.statCardInner}>
+        <Text style={[
+          styles.statValue, 
+          { color: themeColors.primary },
+          size === 'large' && styles.statValueLarge
+        ]}>
+          {value}
         </Text>
-      )}
+        <Text style={[
+          styles.statTitle, 
+          { color: themeColors.text },
+          size === 'large' && styles.statTitleLarge
+        ]}>
+          {title}
+        </Text>
+        {subtitle && (
+          <Text style={[styles.statSubtitle, { color: themeColors.subtext }]}>
+            {subtitle}
+          </Text>
+        )}
+      </View>
+      
+      {/* Subtle accent line */}
+      <View style={[styles.statAccent, { backgroundColor: themeColors.primary }]} />
     </View>
   );
 
@@ -501,7 +507,7 @@ export default function TrophiesScreen() {
               </View>
             ) : (
               <>
-                {/* Activity Stats Grid */}
+                {/* Activity Stats Grid - 🔥 ENHANCED with modern design */}
                 <View style={styles.statsGrid}>
                   <StatCard title="Shots Taken" value={lifetimeStats.totalShots} />
                   <StatCard title="Beers Logged" value={lifetimeStats.totalBeers} />
@@ -683,60 +689,78 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 32,
   },
+  // 🔥 ENHANCED: Modern stats grid with responsive design
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 16,
+    marginHorizontal: -6,
+    marginBottom: 20,
   },
   bottomStatsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
+    marginHorizontal: -6,
     marginBottom: 16,
   },
+  // 🔥 ENHANCED: Modern stat card with accent line and better spacing
   statCard: {
-    width: '48%',
-    padding: 16,
+    flex: 1,
     borderRadius: 16,
-    alignItems: 'center',
+    padding: 20,
+    margin: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+    overflow: 'hidden',
+    position: 'relative',
   },
   statCardLarge: {
-    padding: 20,
+    padding: 24,
+    minHeight: 120,
+  },
+  statCardInner: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   statValue: {
     fontSize: 28,
     fontWeight: '800',
-    marginBottom: 4,
+    marginBottom: 8,
     letterSpacing: 0.5,
   },
   statValueLarge: {
     fontSize: 36,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   statTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
-    letterSpacing: 0.2,
+    lineHeight: 18,
   },
   statTitleLarge: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
   },
   statSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
-    marginTop: 2,
     textAlign: 'center',
+    marginTop: 4,
+    opacity: 0.8,
+  },
+  // 🔥 NEW: Subtle accent line for modern card design
+  statAccent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    opacity: 0.7,
   },
   filtersContainer: {
     marginBottom: 20,

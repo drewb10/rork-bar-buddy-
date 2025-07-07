@@ -349,6 +349,7 @@ export const useAchievementStore = create<AchievementState>()(
         }
       },
 
+      // 🔥 ENHANCED: Complete achievement with XP award and trophy popup
       completeAchievement: (id: string) => {
         try {
           set((state) => {
@@ -376,6 +377,28 @@ export const useAchievementStore = create<AchievementState>()(
             const updatedAchievements = state.achievements.map(a =>
               a.id === id ? { ...a, completed: true, completedAt: new Date().toISOString() } : a
             );
+
+            // 🔥 NEW: Award XP when trophy is unlocked
+            setTimeout(() => {
+              if (achievement.xpReward && typeof window !== 'undefined' && (window as any).__userProfileStore) {
+                const userProfileStore = (window as any).__userProfileStore;
+                if (userProfileStore?.getState) {
+                  const { awardXP } = userProfileStore.getState();
+                  awardXP('special_achievement', `Unlocked trophy: ${achievement.title}`, achievement.id);
+                  
+                  console.log(`🏆 Trophy unlocked: ${achievement.title} (+${achievement.xpReward} XP)`);
+                  
+                  // 🔥 NEW: Show trophy completion popup
+                  if (typeof window !== 'undefined') {
+                    (window as any).__showTrophyCompletionPopup = {
+                      title: achievement.title,
+                      xpReward: achievement.xpReward,
+                      type: 'trophy'
+                    };
+                  }
+                }
+              }
+            }, 100);
 
             return {
               achievements: updatedAchievements,
@@ -438,6 +461,26 @@ export const useAchievementStore = create<AchievementState>()(
               );
 
               newCompletedAchievements = [...filteredCompletedAchievements, completedAchievementData];
+
+              // 🔥 NEW: Award XP and show popup for newly completed achievement
+              setTimeout(() => {
+                if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
+                  const userProfileStore = (window as any).__userProfileStore;
+                  if (userProfileStore?.getState) {
+                    const { awardXP } = userProfileStore.getState();
+                    awardXP('special_achievement', `Unlocked trophy: ${completedAchievement.title}`, completedAchievement.id);
+                    
+                    console.log(`🏆 Trophy auto-unlocked: ${completedAchievement.title} (+${completedAchievement.xpReward} XP)`);
+                    
+                    // Show trophy completion popup
+                    (window as any).__showTrophyCompletionPopup = {
+                      title: completedAchievement.title,
+                      xpReward: completedAchievement.xpReward,
+                      type: 'trophy'
+                    };
+                  }
+                }
+              }, 100);
             }
 
             return {

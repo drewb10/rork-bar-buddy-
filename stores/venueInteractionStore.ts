@@ -177,7 +177,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
         }
       },
 
-      // Flame icon handles likes with time slot selection
+      // 🔥 ENHANCED: Flame icon handles likes with time slot selection AND task sync
       likeVenue: (venueId, timeSlot) => {
         try {
           if (!venueId || !timeSlot) return;
@@ -234,8 +234,32 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           
           // Update achievements for bars visited
           debouncedUpdateAchievements();
+
+          // 🔥 NEW: Sync task progress for "Like bars" tasks
+          setTimeout(() => {
+            if (typeof window !== 'undefined' && (window as any).__achievementStore) {
+              const achievementStore = (window as any).__achievementStore;
+              if (achievementStore?.getState) {
+                const { updateAchievementProgress, achievements } = achievementStore.getState();
+                
+                // Find "like bars" related tasks and update progress
+                const likeBarTasks = achievements.filter((task: any) => 
+                  task.title.toLowerCase().includes('like') && 
+                  task.title.toLowerCase().includes('bar') &&
+                  !task.completed
+                );
+                
+                likeBarTasks.forEach((task: any) => {
+                  const currentProgress = task.progress || 0;
+                  updateAchievementProgress(task.baseId, currentProgress + 1);
+                });
+
+                console.log('🔥 Updated like bar task progress for', likeBarTasks.length, 'tasks');
+              }
+            }
+          }, 100);
           
-          console.log('✅ Like venue completed, triggering re-render...');
+          console.log('✅ Like venue completed with task sync, triggering re-render...');
           
           // Force update to trigger re-renders across components
           get().forceUpdate();
