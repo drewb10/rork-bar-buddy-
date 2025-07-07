@@ -505,12 +505,15 @@ export const useUserProfileStore = create<UserProfileStore>()(
         }
       },
 
+      // ✅ FIX 9: Simplified loadFriends function to avoid TypeScript errors
       loadFriends: async () => {
         const { profile } = get();
-        if (!profile || !isSupabaseConfigured()) return;
+        if (!profile || !isSupabaseConfigured()) {
+          console.log('❌ Cannot load friends: No profile or Supabase not configured');
+          return;
+        }
 
         try {
-          // Implementation for loading friends
           console.log('Loading friends...');
           
           if (!supabase) {
@@ -518,7 +521,8 @@ export const useUserProfileStore = create<UserProfileStore>()(
             return;
           }
 
-          const { data: friends, error } = await supabase
+          // ✅ FIX: Use a simpler approach to avoid complex typing issues
+          const { data: friendsData, error } = await supabase
             .from('friends')
             .select(`
               friend_id,
@@ -536,21 +540,20 @@ export const useUserProfileStore = create<UserProfileStore>()(
             return;
           }
 
-          // ✅ FIX: Properly handle the data structure and filter out nulls
+          // ✅ FIX: Create a safe type for the response and handle it properly
           const friendProfiles: UserProfile[] = [];
           
-          if (friends) {
-            for (const friendData of friends) {
-              const friendProfile = friendData.profiles;
+          if (friendsData && Array.isArray(friendsData)) {
+            for (const item of friendsData) {
+              // ✅ FIX: Use type assertion and proper null checking
+              const profileData = item.profiles as any;
               
-              // ✅ FIX: Check if friendProfile exists and is not an array
-              if (friendProfile && !Array.isArray(friendProfile)) {
-                // Create a complete UserProfile object with required fields
-                const userProfile: UserProfile = {
-                  id: friendProfile.id,
-                  username: friendProfile.username,
-                  email: '', // Not fetched, use empty string
-                  xp: friendProfile.xp || 0,
+              if (profileData && typeof profileData === 'object' && profileData.id) {
+                const friendProfile: UserProfile = {
+                  id: profileData.id,
+                  username: profileData.username || 'Unknown User',
+                  email: '',
+                  xp: profileData.xp || 0,
                   nights_out: 0,
                   bars_hit: 0,
                   total_shots: 0,
@@ -565,12 +568,12 @@ export const useUserProfileStore = create<UserProfileStore>()(
                   visited_bars: [],
                   xp_activities: [],
                   has_completed_onboarding: true,
-                  profile_picture: friendProfile.profile_picture,
+                  profile_picture: profileData.profile_picture || undefined,
                   created_at: '',
                   updated_at: '',
                 };
                 
-                friendProfiles.push(userProfile);
+                friendProfiles.push(friendProfile);
               }
             }
           }
@@ -578,8 +581,14 @@ export const useUserProfileStore = create<UserProfileStore>()(
           set({
             friends: friendProfiles
           });
+          
+          console.log(`✅ Loaded ${friendProfiles.length} friends`);
         } catch (error) {
           console.error('Error loading friends:', error);
+          // Set empty array on error to avoid undefined state
+          set({
+            friends: []
+          });
         }
       },
     }),
