@@ -1,3 +1,4 @@
+// app/(tabs)/profile.tsx - Simplified fix to resolve TypeScript errors
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, Image, ActivityIndicator } from 'react-native';
 import { User, Award, Camera, Users, LogOut, Crown, TrendingUp } from 'lucide-react-native';
@@ -14,9 +15,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { LinearGradient } from 'expo-linear-gradient';
-
-// ✅ FIX: Define proper tab type to avoid comparison errors
-type TabType = 'profile' | 'chatbot';
 
 export default function ProfileScreen() {
   const { theme } = useThemeStore();
@@ -36,7 +34,7 @@ export default function ProfileScreen() {
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
   const [rankModalVisible, setRankModalVisible] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('profile'); // ✅ FIX: Use proper TabType
+  const [showChatbot, setShowChatbot] = useState(false); // ✅ Simplified: boolean instead of string union
   const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
@@ -218,7 +216,7 @@ export default function ProfileScreen() {
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
-      {activeTab === 'profile' ? (
+      {!showChatbot ? (
         <ScrollView 
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
@@ -233,14 +231,14 @@ export default function ProfileScreen() {
               <Pressable
                 style={[
                   styles.tabButton,
-                  activeTab === 'profile' ? { backgroundColor: themeColors.primary } : {}
+                  !showChatbot && { backgroundColor: themeColors.primary }
                 ]}
-                onPress={() => setActiveTab('profile')}
+                onPress={() => setShowChatbot(false)}
               >
-                <User size={18} color={activeTab === 'profile' ? 'white' : themeColors.subtext} />
+                <User size={18} color={!showChatbot ? 'white' : themeColors.subtext} />
                 <Text style={[
                   styles.tabButtonText,
-                  { color: activeTab === 'profile' ? 'white' : themeColors.subtext }
+                  { color: !showChatbot ? 'white' : themeColors.subtext }
                 ]}>
                   Profile
                 </Text>
@@ -249,13 +247,13 @@ export default function ProfileScreen() {
               <Pressable
                 style={[
                   styles.tabButton,
-                  activeTab === 'chatbot' ? { backgroundColor: themeColors.primary } : {}
+                  showChatbot && { backgroundColor: themeColors.primary }
                 ]}
-                onPress={() => setActiveTab('chatbot')}
+                onPress={() => setShowChatbot(true)}
               >
                 <Text style={[
                   styles.tabButtonText,
-                  { color: activeTab === 'chatbot' ? 'white' : themeColors.subtext }
+                  { color: showChatbot ? 'white' : themeColors.subtext }
                 ]}>
                   🤖 Assistant
                 </Text>
