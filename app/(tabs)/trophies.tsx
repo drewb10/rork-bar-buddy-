@@ -83,14 +83,12 @@ export default function TrophiesScreen() {
     }
   }, [isAuthenticated, profile]);
 
-  // ✅ FIX 1: Enhanced loadLifetimeStats with proper achievement checking
   const loadLifetimeStats = async () => {
     if (!isSupabaseConfigured() || !isAuthenticated || !profile) {
       console.log('🏆 Trophies: Supabase not configured or user not authenticated');
       return;
     }
 
-    // Add null safety check for supabase client
     if (!supabase) {
       console.error('🏆 Trophies: Supabase client is not available');
       Alert.alert('Error', 'Database connection not available. Please try again later.');
@@ -102,17 +100,14 @@ export default function TrophiesScreen() {
     try {
       console.log('🏆 Trophies: Loading lifetime stats...');
 
-      // ✅ FIX 2: Sync stats from daily_stats first to ensure profile is up-to-date
       await syncStatsFromDailyStats();
 
-      // Add null safety check before using supabase
       if (!supabase) {
         console.error('🏆 Trophies: Supabase client became unavailable during operation');
         setIsLoadingStats(false);
         return;
       }
 
-      // Get updated profile data after sync
       const { data: updatedProfile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -127,7 +122,6 @@ export default function TrophiesScreen() {
         throw new Error('Profile not found');
       }
 
-      // ✅ FIX 3: Load comprehensive stats from daily_stats for accurate lifetime totals
       const { data: dailyStatsData, error: dailyStatsError } = await supabase
         .from('daily_stats')
         .select('*')
@@ -137,7 +131,6 @@ export default function TrophiesScreen() {
         throw dailyStatsError;
       }
 
-      // Calculate comprehensive totals from daily stats
       const totals = (dailyStatsData || []).reduce((acc, day) => {
         const drunkScale = day.drunk_scale;
         return {
@@ -153,7 +146,7 @@ export default function TrophiesScreen() {
             (day.funnels || 0) + (day.shotguns || 0),
           drunkScaleSum: acc.drunkScaleSum + (drunkScale ? drunkScale : 0),
           drunkScaleCount: acc.drunkScaleCount + (drunkScale ? 1 : 0),
-          nightsOut: acc.nightsOut + 1, // Each day with stats counts as a night out
+          nightsOut: acc.nightsOut + 1,
         };
       }, {
         totalBeers: 0,
@@ -169,7 +162,6 @@ export default function TrophiesScreen() {
         nightsOut: 0,
       });
 
-      // Calculate average drunk scale
       const avgDrunkScale = totals.drunkScaleCount > 0 
         ? Math.round((totals.drunkScaleSum / totals.drunkScaleCount) * 10) / 10 
         : 0;
@@ -192,7 +184,6 @@ export default function TrophiesScreen() {
       setLifetimeStats(newLifetimeStats);
       setLastStatsUpdate(new Date().toISOString());
 
-      // ✅ FIX 4: Trigger achievement checking with accurate stats
       console.log('🏆 Trophies: Checking achievements with stats:', newLifetimeStats);
       
       const achievementStats = {
@@ -208,7 +199,6 @@ export default function TrophiesScreen() {
         nightsOut: newLifetimeStats.nightsOut,
       };
 
-      // Force achievement checking
       checkAndUpdateMultiLevelAchievements(achievementStats);
 
       console.log('✅ Trophies: Stats loaded and achievements checked successfully');
@@ -234,7 +224,6 @@ export default function TrophiesScreen() {
     }
   };
 
-  // ✅ FIX 5: Manual refresh button for achievement checking
   const handleManualRefresh = async () => {
     if (!isAuthenticated || isLoadingStats) return;
     
@@ -255,7 +244,7 @@ export default function TrophiesScreen() {
         trophies: categoryTrophies,
         count: categoryTrophies.length
       };
-    }).filter(category => category.count > 0); // Only show categories with trophies
+    }).filter(category => category.count > 0);
   }, [completedAchievements]);
 
   const filteredTrophies = useMemo(() => {
@@ -263,7 +252,7 @@ export default function TrophiesScreen() {
     return completedAchievements.filter(trophy => trophy.category === selectedCategory);
   }, [completedAchievements, selectedCategory]);
 
-  // 🔥 ENHANCED: Modern StatCard component with better styling
+  // Modern StatCard component with better styling
   const StatCard = ({ title, value, subtitle, size = 'normal' }: { title: string; value: number | string; subtitle?: string; size?: 'normal' | 'large' }) => (
     <View style={[
       styles.statCard, 
@@ -507,7 +496,7 @@ export default function TrophiesScreen() {
               </View>
             ) : (
               <>
-                {/* Activity Stats Grid - 🔥 ENHANCED with modern design */}
+                {/* Activity Stats Grid - Enhanced with modern design */}
                 <View style={styles.statsGrid}>
                   <StatCard title="Shots Taken" value={lifetimeStats.totalShots} />
                   <StatCard title="Beers Logged" value={lifetimeStats.totalBeers} />
@@ -642,19 +631,19 @@ const styles = StyleSheet.create({
   },
   pageTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: '800' as const,
     letterSpacing: 0.5,
     textAlign: 'center',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '500' as const,
     textAlign: 'center',
   },
   lastUpdate: {
     fontSize: 12,
-    fontWeight: '400',
+    fontWeight: '400' as const,
     textAlign: 'center',
     marginTop: 4,
     fontStyle: 'italic',
@@ -676,7 +665,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
   refreshButton: {
     paddingVertical: 12,
@@ -689,7 +678,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 32,
   },
-  // 🔥 ENHANCED: Modern stats grid with responsive design
+  // Enhanced: Modern stats grid with responsive design
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -701,7 +690,7 @@ const styles = StyleSheet.create({
     marginHorizontal: -6,
     marginBottom: 16,
   },
-  // 🔥 ENHANCED: Modern stat card with accent line and better spacing
+  // Enhanced: Modern stat card with accent line and better spacing
   statCard: {
     flex: 1,
     borderRadius: 16,
@@ -728,7 +717,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: '800' as const,
     marginBottom: 8,
     letterSpacing: 0.5,
   },
@@ -738,22 +727,22 @@ const styles = StyleSheet.create({
   },
   statTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     textAlign: 'center',
     lineHeight: 18,
   },
   statTitleLarge: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '700' as const,
   },
   statSubtitle: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '500' as const,
     textAlign: 'center',
     marginTop: 4,
     opacity: 0.8,
   },
-  // 🔥 NEW: Subtle accent line for modern card design
+  // NEW: Subtle accent line for modern card design
   statAccent: {
     position: 'absolute',
     bottom: 0,
@@ -779,7 +768,7 @@ const styles = StyleSheet.create({
   },
   filterText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     marginLeft: 6,
   },
   trophyList: {
@@ -816,14 +805,14 @@ const styles = StyleSheet.create({
   },
   trophyTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     marginBottom: 4,
     letterSpacing: 0.2,
   },
   trophyDescription: {
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '500',
+    fontWeight: '500' as const,
   },
   levelBadge: {
     alignSelf: 'flex-start',
@@ -835,7 +824,7 @@ const styles = StyleSheet.create({
   levelText: {
     color: 'white',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     letterSpacing: 0.2,
   },
   trophyMeta: {
@@ -851,7 +840,7 @@ const styles = StyleSheet.create({
   xpText: {
     color: '#FFD60A',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     marginLeft: 4,
   },
   emptyState: {
@@ -872,7 +861,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     marginBottom: 8,
     letterSpacing: 0.3,
   },
@@ -880,7 +869,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 22,
-    fontWeight: '500',
+    fontWeight: '500' as const,
   },
   refreshButtonLarge: {
     flexDirection: 'row',
@@ -894,7 +883,7 @@ const styles = StyleSheet.create({
   refreshButtonText: {
     color: 'white',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
   footer: {
     height: 24,

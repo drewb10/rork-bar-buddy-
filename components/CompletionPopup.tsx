@@ -153,13 +153,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     marginBottom: 4,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '500' as const,
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 20,
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   xpText: {
     color: '#FFD60A',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     marginLeft: 6,
   },
 });

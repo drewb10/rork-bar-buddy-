@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginHorizontal: 16,
     marginVertical: 20,
-    maxHeight: '80%',
+    maxHeight: '75%',
     minHeight: 400,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
   },
   messagesContainer: {
     flex: 1,
-    maxHeight: '70%',
+    maxHeight: '65%',
   },
   messagesContent: {
     padding: 16,
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     gap: 12,
     minHeight: 70,
-    maxHeight: 120,
+    maxHeight: 100,
   },
   textInput: {
     flex: 1,
@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    maxHeight: 80,
+    maxHeight: 60,
     minHeight: 40,
     fontSize: 15,
     fontWeight: '500' as const,
