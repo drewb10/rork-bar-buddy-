@@ -233,7 +233,7 @@ export default function ProfileScreen() {
               <Pressable
                 style={[
                   styles.tabButton,
-                  activeTab === 'profile' && { backgroundColor: themeColors.primary }
+                  activeTab === 'profile' ? { backgroundColor: themeColors.primary } : {}
                 ]}
                 onPress={() => setActiveTab('profile')}
               >
@@ -249,7 +249,7 @@ export default function ProfileScreen() {
               <Pressable
                 style={[
                   styles.tabButton,
-                  activeTab === 'chatbot' && { backgroundColor: themeColors.primary }
+                  activeTab === 'chatbot' ? { backgroundColor: themeColors.primary } : {}
                 ]}
                 onPress={() => setActiveTab('chatbot')}
               >
