@@ -102,7 +102,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
             visited_bars: [],
             xp_activities: [],
             has_completed_onboarding: false,
-            profile_picture: undefined,
+            profile_picture: undefined, // ✅ FIX: Use undefined instead of null
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           };
@@ -131,9 +131,9 @@ export const useUserProfileStore = create<UserProfileStore>()(
               console.log('🔧 UserProfile: Creating new profile for user:', userId);
               
               const { data: user } = await supabase.auth.getUser();
-              const userEmail = user?.user?.email || '';
+              const userEmail = user?.user?.email || ''; // ✅ FIX: Proper null handling
               
-              const newProfile = {
+              const newProfile = { // ✅ FIX: Remove Partial type, use complete object
                 id: userId,
                 username: `user_${userId.slice(0, 8)}`,
                 email: userEmail,
@@ -152,7 +152,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
                 visited_bars: [],
                 xp_activities: [],
                 has_completed_onboarding: false,
-                profile_picture: undefined,
+                profile_picture: undefined, // ✅ FIX: Use undefined instead of null
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
               };
@@ -536,14 +536,12 @@ export const useUserProfileStore = create<UserProfileStore>()(
             return;
           }
 
+          // ✅ FIX: Store friends in the store's friends array, not in profile
           const friendProfiles = friends?.map(f => f.profiles).filter(Boolean) || [];
           
-          set((state) => ({
-            profile: state.profile ? {
-              ...state.profile,
-              friends: friendProfiles
-            } : null
-          }));
+          set({
+            friends: friendProfiles as UserProfile[]
+          });
         } catch (error) {
           console.error('Error loading friends:', error);
         }
