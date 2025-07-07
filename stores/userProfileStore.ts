@@ -536,11 +536,39 @@ export const useUserProfileStore = create<UserProfileStore>()(
             return;
           }
 
-          // ✅ FIX: Store friends in the store's friends array, not in profile
-          const friendProfiles = friends?.map(f => f.profiles).filter(Boolean) || [];
+          // ✅ FIX: Properly handle the nested data structure and create minimal UserProfile objects
+          const friendProfiles: UserProfile[] = friends?.map(friendData => {
+            const friendProfile = friendData.profiles;
+            if (!friendProfile) return null;
+            
+            // Create a minimal UserProfile object with required fields
+            return {
+              id: friendProfile.id,
+              username: friendProfile.username,
+              email: '', // Not fetched, use empty string
+              xp: friendProfile.xp || 0,
+              nights_out: 0,
+              bars_hit: 0,
+              total_shots: 0,
+              total_beers: 0,
+              total_beer_towers: 0,
+              total_funnels: 0,
+              total_shotguns: 0,
+              pool_games_won: 0,
+              dart_games_won: 0,
+              photos_taken: 0,
+              drunk_scale_ratings: [],
+              visited_bars: [],
+              xp_activities: [],
+              has_completed_onboarding: true,
+              profile_picture: friendProfile.profile_picture,
+              created_at: '',
+              updated_at: '',
+            } as UserProfile;
+          }).filter(Boolean) || [];
           
           set({
-            friends: friendProfiles as UserProfile[]
+            friends: friendProfiles
           });
         } catch (error) {
           console.error('Error loading friends:', error);
