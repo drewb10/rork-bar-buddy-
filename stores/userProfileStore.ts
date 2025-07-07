@@ -78,7 +78,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
         set({ profile: null, friends: [], isInitialized: false });
       },
 
-      // ✅ FIX 2: Add profile initialization function
+      // ✅ FIX 2: Add profile initialization function with proper typing
       initializeProfile: async (userId: string) => {
         if (!isSupabaseConfigured() || !userId) {
           console.log('🔧 UserProfile: Creating demo profile for user:', userId);
@@ -102,7 +102,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
             visited_bars: [],
             xp_activities: [],
             has_completed_onboarding: false,
-            profile_picture: null,
+            profile_picture: undefined,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           };
@@ -131,10 +131,12 @@ export const useUserProfileStore = create<UserProfileStore>()(
               console.log('🔧 UserProfile: Creating new profile for user:', userId);
               
               const { data: user } = await supabase.auth.getUser();
-              const newProfile: Partial<UserProfile> = {
+              const userEmail = user?.user?.email || '';
+              
+              const newProfile = {
                 id: userId,
                 username: `user_${userId.slice(0, 8)}`,
-                email: user.user?.email || '',
+                email: userEmail,
                 xp: 0,
                 nights_out: 0,
                 bars_hit: 0,
@@ -150,7 +152,9 @@ export const useUserProfileStore = create<UserProfileStore>()(
                 visited_bars: [],
                 xp_activities: [],
                 has_completed_onboarding: false,
-                profile_picture: null,
+                profile_picture: undefined,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
               };
 
               const { data: createdProfile, error: createError } = await supabase
@@ -416,7 +420,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
         }
       },
 
-      // ✅ FIX 6: Enhanced updateProfile with better error handling and retry logic
+      // ✅ FIX 6: Enhanced updateProfile with proper typing
       updateProfile: async (updates: Partial<UserProfile>) => {
         const state = get();
         if (!state.profile) {
@@ -427,11 +431,10 @@ export const useUserProfileStore = create<UserProfileStore>()(
         try {
           console.log('🔄 Updating profile with:', updates);
           
-          // Update local state immediately for better UX
-          set((currentState) => ({
-            profile: currentState.profile ? 
-              { ...currentState.profile, ...updates } : null
-          }));
+          // ✅ FIX 7: Proper type-safe state update
+          set({
+            profile: { ...state.profile, ...updates }
+          });
 
           // Try to update in Supabase if available
           if (isSupabaseConfigured() && supabase) {
@@ -469,7 +472,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
             }
           }
 
-          // ✅ FIX 7: Trigger achievement checking after profile updates
+          // ✅ FIX 8: Trigger achievement checking after profile updates
           setTimeout(() => {
             if (typeof window !== 'undefined' && (window as any).__achievementStore) {
               const achievementStore = (window as any).__achievementStore;
@@ -497,10 +500,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
         } catch (error) {
           console.error('❌ Error updating profile:', error);
           // Revert local changes on critical error
-          set((currentState) => ({
-            profile: currentState.profile ? 
-              { ...state.profile } : null
-          }));
+          set({ profile: state.profile });
           throw error;
         }
       },
