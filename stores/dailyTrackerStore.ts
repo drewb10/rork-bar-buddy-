@@ -4,7 +4,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 interface DailyStats {
-  drunk_scale: number | null;
   beers: number;
   shots: number;
   beer_towers: number;
@@ -12,20 +11,20 @@ interface DailyStats {
   shotguns: number;
   pool_games_won: number;
   dart_games_won: number;
+  drunk_scale: number | null;
 }
 
-interface DailyTrackerState {
+interface DailyTrackerStore {
   localStats: DailyStats;
   isLoading: boolean;
   isSaving: boolean;
-  lastSyncDate: string | null;
   error: string | null;
+  lastSyncDate: string | null;
   
-  // Actions
-  updateLocalStats: (stats: Partial<DailyStats>) => void;
+  updateLocalStats: (updates: Partial<DailyStats>) => void;
+  resetLocalStats: () => void;
   loadTodayStats: () => Promise<void>;
   saveTodayStats: () => Promise<void>;
-  resetLocalStats: () => void;
   canSubmitDrunkScale: () => Promise<boolean>;
   clearError: () => void;
 }
@@ -43,7 +42,6 @@ const DAILY_XP_VALUES = {
 } as const;
 
 const defaultStats: DailyStats = {
-  drunk_scale: null,
   beers: 0,
   shots: 0,
   beer_towers: 0,
@@ -51,15 +49,15 @@ const defaultStats: DailyStats = {
   shotguns: 0,
   pool_games_won: 0,
   dart_games_won: 0,
+  drunk_scale: null,
 };
 
-const getTodayString = (): string => {
+const getTodayString = () => {
   return new Date().toISOString().split('T')[0];
 };
 
-const getCurrentUserId = async (): Promise<string | null> => {
+const getCurrentUserId = async () => {
   try {
-    // ✅ FIX: Add null safety check for supabase
     if (!supabase) {
       console.warn('Supabase client not available');
       return null;
@@ -73,55 +71,54 @@ const getCurrentUserId = async (): Promise<string | null> => {
   }
 };
 
-// ✅ FIX 2: Enhanced function to update profile lifetime stats with XP awarding
-async function updateProfileLifetimeStats(userId: string, todayStats: DailyStats) {
+// ✅ FIX 2: Enhanced function to update profile with ACCUMULATIVE stats
+const updateProfileLifetimeStats = async (userId: string, newDailyStats: DailyStats, existingDailyStats: DailyStats) => {
   try {
-    // ✅ FIX: Add null safety check for supabase
     if (!supabase) {
       throw new Error('Supabase client not available');
     }
 
-    // Get current profile stats
+    // Get current profile data
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
-    if (profileError) {
-      console.warn('Error fetching profile for lifetime stats update:', profileError);
-      return;
+    if (profileError || !profile) {
+      throw new Error('Failed to get profile for stats update');
     }
 
-    // Calculate new totals by adding today's stats
-    const updatedStats: any = {
-      total_beers: (profile.total_beers || 0) + todayStats.beers,
-      total_shots: (profile.total_shots || 0) + todayStats.shots,
-      total_beer_towers: (profile.total_beer_towers || 0) + todayStats.beer_towers,
-      total_funnels: (profile.total_funnels || 0) + todayStats.funnels,
-      total_shotguns: (profile.total_shotguns || 0) + todayStats.shotguns,
-      pool_games_won: (profile.pool_games_won || 0) + todayStats.pool_games_won,
-      dart_games_won: (profile.dart_games_won || 0) + todayStats.dart_games_won,
+    // ✅ FIX 3: Calculate INCREMENTAL updates (only the difference from what was saved today)
+    const incrementalStats = {
+      beers: newDailyStats.beers - existingDailyStats.beers,
+      shots: newDailyStats.shots - existingDailyStats.shots,
+      beer_towers: newDailyStats.beer_towers - existingDailyStats.beer_towers,
+      funnels: newDailyStats.funnels - existingDailyStats.funnels,
+      shotguns: newDailyStats.shotguns - existingDailyStats.shotguns,
+      pool_games_won: newDailyStats.pool_games_won - existingDailyStats.pool_games_won,
+      dart_games_won: newDailyStats.dart_games_won - existingDailyStats.dart_games_won,
     };
 
-    // ✅ FIX 3: Calculate and award XP for daily activities
+    // Only update profile totals with the incremental changes
+    const updates: any = {
+      total_beers: (profile.total_beers || 0) + incrementalStats.beers,
+      total_shots: (profile.total_shots || 0) + incrementalStats.shots,
+      total_beer_towers: (profile.total_beer_towers || 0) + incrementalStats.beer_towers,
+      total_funnels: (profile.total_funnels || 0) + incrementalStats.funnels,
+      total_shotguns: (profile.total_shotguns || 0) + incrementalStats.shotguns,
+      pool_games_won: (profile.pool_games_won || 0) + incrementalStats.pool_games_won,
+      dart_games_won: (profile.dart_games_won || 0) + incrementalStats.dart_games_won,
+      updated_at: new Date().toISOString(),
+    };
+
+    // ✅ FIX 4: Calculate and award XP only for incremental activities
     let totalXPAwarded = 0;
     const xpActivities = [...(profile.xp_activities || [])];
 
-    // Award XP for each activity
-    Object.entries(todayStats).forEach(([key, value]) => {
-      if (key === 'drunk_scale') {
-        if (value !== null) {
-          totalXPAwarded += DAILY_XP_VALUES.drunk_scale;
-          xpActivities.push({
-            id: Math.random().toString(36).substr(2, 9),
-            type: 'drunk_scale_submission',
-            xpAwarded: DAILY_XP_VALUES.drunk_scale,
-            timestamp: new Date().toISOString(),
-            description: `Submitted drunk scale rating: ${value}/10`,
-          });
-        }
-      } else if (value > 0 && key in DAILY_XP_VALUES) {
+    // Award XP for each incremental activity
+    Object.entries(incrementalStats).forEach(([key, value]) => {
+      if (value > 0 && key in DAILY_XP_VALUES) {
         const xpPerActivity = DAILY_XP_VALUES[key as keyof typeof DAILY_XP_VALUES];
         const xpForThisActivity = xpPerActivity * value;
         totalXPAwarded += xpForThisActivity;
@@ -136,80 +133,114 @@ async function updateProfileLifetimeStats(userId: string, todayStats: DailyStats
       }
     });
 
-    // ✅ FIX: Add XP and activities to updates (these properties exist in profile)
-    updatedStats.xp = (profile.xp || 0) + totalXPAwarded;
-    updatedStats.xp_activities = xpActivities;
+    // Award XP for drunk scale if it's new or changed
+    if (newDailyStats.drunk_scale !== null && newDailyStats.drunk_scale !== existingDailyStats.drunk_scale) {
+      totalXPAwarded += DAILY_XP_VALUES.drunk_scale;
+      xpActivities.push({
+        id: Math.random().toString(36).substr(2, 9),
+        type: 'drunk_scale_submission',
+        xpAwarded: DAILY_XP_VALUES.drunk_scale,
+        timestamp: new Date().toISOString(),
+        description: `Submitted drunk scale rating: ${newDailyStats.drunk_scale}/10`,
+      });
+    }
+
+    // Add XP and activities to updates
+    updates.xp = (profile.xp || 0) + totalXPAwarded;
+    updates.xp_activities = xpActivities;
 
     // Handle drunk scale rating
-    if (todayStats.drunk_scale !== null) {
+    if (newDailyStats.drunk_scale !== null && newDailyStats.drunk_scale !== existingDailyStats.drunk_scale) {
       const currentRatings = profile.drunk_scale_ratings || [];
-      updatedStats.drunk_scale_ratings = [...currentRatings, todayStats.drunk_scale];
-      updatedStats.last_drunk_scale_date = new Date().toISOString();
+      updates.drunk_scale_ratings = [...currentRatings, newDailyStats.drunk_scale];
+      updates.last_drunk_scale_date = new Date().toISOString();
     }
 
-    // Update profile with new lifetime totals
-    // ✅ FIX: Add null safety check for supabase
-    if (!supabase) {
-      throw new Error('Supabase client not available');
-    }
-
+    // Update profile in Supabase
     const { error: updateError } = await supabase
       .from('profiles')
-      .update(updatedStats)
+      .update(updates)
       .eq('id', userId);
 
     if (updateError) {
-      console.warn('Error updating profile lifetime stats:', updateError);
-    } else {
-      console.log('✅ Profile lifetime stats updated successfully');
+      throw updateError;
     }
 
-    // ✅ FIX 4: Update local Zustand store with new profile data
+    console.log(`✅ Profile updated with incremental stats. XP awarded: ${totalXPAwarded}`);
+
+    // ✅ FIX 5: Update local Zustand store with new profile data
     if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
       const userProfileStore = (window as any).__userProfileStore;
       if (userProfileStore?.getState) {
         const { setProfile } = userProfileStore.getState();
         if (setProfile) {
-          setProfile({ ...profile, ...updatedStats });
+          setProfile({ ...profile, ...updates });
         }
       }
     }
 
     return totalXPAwarded;
   } catch (error) {
-    console.warn('Error in updateProfileLifetimeStats:', error);
+    console.error('Error updating profile lifetime stats:', error);
+    throw error;
   }
-}
+};
 
-export const useDailyTrackerStore = create<DailyTrackerState>()(
+export const useDailyTrackerStore = create<DailyTrackerStore>()(
   persist(
     (set, get) => ({
-      localStats: defaultStats,
+      localStats: { ...defaultStats },
       isLoading: false,
       isSaving: false,
-      lastSyncDate: null,
       error: null,
+      lastSyncDate: null,
+
+      updateLocalStats: (updates) => {
+        set((state) => ({
+          localStats: { ...state.localStats, ...updates }
+        }));
+      },
+
+      resetLocalStats: () => {
+        set({ localStats: { ...defaultStats } });
+      },
 
       clearError: () => {
         set({ error: null });
       },
 
-      updateLocalStats: (stats: Partial<DailyStats>) => {
-        set((state) => ({
-          localStats: {
-            ...state.localStats,
-            ...stats,
-          },
-          error: null, // Clear any previous errors when updating stats
-        }));
-      },
+      canSubmitDrunkScale: async () => {
+        if (!isSupabaseConfigured()) return true; // Allow in demo mode
 
-      resetLocalStats: () => {
-        console.log('🔄 Resetting daily tracker stats to default values');
-        set({ 
-          localStats: { ...defaultStats },
-          error: null,
-        });
+        try {
+          const userId = await getCurrentUserId();
+          if (!userId) return false;
+
+          const today = getTodayString();
+          
+          if (!supabase) {
+            console.warn('Supabase client not available');
+            return true;
+          }
+
+          // Check if user has already submitted drunk scale today
+          const { data, error } = await supabase
+            .from('daily_stats')
+            .select('drunk_scale')
+            .eq('user_id', userId)
+            .eq('date', today)
+            .single();
+
+          if (error && error.code !== 'PGRST116') {
+            console.error('Error checking drunk scale submission:', error);
+            return false;
+          }
+
+          return !data || data.drunk_scale === null;
+        } catch (error) {
+          console.error('Error checking drunk scale eligibility:', error);
+          return false;
+        }
       },
 
       loadTodayStats: async () => {
@@ -218,44 +249,27 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
           return;
         }
 
-        const today = getTodayString();
-        const { lastSyncDate, isLoading, isSaving } = get();
-
-        // Prevent multiple simultaneous loads
-        if (isLoading || isSaving) {
-          console.log('📊 DailyTracker: Load already in progress, skipping...');
-          return;
-        }
-
-        // If we already synced today, don't reload
-        if (lastSyncDate === today) {
-          console.log('📊 DailyTracker: Already synced today, skipping load');
-          return;
-        }
-
         set({ isLoading: true, error: null });
 
         try {
           const userId = await getCurrentUserId();
           if (!userId) {
-            console.log('📊 DailyTracker: No authenticated user, using default stats');
             set({ 
               localStats: { ...defaultStats }, 
               isLoading: false,
-              lastSyncDate: today,
-              error: null,
+              error: 'User not authenticated',
             });
             return;
           }
 
-          console.log('📊 DailyTracker: Loading today stats from Supabase...');
-          
-          // ✅ FIX: Add null safety check for supabase
+          const today = getTodayString();
+          console.log('📊 DailyTracker: Loading stats for', today);
+
           if (!supabase) {
             throw new Error('Supabase client not available');
           }
 
-          const { data: todayStats, error } = await supabase
+          const { data, error } = await supabase
             .from('daily_stats')
             .select('*')
             .eq('user_id', userId)
@@ -266,38 +280,40 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
             throw error;
           }
 
-          const stats = todayStats || {};
+          // ✅ FIX 6: Load existing stats to maintain accumulation
+          const loadedStats: DailyStats = {
+            beers: data?.beers || 0,
+            shots: data?.shots || 0,
+            beer_towers: data?.beer_towers || 0,
+            funnels: data?.funnels || 0,
+            shotguns: data?.shotguns || 0,
+            pool_games_won: data?.pool_games_won || 0,
+            dart_games_won: data?.dart_games_won || 0,
+            drunk_scale: data?.drunk_scale || null,
+          };
 
-          set({
-            localStats: {
-              drunk_scale: stats.drunk_scale || null,
-              beers: stats.beers || 0,
-              shots: stats.shots || 0,
-              beer_towers: stats.beer_towers || 0,
-              funnels: stats.funnels || 0,
-              shotguns: stats.shotguns || 0,
-              pool_games_won: stats.pool_games_won || 0,
-              dart_games_won: stats.dart_games_won || 0,
-            },
+          set({ 
+            localStats: loadedStats, 
             isLoading: false,
             lastSyncDate: today,
             error: null,
           });
 
-          console.log('📊 DailyTracker: Stats loaded successfully');
+          console.log('📊 DailyTracker: Loaded today stats:', loadedStats);
         } catch (error) {
           console.error('📊 DailyTracker: Error loading today stats:', error);
-          const errorMessage = error instanceof Error ? error.message : 'Failed to load stats';
+          const errorMessage = error instanceof Error ? 
+            error.message : 'Failed to load stats';
           set({ 
             localStats: { ...defaultStats }, 
             isLoading: false,
-            lastSyncDate: today,
+            lastSyncDate: getTodayString(),
             error: errorMessage,
           });
         }
       },
 
-      // ✅ FIX 5: Enhanced saveTodayStats with proper XP awarding and achievement triggering
+      // ✅ FIX 7: Enhanced saveTodayStats with proper accumulation
       saveTodayStats: async () => {
         if (!isSupabaseConfigured()) {
           throw new Error('Supabase not configured');
@@ -322,7 +338,30 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
           const today = getTodayString();
           console.log('📊 DailyTracker: Saving stats to Supabase...', localStats);
 
-          // Prepare the data for insertion/update - only include valid columns
+          if (!supabase) {
+            throw new Error('Supabase client not available');
+          }
+
+          // ✅ FIX 8: Get existing stats before saving to calculate incremental changes
+          const { data: existingData } = await supabase
+            .from('daily_stats')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('date', today)
+            .single();
+
+          const existingStats: DailyStats = existingData ? {
+            beers: existingData.beers || 0,
+            shots: existingData.shots || 0,
+            beer_towers: existingData.beer_towers || 0,
+            funnels: existingData.funnels || 0,
+            shotguns: existingData.shotguns || 0,
+            pool_games_won: existingData.pool_games_won || 0,
+            dart_games_won: existingData.dart_games_won || 0,
+            drunk_scale: existingData.drunk_scale || null,
+          } : { ...defaultStats };
+
+          // Prepare the data for insertion/update
           const statsData = {
             user_id: userId,
             date: today,
@@ -336,11 +375,6 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
             dart_games_won: localStats.dart_games_won,
           };
 
-          // ✅ FIX: Add null safety check for supabase
-          if (!supabase) {
-            throw new Error('Supabase client not available');
-          }
-
           // Use upsert to insert or update
           const { error } = await supabase
             .from('daily_stats')
@@ -352,10 +386,10 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
             throw error;
           }
 
-          // ✅ FIX 6: Update profile lifetime stats and award XP
-          const xpAwarded = await updateProfileLifetimeStats(userId, localStats);
+          // ✅ FIX 9: Update profile with incremental changes only
+          const xpAwarded = await updateProfileLifetimeStats(userId, localStats, existingStats);
 
-          // ✅ FIX 7: Trigger achievement checking
+          // ✅ FIX 10: Trigger achievement checking
           setTimeout(() => {
             if (typeof window !== 'undefined' && (window as any).__achievementStore && (window as any).__userProfileStore) {
               const achievementStore = (window as any).__achievementStore;
@@ -392,51 +426,13 @@ export const useDailyTrackerStore = create<DailyTrackerState>()(
           console.log(`📊 DailyTracker: Stats saved successfully. XP awarded: ${xpAwarded}`);
         } catch (error) {
           console.error('📊 DailyTracker: Error saving stats:', error);
-          const errorMessage = error instanceof Error ? error.message : 'Failed to save stats';
+          const errorMessage = error instanceof Error ? 
+            error.message : 'Failed to save stats';
           set({ 
             isSaving: false,
             error: errorMessage,
           });
           throw error;
-        }
-      },
-
-      canSubmitDrunkScale: async () => {
-        if (!isSupabaseConfigured()) {
-          return true;
-        }
-
-        try {
-          const userId = await getCurrentUserId();
-          if (!userId) {
-            return true;
-          }
-
-          const today = getTodayString();
-          
-          // ✅ FIX: Add null safety check for supabase
-          if (!supabase) {
-            console.warn('Supabase client not available');
-            return true;
-          }
-
-          const { data, error } = await supabase
-            .from('daily_stats')
-            .select('drunk_scale')
-            .eq('user_id', userId)
-            .eq('date', today)
-            .single();
-
-          if (error && error.code !== 'PGRST116') {
-            console.warn('📊 DailyTracker: Error checking drunk scale submission:', error);
-            return true;
-          }
-
-          // If no record exists or drunk_scale is null, user can submit
-          return !data || data.drunk_scale === null;
-        } catch (error) {
-          console.warn('📊 DailyTracker: Error checking drunk scale submission:', error);
-          return true;
         }
       },
     }),

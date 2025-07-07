@@ -28,6 +28,25 @@ interface AuthState {
   checkSession: () => Promise<boolean>;
 }
 
+// ✅ ADD THIS FUNCTION to properly initialize the profile
+const handleSuccessfulAuth = async (user: any) => {
+  try {
+    // Get the user profile store
+    if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
+      const userProfileStore = (window as any).__userProfileStore;
+      if (userProfileStore?.getState) {
+        const { initializeProfile } = userProfileStore.getState();
+        
+        // Initialize the profile for this user
+        await initializeProfile(user.id);
+        console.log('✅ Profile initialized for user:', user.id);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error initializing profile:', error);
+  }
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -62,6 +81,9 @@ export const useAuthStore = create<AuthState>()(
             sessionChecked: true,
           });
           
+          // ✅ ADD THIS: Initialize profile after successful sign up
+          await handleSuccessfulAuth(user);
+          
           console.log('🎯 AuthStore: State updated successfully');
           return true;
         } catch (error) {
@@ -79,6 +101,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      // ✅ MODIFY YOUR EXISTING signIn function to call handleSuccessfulAuth:
       signIn: async (phone: string, password: string): Promise<boolean> => {
         set({ isLoading: true, error: null });
         
@@ -100,6 +123,9 @@ export const useAuthStore = create<AuthState>()(
             error: null,
             sessionChecked: true,
           });
+          
+          // ✅ ADD THIS: Initialize profile after successful sign in
+          await handleSuccessfulAuth(user);
           
           console.log('🎯 AuthStore: State updated successfully');
           return true;
@@ -126,6 +152,15 @@ export const useAuthStore = create<AuthState>()(
           
           if (isSupabaseConfigured()) {
             await authService.signOut();
+          }
+          
+          // Clear profile store when signing out
+          if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
+            const userProfileStore = (window as any).__userProfileStore;
+            if (userProfileStore?.getState) {
+              const { clearProfile } = userProfileStore.getState();
+              clearProfile();
+            }
           }
           
           set({
@@ -227,6 +262,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      // ✅ ALSO MODIFY YOUR checkSession function:
       checkSession: async (): Promise<boolean> => {
         if (!isSupabaseConfigured()) {
           console.log('🎯 AuthStore: Supabase not configured');
@@ -256,6 +292,10 @@ export const useAuthStore = create<AuthState>()(
                 user: user || data.session.user,
                 profile: profile
               });
+              
+              // ✅ ADD THIS: Initialize profile when checking existing session
+              await handleSuccessfulAuth(data.session.user);
+              
             } catch (profileError) {
               console.warn('🎯 AuthStore: Error loading profile during session check:', profileError);
               set({ 
@@ -264,6 +304,9 @@ export const useAuthStore = create<AuthState>()(
                 user: data.session.user,
                 profile: null
               });
+              
+              // ✅ ADD THIS: Initialize profile even if loading failed
+              await handleSuccessfulAuth(data.session.user);
             }
           } else {
             set({ 
@@ -356,6 +399,10 @@ export const useAuthStore = create<AuthState>()(
                 sessionChecked: true,
               });
             }
+            
+            // ✅ ADD THIS: Initialize profile during initialization
+            await handleSuccessfulAuth(data.session.user);
+            
           } catch (profileError) {
             console.warn('🎯 AuthStore: Error loading profile during initialization:', profileError);
             set({
@@ -366,6 +413,9 @@ export const useAuthStore = create<AuthState>()(
               error: null,
               sessionChecked: true,
             });
+            
+            // ✅ ADD THIS: Initialize profile even if loading failed
+            await handleSuccessfulAuth(data.session.user);
           }
         } catch (error) {
           console.warn('🎯 AuthStore: Auth initialization error:', error);
