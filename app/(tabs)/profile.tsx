@@ -9,7 +9,6 @@ import {
   Alert,
   RefreshControl,
   Image,
-  Modal,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/constants/colors';
@@ -17,13 +16,51 @@ import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
 import { LogOut, RefreshCw, Camera, Users } from 'lucide-react-native';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
-import BarBuddyChatbot from '@/components/BarBuddyChatbot';
-import FriendsModal from '@/components/FriendsModal';
-import OnboardingModal from '@/components/OnboardingModal';
-import RankSystem from '@/components/RankSystem';
 import { useRouter } from 'expo-router';
-import { useUserProfileStore } from '@/stores/userProfileStore';
-import * as ImagePicker from 'expo-image-picker';
+
+// Safe imports with error handling
+let RankSystem: React.ComponentType<any> | null = null;
+let BarBuddyChatbot: React.ComponentType<any> | null = null;
+let FriendsModal: React.ComponentType<any> | null = null;
+let OnboardingModal: React.ComponentType<any> | null = null;
+let useUserProfileStore: any = null;
+let ImagePicker: any = null;
+
+try {
+  RankSystem = require('@/components/RankSystem').default;
+} catch (error) {
+  console.warn('RankSystem component not found');
+}
+
+try {
+  BarBuddyChatbot = require('@/components/BarBuddyChatbot').default;
+} catch (error) {
+  console.warn('BarBuddyChatbot component not found');
+}
+
+try {
+  FriendsModal = require('@/components/FriendsModal').default;
+} catch (error) {
+  console.warn('FriendsModal component not found');
+}
+
+try {
+  OnboardingModal = require('@/components/OnboardingModal').default;
+} catch (error) {
+  console.warn('OnboardingModal component not found');
+}
+
+try {
+  useUserProfileStore = require('@/stores/userProfileStore').useUserProfileStore;
+} catch (error) {
+  console.warn('useUserProfileStore not found');
+}
+
+try {
+  ImagePicker = require('expo-image-picker');
+} catch (error) {
+  console.warn('expo-image-picker not found');
+}
 
 export default function ProfileScreen() {
   const { theme } = useThemeStore();
@@ -40,7 +77,7 @@ export default function ProfileScreen() {
     sessionChecked,
     user
   } = useAuthStore();
-  const { setProfilePicture } = useUserProfileStore();
+  
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'profile' | 'chatbot'>('profile');
   const [refreshing, setRefreshing] = useState(false);
@@ -48,11 +85,14 @@ export default function ProfileScreen() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
+  // Safe profile store usage
+  const setProfilePicture = useUserProfileStore?.((state: any) => state.setProfilePicture) || (() => {});
+
   // Initialize profile
   useEffect(() => {
     const initializeProfile = async () => {
       try {
-        if (!sessionChecked) {
+        if (!sessionChecked && checkSession) {
           await checkSession();
         }
       } catch (error) {
@@ -108,8 +148,8 @@ export default function ProfileScreen() {
   const handleRefresh = async () => {
     try {
       setRefreshing(true);
-      clearError();
-      await checkSession();
+      if (clearError) clearError();
+      if (checkSession) await checkSession();
     } catch (error) {
       console.error('Refresh error:', error);
     } finally {
@@ -118,28 +158,38 @@ export default function ProfileScreen() {
   };
 
   const handleProfilePicturePress = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (permissionResult.granted === false) {
-      Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+    if (!ImagePicker) {
+      Alert.alert('Error', 'Image picker not available');
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      try {
-        await setProfilePicture(result.assets[0].uri);
-        Alert.alert('Success', 'Profile picture updated!');
-      } catch (error) {
-        console.error('Error updating profile picture:', error);
-        Alert.alert('Error', 'Failed to update profile picture');
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+        return;
       }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0] && setProfilePicture) {
+        try {
+          await setProfilePicture(result.assets[0].uri);
+          Alert.alert('Success', 'Profile picture updated!');
+        } catch (error) {
+          console.error('Error updating profile picture:', error);
+          Alert.alert('Error', 'Failed to update profile picture');
+        }
+      }
+    } catch (error) {
+      console.error('Error with image picker:', error);
+      Alert.alert('Error', 'Failed to open image picker');
     }
   };
 
@@ -310,12 +360,14 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Rank System Card */}
-          <View style={styles.rankContainer}>
-            <RankSystem 
-              userXP={displayProfile?.xp || 0}
-            />
-          </View>
+          {/* Rank System Card - Safe Rendering */}
+          {RankSystem && (
+            <View style={styles.rankContainer}>
+              <RankSystem 
+                userXP={displayProfile?.xp || 0}
+              />
+            </View>
+          )}
 
           {/* Stats Cards */}
           <View style={styles.statsContainer}>
@@ -358,10 +410,10 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Friends Section */}
+          {/* Friends Section - Safe Rendering */}
           <Pressable 
             style={[styles.actionCard, { backgroundColor: themeColors.card }]}
-            onPress={() => setFriendsModalVisible(true)}
+            onPress={() => FriendsModal ? setFriendsModalVisible(true) : Alert.alert('Friends', 'Friends feature not available')}
           >
             <Users size={24} color={themeColors.primary} />
             <Text style={[styles.actionCardText, { color: themeColors.text }]}>
@@ -383,20 +435,35 @@ export default function ProfileScreen() {
         </ScrollView>
       ) : (
         <View style={[styles.chatbotContainer, { backgroundColor: themeColors.card }]}>
-          <BarBuddyChatbot />
+          {BarBuddyChatbot ? (
+            <BarBuddyChatbot />
+          ) : (
+            <View style={styles.chatbotPlaceholder}>
+              <Text style={[styles.chatbotTitle, { color: themeColors.text }]}>
+                BarBuddy AI Assistant
+              </Text>
+              <Text style={[styles.chatbotDescription, { color: themeColors.subtext }]}>
+                Coming soon! Your AI companion for nightlife recommendations and bar insights.
+              </Text>
+            </View>
+          )}
         </View>
       )}
 
-      {/* Modals */}
-      <FriendsModal 
-        visible={friendsModalVisible} 
-        onClose={() => setFriendsModalVisible(false)} 
-      />
+      {/* Modals - Safe Rendering */}
+      {FriendsModal && (
+        <FriendsModal 
+          visible={friendsModalVisible} 
+          onClose={() => setFriendsModalVisible(false)} 
+        />
+      )}
       
-      <OnboardingModal 
-        visible={showOnboarding} 
-        onComplete={handleOnboardingComplete}
-      />
+      {OnboardingModal && (
+        <OnboardingModal 
+          visible={showOnboarding} 
+          onComplete={handleOnboardingComplete}
+        />
+      )}
     </View>
   );
 }
@@ -635,5 +702,21 @@ const styles = StyleSheet.create({
     margin: 20,
     borderRadius: 16,
     padding: 20,
+  },
+  chatbotPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chatbotTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  chatbotDescription: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
