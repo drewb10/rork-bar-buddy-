@@ -26,8 +26,20 @@ function useCompletionPopups() {
     xpReward: number;
     type: 'task' | 'trophy';
   } | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
+    // Wait a bit before starting to check for popups to avoid timing issues
+    const readyTimer = setTimeout(() => {
+      setIsReady(true);
+    }, 1000);
+
+    return () => clearTimeout(readyTimer);
+  }, []);
+
+  useEffect(() => {
+    if (!isReady) return;
+
     const checkForPopups = () => {
       if (typeof window !== 'undefined') {
         if ((window as any).__showTrophyCompletionPopup) {
@@ -54,14 +66,14 @@ function useCompletionPopups() {
 
     const interval = setInterval(checkForPopups, 500);
     return () => clearInterval(interval);
-  }, []);
+  }, [isReady]);
 
   const closeCurrentPopup = () => {
     setCurrentPopup(null);
   };
 
   return {
-    currentPopup,
+    currentPopup: isReady ? currentPopup : null,
     closeCurrentPopup
   };
 }
@@ -197,13 +209,16 @@ export default function RootLayout() {
           onVerify={handleAgeVerification}
         />
 
-        <CompletionPopup
-          visible={!!currentPopup}
-          title={currentPopup?.title || ''}
-          xpReward={currentPopup?.xpReward || 0}
-          type={currentPopup?.type || 'task'}
-          onClose={closeCurrentPopup}
-        />
+        {/* Render CompletionPopup only when ready and popup exists */}
+        {currentPopup && (
+          <CompletionPopup
+            visible={!!currentPopup}
+            title={currentPopup.title}
+            xpReward={currentPopup.xpReward}
+            type={currentPopup.type}
+            onClose={closeCurrentPopup}
+          />
+        )}
       </QueryClientProvider>
     </trpc.Provider>
   );

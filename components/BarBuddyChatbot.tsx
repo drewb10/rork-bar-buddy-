@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, TextInput, Pressable, ScrollView, Animated, KeyboardAvoidingView, Platform } from 'react-native';
 import { MessageCircle, Send, Sparkles, MapPin, Calendar, Users, Star } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
-import { useThemeStore } from '@/stores/themeStore';
+import { useThemeStoreSafe } from '@/stores/themeStore';
 import { venues } from '@/mocks/venues';
 
 interface ChatMessage {
@@ -18,7 +18,7 @@ interface BarBuddyChatbotProps {
 }
 
 export default function BarBuddyChatbot({ onClose }: BarBuddyChatbotProps) {
-  const { theme } = useThemeStore();
+  const { theme } = useThemeStoreSafe();
   const themeColors = colors[theme];
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');

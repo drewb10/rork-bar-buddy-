@@ -13,10 +13,22 @@ interface CompletionPopupProps {
 }
 
 export default function CompletionPopup({ visible, title, xpReward, type, onClose }: CompletionPopupProps) {
-  const { theme } = useThemeStore();
-  const themeColors = colors[theme];
+  // Safe theme access with fallback
+  const [themeColors, setThemeColors] = useState(colors.dark);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.8));
+
+  // Safely get theme after component mounts
+  useEffect(() => {
+    try {
+      const themeStore = useThemeStore.getState();
+      const theme = themeStore?.theme || 'dark';
+      setThemeColors(colors[theme]);
+    } catch (error) {
+      console.warn('Error accessing theme store:', error);
+      setThemeColors(colors.dark);
+    }
+  }, []);
 
   useEffect(() => {
     if (visible) {
@@ -152,13 +164,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     marginBottom: 4,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '500' as const,
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 20,
@@ -173,7 +185,7 @@ const styles = StyleSheet.create({
   xpText: {
     color: '#FFD60A',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     marginLeft: 6,
   },
 });
