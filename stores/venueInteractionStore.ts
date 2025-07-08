@@ -167,7 +167,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
         }
       },
 
-      // UPDATED: Remove XP award from liking venues
+      // 🔧 FIXED: Remove XP award from liking venues
       likeVenue: (venueId, timeSlot) => {
         try {
           if (!venueId || !timeSlot) return;

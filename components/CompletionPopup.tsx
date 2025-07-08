@@ -12,88 +12,48 @@ interface CompletionPopupProps {
   onClose: () => void;
 }
 
-export default function CompletionPopup({ visible, title, xpReward, type, onClose }: CompletionPopupProps) {
-  // Safe theme access with fallback
-  const [themeColors, setThemeColors] = useState(colors.dark);
+export function CompletionPopup({ visible, title, xpReward, type, onClose }: CompletionPopupProps) {
+  const { theme } = useThemeStore();
+  const themeColors = colors[theme];
   const [fadeAnim] = useState(new Animated.Value(0));
-  const [scaleAnim] = useState(new Animated.Value(0.8));
-
-  // Safely get theme after component mounts
-  useEffect(() => {
-    try {
-      const themeStore = useThemeStore.getState();
-      const theme = themeStore?.theme || 'dark';
-      setThemeColors(colors[theme]);
-    } catch (error) {
-      console.warn('Error accessing theme store:', error);
-      setThemeColors(colors.dark);
-    }
-  }, []);
 
   useEffect(() => {
     if (visible) {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          tension: 100,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
 
       const timer = setTimeout(() => {
-        handleClose();
+        onClose();
       }, 3000);
 
       return () => clearTimeout(timer);
-    }
-  }, [visible]);
-
-  const handleClose = () => {
-    Animated.parallel([
+    } else {
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 200,
         useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 0.8,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onClose();
-    });
-  };
+      }).start();
+    }
+  }, [visible]);
 
   if (!visible) return null;
 
   return (
-    <Modal
-      transparent
-      visible={visible}
-      animationType="none"
-      onRequestClose={handleClose}
-    >
+    <Modal transparent visible={visible} animationType="none">
       <View style={styles.overlay}>
-        <Pressable style={styles.overlayTouchable} onPress={handleClose} />
         <Animated.View
           style={[
             styles.popup,
             {
               backgroundColor: themeColors.card,
-              borderColor: themeColors.border,
               opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }],
             },
           ]}
         >
-          <View style={[styles.iconContainer, { backgroundColor: type === 'trophy' ? '#FFD60A20' : '#FF6B3520' }]}>
+          <View style={styles.iconContainer}>
             {type === 'trophy' ? (
               <Trophy size={32} color="#FFD60A" />
             ) : (
@@ -101,19 +61,15 @@ export default function CompletionPopup({ visible, title, xpReward, type, onClos
             )}
           </View>
           
-          <Text style={[styles.emoji, { color: themeColors.text }]}>
-            {type === 'trophy' ? '🏆' : '🎉'}
-          </Text>
-          
           <Text style={[styles.title, { color: themeColors.text }]}>
-            {type === 'trophy' ? 'Trophy Unlocked!' : 'Task Complete!'}
+            {type === 'trophy' ? '🏆 Trophy Unlocked!' : '🎉 Task Complete!'}
           </Text>
           
           <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
             {title}
           </Text>
           
-          <View style={[styles.xpBadge, { backgroundColor: '#FFD60A20' }]}>
+          <View style={styles.xpBadge}>
             <Zap size={16} color="#FFD60A" />
             <Text style={styles.xpText}>+{xpReward} XP</Text>
           </View>
@@ -130,20 +86,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
-  overlayTouchable: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
   popup: {
     padding: 24,
     borderRadius: 20,
     alignItems: 'center',
     maxWidth: 300,
     margin: 20,
-    borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
@@ -154,26 +102,22 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
+    backgroundColor: 'rgba(255, 107, 53, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  emoji: {
-    fontSize: 32,
-    marginBottom: 8,
+    marginBottom: 16,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    marginBottom: 4,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
-    fontWeight: '500' as const,
+    fontWeight: '500',
     textAlign: 'center',
     marginBottom: 16,
-    lineHeight: 20,
   },
   xpBadge: {
     flexDirection: 'row',
@@ -181,11 +125,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
+    backgroundColor: 'rgba(255, 214, 10, 0.2)',
   },
   xpText: {
     color: '#FFD60A',
     fontSize: 14,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     marginLeft: 6,
   },
 });

@@ -35,12 +35,16 @@ interface UserProfileStore {
   isLoading: boolean;
   friends: UserProfile[];
   isInitialized: boolean;
+  profileReady: boolean;
+  isUpdating: boolean;
   
   // Profile management
   setProfile: (profile: UserProfile | null) => void;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   clearProfile: () => void;
   initializeProfile: (userId: string) => Promise<void>;
+  loadProfile: () => Promise<void>;
+  setProfileReady: (ready: boolean) => void;
   
   // XP and stats
   awardXP: (type: XPType, description: string, venueId?: string) => Promise<void>;
@@ -68,13 +72,209 @@ export const useUserProfileStore = create<UserProfileStore>()(
       isLoading: false,
       friends: [],
       isInitialized: false,
+      profileReady: false,
+      isUpdating: false,
 
       setProfile: (profile) => {
-        set({ profile, isInitialized: true });
+        set({ profile, isInitialized: true, profileReady: !!profile });
+      },
+
+      setProfileReady: (ready: boolean) => {
+        set({ profileReady: ready });
       },
 
       clearProfile: () => {
-        set({ profile: null, friends: [], isInitialized: false });
+        set({ profile: null, friends: [], isInitialized: false, profileReady: false });
+      },
+
+      // 🔧 FIXED: Robust profile loading with better error handling
+      loadProfile: async () => {
+        const state = get();
+        if (state.isLoading || state.isUpdating) {
+          console.log('🔄 Profile load already in progress, skipping...');
+          return;
+        }
+        
+        try {
+          set({ isLoading: true, profileReady: false });
+          console.log('🔄 Starting profile load...');
+          
+          if (!isSupabaseConfigured()) {
+            console.log('🔧 Supabase not configured, using demo profile');
+            const demoProfile: UserProfile = {
+              id: 'demo-user',
+              username: 'demo_user',
+              email: 'demo@example.com',
+              xp: 0,
+              nights_out: 0,
+              bars_hit: 0,
+              total_shots: 0,
+              total_beers: 0,
+              total_beer_towers: 0,
+              total_funnels: 0,
+              total_shotguns: 0,
+              pool_games_won: 0,
+              dart_games_won: 0,
+              photos_taken: 0,
+              drunk_scale_ratings: [],
+              visited_bars: [],
+              xp_activities: [],
+              has_completed_onboarding: false,
+              profile_picture: undefined,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
+            set({ profile: demoProfile, isLoading: false, profileReady: true, isInitialized: true });
+            return;
+          }
+
+          // Add null check for supabase
+          if (!supabase) {
+            console.warn('🔄 Supabase client not available');
+            set({ isLoading: false, profile: null, profileReady: false });
+            return;
+          }
+          
+          // 🔧 FIX: Better auth user retrieval with error handling
+          const { data: { user }, error: authError } = await supabase.auth.getUser();
+          if (authError) {
+            console.error('🔄 Auth error:', authError);
+            set({ isLoading: false, profile: null, profileReady: false });
+            return;
+          }
+          
+          if (!user) {
+            console.log('🔄 No authenticated user found');
+            set({ isLoading: false, profile: null, profileReady: false });
+            return;
+          }
+
+          console.log('🔄 Loading profile for authenticated user:', user.id);
+
+          // 🔧 FIX: Use user.id directly instead of complex lookup logic
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+          if (profileError) {
+            console.error('🔄 Profile error:', profileError);
+            
+            // If profile doesn't exist, create it
+            if (profileError.code === 'PGRST116') {
+              console.log('🆕 Creating new profile for user...');
+              
+              const newProfile = {
+                id: user.id,
+                username: user.user_metadata?.username || `user_${user.id.slice(0, 8)}`,
+                email: user.email || '',
+                phone: user.phone || '',
+                xp: 0,
+                nights_out: 0,
+                bars_hit: 0,
+                drunk_scale_ratings: [],
+                total_shots: 0,
+                total_beers: 0,
+                total_beer_towers: 0,
+                total_funnels: 0,
+                total_shotguns: 0,
+                pool_games_won: 0,
+                dart_games_won: 0,
+                photos_taken: 0,
+                profile_picture: null,
+                visited_bars: [],
+                xp_activities: [],
+                has_completed_onboarding: false,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              };
+
+              const { data: createdProfile, error: createError } = await supabase
+                .from('profiles')
+                .insert(newProfile)
+                .select()
+                .single();
+
+              if (createError) {
+                console.error('Failed to create new profile:', createError);
+                set({ isLoading: false, profile: null, profileReady: false });
+                return;
+              }
+
+              console.log('✅ New profile created successfully');
+              set({
+                profile: {
+                  ...createdProfile,
+                  friends: [],
+                  friend_requests: [],
+                } as UserProfile,
+                isLoading: false,
+                profileReady: true,
+                isInitialized: true
+              });
+              return;
+            }
+            
+            set({ isLoading: false, profile: null, profileReady: false });
+            return;
+          }
+
+          if (!profileData) {
+            console.error('🔄 No profile data returned');
+            set({ isLoading: false, profile: null, profileReady: false });
+            return;
+          }
+
+          console.log('✅ Profile loaded successfully:', profileData.username);
+
+          // 🔧 FIX: Set profile immediately without waiting for additional data
+          const profile: UserProfile = {
+            id: profileData.id,
+            username: profileData.username,
+            phone: profileData.phone || '',
+            email: profileData.email,
+            xp: profileData.xp || 0,
+            nights_out: profileData.nights_out || 0,
+            bars_hit: profileData.bars_hit || 0,
+            drunk_scale_ratings: profileData.drunk_scale_ratings || [],
+            last_night_out_date: profileData.last_night_out_date,
+            last_drunk_scale_date: profileData.last_drunk_scale_date,
+            profile_picture: profileData.profile_picture,
+            friends: [], // Will be loaded separately
+            friend_requests: [], // Will be loaded separately
+            xp_activities: profileData.xp_activities || [],
+            visited_bars: profileData.visited_bars || [],
+            total_shots: profileData.total_shots || 0,
+            total_beers: profileData.total_beers || 0,
+            total_beer_towers: profileData.total_beer_towers || 0,
+            total_funnels: profileData.total_funnels || 0,
+            total_shotguns: profileData.total_shotguns || 0,
+            pool_games_won: profileData.pool_games_won || 0,
+            dart_games_won: profileData.dart_games_won || 0,
+            photos_taken: profileData.photos_taken || 0,
+            has_completed_onboarding: profileData.has_completed_onboarding || false,
+            created_at: profileData.created_at,
+            updated_at: profileData.updated_at,
+          };
+
+          set({ 
+            profile,
+            isLoading: false,
+            profileReady: true,
+            isInitialized: true
+          });
+
+          // 🔧 FIX: Load additional data in background (non-blocking)
+          setTimeout(() => {
+            get().loadFriends();
+            get().syncStatsFromDailyStats();
+          }, 100);
+
+        } catch (error) {
+          console.error('❌ Error loading profile:', error);
+          set({ isLoading: false, profile: null, profileReady: false });
+        }
       },
 
       initializeProfile: async (userId: string) => {
@@ -103,84 +303,11 @@ export const useUserProfileStore = create<UserProfileStore>()(
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           };
-          set({ profile: demoProfile, isInitialized: true });
+          set({ profile: demoProfile, isInitialized: true, profileReady: true });
           return;
         }
 
-        set({ isLoading: true });
-
-        try {
-          console.log('🔧 UserProfile: Loading profile for user:', userId);
-          
-          // Add null check for supabase
-          if (!supabase) {
-            console.warn('🔄 Supabase client not available');
-            set({ isLoading: false, profile: null, isInitialized: true });
-            return;
-          }
-          
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-
-          if (error) {
-            if (error.code === 'PGRST116') {
-              console.log('🔧 UserProfile: Creating new profile for user:', userId);
-              
-              const { data: user } = await supabase.auth.getUser();
-              const userEmail = user?.user?.email || '';
-              
-              const newProfile = {
-                id: userId,
-                username: `user_${userId.slice(0, 8)}`,
-                email: userEmail,
-                xp: 0,
-                nights_out: 0,
-                bars_hit: 0,
-                total_shots: 0,
-                total_beers: 0,
-                total_beer_towers: 0,
-                total_funnels: 0,
-                total_shotguns: 0,
-                pool_games_won: 0,
-                dart_games_won: 0,
-                photos_taken: 0,
-                drunk_scale_ratings: [],
-                visited_bars: [],
-                xp_activities: [],
-                has_completed_onboarding: false,
-                profile_picture: undefined,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              };
-
-              const { data: createdProfile, error: createError } = await supabase
-                .from('profiles')
-                .insert(newProfile)
-                .select()
-                .single();
-
-              if (createError) {
-                throw createError;
-              }
-
-              set({ profile: createdProfile as UserProfile, isInitialized: true });
-              console.log('✅ UserProfile: New profile created successfully');
-            } else {
-              throw error;
-            }
-          } else {
-            set({ profile: profile as UserProfile, isInitialized: true });
-            console.log('✅ UserProfile: Profile loaded successfully');
-          }
-        } catch (error) {
-          console.error('❌ UserProfile: Error initializing profile:', error);
-          set({ isInitialized: true });
-        } finally {
-          set({ isLoading: false });
-        }
+        await get().loadProfile();
       },
 
       setProfilePicture: async (uri: string) => {
@@ -343,6 +470,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
         console.log(`✅ XP awarded successfully. New total: ${(profile.xp || 0) + xpAmount}`);
       },
 
+      // 🔧 FIX: Better stats sync that doesn't block profile loading
       syncStatsFromDailyStats: async () => {
         const { profile } = get();
         if (!profile || !isSupabaseConfigured()) {
@@ -409,13 +537,15 @@ export const useUserProfileStore = create<UserProfileStore>()(
           console.log('🔄 Updating profile with:', updates);
           
           set({
-            profile: { ...state.profile, ...updates }
+            profile: { ...state.profile, ...updates },
+            isUpdating: true
           });
 
           if (isSupabaseConfigured()) {
             // Add null check for supabase
             if (!supabase) {
               console.warn('🔄 Supabase client not available for profile update');
+              set({ isUpdating: false });
               return;
             }
             
@@ -452,6 +582,8 @@ export const useUserProfileStore = create<UserProfileStore>()(
             }
           }
 
+          set({ isUpdating: false });
+
           // Trigger achievement checking after profile updates
           setTimeout(() => {
             if (typeof window !== 'undefined' && (window as any).__achievementStore) {
@@ -479,7 +611,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
 
         } catch (error) {
           console.error('❌ Error updating profile:', error);
-          set({ profile: state.profile });
+          set({ profile: state.profile, isUpdating: false });
           throw error;
         }
       },
@@ -526,6 +658,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
           photos_taken: state.profile.photos_taken,
         } : null,
         isInitialized: state.isInitialized,
+        profileReady: state.profileReady,
       }),
     }
   )

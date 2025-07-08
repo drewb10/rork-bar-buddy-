@@ -414,12 +414,12 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     marginBottom: 2,
   },
   headerSubtitle: {
     fontSize: 12,
-    fontWeight: '500' as const,
+    fontWeight: '500',
   },
   statusIndicator: {
     width: 8,
@@ -460,12 +460,12 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 15,
     lineHeight: 20,
-    fontWeight: '500' as const,
+    fontWeight: '500',
     marginBottom: 4,
   },
   messageTime: {
     fontSize: 11,
-    fontWeight: '500' as const,
+    fontWeight: '500',
     textAlign: 'right',
   },
   suggestionsContainer: {
@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontSize: 12,
-    fontWeight: '600' as const,
+    fontWeight: '600',
   },
   typingContainer: {
     alignItems: 'flex-start',
@@ -523,7 +523,7 @@ const styles = StyleSheet.create({
     maxHeight: 60,
     minHeight: 40,
     fontSize: 15,
-    fontWeight: '500' as const,
+    fontWeight: '500',
   },
   sendButton: {
     width: 40,

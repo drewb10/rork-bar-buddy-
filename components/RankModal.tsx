@@ -1,110 +1,76 @@
 import React from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable, Modal } from 'react-native';
-import { X, Crown, Award, Star, Target, Zap } from 'lucide-react-native';
+import { X, Star, Crown, Trophy } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface RankLevel {
-  id: number;
   title: string;
-  subTitle: string;
   minXP: number;
   maxXP: number;
   color: string;
-  gradient: readonly string[];
-  icon: React.ComponentType<any>;
+  gradientColors: string[];
   description: string;
-  perks: string[];
+  icon: string;
 }
 
-export const RANK_SYSTEM: RankLevel[] = [
-  {
-    id: 1,
-    title: 'Newbie',
-    subTitle: 'Just getting started',
-    minXP: 0,
-    maxXP: 99,
-    color: '#8E8E93',
-    gradient: ['#8E8E93', '#AEAEB2'] as const,
-    icon: Target,
-    description: 'Welcome to the nightlife! Start tracking your activities to earn XP.',
-    perks: ['Access to Daily Tracker', 'Basic profile features'],
+const RANK_LEVELS: RankLevel[] = [
+  { 
+    title: 'Newcomer', 
+    minXP: 0, 
+    maxXP: 499, 
+    color: '#8B8B8B', 
+    gradientColors: ['#8B8B8B', '#A0A0A0'],
+    description: 'Just getting started on your bar journey',
+    icon: '🌟'
   },
-  {
-    id: 2,
-    title: 'Social Drinker',
-    subTitle: 'Getting the hang of it',
-    minXP: 100,
-    maxXP: 299,
-    color: '#34C759',
-    gradient: ['#34C759', '#52D681'] as const,
-    icon: Star,
-    description: 'You are building good habits! Keep logging your nights out.',
-    perks: ['Unlock achievements', 'Friend system access', 'Basic trophies'],
+  { 
+    title: 'Regular', 
+    minXP: 500, 
+    maxXP: 1499, 
+    color: '#4A90E2', 
+    gradientColors: ['#4A90E2', '#5BA0F2'],
+    description: 'Finding your rhythm in the nightlife scene',
+    icon: '🍺'
   },
-  {
-    id: 3,
-    title: 'Bar Regular',
-    subTitle: 'Know your way around',
-    minXP: 300,
-    maxXP: 699,
-    color: '#007AFF',
-    gradient: ['#007AFF', '#40A9FF'] as const,
-    icon: Award,
-    description: 'You are becoming a familiar face at the local bars.',
-    perks: ['Advanced tracking', 'Venue hot times', 'Special achievements'],
+  { 
+    title: 'Bar Explorer', 
+    minXP: 1500, 
+    maxXP: 2999, 
+    color: '#FF6A00', 
+    gradientColors: ['#FF6A00', '#FF8533'],
+    description: 'Discovering new places and experiences',
+    icon: '🗺️'
   },
-  {
-    id: 4,
-    title: 'Night Owl',
-    subTitle: 'Out every weekend',
-    minXP: 700,
-    maxXP: 1499,
-    color: '#FF6B35',
-    gradient: ['#FF6B35', '#FF8F65'] as const,
-    icon: Target,
-    description: 'The nightlife is your second home. You know all the best spots.',
-    perks: ['Premium features', 'Exclusive venues', 'Bonus XP multipliers'],
+  { 
+    title: 'Nightlife Pro', 
+    minXP: 3000, 
+    maxXP: 4999, 
+    color: '#7B68EE', 
+    gradientColors: ['#7B68EE', '#9B88FF'],
+    description: 'You know the scene like the back of your hand',
+    icon: '🎯'
   },
-  {
-    id: 5,
-    title: 'Party Legend',
-    subTitle: 'The life of the party',
-    minXP: 1500,
-    maxXP: 2999,
-    color: '#AF52DE',
-    gradient: ['#AF52DE', '#C77DFF'] as const,
-    icon: Crown,
-    description: 'You are legendary in the scene. Others look up to your expertise.',
-    perks: ['VIP status', 'Early access features', 'Leaderboard prominence'],
+  { 
+    title: 'Bar Legend', 
+    minXP: 5000, 
+    maxXP: 9999, 
+    color: '#FFD700', 
+    gradientColors: ['#FFD700', '#FFED4A'],
+    description: 'A respected veteran of the bar scene',
+    icon: '👑'
   },
-  {
-    id: 6,
-    title: 'Nightlife Master',
-    subTitle: 'The ultimate veteran',
-    minXP: 3000,
-    maxXP: Infinity,
-    color: '#FFD60A',
-    gradient: ['#FFD60A', '#FFED4A'] as const,
-    icon: Crown,
-    description: 'You have mastered the art of nightlife. You are the benchmark.',
-    perks: ['Master status', 'All premium features', 'Community recognition', 'Special badges'],
-  },
+  { 
+    title: 'Master of the Night', 
+    minXP: 10000, 
+    maxXP: Infinity, 
+    color: '#FF1493', 
+    gradientColors: ['#FF1493', '#FF69B4'],
+    description: 'The ultimate bar buddy - legendary status',
+    icon: '🏆'
+  }
 ];
-
-export const getRankInfo = (xp: number) => {
-  const rank = RANK_SYSTEM.find(rank => xp >= rank.minXP && xp <= rank.maxXP) || RANK_SYSTEM[0];
-  const nextRank = RANK_SYSTEM.find(r => r.minXP > xp);
-  
-  return {
-    current: rank,
-    next: nextRank,
-    progress: nextRank ? 
-      ((xp - rank.minXP) / (nextRank.minXP - rank.minXP)) * 100 : 100,
-    xpToNext: nextRank ? nextRank.minXP - xp : 0,
-  };
-};
 
 interface RankModalProps {
   visible: boolean;
@@ -115,178 +81,156 @@ interface RankModalProps {
 export default function RankModal({ visible, onClose, currentXP }: RankModalProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const rankInfo = getRankInfo(currentXP);
 
-  const renderRankCard = (rank: RankLevel, isCurrentRank: boolean, isUnlocked: boolean) => {
-    const IconComponent = rank.icon;
-    
-    return (
-      <View
-        key={rank.id}
-        style={[
-          styles.rankCard,
-          {
-            backgroundColor: isCurrentRank ? rank.color + '20' : themeColors.card,
-            borderColor: isCurrentRank ? rank.color : 'rgba(255,255,255,0.1)',
-            borderWidth: isCurrentRank ? 2 : 1,
-            opacity: isUnlocked ? 1 : 0.6,
-          }
-        ]}
-      >
-        {isCurrentRank && (
-          <LinearGradient
-            colors={rank.gradient}
-            style={styles.currentRankOverlay}
-          >
-            <Text style={styles.currentRankLabel}>CURRENT RANK</Text>
-          </LinearGradient>
-        )}
-        
-        <View style={styles.rankHeader}>
-          <View style={[
-            styles.rankIconContainer,
-            { backgroundColor: rank.color + '20' }
-          ]}>
-            <IconComponent size={24} color={rank.color} />
-          </View>
-          
-          <View style={styles.rankTitleContainer}>
-            <Text style={[
-              styles.rankTitle,
-              { 
-                color: isCurrentRank ? rank.color : themeColors.text,
-                fontWeight: isCurrentRank ? '800' : '700'
-              }
-            ]}>
-              {rank.title}
-            </Text>
-            <Text style={[styles.rankSubtitle, { color: themeColors.subtext }]}>
-              {rank.subTitle}
-            </Text>
-          </View>
-          
-          <View style={styles.rankXPContainer}>
-            <Text style={[styles.rankXP, { color: rank.color }]}>
-              {rank.maxXP === Infinity ? `${rank.minXP}+` : `${rank.minXP}-${rank.maxXP}`}
-            </Text>
-            <Text style={[styles.rankXPLabel, { color: themeColors.subtext }]}>
-              XP
-            </Text>
-          </View>
-        </View>
-        
-        <Text style={[styles.rankDescription, { color: themeColors.subtext }]}>
-          {rank.description}
-        </Text>
-        
-        <View style={styles.perksContainer}>
-          <Text style={[styles.perksTitle, { color: themeColors.text }]}>
-            Perks:
-          </Text>
-          {rank.perks.map((perk, index) => (
-            <Text key={index} style={[styles.perkItem, { color: themeColors.subtext }]}>
-              • {perk}
-            </Text>
-          ))}
-        </View>
-        
-        {isCurrentRank && rankInfo.next && (
-          <View style={styles.progressContainer}>
-            <View style={styles.progressHeader}>
-              <Text style={[styles.progressLabel, { color: themeColors.text }]}>
-                Progress to {rankInfo.next.title}
-              </Text>
-              <Text style={[styles.progressXP, { color: rank.color }]}>
-                {rankInfo.xpToNext} XP to go
-              </Text>
-            </View>
-            
-            <View style={[styles.progressBar, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-              <LinearGradient
-                colors={rank.gradient}
-                style={[
-                  styles.progressFill,
-                  { width: `${Math.min(rankInfo.progress, 100)}%` }
-                ]}
-              />
-            </View>
-            
-            <Text style={[styles.progressPercentage, { color: rank.color }]}>
-              {Math.round(rankInfo.progress)}% Complete
-            </Text>
-          </View>
-        )}
-      </View>
-    );
+  const getCurrentRank = () => {
+    return RANK_LEVELS.find(rank => currentXP >= rank.minXP && currentXP <= rank.maxXP) || RANK_LEVELS[0];
   };
 
+  const getNextRank = () => {
+    const currentRankIndex = RANK_LEVELS.findIndex(rank => currentXP >= rank.minXP && currentXP <= rank.maxXP);
+    return currentRankIndex < RANK_LEVELS.length - 1 ? RANK_LEVELS[currentRankIndex + 1] : null;
+  };
+
+  const getProgressToNextRank = () => {
+    const nextRank = getNextRank();
+    if (!nextRank) return 100;
+    
+    const currentRank = getCurrentRank();
+    const progress = ((currentXP - currentRank.minXP) / (nextRank.minXP - currentRank.minXP)) * 100;
+    return Math.min(progress, 100);
+  };
+
+  const currentRank = getCurrentRank();
+  const nextRank = getNextRank();
+  const progressPercent = getProgressToNextRank();
+
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="slide">
       <View style={styles.overlay}>
         <View style={[styles.container, { backgroundColor: themeColors.background }]}>
           {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerContent}>
-              <Crown size={24} color={rankInfo.current.color} />
-              <Text style={[styles.title, { color: themeColors.text }]}>
-                Rank System
-              </Text>
-            </View>
-            <Pressable style={styles.closeButton} onPress={onClose}>
-              <X size={24} color={themeColors.text} />
+          <View style={[styles.header, { borderBottomColor: themeColors.border }]}>
+            <Text style={[styles.title, { color: themeColors.text }]}>Ranking System</Text>
+            <Pressable onPress={onClose} style={styles.closeButton}>
+              <X size={24} color={themeColors.subtext} />
             </Pressable>
           </View>
 
-          {/* Current Status */}
-          <View style={[styles.statusCard, { backgroundColor: themeColors.card }]}>
-            <LinearGradient
-              colors={rankInfo.current.gradient}
-              style={styles.statusGradient}
-            >
-              <View style={styles.statusContent}>
-                <View style={styles.statusIcon}>
-                  <rankInfo.current.icon size={32} color="white" />
-                </View>
-                <View style={styles.statusText}>
-                  <Text style={styles.statusRank}>
-                    {rankInfo.current.title}
-                  </Text>
-                  <Text style={styles.statusXP}>
-                    {currentXP} XP
-                  </Text>
-                </View>
-              </View>
-            </LinearGradient>
-          </View>
-
-          {/* Rank List */}
-          <ScrollView 
-            style={styles.scrollView}
-            showsVerticalScrollIndicator={false}
-          >
-            <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-              All Ranks
-            </Text>
-            
-            {RANK_SYSTEM.map((rank) => {
-              const isCurrentRank = rankInfo.current.id === rank.id;
-              const isUnlocked = currentXP >= rank.minXP;
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            {/* Current Rank Section */}
+            <View style={styles.currentRankSection}>
+              <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
+                Your Current Rank
+              </Text>
               
-              return renderRankCard(rank, isCurrentRank, isUnlocked);
-            })}
-            
-            <View style={styles.footer}>
-              <View style={[styles.tipCard, { backgroundColor: themeColors.card }]}>
-                <Zap size={20} color={rankInfo.current.color} />
-                <Text style={[styles.tipText, { color: themeColors.text }]}>
-                  Keep using the Daily Tracker, visiting new bars, and completing achievements to earn more XP!
-                </Text>
-              </View>
+              <LinearGradient
+                colors={currentRank.gradientColors}
+                style={styles.currentRankCard}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={styles.currentRankIcon}>{currentRank.icon}</Text>
+                <Text style={styles.currentRankTitle}>{currentRank.title}</Text>
+                <Text style={styles.currentRankXP}>{currentXP.toLocaleString()} XP</Text>
+                <Text style={styles.currentRankDescription}>{currentRank.description}</Text>
+              </LinearGradient>
+
+              {/* Progress to Next Rank */}
+              {nextRank && (
+                <View style={[styles.progressSection, { backgroundColor: themeColors.card }]}>
+                  <View style={styles.progressHeader}>
+                    <Text style={[styles.progressTitle, { color: themeColors.text }]}>
+                      Progress to {nextRank.title}
+                    </Text>
+                    <Text style={[styles.progressPercent, { color: themeColors.primary }]}>
+                      {Math.round(progressPercent)}%
+                    </Text>
+                  </View>
+                  
+                  <View style={[styles.progressBarContainer, { backgroundColor: themeColors.border }]}>
+                    <View 
+                      style={[
+                        styles.progressBar, 
+                        { 
+                          backgroundColor: nextRank.color,
+                          width: `${progressPercent}%`
+                        }
+                      ]} 
+                    />
+                  </View>
+                  
+                  <Text style={[styles.progressText, { color: themeColors.subtext }]}>
+                    {(nextRank.minXP - currentXP).toLocaleString()} XP to go
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* All Ranks Section */}
+            <View style={styles.allRanksSection}>
+              <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
+                All Rank Levels
+              </Text>
+              
+              {RANK_LEVELS.map((rank, index) => {
+                const isUnlocked = currentXP >= rank.minXP;
+                const isCurrent = currentRank.title === rank.title;
+                
+                return (
+                  <View 
+                    key={rank.title} 
+                    style={[
+                      styles.rankItem,
+                      { 
+                        backgroundColor: themeColors.card,
+                        borderColor: isCurrent ? rank.color : themeColors.border,
+                        borderWidth: isCurrent ? 2 : 1,
+                        opacity: isUnlocked ? 1 : 0.6
+                      }
+                    ]}
+                  >
+                    <View style={styles.rankItemLeft}>
+                      <Text style={[
+                        styles.rankIcon,
+                        { opacity: isUnlocked ? 1 : 0.4 }
+                      ]}>
+                        {rank.icon}
+                      </Text>
+                      <View style={styles.rankInfo}>
+                        <View style={styles.rankTitleRow}>
+                          <Text style={[
+                            styles.rankTitle,
+                            { 
+                              color: isUnlocked ? rank.color : themeColors.subtext,
+                              fontWeight: isCurrent ? '800' : '600'
+                            }
+                          ]}>
+                            {rank.title}
+                          </Text>
+                          {isCurrent && (
+                            <View style={[styles.currentBadge, { backgroundColor: rank.color }]}>
+                              <Text style={styles.currentBadgeText}>CURRENT</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={[styles.rankRange, { color: themeColors.subtext }]}>
+                          {rank.maxXP === Infinity 
+                            ? `${rank.minXP.toLocaleString()}+ XP` 
+                            : `${rank.minXP.toLocaleString()} - ${rank.maxXP.toLocaleString()} XP`
+                          }
+                        </Text>
+                        <Text style={[styles.rankDescription, { color: themeColors.text }]}>
+                          {rank.description}
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    {isUnlocked && (
+                      <Trophy size={20} color={rank.color} />
+                    )}
+                  </View>
+                );
+              })}
             </View>
           </ScrollView>
         </View>
@@ -298,246 +242,151 @@ export default function RankModal({ visible, onClose, currentXP }: RankModalProp
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    padding: 20,
   },
-  
   container: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    width: '100%',
+    maxWidth: 500,
     maxHeight: '90%',
-    paddingBottom: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
   },
-  
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
   },
-  
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  
   title: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '700',
-    marginLeft: 12,
   },
-  
   closeButton: {
     padding: 8,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.1)',
   },
-  
-  statusCard: {
-    margin: 20,
-    borderRadius: 16,
-    overflow: 'hidden',
+  content: {
+    flex: 1,
   },
-  
-  statusGradient: {
+  currentRankSection: {
     padding: 20,
   },
-  
-  statusContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  
-  statusIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  
-  statusText: {
-    flex: 1,
-  },
-  
-  statusRank: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: '800',
-    marginBottom: 4,
-  },
-  
-  statusXP: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  
-  scrollView: {
-    flex: 1,
-  },
-  
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    marginHorizontal: 20,
     marginBottom: 16,
   },
-  
-  rankCard: {
-    marginHorizontal: 20,
-    marginBottom: 16,
+  currentRankCard: {
+    padding: 24,
     borderRadius: 16,
-    padding: 20,
-    position: 'relative',
-  },
-  
-  currentRankOverlay: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderBottomLeftRadius: 12,
-    borderTopRightRadius: 16,
-  },
-  
-  currentRankLabel: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-  
-  rankHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 20,
   },
-  
-  rankIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  
-  rankTitleContainer: {
-    flex: 1,
-  },
-  
-  rankTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  
-  rankSubtitle: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  
-  rankXPContainer: {
-    alignItems: 'flex-end',
-  },
-  
-  rankXP: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  
-  rankXPLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  
-  rankDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  
-  perksContainer: {
-    marginBottom: 16,
-  },
-  
-  perksTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+  currentRankIcon: {
+    fontSize: 48,
     marginBottom: 8,
   },
-  
-  perkItem: {
-    fontSize: 12,
-    lineHeight: 18,
+  currentRankTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: 'white',
     marginBottom: 4,
   },
-  
-  progressContainer: {
-    marginTop: 12,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.1)',
+  currentRankXP: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'white',
+    marginBottom: 8,
   },
-  
+  currentRankDescription: {
+    fontSize: 14,
+    color: 'white',
+    textAlign: 'center',
+    opacity: 0.9,
+  },
+  progressSection: {
+    padding: 16,
+    borderRadius: 12,
+  },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
   },
-  
-  progressLabel: {
-    fontSize: 14,
+  progressTitle: {
+    fontSize: 16,
     fontWeight: '600',
   },
-  
-  progressXP: {
-    fontSize: 12,
+  progressPercent: {
+    fontSize: 16,
     fontWeight: '700',
   },
-  
-  progressBar: {
+  progressBarContainer: {
     height: 8,
     borderRadius: 4,
-    overflow: 'hidden',
     marginBottom: 8,
   },
-  
-  progressFill: {
+  progressBar: {
     height: '100%',
     borderRadius: 4,
   },
-  
-  progressPercentage: {
-    fontSize: 12,
-    fontWeight: '600',
+  progressText: {
+    fontSize: 14,
     textAlign: 'center',
   },
-  
-  footer: {
-    marginTop: 20,
-    paddingHorizontal: 20,
+  allRanksSection: {
+    padding: 20,
+    paddingTop: 0,
   },
-  
-  tipCard: {
+  rankItem: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
     borderRadius: 12,
-    marginBottom: 20,
+    marginBottom: 12,
   },
-  
-  tipText: {
+  rankItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
+  },
+  rankIcon: {
+    fontSize: 32,
+    marginRight: 16,
+  },
+  rankInfo: {
+    flex: 1,
+  },
+  rankTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  rankTitle: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  currentBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  currentBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'white',
+  },
+  rankRange: {
     fontSize: 14,
-    lineHeight: 20,
-    marginLeft: 12,
+    marginBottom: 4,
+  },
+  rankDescription: {
+    fontSize: 13,
+    lineHeight: 18,
   },
 });

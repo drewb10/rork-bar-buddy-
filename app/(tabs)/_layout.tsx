@@ -58,20 +58,11 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, size, focused }) => (
-            <View style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: focused ? 'rgba(255,107,53,0.15)' : 'transparent',
-            }}>
-              <Home 
-                size={size} 
-                color={color} 
-                strokeWidth={focused ? 2.5 : 2}
-              />
-            </View>
+            <Home 
+              size={size} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+            />
           ),
         }}
       />
@@ -80,20 +71,11 @@ export default function TabLayout() {
         options={{
           title: 'Tasks',
           tabBarIcon: ({ color, size, focused }) => (
-            <View style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: focused ? 'rgba(255,107,53,0.15)' : 'transparent',
-            }}>
-              <Award 
-                size={size} 
-                color={color} 
-                strokeWidth={focused ? 2.5 : 2}
-              />
-            </View>
+            <Award 
+              size={size} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+            />
           ),
         }}
       />
@@ -102,20 +84,11 @@ export default function TabLayout() {
         options={{
           title: 'Camera',
           tabBarIcon: ({ color, size, focused }) => (
-            <View style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: focused ? 'rgba(255,107,53,0.15)' : 'transparent',
-            }}>
-              <Camera 
-                size={size} 
-                color={color} 
-                strokeWidth={focused ? 2.5 : 2}
-              />
-            </View>
+            <Camera 
+              size={size} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+            />
           ),
         }}
       />
@@ -124,20 +97,11 @@ export default function TabLayout() {
         options={{
           title: 'Trophies',
           tabBarIcon: ({ color, size, focused }) => (
-            <View style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: focused ? 'rgba(255,107,53,0.15)' : 'transparent',
-            }}>
-              <Trophy 
-                size={size} 
-                color={color} 
-                strokeWidth={focused ? 2.5 : 2}
-              />
-            </View>
+            <Trophy 
+              size={size} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+            />
           ),
         }}
       />
@@ -146,20 +110,11 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, size, focused }) => (
-            <View style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: focused ? 'rgba(255,107,53,0.15)' : 'transparent',
-            }}>
-              <User 
-                size={size} 
-                color={color} 
-                strokeWidth={focused ? 2.5 : 2}
-              />
-            </View>
+            <User 
+              size={size} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+            />
           ),
         }}
       />
