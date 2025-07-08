@@ -2,13 +2,8 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
 import { Home, Award, Trophy, User } from 'lucide-react-native';
-import { getThemeColors } from '@/constants/colors';
-import { useThemeStore } from '@/stores/themeStore';
 
 export default function TabLayout() {
-  const { theme } = useThemeStore();
-  const themeColors = getThemeColors(theme);
-
   return (
     <Tabs
       screenOptions={{
@@ -25,7 +20,6 @@ export default function TabLayout() {
           shadowRadius: 12,
           elevation: 20,
           borderTopWidth: 1,
-          backdropFilter: 'blur(20px)',
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -57,7 +51,7 @@ export default function TabLayout() {
         }}
       />
       
-      {/* Tasks Tab (formerly achievements) */}
+      {/* Tasks Tab */}
       <Tabs.Screen
         name="achievements"
         options={{
@@ -99,6 +93,14 @@ export default function TabLayout() {
               strokeWidth={focused ? 2.5 : 2}
             />
           ),
+        }}
+      />
+      
+      {/* CRITICAL: Hide camera tab completely */}
+      <Tabs.Screen
+        name="camera"
+        options={{
+          href: null, // This completely hides the tab
         }}
       />
     </Tabs>
