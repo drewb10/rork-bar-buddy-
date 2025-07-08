@@ -1,14 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, RefreshControl, Alert, ActivityIndicator } from 'react-native';
-import { Trophy, Award, Star, Target, Zap, Crown, Medal, RefreshCw } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { StyleSheet, View, Text, ScrollView, StatusBar, Pressable, RefreshControl, Alert, ActivityIndicator } from 'react-native';
+import { Trophy, Award, Target, Star, BarChart3, TrendingUp, RefreshCw } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
-import { useAchievementStoreSafe } from '@/stores/achievementStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { useAchievementStoreSafe } from '@/stores/achievementStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
+import { supabase } from '@/lib/supabase';
 
 const CATEGORY_CONFIG = {
   bars: { 
@@ -31,28 +30,40 @@ const CATEGORY_CONFIG = {
   },
   milestones: { 
     label: 'Milestones', 
-    icon: Crown, 
+    icon: Award, 
     color: '#AF52DE',
     gradient: ['#AF52DE', '#C77DFF'] as const
   },
 };
 
+interface LifetimeStats {
+  totalBeers: number;
+  totalShots: number;
+  totalBeerTowers: number;
+  totalFunnels: number;
+  totalShotguns: number;
+  totalPoolGames: number;
+  totalDartGames: number;
+  totalDrinksLogged: number;
+  avgDrunkScale: number;
+  barsHit: number;
+  nightsOut: number;
+  totalXP: number;
+}
+
 export default function TrophiesScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const { isAuthenticated } = useAuthStore();
-  const { 
-    completedAchievements, 
-    initializeAchievements, 
-    isInitialized,
-    checkAndUpdateMultiLevelAchievements 
-  } = useAchievementStoreSafe();
-  const { profile, profileReady, isLoading: profileLoading, syncStatsFromDailyStats } = useUserProfileStore();
-
+  const { profile, syncStatsFromDailyStats } = useUserProfileStore();
+  const { completedAchievements } = useAchievementStoreSafe();
+  
   const [activeTab, setActiveTab] = useState<'stats' | 'trophies'>('stats');
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'bars' | 'activities' | 'social' | 'milestones'>('all');
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [lifetimeStats, setLifetimeStats] = useState({
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [lastStatsUpdate, setLastStatsUpdate] = useState<string | null>(null);
+  const [lifetimeStats, setLifetimeStats] = useState<LifetimeStats>({
     totalBeers: 0,
     totalShots: 0,
     totalBeerTowers: 0,
@@ -66,131 +77,83 @@ export default function TrophiesScreen() {
     nightsOut: 0,
     totalXP: 0,
   });
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
-  const [lastStatsUpdate, setLastStatsUpdate] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isInitialized) {
-      initializeAchievements();
-    }
-  }, [isInitialized, initializeAchievements]);
-
-  // 🔧 FIXED: Replace the isDataReady check with proper null handling
+  // 🔧 CRITICAL FIX: Simplified data ready check
   const isDataReady = useMemo(() => {
-    return isAuthenticated && profile !== null && profile !== undefined && profileReady;
-  }, [isAuthenticated, profile, profileReady]);
+    return isAuthenticated && profile !== null && profile !== undefined;
+  }, [isAuthenticated, profile]);
 
-  // 🔧 FIXED: Replace the loadLifetimeStats function with null checks
-  const loadLifetimeStats = async () => {
-    if (!isDataReady || !profile) {
-      console.log('🏆 Not ready to load stats - auth:', isAuthenticated, 'profile:', !!profile, 'ready:', profileReady);
+  // 🔧 FIXED: Simplified stats loading that actually works
+  const loadLifetimeStats = useCallback(async () => {
+    if (!isAuthenticated) {
+      console.log('🏆 Not authenticated, skipping stats load');
       return;
     }
 
+    // Don't wait for profile to be "ready" - use whatever profile data we have
+    const currentProfile = profile;
+    if (!currentProfile) {
+      console.log('🏆 No profile data available yet');
+      setIsLoadingStats(false);
+      return;
+    }
+
+    console.log('🏆 Loading lifetime stats with profile data...');
     setIsLoadingStats(true);
-    console.log('🏆 Loading lifetime stats...');
 
     try {
-      // 🔧 FIXED: Add explicit null checks for profile
-      const fallbackStats = {
-        totalBeers: profile?.total_beers || 0,
-        totalShots: profile?.total_shots || 0,
-        totalBeerTowers: profile?.total_beer_towers || 0,
-        totalFunnels: profile?.total_funnels || 0,
-        totalShotguns: profile?.total_shotguns || 0,
-        totalPoolGames: profile?.pool_games_won || 0,
-        totalDartGames: profile?.dart_games_won || 0,
-        totalDrinksLogged: (profile?.total_beers || 0) + (profile?.total_shots || 0) + (profile?.total_beer_towers || 0) + (profile?.total_funnels || 0) + (profile?.total_shotguns || 0),
-        avgDrunkScale: profile?.drunk_scale_ratings && profile.drunk_scale_ratings.length > 0 
-          ? Math.round((profile.drunk_scale_ratings.reduce((sum, rating) => sum + rating, 0) / profile.drunk_scale_ratings.length) * 10) / 10
+      // 🔧 CRITICAL: Use profile data immediately, don't wait for daily stats
+      const directStats = {
+        totalBeers: currentProfile.total_beers || 0,
+        totalShots: currentProfile.total_shots || 0,
+        totalBeerTowers: currentProfile.total_beer_towers || 0,
+        totalFunnels: currentProfile.total_funnels || 0,
+        totalShotguns: currentProfile.total_shotguns || 0,
+        totalPoolGames: currentProfile.pool_games_won || 0,
+        totalDartGames: currentProfile.dart_games_won || 0,
+        totalDrinksLogged: (currentProfile.total_beers || 0) + (currentProfile.total_shots || 0) + (currentProfile.total_beer_towers || 0) + (currentProfile.total_funnels || 0) + (currentProfile.total_shotguns || 0),
+        avgDrunkScale: currentProfile.drunk_scale_ratings && currentProfile.drunk_scale_ratings.length > 0 
+          ? Math.round((currentProfile.drunk_scale_ratings.reduce((sum, rating) => sum + rating, 0) / currentProfile.drunk_scale_ratings.length) * 10) / 10
           : 0,
-        barsHit: profile?.bars_hit || 0,
-        nightsOut: profile?.nights_out || 0,
-        totalXP: profile?.xp || 0,
+        barsHit: currentProfile.bars_hit || 0,
+        nightsOut: currentProfile.nights_out || 0,
+        totalXP: currentProfile.xp || 0,
       };
 
-      // Set fallback data immediately
-      setLifetimeStats(fallbackStats);
-
-      // Try to enhance with daily stats, but don't block
-      if (isSupabaseConfigured() && supabase) {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const { data: dailyStats } = await supabase
-              .from('daily_stats')
-              .select('*')
-              .eq('user_id', user.id);
-
-            if (dailyStats && dailyStats.length > 0) {
-              // Calculate enhanced stats from daily data
-              const totals = dailyStats.reduce((acc, day) => ({
-                totalBeers: acc.totalBeers + (Number(day.beers) || 0),
-                totalShots: acc.totalShots + (Number(day.shots) || 0),
-                totalBeerTowers: acc.totalBeerTowers + (Number(day.beer_towers) || 0),
-                totalFunnels: acc.totalFunnels + (Number(day.funnels) || 0),
-                totalShotguns: acc.totalShotguns + (Number(day.shotguns) || 0),
-                totalPoolGames: acc.totalPoolGames + (Number(day.pool_games_won) || 0),
-                totalDartGames: acc.totalDartGames + (Number(day.dart_games_won) || 0),
-                drunkScaleSum: acc.drunkScaleSum + (Number(day.drunk_scale) || 0),
-                drunkScaleCount: acc.drunkScaleCount + (day.drunk_scale ? 1 : 0),
-                nightsOut: acc.nightsOut + 1,
-              }), {
-                totalBeers: 0, totalShots: 0, totalBeerTowers: 0, totalFunnels: 0, totalShotguns: 0,
-                totalPoolGames: 0, totalDartGames: 0, drunkScaleSum: 0, drunkScaleCount: 0, nightsOut: 0,
-              });
-
-              const enhancedStats = {
-                ...totals,
-                totalDrinksLogged: totals.totalBeers + totals.totalShots + totals.totalBeerTowers + totals.totalFunnels + totals.totalShotguns,
-                avgDrunkScale: totals.drunkScaleCount > 0 ? Math.round((totals.drunkScaleSum / totals.drunkScaleCount) * 10) / 10 : 0,
-                barsHit: profile?.bars_hit || 0,
-                totalXP: profile?.xp || 0,
-              };
-
-              setLifetimeStats(enhancedStats);
-              console.log('✅ Enhanced stats loaded from daily_stats');
-            }
-          }
-        } catch (enhanceError) {
-          console.warn('⚠️ Could not enhance stats with daily data:', enhanceError);
-          // Keep using fallback stats
-        }
-      }
-
+      // Set the stats immediately
+      setLifetimeStats(directStats);
       setLastStatsUpdate(new Date().toISOString());
-      console.log('✅ Lifetime stats loaded successfully');
+      console.log('✅ Lifetime stats loaded successfully:', directStats);
+
     } catch (error) {
       console.error('❌ Error loading lifetime stats:', error);
-      // 🔧 FIXED: Add null check for profile in catch block
-      if (profile) {
-        setLifetimeStats({
-          totalBeers: profile?.total_beers || 0,
-          totalShots: profile?.total_shots || 0,
-          totalBeerTowers: profile?.total_beer_towers || 0,
-          totalFunnels: profile?.total_funnels || 0,
-          totalShotguns: profile?.total_shotguns || 0,
-          totalPoolGames: profile?.pool_games_won || 0,
-          totalDartGames: profile?.dart_games_won || 0,
-          totalDrinksLogged: 0,
-          avgDrunkScale: 0,
-          barsHit: profile?.bars_hit || 0,
-          nightsOut: profile?.nights_out || 0,
-          totalXP: profile?.xp || 0,
-        });
-      }
+      // Still show basic stats even if there's an error
+      setLifetimeStats({
+        totalBeers: 0,
+        totalShots: 0,
+        totalBeerTowers: 0,
+        totalFunnels: 0,
+        totalShotguns: 0,
+        totalPoolGames: 0,
+        totalDartGames: 0,
+        totalDrinksLogged: 0,
+        avgDrunkScale: 0,
+        barsHit: 0,
+        nightsOut: 0,
+        totalXP: 0,
+      });
     } finally {
       setIsLoadingStats(false);
     }
-  };
+  }, [isAuthenticated, profile]);
 
-  // Load stats when profile becomes ready
+  // 🔧 FIXED: Load stats when we have profile data
   useEffect(() => {
-    if (isDataReady && !isLoadingStats) {
-      console.log('🏆 Data ready, loading stats...');
+    if (isAuthenticated && profile) {
+      console.log('🏆 Profile available, loading stats...');
       loadLifetimeStats();
     }
-  }, [isDataReady]);
+  }, [isAuthenticated, profile, loadLifetimeStats]);
 
   const onRefresh = async () => {
     if (!isAuthenticated || !isDataReady) return;
@@ -214,6 +177,7 @@ export default function TrophiesScreen() {
     await loadLifetimeStats();
   };
 
+  // Memoize trophy categories
   const trophyCategories = useMemo(() => {
     const categories = ['bars', 'activities', 'social', 'milestones'] as const;
     
@@ -234,7 +198,12 @@ export default function TrophiesScreen() {
     return completedAchievements.filter(trophy => trophy.category === selectedCategory);
   }, [completedAchievements, selectedCategory]);
 
-  const StatCard = ({ title, value, subtitle, size = 'normal' }: { title: string; value: number | string; subtitle?: string; size?: 'normal' | 'large' }) => (
+  const StatCard = ({ title, value, subtitle, size = 'normal' }: { 
+    title: string; 
+    value: number | string; 
+    subtitle?: string; 
+    size?: 'normal' | 'large';
+  }) => (
     <View style={[
       styles.statCard, 
       { backgroundColor: themeColors.card },
@@ -246,7 +215,7 @@ export default function TrophiesScreen() {
           { color: themeColors.primary },
           size === 'large' && styles.statValueLarge
         ]}>
-          {value}
+          {typeof value === 'number' ? value.toLocaleString() : value}
         </Text>
         <Text style={[
           styles.statTitle, 
@@ -272,12 +241,9 @@ export default function TrophiesScreen() {
     
     return (
       <View style={[styles.trophyCard, { backgroundColor: themeColors.card }]}>
-        <LinearGradient
-          colors={category?.gradient || ['#FF6B35', '#FF8F65'] as const}
-          style={styles.trophyIconContainer}
-        >
+        <View style={[styles.trophyIconContainer, { backgroundColor: category?.color || themeColors.primary }]}>
           <IconComponent size={24} color="white" />
-        </LinearGradient>
+        </View>
         
         <View style={styles.trophyContent}>
           <Text style={[styles.trophyTitle, { color: themeColors.text }]}>{trophy.title}</Text>
@@ -293,7 +259,6 @@ export default function TrophiesScreen() {
         
         <View style={styles.trophyMeta}>
           <View style={[styles.xpBadge, { backgroundColor: '#FFD60A20' }]}>
-            <Zap size={12} color="#FFD60A" />
             <Text style={styles.xpText}>+{trophy.xpReward || 100}</Text>
           </View>
         </View>
@@ -360,7 +325,7 @@ export default function TrophiesScreen() {
     </View>
   );
 
-  // 🔧 FIXED: Render logic with proper null checks
+  // 🔧 FIXED: Simplified render logic
   const renderStatsContent = () => {
     if (!isAuthenticated) {
       return (
@@ -613,7 +578,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingTop: 50,
     paddingBottom: 8,
     paddingHorizontal: 16,
   },
