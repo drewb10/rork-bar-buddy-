@@ -75,12 +75,12 @@ export default function TrophiesScreen() {
     }
   }, [isInitialized, initializeAchievements]);
 
-  // 🔧 SIMPLIFIED: Replace the complex profile readiness check
+  // 🔧 FIXED: Replace the isDataReady check with proper null handling
   const isDataReady = useMemo(() => {
-    return isAuthenticated && profile && profileReady;
+    return isAuthenticated && profile !== null && profile !== undefined && profileReady;
   }, [isAuthenticated, profile, profileReady]);
 
-  // 🔧 SIMPLIFIED: Replace the loadLifetimeStats function with this direct approach
+  // 🔧 FIXED: Replace the loadLifetimeStats function with null checks
   const loadLifetimeStats = async () => {
     if (!isDataReady || !profile) {
       console.log('🏆 Not ready to load stats - auth:', isAuthenticated, 'profile:', !!profile, 'ready:', profileReady);
@@ -91,7 +91,7 @@ export default function TrophiesScreen() {
     console.log('🏆 Loading lifetime stats...');
 
     try {
-      // 🔧 DIRECT: Use profile data immediately as fallback
+      // 🔧 FIXED: Add explicit null checks for profile
       const fallbackStats = {
         totalBeers: profile?.total_beers || 0,
         totalShots: profile?.total_shots || 0,
@@ -112,7 +112,7 @@ export default function TrophiesScreen() {
       // Set fallback data immediately
       setLifetimeStats(fallbackStats);
 
-      // 🔧 OPTIONAL: Try to enhance with daily stats, but don't block
+      // Try to enhance with daily stats, but don't block
       if (isSupabaseConfigured() && supabase) {
         try {
           const { data: { user } } = await supabase.auth.getUser();
@@ -162,7 +162,7 @@ export default function TrophiesScreen() {
       console.log('✅ Lifetime stats loaded successfully');
     } catch (error) {
       console.error('❌ Error loading lifetime stats:', error);
-      // Still show something rather than empty screen
+      // 🔧 FIXED: Add null check for profile in catch block
       if (profile) {
         setLifetimeStats({
           totalBeers: profile?.total_beers || 0,
@@ -184,7 +184,7 @@ export default function TrophiesScreen() {
     }
   };
 
-  // 🔧 SIMPLIFIED: Replace the useEffect with direct trigger
+  // Load stats when profile becomes ready
   useEffect(() => {
     if (isDataReady && !isLoadingStats) {
       console.log('🏆 Data ready, loading stats...');
@@ -360,6 +360,103 @@ export default function TrophiesScreen() {
     </View>
   );
 
+  // 🔧 FIXED: Render logic with proper null checks
+  const renderStatsContent = () => {
+    if (!isAuthenticated) {
+      return (
+        <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
+          <Text style={styles.emptyEmoji}>📊</Text>
+          <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
+            Sign In to View Stats
+          </Text>
+          <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
+            Track your activities and see your lifetime stats here!
+          </Text>
+        </View>
+      );
+    }
+
+    if (!profile) {
+      return (
+        <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
+          <ActivityIndicator size="large" color={themeColors.primary} />
+          <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
+            Loading Profile
+          </Text>
+          <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
+            Getting your profile data...
+          </Text>
+        </View>
+      );
+    }
+
+    if (isLoadingStats) {
+      return (
+        <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
+          <ActivityIndicator size="large" color={themeColors.primary} />
+          <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
+            Loading Stats
+          </Text>
+          <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
+            Calculating your lifetime statistics...
+          </Text>
+        </View>
+      );
+    }
+
+    // Show actual stats
+    return (
+      <>
+        <View style={styles.statsGrid}>
+          <StatCard title="Shots Taken" value={lifetimeStats.totalShots} />
+          <StatCard title="Beers Logged" value={lifetimeStats.totalBeers} />
+          <StatCard title="Beer Towers" value={lifetimeStats.totalBeerTowers} />
+          <StatCard title="Funnels" value={lifetimeStats.totalFunnels} />
+          <StatCard title="Shotguns" value={lifetimeStats.totalShotguns} />
+          <StatCard title="Pool Games Won" value={lifetimeStats.totalPoolGames} />
+          <StatCard title="Dart Games Won" value={lifetimeStats.totalDartGames} />
+        </View>
+
+        <View style={styles.bottomStatsGrid}>
+          <StatCard 
+            title="Bars Hit" 
+            value={lifetimeStats.barsHit}
+            size="large"
+          />
+          <StatCard 
+            title="Nights Out" 
+            value={lifetimeStats.nightsOut}
+            subtitle="Days with stats"
+            size="large"
+          />
+        </View>
+
+        <View style={styles.bottomStatsGrid}>
+          <StatCard 
+            title="Total Drinks Logged" 
+            value={lifetimeStats.totalDrinksLogged}
+            size="large"
+          />
+          <StatCard 
+            title="Average Drunk Scale" 
+            value={lifetimeStats.avgDrunkScale}
+            subtitle="out of 10"
+            size="large"
+          />
+        </View>
+
+        <View style={styles.bottomStatsGrid}>
+          <StatCard 
+            title="Total XP Earned" 
+            value={lifetimeStats.totalXP}
+            subtitle="Experience Points"
+            size="large"
+          />
+        </View>
+      </>
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: '#000000' }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -449,87 +546,7 @@ export default function TrophiesScreen() {
 
         {activeTab === 'stats' ? (
           <View style={styles.section}>
-            {/* 🔧 SIMPLIFIED: Replace the loading check in the render */}
-            {!isAuthenticated ? (
-              <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
-                <Text style={styles.emptyEmoji}>📊</Text>
-                <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
-                  Sign In to View Stats
-                </Text>
-                <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
-                  Track your activities and see your lifetime stats here!
-                </Text>
-              </View>
-            ) : !profile ? (
-              <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
-                <ActivityIndicator size="large" color={themeColors.primary} />
-                <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
-                  Loading Profile
-                </Text>
-                <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
-                  Getting your profile data...
-                </Text>
-              </View>
-            ) : isLoadingStats ? (
-              <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
-                <ActivityIndicator size="large" color={themeColors.primary} />
-                <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
-                  Loading Stats
-                </Text>
-                <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
-                  Calculating your lifetime statistics...
-                </Text>
-              </View>
-            ) : (
-              <>
-                <View style={styles.statsGrid}>
-                  <StatCard title="Shots Taken" value={lifetimeStats.totalShots} />
-                  <StatCard title="Beers Logged" value={lifetimeStats.totalBeers} />
-                  <StatCard title="Beer Towers" value={lifetimeStats.totalBeerTowers} />
-                  <StatCard title="Funnels" value={lifetimeStats.totalFunnels} />
-                  <StatCard title="Shotguns" value={lifetimeStats.totalShotguns} />
-                  <StatCard title="Pool Games Won" value={lifetimeStats.totalPoolGames} />
-                  <StatCard title="Dart Games Won" value={lifetimeStats.totalDartGames} />
-                </View>
-
-                <View style={styles.bottomStatsGrid}>
-                  <StatCard 
-                    title="Bars Hit" 
-                    value={lifetimeStats.barsHit}
-                    size="large"
-                  />
-                  <StatCard 
-                    title="Nights Out" 
-                    value={lifetimeStats.nightsOut}
-                    subtitle="Days with stats"
-                    size="large"
-                  />
-                </View>
-
-                <View style={styles.bottomStatsGrid}>
-                  <StatCard 
-                    title="Total Drinks Logged" 
-                    value={lifetimeStats.totalDrinksLogged}
-                    size="large"
-                  />
-                  <StatCard 
-                    title="Average Drunk Scale" 
-                    value={lifetimeStats.avgDrunkScale}
-                    subtitle="out of 10"
-                    size="large"
-                  />
-                </View>
-
-                <View style={styles.bottomStatsGrid}>
-                  <StatCard 
-                    title="Total XP Earned" 
-                    value={lifetimeStats.totalXP}
-                    subtitle="Experience Points"
-                    size="large"
-                  />
-                </View>
-              </>
-            )}
+            {renderStatsContent()}
           </View>
         ) : (
           <View style={styles.section}>

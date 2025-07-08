@@ -3,7 +3,6 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface VenueInteraction {
-  venueId: string;
   count: number;
   lastReset: string;
   lastInteraction: string;
@@ -17,8 +16,8 @@ interface VenueInteraction {
 
 interface VenueInteractionState {
   interactions: VenueInteraction[];
-  incrementInteraction: (venueId: string, arrivalTime?: string) => void;
-  likeVenue: (venueId: string, timeSlot: string) => void;
+  incrementInteraction: (venueId: string, arrivalTime?: string) => Promise<void>;
+  likeVenue: (venueId: string, timeSlot: string) => Promise<void>;
   getInteractionCount: (venueId: string) => number;
   getLikeCount: (venueId: string) => number;
   getTotalLikes: () => number;
@@ -110,7 +109,8 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
     (set, get) => ({
       interactions: [],
       
-      incrementInteraction: (venueId, arrivalTime) => {
+      // 🔧 ENHANCED: Check-in with immediate profile sync
+      incrementInteraction: async (venueId, arrivalTime) => {
         try {
           if (!venueId) return;
           
@@ -159,6 +159,28 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
             }
           });
 
+          // 🔧 CRITICAL: Immediately update profile stats
+          try {
+            if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
+              const userProfileStore = (window as any).__userProfileStore;
+              if (userProfileStore?.getState) {
+                const { incrementBarsHit, incrementNightsOut, canIncrementNightsOut } = userProfileStore.getState();
+                
+                // Always increment bars hit for check-ins
+                await incrementBarsHit();
+                
+                // Increment nights out if eligible
+                if (canIncrementNightsOut()) {
+                  await incrementNightsOut();
+                }
+                
+                console.log('✅ Profile stats updated immediately after check-in');
+              }
+            }
+          } catch (error) {
+            console.error('❌ Error updating profile stats:', error);
+          }
+
           debouncedAwardXP(venueId, isNewBar);
           debouncedUpdateAchievements();
           get().syncToSupabase(venueId, arrivalTime);
@@ -167,8 +189,8 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
         }
       },
 
-      // 🔧 FIXED: Remove XP award from liking venues
-      likeVenue: (venueId, timeSlot) => {
+      // 🔧 ENHANCED: Like venue with immediate profile sync (NO XP award)
+      likeVenue: async (venueId, timeSlot) => {
         try {
           if (!venueId || !timeSlot) return;
           
@@ -216,6 +238,26 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
               };
             }
           });
+
+          // 🔧 CRITICAL: Immediately update profile stats for likes
+          try {
+            if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
+              const userProfileStore = (window as any).__userProfileStore;
+              if (userProfileStore?.getState) {
+                const { incrementBarsHit, loadProfile } = userProfileStore.getState();
+                
+                // Increment bars hit for likes (counts as venue interaction)
+                await incrementBarsHit();
+                
+                // Reload profile to ensure UI is synced
+                await loadProfile();
+                
+                console.log('✅ Profile stats updated immediately after like');
+              }
+            }
+          } catch (error) {
+            console.error('❌ Error updating profile stats for like:', error);
+          }
 
           // Update achievements for bars visited
           debouncedUpdateAchievements();
@@ -568,7 +610,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
   )
 );
 
-// Debounced XP award functions - REMOVED like XP award
+// Award XP for check-ins only (not likes)
 const debouncedAwardXP = debounce((venueId: string, isNewBar: boolean) => {
   try {
     if (typeof window !== 'undefined' && (window as any).__userProfileStore) {

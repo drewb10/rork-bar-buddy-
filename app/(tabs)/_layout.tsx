@@ -1,8 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Platform, View, Text } from 'react-native';
-import { Home, Award, Camera, Trophy, User } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Platform } from 'react-native';
+import { Home, Award, Trophy, User } from 'lucide-react-native';
 import { getThemeColors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 
@@ -13,7 +12,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#FF6B35',
+        tabBarActiveTintColor: '#FF6B35', // Orange highlight for active tabs
         tabBarInactiveTintColor: '#8E8E93',
         tabBarStyle: {
           backgroundColor: 'rgba(0,0,0,0.95)',
@@ -41,18 +40,9 @@ export default function TabLayout() {
           paddingVertical: 4,
         },
         headerShown: false,
-        tabBarBackground: () => (
-          <View style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.95)',
-          }} />
-        ),
       }}
     >
+      {/* Home Tab */}
       <Tabs.Screen
         name="index"
         options={{
@@ -66,6 +56,8 @@ export default function TabLayout() {
           ),
         }}
       />
+      
+      {/* Tasks Tab (formerly achievements) */}
       <Tabs.Screen
         name="achievements"
         options={{
@@ -79,19 +71,8 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="camera"
-        options={{
-          title: 'Camera',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Camera 
-              size={size} 
-              color={color} 
-              strokeWidth={focused ? 2.5 : 2}
-            />
-          ),
-        }}
-      />
+      
+      {/* Trophies Tab */}
       <Tabs.Screen
         name="trophies"
         options={{
@@ -105,6 +86,8 @@ export default function TabLayout() {
           ),
         }}
       />
+      
+      {/* Profile Tab */}
       <Tabs.Screen
         name="profile"
         options={{

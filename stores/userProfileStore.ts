@@ -326,24 +326,161 @@ export const useUserProfileStore = create<UserProfileStore>()(
         return today !== lastNightOutDate;
       },
 
+      // 🔧 ENHANCED: Better incrementNightsOut with date checking
       incrementNightsOut: async () => {
-        const { profile } = get();
-        if (!profile || !get().canIncrementNightsOut()) return;
-        const newNightsOut = (profile.nights_out || 0) + 1;
-        const today = new Date().toISOString();
-        await get().updateProfile({
-          nights_out: newNightsOut,
-          last_night_out_date: today
-        });
-        await get().awardXP('complete_night_out', 'Completed a night out');
+        const state = get();
+        if (!state.profile) {
+          console.error('❌ No profile available for incrementNightsOut');
+          return;
+        }
+
+        // Check if already incremented today
+        if (!state.canIncrementNightsOut()) {
+          console.log('🌃 Nights out already incremented today');
+          return;
+        }
+
+        try {
+          const newNightsOut = state.profile.nights_out + 1;
+          const today = new Date().toISOString();
+          
+          console.log('🌃 Incrementing nights out:', newNightsOut);
+          
+          // Update local state immediately
+          set(currentState => ({
+            profile: currentState.profile ? {
+              ...currentState.profile,
+              nights_out: newNightsOut,
+              last_night_out_date: today,
+              updated_at: today
+            } : null
+          }));
+
+          // Add null check for supabase
+          if (!supabase) {
+            console.warn('🔄 Supabase client not available for nights out update');
+            return;
+          }
+
+          // Get current user
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          if (userError || !user) {
+            console.error('❌ No authenticated user for nights out update');
+            return;
+          }
+
+          // Update Supabase
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ 
+              nights_out: newNightsOut,
+              last_night_out_date: today,
+              updated_at: today
+            })
+            .eq('id', user.id);
+
+          if (updateError) {
+            console.error('❌ Error updating nights_out in Supabase:', updateError);
+            
+            // Revert local state on error
+            set(currentState => ({
+              profile: currentState.profile ? {
+                ...currentState.profile,
+                nights_out: state.profile.nights_out, // Revert to original value
+                last_night_out_date: state.profile.last_night_out_date,
+                updated_at: new Date().toISOString()
+              } : null
+            }));
+            return;
+          }
+
+          console.log('✅ Successfully incremented nights out to:', newNightsOut);
+        } catch (error) {
+          console.error('❌ Error in incrementNightsOut:', error);
+          
+          // Revert local state on error
+          set(currentState => ({
+            profile: currentState.profile ? {
+              ...currentState.profile,
+              nights_out: state.profile.nights_out, // Revert to original value
+              last_night_out_date: state.profile.last_night_out_date,
+              updated_at: new Date().toISOString()
+            } : null
+          }));
+        }
       },
 
+      // 🔧 ENHANCED: Better incrementBarsHit with immediate sync
       incrementBarsHit: async () => {
-        const { profile } = get();
-        if (!profile) return;
-        const newBarsHit = (profile.bars_hit || 0) + 1;
-        await get().updateProfile({ bars_hit: newBarsHit });
-        await get().awardXP('visit_new_bar', 'Visited a new bar');
+        const state = get();
+        if (!state.profile) {
+          console.error('❌ No profile available for incrementBarsHit');
+          return;
+        }
+
+        try {
+          const newBarsHit = state.profile.bars_hit + 1;
+          
+          console.log('🏛️ Incrementing bars hit:', newBarsHit);
+          
+          // Update local state immediately
+          set(currentState => ({
+            profile: currentState.profile ? {
+              ...currentState.profile,
+              bars_hit: newBarsHit,
+              updated_at: new Date().toISOString()
+            } : null
+          }));
+
+          // Add null check for supabase
+          if (!supabase) {
+            console.warn('🔄 Supabase client not available for bars hit update');
+            return;
+          }
+
+          // Get current user
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          if (userError || !user) {
+            console.error('❌ No authenticated user for bars hit update');
+            return;
+          }
+
+          // Update Supabase
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ 
+              bars_hit: newBarsHit,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', user.id);
+
+          if (updateError) {
+            console.error('❌ Error updating bars_hit in Supabase:', updateError);
+            
+            // Revert local state on error
+            set(currentState => ({
+              profile: currentState.profile ? {
+                ...currentState.profile,
+                bars_hit: state.profile.bars_hit, // Revert to original value
+                updated_at: new Date().toISOString()
+              } : null
+            }));
+            return;
+          }
+
+          console.log('✅ Successfully incremented bars hit to:', newBarsHit);
+        } catch (error) {
+          console.error('❌ Error in incrementBarsHit:', error);
+          
+          // Revert local state on error
+          set(currentState => ({
+            profile: currentState.profile ? {
+              ...currentState.profile,
+              bars_hit: state.profile.bars_hit, // Revert to original value
+              updated_at: new Date().toISOString()
+            } : null
+          }));
+        }
       },
 
       incrementPhotosTaken: async () => {
