@@ -87,17 +87,19 @@ export const useUserProfileStore = create<UserProfileStore>()(
         set({ profile: null, friends: [], isInitialized: false, profileReady: false });
       },
 
-      // 🔧 FIXED: Robust profile loading with better error handling
+      // 🔧 SIMPLIFIED: Direct profile loading without complex dependencies
       loadProfile: async () => {
         const state = get();
-        if (state.isLoading || state.isUpdating) {
+        
+        // Prevent multiple concurrent loads
+        if (state.isLoading) {
           console.log('🔄 Profile load already in progress, skipping...');
           return;
         }
-        
+
         try {
           set({ isLoading: true, profileReady: false });
-          console.log('🔄 Starting profile load...');
+          console.log('🔄 Starting simplified profile load...');
           
           if (!isSupabaseConfigured()) {
             console.log('🔧 Supabase not configured, using demo profile');
@@ -135,23 +137,22 @@ export const useUserProfileStore = create<UserProfileStore>()(
             return;
           }
           
-          // 🔧 FIX: Better auth user retrieval with error handling
+          // 🔧 CRITICAL: Direct Supabase auth call without complex error handling
           const { data: { user }, error: authError } = await supabase.auth.getUser();
-          if (authError) {
-            console.error('🔄 Auth error:', authError);
-            set({ isLoading: false, profile: null, profileReady: false });
-            return;
-          }
           
-          if (!user) {
-            console.log('🔄 No authenticated user found');
-            set({ isLoading: false, profile: null, profileReady: false });
+          if (authError || !user) {
+            console.log('🔄 No authenticated user found:', authError?.message);
+            set({ 
+              isLoading: false, 
+              profile: null, 
+              profileReady: false 
+            });
             return;
           }
 
-          console.log('🔄 Loading profile for authenticated user:', user.id);
+          console.log('🔄 Found authenticated user:', user.id);
 
-          // 🔧 FIX: Use user.id directly instead of complex lookup logic
+          // 🔧 CRITICAL: Direct profile fetch with minimal error handling
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
@@ -159,11 +160,11 @@ export const useUserProfileStore = create<UserProfileStore>()(
             .single();
 
           if (profileError) {
-            console.error('🔄 Profile error:', profileError);
+            console.error('🔄 Profile fetch error:', profileError.message);
             
-            // If profile doesn't exist, create it
+            // 🔧 SIMPLIFIED: Create profile if it doesn't exist
             if (profileError.code === 'PGRST116') {
-              console.log('🆕 Creating new profile for user...');
+              console.log('🆕 Creating new profile...');
               
               const newProfile = {
                 id: user.id,
@@ -197,39 +198,35 @@ export const useUserProfileStore = create<UserProfileStore>()(
                 .single();
 
               if (createError) {
-                console.error('Failed to create new profile:', createError);
+                console.error('Failed to create profile:', createError.message);
                 set({ isLoading: false, profile: null, profileReady: false });
                 return;
               }
 
-              console.log('✅ New profile created successfully');
+              // Use created profile
+              const finalProfile = {
+                ...createdProfile,
+                friends: [],
+                friend_requests: [],
+              };
+
               set({
-                profile: {
-                  ...createdProfile,
-                  friends: [],
-                  friend_requests: [],
-                } as UserProfile,
+                profile: finalProfile,
                 isLoading: false,
-                profileReady: true,
-                isInitialized: true
+                profileReady: true
               });
+
+              console.log('✅ New profile created and loaded');
               return;
             }
             
+            // Other errors
             set({ isLoading: false, profile: null, profileReady: false });
             return;
           }
 
-          if (!profileData) {
-            console.error('🔄 No profile data returned');
-            set({ isLoading: false, profile: null, profileReady: false });
-            return;
-          }
-
-          console.log('✅ Profile loaded successfully:', profileData.username);
-
-          // 🔧 FIX: Set profile immediately without waiting for additional data
-          const profile: UserProfile = {
+          // 🔧 CRITICAL: Set profile immediately with minimal data
+          const finalProfile: UserProfile = {
             id: profileData.id,
             username: profileData.username,
             phone: profileData.phone || '',
@@ -241,8 +238,8 @@ export const useUserProfileStore = create<UserProfileStore>()(
             last_night_out_date: profileData.last_night_out_date,
             last_drunk_scale_date: profileData.last_drunk_scale_date,
             profile_picture: profileData.profile_picture,
-            friends: [], // Will be loaded separately
-            friend_requests: [], // Will be loaded separately
+            friends: [], // Start empty, load later
+            friend_requests: [], // Start empty, load later
             xp_activities: profileData.xp_activities || [],
             visited_bars: profileData.visited_bars || [],
             total_shots: profileData.total_shots || 0,
@@ -258,22 +255,22 @@ export const useUserProfileStore = create<UserProfileStore>()(
             updated_at: profileData.updated_at,
           };
 
+          // 🔧 CRITICAL: Set profile ready IMMEDIATELY
           set({ 
-            profile,
+            profile: finalProfile,
             isLoading: false,
-            profileReady: true,
-            isInitialized: true
+            profileReady: true
           });
 
-          // 🔧 FIX: Load additional data in background (non-blocking)
-          setTimeout(() => {
-            get().loadFriends();
-            get().syncStatsFromDailyStats();
-          }, 100);
+          console.log('✅ Profile loaded successfully:', finalProfile.username);
 
         } catch (error) {
-          console.error('❌ Error loading profile:', error);
-          set({ isLoading: false, profile: null, profileReady: false });
+          console.error('❌ Critical error in profile loading:', error);
+          set({ 
+            isLoading: false, 
+            profile: null, 
+            profileReady: false 
+          });
         }
       },
 

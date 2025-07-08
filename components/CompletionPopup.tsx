@@ -12,7 +12,7 @@ interface CompletionPopupProps {
   onClose: () => void;
 }
 
-export function CompletionPopup({ visible, title, xpReward, type, onClose }: CompletionPopupProps) {
+export default function CompletionPopup({ visible, title, xpReward, type, onClose }: CompletionPopupProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const [fadeAnim] = useState(new Animated.Value(0));

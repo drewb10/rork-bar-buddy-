@@ -26,7 +26,7 @@ export default function ProfileScreen() {
     sessionChecked,
     user
   } = useAuthStore();
-  const { setProfilePicture } = useUserProfileStore();
+  const { setProfilePicture, loadProfile, profileReady } = useUserProfileStore();
   const router = useRouter();
   
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
@@ -36,21 +36,38 @@ export default function ProfileScreen() {
   const [rankModalVisible, setRankModalVisible] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
+  // 🔧 SIMPLIFIED: Replace the complex useEffect with this direct approach
   useEffect(() => {
-    const initializeProfile = async () => {
+    const initProfile = async () => {
       try {
+        console.log('🔄 Profile tab: Starting initialization...');
+        
+        // 1. Check session first
         if (!sessionChecked) {
+          console.log('🔄 Profile tab: Checking session...');
           await checkSession();
         }
+        
+        // 2. If authenticated, load profile immediately
+        if (isAuthenticated) {
+          console.log('🔄 Profile tab: User authenticated, loading profile...');
+          await loadProfile();
+        } else {
+          console.log('🔄 Profile tab: User not authenticated');
+        }
+        
       } catch (error) {
-        console.warn('Error checking session:', error);
+        console.error('❌ Profile tab initialization error:', error);
       } finally {
         setIsInitializing(false);
       }
     };
 
-    initializeProfile();
-  }, [sessionChecked, checkSession]);
+    // Only run once on mount
+    if (isInitializing) {
+      initProfile();
+    }
+  }, [isInitializing, sessionChecked, isAuthenticated, checkSession, loadProfile]);
 
   useEffect(() => {
     if (profile && profile.has_completed_onboarding === false) {
@@ -193,13 +210,15 @@ export default function ProfileScreen() {
     setShowOnboarding(false);
   };
 
-  if (isInitializing || authLoading) {
+  // 🔧 SIMPLIFIED: Replace the complex loading check with this
+  if (isInitializing || (isAuthenticated && (!profileReady || authLoading))) {
     return (
-      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={themeColors.primary} />
-          <Text style={[styles.loadingText, { color: themeColors.text }]}>
-            Loading your profile...
+          <ActivityIndicator size="large" color="#FF6A00" />
+          <Text style={[styles.loadingText, { color: themeColors.text, marginTop: 16 }]}>
+            {authLoading ? 'Checking authentication...' : 'Loading your profile...'}
           </Text>
         </View>
       </View>
