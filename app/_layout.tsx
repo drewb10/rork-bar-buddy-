@@ -20,7 +20,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Global popup manager hook
 function useCompletionPopups() {
   const [currentPopup, setCurrentPopup] = useState<{
     title: string;
@@ -29,10 +28,8 @@ function useCompletionPopups() {
   } | null>(null);
 
   useEffect(() => {
-    // Listen for global popup events
     const checkForPopups = () => {
       if (typeof window !== 'undefined') {
-        // Check for trophy completion
         if ((window as any).__showTrophyCompletionPopup) {
           const popup = (window as any).__showTrophyCompletionPopup;
           setCurrentPopup({
@@ -43,7 +40,6 @@ function useCompletionPopups() {
           delete (window as any).__showTrophyCompletionPopup;
         }
         
-        // Check for task completion
         if ((window as any).__showTaskCompletionPopup) {
           const popup = (window as any).__showTaskCompletionPopup;
           setCurrentPopup({
@@ -71,17 +67,14 @@ function useCompletionPopups() {
 }
 
 export default function RootLayout() {
-  // CRITICAL: This hook must be called first and never removed
   const isFrameworkReady = useFrameworkReady();
 
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const initializationRef = useRef(false);
 
-  // Global popup management
   const { currentPopup, closeCurrentPopup } = useCompletionPopups();
 
-  // Safe store access with fallbacks
   const ageVerificationStore = useAgeVerificationStore();
   const authStore = useAuthStore();
 
@@ -96,12 +89,10 @@ export default function RootLayout() {
     if (!isFrameworkReady || initializationRef.current) return;
     
     try {
-      // Check Supabase configuration
       if (checkConfiguration && typeof checkConfiguration === 'function') {
         checkConfiguration();
       }
       
-      // Initialize authentication
       const initializeApp = async () => {
         try {
           if (initializationRef.current) return;
@@ -112,7 +103,6 @@ export default function RootLayout() {
             setIsInitialized(true);
           }, 10000);
 
-          // Initialize auth (will handle unconfigured state gracefully)
           if (initializeAuth && typeof initializeAuth === 'function') {
             await initializeAuth();
           }
@@ -125,12 +115,10 @@ export default function RootLayout() {
         }
       };
 
-      // Show age verification if not verified
       if (!isVerified) {
         setShowAgeVerification(true);
-        setIsInitialized(true); // Don't wait for auth if not age verified
+        setIsInitialized(true);
       } else {
-        // Initialize app if verified
         if (!isInitialized && !initializationRef.current) {
           setTimeout(() => {
             initializeApp();
@@ -155,7 +143,6 @@ export default function RootLayout() {
     }
   };
 
-  // Don't render anything until framework is ready
   if (!isFrameworkReady) {
     return null;
   }
@@ -210,7 +197,6 @@ export default function RootLayout() {
           onVerify={handleAgeVerification}
         />
 
-        {/* Global completion popup */}
         <CompletionPopup
           visible={!!currentPopup}
           title={currentPopup?.title || ''}

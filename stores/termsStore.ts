@@ -36,7 +36,6 @@ export const useTermsStore = create<TermsState>()(
           termsAcceptance: acceptanceRecord,
         });
         
-        // Log for compliance (in production, send to backend)
         console.log('Terms of Service Accepted:', acceptanceRecord);
       },
       

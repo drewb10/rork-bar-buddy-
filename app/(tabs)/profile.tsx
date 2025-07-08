@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, Image, ActivityIndicator } from 'react-native';
-import { User, Camera, Users, LogOut, TrendingUp } from 'lucide-react-native';
+import { User, Camera, Users, LogOut, TrendingUp, Crown } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -9,6 +9,7 @@ import FriendsModal from '@/components/FriendsModal';
 import BarBuddyChatbot from '@/components/BarBuddyChatbot';
 import OnboardingModal from '@/components/OnboardingModal';
 import DailyTracker from '@/components/DailyTracker';
+import RankModal from '@/components/RankModal';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useUserProfileStore } from '@/stores/userProfileStore';
@@ -32,9 +33,9 @@ export default function ProfileScreen() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showChatbot, setShowChatbot] = useState(false);
   const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
+  const [rankModalVisible, setRankModalVisible] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
-  // Simplified initialization
   useEffect(() => {
     const initializeProfile = async () => {
       try {
@@ -52,13 +53,11 @@ export default function ProfileScreen() {
   }, [sessionChecked, checkSession]);
 
   useEffect(() => {
-    // Show onboarding if user hasn't completed it
     if (profile && profile.has_completed_onboarding === false) {
       setShowOnboarding(true);
     }
   }, [profile]);
 
-  // Create display profile with fallback values
   const displayProfile = profile || {
     username: 'Guest User',
     email: '',
@@ -143,7 +142,6 @@ export default function ProfileScreen() {
       if (!result.canceled && result.assets[0]) {
         await setProfilePicture(result.assets[0].uri);
         
-        // Award XP for taking a photo
         if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
           const userProfileStore = (window as any).__userProfileStore;
           if (userProfileStore?.getState) {
@@ -187,11 +185,14 @@ export default function ProfileScreen() {
     setDailyTrackerVisible(true);
   };
 
+  const handleRankPress = () => {
+    setRankModalVisible(true);
+  };
+
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
   };
 
-  // Show loading state during initialization
   if (isInitializing || authLoading) {
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background }]}>
@@ -215,11 +216,9 @@ export default function ProfileScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {/* Header with Logo */}
           <View style={styles.header}>
             <BarBuddyLogo size="large" />
             
-            {/* Tab Switcher */}
             <View style={styles.tabSwitcher}>
               <Pressable
                 style={[
@@ -254,7 +253,6 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Profile Picture Section */}
           <View style={styles.profileSection}>
             <Pressable onPress={handleProfilePicturePress} disabled={!isAuthenticated}>
               <View style={[styles.profilePictureContainer, { borderColor: themeColors.primary }]}>
@@ -284,19 +282,27 @@ export default function ProfileScreen() {
             )}
           </View>
 
-          {/* Simple XP Section */}
           <View style={[styles.xpSection, { backgroundColor: themeColors.card }]}>
-            <View style={styles.xpContent}>
-              <Text style={[styles.xpLabel, { color: themeColors.subtext }]}>
-                Experience Points
-              </Text>
-              <Text style={[styles.xpAmount, { color: themeColors.primary }]}>
-                {displayProfile.xp || 0} XP
-              </Text>
-            </View>
+            <Pressable onPress={handleRankPress} disabled={!isAuthenticated}>
+              <View style={styles.xpContent}>
+                <Text style={[styles.xpLabel, { color: themeColors.subtext }]}>
+                  Experience Points
+                </Text>
+                <Text style={[styles.xpAmount, { color: themeColors.primary }]}>
+                  {displayProfile.xp || 0} XP
+                </Text>
+                {isAuthenticated && (
+                  <View style={styles.rankButton}>
+                    <Crown size={16} color={themeColors.primary} />
+                    <Text style={[styles.rankButtonText, { color: themeColors.primary }]}>
+                      View Ranks
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </Pressable>
           </View>
 
-          {/* Stats Overview */}
           {isAuthenticated && (
             <View style={styles.statsOverview}>
               <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
@@ -334,9 +340,7 @@ export default function ProfileScreen() {
             </View>
           )}
 
-          {/* Action Buttons */}
           <View style={styles.actionsSection}>
-            {/* Daily Tracker Button */}
             <Pressable 
               style={[styles.dailyTrackerButton, { backgroundColor: themeColors.card }]}
               onPress={handleDailyTrackerPress}
@@ -356,7 +360,6 @@ export default function ProfileScreen() {
               </View>
             </Pressable>
 
-            {/* Friends Button */}
             {isAuthenticated && (
               <Pressable 
                 style={[styles.actionButton, { backgroundColor: themeColors.card }]}
@@ -378,7 +381,6 @@ export default function ProfileScreen() {
               </Pressable>
             )}
 
-            {/* Sign Out Button */}
             {isAuthenticated && (
               <Pressable 
                 style={[styles.signOutButton, { backgroundColor: '#FF3B30' }]}
@@ -389,7 +391,6 @@ export default function ProfileScreen() {
               </Pressable>
             )}
 
-            {/* Sign In Prompt */}
             {!isAuthenticated && (
               <View style={[styles.signInPrompt, { backgroundColor: themeColors.card }]}>
                 <Text style={[styles.signInTitle, { color: themeColors.text }]}>
@@ -414,19 +415,22 @@ export default function ProfileScreen() {
         <BarBuddyChatbot />
       )}
 
-      {/* Daily Tracker Modal */}
       <DailyTracker
         visible={dailyTrackerVisible}
         onClose={() => setDailyTrackerVisible(false)}
       />
 
-      {/* Onboarding Modal */}
+      <RankModal
+        visible={rankModalVisible}
+        onClose={() => setRankModalVisible(false)}
+        currentXP={displayProfile.xp || 0}
+      />
+
       <OnboardingModal
         visible={showOnboarding}
         onComplete={handleOnboardingComplete}
       />
 
-      {/* Friends Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -547,6 +551,16 @@ const styles = StyleSheet.create({
   xpAmount: {
     fontSize: 32,
     fontWeight: '800',
+    marginBottom: 12,
+  },
+  rankButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  rankButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   statsOverview: {
     marginHorizontal: 20,

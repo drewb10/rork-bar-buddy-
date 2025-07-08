@@ -11,7 +11,6 @@ interface RankModalProps {
   currentXP: number;
 }
 
-// ✅ FIX: Define rank system with clear thresholds
 export const RANK_SYSTEM = [
   {
     id: 1,
@@ -34,7 +33,7 @@ export const RANK_SYSTEM = [
     color: '#34C759',
     gradient: ['#34C759', '#52D681'] as const,
     icon: Star,
-    description: 'You\'re building good habits! Keep logging your nights out.',
+    description: 'You are building good habits! Keep logging your nights out.',
     perks: ['Unlock achievements', 'Friend system access', 'Basic trophies'],
   },
   {
@@ -46,7 +45,7 @@ export const RANK_SYSTEM = [
     color: '#007AFF',
     gradient: ['#007AFF', '#40A9FF'] as const,
     icon: Award,
-    description: 'You\'re becoming a familiar face at the local bars.',
+    description: 'You are becoming a familiar face at the local bars.',
     perks: ['Advanced tracking', 'Venue hot times', 'Special achievements'],
   },
   {
@@ -70,7 +69,7 @@ export const RANK_SYSTEM = [
     color: '#AF52DE',
     gradient: ['#AF52DE', '#C77DFF'] as const,
     icon: Crown,
-    description: 'You\'re legendary in the scene. Others look up to your expertise.',
+    description: 'You are legendary in the scene. Others look up to your expertise.',
     perks: ['VIP status', 'Early access features', 'Leaderboard prominence'],
   },
   {
@@ -82,7 +81,7 @@ export const RANK_SYSTEM = [
     color: '#FFD60A',
     gradient: ['#FFD60A', '#FFED4A'] as const,
     icon: Crown,
-    description: 'You\'ve mastered the art of nightlife. You are the benchmark.',
+    description: 'You have mastered the art of nightlife. You are the benchmark.',
     perks: ['Master status', 'All premium features', 'Community recognition', 'Special badges'],
   },
 ];

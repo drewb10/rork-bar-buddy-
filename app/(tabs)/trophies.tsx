@@ -69,14 +69,12 @@ export default function TrophiesScreen() {
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [lastStatsUpdate, setLastStatsUpdate] = useState<string | null>(null);
 
-  // Initialize achievements when component mounts
   useEffect(() => {
     if (!isInitialized) {
       initializeAchievements();
     }
   }, [isInitialized, initializeAchievements]);
 
-  // Load lifetime stats when component mounts or when authenticated
   useEffect(() => {
     if (isAuthenticated && profile) {
       loadLifetimeStats();
@@ -231,7 +229,6 @@ export default function TrophiesScreen() {
     await loadLifetimeStats();
   };
 
-  // Memoize trophy categories
   const trophyCategories = useMemo(() => {
     const categories = ['bars', 'activities', 'social', 'milestones'] as const;
     
@@ -252,7 +249,6 @@ export default function TrophiesScreen() {
     return completedAchievements.filter(trophy => trophy.category === selectedCategory);
   }, [completedAchievements, selectedCategory]);
 
-  // Modern StatCard component with better styling
   const StatCard = ({ title, value, subtitle, size = 'normal' }: { title: string; value: number | string; subtitle?: string; size?: 'normal' | 'large' }) => (
     <View style={[
       styles.statCard, 
@@ -281,7 +277,6 @@ export default function TrophiesScreen() {
         )}
       </View>
       
-      {/* Subtle accent line */}
       <View style={[styles.statAccent, { backgroundColor: themeColors.primary }]} />
     </View>
   );
@@ -397,14 +392,12 @@ export default function TrophiesScreen() {
           />
         }
       >
-        {/* Header with Logo */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
             <BarBuddyLogo size="large" />
           </View>
         </View>
 
-        {/* Page Title */}
         <View style={styles.titleSection}>
           <Text style={[styles.pageTitle, { color: themeColors.text }]}>
             Your Achievements
@@ -426,7 +419,6 @@ export default function TrophiesScreen() {
           )}
         </View>
 
-        {/* Tab Navigation */}
         <View style={styles.tabContainer}>
           <Pressable 
             style={[
@@ -457,7 +449,6 @@ export default function TrophiesScreen() {
             </Text>
           </Pressable>
           
-          {/* Manual Refresh Button */}
           <Pressable 
             style={[styles.refreshButton, { backgroundColor: themeColors.primary + '20' }]}
             onPress={handleManualRefresh}
@@ -472,7 +463,6 @@ export default function TrophiesScreen() {
         </View>
 
         {activeTab === 'stats' ? (
-          /* Lifetime Stats Section */
           <View style={styles.section}>
             {!isAuthenticated ? (
               <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
@@ -496,7 +486,6 @@ export default function TrophiesScreen() {
               </View>
             ) : (
               <>
-                {/* Activity Stats Grid - Enhanced with modern design */}
                 <View style={styles.statsGrid}>
                   <StatCard title="Shots Taken" value={lifetimeStats.totalShots} />
                   <StatCard title="Beers Logged" value={lifetimeStats.totalBeers} />
@@ -507,7 +496,6 @@ export default function TrophiesScreen() {
                   <StatCard title="Dart Games Won" value={lifetimeStats.totalDartGames} />
                 </View>
 
-                {/* Bottom Row - Larger Stats */}
                 <View style={styles.bottomStatsGrid}>
                   <StatCard 
                     title="Bars Hit" 
@@ -536,7 +524,6 @@ export default function TrophiesScreen() {
                   />
                 </View>
 
-                {/* XP Card */}
                 <View style={styles.bottomStatsGrid}>
                   <StatCard 
                     title="Total XP Earned" 
@@ -549,7 +536,6 @@ export default function TrophiesScreen() {
             )}
           </View>
         ) : (
-          /* Trophies Section */
           <View style={styles.section}>
             {!isAuthenticated ? (
               <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
@@ -563,10 +549,8 @@ export default function TrophiesScreen() {
               </View>
             ) : (
               <>
-                {/* Category Filters */}
                 {renderCategoryFilters()}
 
-                {/* Trophies List */}
                 {filteredTrophies.length === 0 ? (
                   <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
                     <Text style={styles.emptyEmoji}>🏆</Text>
@@ -678,7 +662,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 32,
   },
-  // Enhanced: Modern stats grid with responsive design
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -690,7 +673,6 @@ const styles = StyleSheet.create({
     marginHorizontal: -6,
     marginBottom: 16,
   },
-  // Enhanced: Modern stat card with accent line and better spacing
   statCard: {
     flex: 1,
     borderRadius: 16,
@@ -742,7 +724,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     opacity: 0.8,
   },
-  // NEW: Subtle accent line for modern card design
   statAccent: {
     position: 'absolute',
     bottom: 0,

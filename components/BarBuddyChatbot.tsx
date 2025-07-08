@@ -28,7 +28,6 @@ export default function BarBuddyChatbot({ onClose }: BarBuddyChatbotProps) {
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
   useEffect(() => {
-    // Initial animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -43,7 +42,6 @@ export default function BarBuddyChatbot({ onClose }: BarBuddyChatbotProps) {
       })
     ]).start();
 
-    // Initial greeting
     setTimeout(() => {
       addBotMessage(
         "Hey there! 🍻 I'm BarBuddy, your nightlife companion! I can help you find the perfect spots, check out tonight's specials, or plan your next adventure. What are you in the mood for?",
@@ -99,7 +97,6 @@ export default function BarBuddyChatbot({ onClose }: BarBuddyChatbotProps) {
   const getBotResponse = async (userInput: string): Promise<{ text: string; suggestions?: string[] }> => {
     const input = userInput.toLowerCase();
     
-    // Tonight's specials
     if (input.includes('special') || input.includes('deal') || input.includes('tonight')) {
       const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
       const todaySpecials = venues.flatMap(venue => 
@@ -125,7 +122,6 @@ export default function BarBuddyChatbot({ onClose }: BarBuddyChatbotProps) {
       }
     }
     
-    // Find bars/venues
     if (input.includes('bar') || input.includes('venue') || input.includes('find') || input.includes('near')) {
       const topVenues = venues.slice(0, 3);
       const venuesList = topVenues.map(venue => 
@@ -138,7 +134,6 @@ export default function BarBuddyChatbot({ onClose }: BarBuddyChatbotProps) {
       };
     }
     
-    // Popular/trending
     if (input.includes('popular') || input.includes('trending') || input.includes('hot') || input.includes('busy')) {
       return {
         text: "Right now, The Library and JBA are absolutely buzzing! 🔥 The Library's got that chill sports bar energy with great happy hour deals, while JBA is perfect if you're looking for craft cocktails and a more upscale vibe. Both are packed with good energy tonight!",
@@ -146,7 +141,6 @@ export default function BarBuddyChatbot({ onClose }: BarBuddyChatbotProps) {
       };
     }
     
-    // Planning night out
     if (input.includes('plan') || input.includes('night out') || input.includes('adventure')) {
       return {
         text: "Let's plan an epic night! 🎯 Are you looking for a chill hangout with friends, want to dance the night away, or maybe bar hop and try different vibes? I can create the perfect route based on what you're feeling!",
@@ -154,7 +148,6 @@ export default function BarBuddyChatbot({ onClose }: BarBuddyChatbotProps) {
       };
     }
     
-    // Specific venue questions
     if (input.includes('library')) {
       return {
         text: "The Library is such a solid choice! 📚🍺 It's got that perfect sports bar vibe - great for watching games, hanging with friends, and their happy hour (4-7 PM) is legendary. Plus, they've got pool tables and a really welcoming crowd. Perfect for a laid-back but fun night!",
@@ -169,7 +162,6 @@ export default function BarBuddyChatbot({ onClose }: BarBuddyChatbotProps) {
       };
     }
     
-    // Vibe questions
     if (input.includes('vibe') || input.includes('atmosphere') || input.includes('feel')) {
       return {
         text: "Each spot has its own personality! 🎭 Want something chill and friendly? Hit The Library. Looking for creative energy and craft cocktails? JBA's your spot. Want to dance? Late Nite is where the party's at. I can match you with the perfect vibe - what mood are you in?",
@@ -177,7 +169,6 @@ export default function BarBuddyChatbot({ onClose }: BarBuddyChatbotProps) {
       };
     }
     
-    // Default responses
     const defaultResponses = [
       {
         text: "That sounds interesting! 🤔 Want me to help you find the perfect spot for that? I know all the best places in town and can match you with exactly what you're looking for!",
@@ -235,7 +226,6 @@ export default function BarBuddyChatbot({ onClose }: BarBuddyChatbotProps) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        {/* Header */}
         <View style={[styles.header, { borderBottomColor: themeColors.border }]}>
           <View style={styles.headerContent}>
             <View style={[styles.avatarContainer, { backgroundColor: themeColors.primary }]}>
@@ -253,7 +243,6 @@ export default function BarBuddyChatbot({ onClose }: BarBuddyChatbotProps) {
           <View style={[styles.statusIndicator, { backgroundColor: '#4CAF50' }]} />
         </View>
 
-        {/* Messages */}
         <ScrollView
           ref={scrollViewRef}
           style={styles.messagesContainer}
@@ -298,7 +287,6 @@ export default function BarBuddyChatbot({ onClose }: BarBuddyChatbotProps) {
                 </Text>
               </View>
               
-              {/* Suggestions */}
               {message.isBot && message.suggestions && (
                 <View style={styles.suggestionsContainer}>
                   {message.suggestions.map((suggestion, index) => (
@@ -323,7 +311,6 @@ export default function BarBuddyChatbot({ onClose }: BarBuddyChatbotProps) {
             </View>
           ))}
           
-          {/* Typing indicator */}
           {isTyping && (
             <View style={styles.typingContainer}>
               <View style={[styles.typingBubble, { backgroundColor: themeColors.background, borderColor: themeColors.border }]}>
@@ -337,7 +324,6 @@ export default function BarBuddyChatbot({ onClose }: BarBuddyChatbotProps) {
           )}
         </ScrollView>
 
-        {/* Input */}
         <View style={[styles.inputContainer, { backgroundColor: themeColors.background, borderTopColor: themeColors.border }]}>
           <TextInput
             style={[

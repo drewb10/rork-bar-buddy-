@@ -18,7 +18,6 @@ interface VenueCardProps {
   compact?: boolean;
 }
 
-// Convert 24-hour time to 12-hour format
 const formatTo12Hour = (timeString: string): string => {
   try {
     if (timeString.includes(':')) {
@@ -52,12 +51,10 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   
   const { incrementNightsOut, incrementBarsHit, canIncrementNightsOut, awardXP, profile } = useUserProfileStore();
   
-  // Local state for real-time UI updates
   const [localLikeCount, setLocalLikeCount] = useState<number | null>(null);
   const [localCanLike, setLocalCanLike] = useState<boolean | null>(null);
   const [localHotTime, setLocalHotTime] = useState<{ time: string; likes: number } | null>(null);
   
-  // Modal states
   const [rsvpModalVisible, setRsvpModalVisible] = useState(false);
   const [likeModalVisible, setLikeModalVisible] = useState(false);
   const [chatModalVisible, setChatModalVisible] = useState(false);
@@ -66,26 +63,23 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   const [isInteracting, setIsInteracting] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
 
-  // Memoized interaction data - fix the null to undefined conversion
   const interactionData = useMemo(() => {
     const hotTimeData = localHotTime !== null ? localHotTime : getHotTimeWithLikes(venue.id);
     
     return {
       interactionCount: getInteractionCount(venue.id),
       likeCount: localLikeCount !== null ? localLikeCount : getLikeCount(venue.id),
-      hotTimeData: hotTimeData || undefined, // Convert null to undefined
+      hotTimeData: hotTimeData || undefined,
       canInteractWithVenue: canInteract(venue.id),
       canLikeThisVenue: localCanLike !== null ? localCanLike : canLikeVenue(venue.id),
     };
   }, [venue.id, localLikeCount, localCanLike, localHotTime, getInteractionCount, getLikeCount, getHotTimeWithLikes, canInteract, canLikeVenue]);
 
-  // Memoized venue data
   const venueData = useMemo(() => ({
     todaySpecials: venue.specials.filter(special => special.day === getCurrentDay()),
     timeSlots: generateTimeSlots(),
   }), [venue.specials]);
 
-  // Event handlers
   const handlePress = useCallback(() => {
     if (isInteracting || isLiking) return;
     router.push(`/venue/${venue.id}`);
@@ -109,7 +103,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     try {
       incrementInteraction(venue.id, selectedTime);
       
-      // ✅ FIX 1: Award XP for checking in to venue
       await awardXP('check_in', `Checked in at ${venue.name}`, venue.id);
       
       await incrementBarsHit();
@@ -118,7 +111,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         await incrementNightsOut();
       }
 
-      // ✅ FIX 2: Award additional XP if this is a new bar
       if (profile && !profile.visited_bars?.includes(venue.id)) {
         await awardXP('visit_new_bar', `Visited new bar: ${venue.name}`, venue.id);
       }
@@ -136,19 +128,13 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     if (!selectedLikeTime) return;
     
     try {
-      // Immediate UI update
       const currentLikeCount = getLikeCount(venue.id);
       setLocalLikeCount(currentLikeCount + 1);
       setLocalCanLike(false);
       setLocalHotTime({ time: selectedLikeTime, likes: 1 });
       
-      // Submit like
       likeVenue(venue.id, selectedLikeTime);
       
-      // ✅ FIX 3: Award XP for liking a venue
-      await awardXP('like_bar', `Liked ${venue.name}`, venue.id);
-      
-      // Force update
       setTimeout(() => forceUpdate(), 100);
       
       setLikeModalVisible(false);
@@ -156,13 +142,12 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
       setIsLiking(false);
     } catch (error) {
       console.error('Error submitting like:', error);
-      // Revert local state on error
       setLocalLikeCount(null);
       setLocalCanLike(null);
       setLocalHotTime(null);
       setIsLiking(false);
     }
-  }, [selectedLikeTime, venue.id, venue.name, likeVenue, getLikeCount, awardXP, forceUpdate]);
+  }, [selectedLikeTime, venue.id, venue.name, likeVenue, getLikeCount, forceUpdate]);
 
   const handleModalCancel = useCallback((type: 'rsvp' | 'like') => {
     if (type === 'rsvp') {
@@ -187,7 +172,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
               style={styles.compactGradient}
             />
             
-            {/* Like button - moved to right */}
             <Pressable 
               style={[styles.compactLikeButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
               onPress={handleLikePress}
@@ -199,7 +183,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
               />
             </Pressable>
 
-            {/* Rating badge */}
             <View style={styles.ratingBadge}>
               <Star size={10} color="white" fill="white" />
               <Text style={styles.ratingText}>{venue.rating}</Text>
@@ -231,7 +214,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   return (
     <View>
       <Pressable style={styles.card} onPress={handlePress}>
-        {/* Hero Image */}
         <View style={styles.imageContainer}>
           <Image source={{ uri: venue.featuredImage }} style={styles.image} />
           <LinearGradient
@@ -239,9 +221,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
             style={styles.gradient}
           />
           
-          {/* Top Action Bar */}
           <View style={styles.topActionBar}>
-            {/* Hot count */}
             {interactionData.likeCount > 0 && (
               <View style={styles.hotBadge}>
                 <Flame size={14} color="white" fill="#FF6B35" />
@@ -249,7 +229,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
               </View>
             )}
             
-            {/* Action buttons moved to right */}
             <View style={styles.actionButtons}>
               <Pressable style={styles.actionButton} onPress={handleChatPress}>
                 <MessageCircle size={16} color="white" />
@@ -268,16 +247,13 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
             </View>
           </View>
 
-          {/* Rating overlay */}
           <View style={styles.ratingOverlay}>
             <Star size={12} color="white" fill="white" />
             <Text style={styles.overlayRating}>{venue.rating}</Text>
           </View>
         </View>
 
-        {/* Content */}
         <View style={styles.content}>
-          {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Text style={styles.venueName}>{venue.name}</Text>
@@ -295,7 +271,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
             </View>
           </View>
 
-          {/* Hot Time - Convert to 12-hour format */}
           {interactionData.hotTimeData && (
             <View style={styles.hotTimeContainer}>
               <TrendingUp size={14} color="#FF6B35" />
@@ -305,7 +280,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
             </View>
           )}
 
-          {/* Today's Specials - Updated to orange theme */}
           {venueData.todaySpecials.length > 0 && (
             <View style={styles.specialsContainer}>
               <Text style={styles.specialsTitle}>Today's Specials</Text>
@@ -317,7 +291,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
             </View>
           )}
 
-          {/* Location & Hours */}
           <View style={styles.infoContainer}>
             <View style={styles.infoRow}>
               <MapPin size={14} color="#8E8E93" />
@@ -360,7 +333,6 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
 }
 
 const styles = StyleSheet.create({
-  // Full Card Styles
   card: {
     backgroundColor: '#1C1C1E',
     borderRadius: 16,
@@ -530,16 +502,16 @@ const styles = StyleSheet.create({
   },
   
   specialsContainer: {
-    backgroundColor: '#FF6B6B20', // Updated to orange theme
+    backgroundColor: '#FF6B6B20',
     padding: 12,
     borderRadius: 12,
     marginBottom: 16,
     borderLeft: 3,
-    borderLeftColor: '#FF6B6B', // Updated to orange theme
+    borderLeftColor: '#FF6B6B',
   },
   
   specialsTitle: {
-    color: '#FF6B6B', // Updated to orange theme
+    color: '#FF6B6B',
     fontSize: 14,
     fontWeight: '700',
     marginBottom: 6,
@@ -570,7 +542,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Compact Card Styles
   compactCard: {
     width: 180,
     backgroundColor: '#1C1C1E',
@@ -605,7 +576,7 @@ const styles = StyleSheet.create({
   compactLikeButton: {
     position: 'absolute',
     top: 8,
-    right: 8, // Moved to right
+    right: 8,
     width: 28,
     height: 28,
     borderRadius: 14,

@@ -12,7 +12,7 @@ interface VenueInteraction {
   timestamp: string;
   lastLikeReset: string;
   dailyLikesUsed: number;
-  likeTimeSlot?: string; // Time slot when user liked the venue
+  likeTimeSlot?: string;
 }
 
 interface VenueInteractionState {
@@ -33,7 +33,6 @@ interface VenueInteractionState {
   getTimeSlotData: (venueId: string) => { time: string; count: number; likes: number }[];
   getAllInteractionsForVenue: (venueId: string) => VenueInteraction[];
   getDetailedTimeSlotData: (venueId: string) => { time: string; visits: number; likes: number; isCurrentHour: boolean; isPeak: boolean }[];
-  // New methods for better syncing
   forceUpdate: () => void;
   getTotalBarsVisited: () => number;
 }
@@ -42,7 +41,7 @@ const RESET_HOUR = 5;
 const LIKE_RESET_HOUR = 4;
 const LIKE_RESET_MINUTE = 59;
 const INTERACTION_COOLDOWN_HOURS = 2;
-const DAILY_LIKE_LIMIT = 1; // 1 like per bar per day
+const DAILY_LIKE_LIMIT = 1;
 
 const shouldReset = (lastReset: string): boolean => {
   try {
@@ -63,16 +62,13 @@ const shouldResetLikes = (lastLikeReset: string): boolean => {
     const lastResetDate = new Date(lastLikeReset);
     const now = new Date();
     
-    // Reset at 4:59 AM
     const resetTime = new Date(now);
     resetTime.setHours(LIKE_RESET_HOUR, LIKE_RESET_MINUTE, 0, 0);
     
-    // If it's past 4:59 AM today and last reset was before today's 4:59 AM, reset
     if (now >= resetTime && lastResetDate < resetTime) {
       return true;
     }
     
-    // If it's before 4:59 AM today, check if last reset was before yesterday's 4:59 AM
     if (now < resetTime) {
       const yesterdayResetTime = new Date(resetTime);
       yesterdayResetTime.setDate(yesterdayResetTime.getDate() - 1);
@@ -101,7 +97,6 @@ const canInteractWithVenue = (lastInteraction: string | undefined): boolean => {
   }
 };
 
-// Debounce function to prevent rapid successive calls
 const debounce = <T extends (...args: any[]) => any>(func: T, wait: number): T => {
   let timeout: ReturnType<typeof setTimeout>;
   return ((...args: any[]) => {
@@ -164,25 +159,19 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
             }
           });
 
-          // Award XP through user profile store with debouncing
           debouncedAwardXP(venueId, isNewBar);
-          
-          // Update achievements
           debouncedUpdateAchievements();
-          
-          // Sync to Supabase
           get().syncToSupabase(venueId, arrivalTime);
         } catch (error) {
           console.warn('Error incrementing interaction:', error);
         }
       },
 
-      // Enhanced: Flame icon handles likes with time slot selection AND task sync
+      // UPDATED: Remove XP award from liking venues
       likeVenue: (venueId, timeSlot) => {
         try {
           if (!venueId || !timeSlot) return;
           
-          // Check if user can like this venue today
           if (!get().canLikeVenue(venueId)) return;
           
           const now = new Date().toISOString();
@@ -191,7 +180,6 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
             const existingInteraction = state.interactions.find(i => i && i.venueId === venueId);
             
             if (existingInteraction) {
-              // Reset daily likes if needed
               const shouldResetLikesForVenue = shouldResetLikes(existingInteraction.lastLikeReset);
               const dailyLikesUsed = shouldResetLikesForVenue ? 0 : existingInteraction.dailyLikesUsed;
               
@@ -229,20 +217,16 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
             }
           });
 
-          // Award XP for liking a bar with debouncing
-          debouncedAwardLikeXP(venueId);
-          
           // Update achievements for bars visited
           debouncedUpdateAchievements();
 
-          // Enhanced: Sync task progress for "Like bars" tasks
+          // Sync task progress for "Like bars" tasks
           setTimeout(() => {
             if (typeof window !== 'undefined' && (window as any).__achievementStore) {
               const achievementStore = (window as any).__achievementStore;
               if (achievementStore?.getState) {
                 const { updateAchievementProgress, achievements } = achievementStore.getState();
                 
-                // Find "like bars" related tasks and update progress
                 const likeBarTasks = achievements.filter((task: any) => 
                   task.title.toLowerCase().includes('like') && 
                   task.title.toLowerCase().includes('bar') &&
@@ -260,8 +244,6 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           }, 100);
           
           console.log('✅ Like venue completed with task sync, triggering re-render...');
-          
-          // Force update to trigger re-renders across components
           get().forceUpdate();
         } catch (error) {
           console.warn('Error liking venue:', error);
@@ -485,9 +467,8 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           
           const interaction = get().interactions.find(i => i && i.venueId === venueId);
           
-          if (!interaction) return true; // Can like if no interaction exists
+          if (!interaction) return true;
           
-          // Check if likes have been reset today
           const shouldResetLikesForVenue = shouldResetLikes(interaction.lastLikeReset || interaction.lastReset);
           const dailyLikesUsed = shouldResetLikesForVenue ? 0 : (interaction.dailyLikesUsed || 0);
           
@@ -529,7 +510,6 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
         }
       },
 
-      // New function to get hot time with like count for display
       getHotTimeWithLikes: (venueId) => {
         try {
           if (!venueId) return null;
@@ -537,7 +517,6 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           const { interactions } = get();
           const venueInteractions = interactions.filter(i => i && i.venueId === venueId);
           
-          // Count likes by time slot
           const timeSlotLikes: Record<string, number> = {};
           
           venueInteractions.forEach(interaction => {
@@ -548,7 +527,6 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           
           if (Object.keys(timeSlotLikes).length === 0) return null;
           
-          // Find the time slot with the most likes
           const maxLikes = Math.max(...Object.values(timeSlotLikes));
           const hotTimeEntry = Object.entries(timeSlotLikes).find(([time, likes]) => likes === maxLikes);
           
@@ -564,7 +542,6 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
       },
 
       forceUpdate: () => {
-        // Force a state update to trigger re-renders
         set((state) => ({ ...state }));
       },
 
@@ -591,7 +568,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
   )
 );
 
-// Debounced XP award functions to prevent rapid successive calls
+// Debounced XP award functions - REMOVED like XP award
 const debouncedAwardXP = debounce((venueId: string, isNewBar: boolean) => {
   try {
     if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
@@ -599,10 +576,8 @@ const debouncedAwardXP = debounce((venueId: string, isNewBar: boolean) => {
       if (userProfileStore?.getState) {
         const { awardXP, profile } = userProfileStore.getState();
         
-        // Award XP for checking in
         awardXP('check_in', `Checked in at venue`, venueId);
         
-        // Award XP for visiting a new bar
         if (isNewBar || !profile?.visited_bars?.includes(venueId)) {
           awardXP('visit_new_bar', `Visited a new bar`, venueId);
         }
@@ -613,21 +588,6 @@ const debouncedAwardXP = debounce((venueId: string, isNewBar: boolean) => {
   }
 }, 300);
 
-const debouncedAwardLikeXP = debounce((venueId: string) => {
-  try {
-    if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
-      const userProfileStore = (window as any).__userProfileStore;
-      if (userProfileStore?.getState) {
-        const { awardXP } = userProfileStore.getState();
-        awardXP('like_bar', `Liked a bar`, venueId);
-      }
-    }
-  } catch (error) {
-    console.warn('Error awarding like XP:', error);
-  }
-}, 300);
-
-// Debounced achievement update function
 const debouncedUpdateAchievements = debounce(() => {
   try {
     if (typeof window !== 'undefined' && (window as any).__achievementStore && (window as any).__userProfileStore) {
@@ -643,7 +603,7 @@ const debouncedUpdateAchievements = debounce(() => {
             totalBeers: profile.total_beers || 0,
             totalShots: profile.total_shots || 0,
             totalBeerTowers: profile.total_beer_towers || 0,
-            totalScoopAndScores: 0, // Not tracked
+            totalScoopAndScores: 0,
             totalFunnels: profile.total_funnels || 0,
             totalShotguns: profile.total_shotguns || 0,
             poolGamesWon: profile.pool_games_won || 0,
@@ -659,7 +619,6 @@ const debouncedUpdateAchievements = debounce(() => {
   }
 }, 500);
 
-// Store reference for cross-store access
 if (typeof window !== 'undefined') {
   (window as any).__venueInteractionStore = useVenueInteractionStore;
 }

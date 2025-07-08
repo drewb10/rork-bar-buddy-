@@ -34,7 +34,6 @@ export default function CompletionPopup({ visible, title, xpReward, type, onClos
         }),
       ]).start();
 
-      // Auto-dismiss after 3 seconds
       const timer = setTimeout(() => {
         handleClose();
       }, 3000);
@@ -153,13 +152,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     marginBottom: 4,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
-    fontWeight: '500' as const,
+    fontWeight: '500',
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 20,
@@ -174,7 +173,7 @@ const styles = StyleSheet.create({
   xpText: {
     color: '#FFD60A',
     fontSize: 14,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     marginLeft: 6,
   },
 });

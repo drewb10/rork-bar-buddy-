@@ -24,7 +24,6 @@ const XP_VALUES = {
   pool_games: 15,
   dart_games: 15,
   drunk_scale_submission: 25,
-  like_bar: 5,
   check_in: 10,
   new_member_bonus: 100,
 } as const;
