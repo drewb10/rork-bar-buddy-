@@ -89,15 +89,19 @@ const getCurrentRank = (xp: number) => {
   let currentRank = RANK_SYSTEM[0];
   let currentSubRank = currentRank.subRanks[0];
   
-  for (const rank of RANK_SYSTEM) {
-    for (const subRank of rank.subRanks) {
-      if (xp >= subRank.xpRequired) {
-        currentRank = rank;
-        currentSubRank = subRank;
-      } else {
-        break;
+  try {
+    for (const rank of RANK_SYSTEM) {
+      for (const subRank of rank.subRanks) {
+        if (xp >= subRank.xpRequired) {
+          currentRank = rank;
+          currentSubRank = subRank;
+        } else {
+          break;
+        }
       }
     }
+  } catch (error) {
+    console.error('Error calculating current rank:', error);
   }
   
   return { rank: currentRank, subRank: currentSubRank };
@@ -105,12 +109,16 @@ const getCurrentRank = (xp: number) => {
 
 // Helper function to get next rank
 const getNextRank = (xp: number) => {
-  for (const rank of RANK_SYSTEM) {
-    for (const subRank of rank.subRanks) {
-      if (xp < subRank.xpRequired) {
-        return { rank, subRank };
+  try {
+    for (const rank of RANK_SYSTEM) {
+      for (const subRank of rank.subRanks) {
+        if (xp < subRank.xpRequired) {
+          return { rank, subRank };
+        }
       }
     }
+  } catch (error) {
+    console.error('Error calculating next rank:', error);
   }
   return null;
 };
@@ -118,7 +126,12 @@ const getNextRank = (xp: number) => {
 const RankModal: React.FC<RankModalProps> = ({ visible, userXP, onClose }) => {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { rank: currentRank, subRank: currentSubRank } = getCurrentRank(userXP);
+  
+  if (!visible) {
+    return null;
+  }
+
+  const { rank: currentRank, subRank: currentSubRank } = getCurrentRank(userXP || 0);
 
   return (
     <Modal
@@ -147,7 +160,7 @@ const RankModal: React.FC<RankModalProps> = ({ visible, userXP, onClose }) => {
                 {currentRank.name} {currentSubRank.level}
               </Text>
               <Text style={[styles.currentRankXP, { color: themeColors.subtext }]}>
-                {userXP.toLocaleString()} XP
+                {(userXP || 0).toLocaleString()} XP
               </Text>
             </View>
           </View>
@@ -156,7 +169,7 @@ const RankModal: React.FC<RankModalProps> = ({ visible, userXP, onClose }) => {
         {/* All Ranks List */}
         <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
           {RANK_SYSTEM.map((rank, rankIndex) => (
-            <View key={rank.name} style={[styles.rankSection, { backgroundColor: themeColors.card }]}>
+            <View key={`${rank.name}-${rankIndex}`} style={[styles.rankSection, { backgroundColor: themeColors.card }]}>
               <View style={styles.rankHeader}>
                 <Text style={styles.rankEmoji}>{rank.icon}</Text>
                 <Text style={[styles.rankName, { color: rank.color }]}>
@@ -166,11 +179,11 @@ const RankModal: React.FC<RankModalProps> = ({ visible, userXP, onClose }) => {
               
               {rank.subRanks.map((subRank, subIndex) => {
                 const isCurrentRank = currentRank.name === rank.name && currentSubRank.level === subRank.level;
-                const isUnlocked = userXP >= subRank.xpRequired;
+                const isUnlocked = (userXP || 0) >= subRank.xpRequired;
                 
                 return (
                   <View
-                    key={subRank.level}
+                    key={`${rank.name}-${subRank.level}-${subIndex}`}
                     style={[
                       styles.subRankItem,
                       {
@@ -226,7 +239,7 @@ const RankModal: React.FC<RankModalProps> = ({ visible, userXP, onClose }) => {
   );
 };
 
-const RankSystem: React.FC<RankSystemProps> = ({ userXP, onPress }) => {
+const RankSystem: React.FC<RankSystemProps> = ({ userXP = 0, onPress }) => {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const [modalVisible, setModalVisible] = useState(false);
@@ -235,8 +248,12 @@ const RankSystem: React.FC<RankSystemProps> = ({ userXP, onPress }) => {
   const nextRank = getNextRank(userXP);
 
   const handlePress = () => {
-    setModalVisible(true);
-    onPress?.();
+    try {
+      setModalVisible(true);
+      onPress?.();
+    } catch (error) {
+      console.error('Error opening rank modal:', error);
+    }
   };
 
   return (
@@ -268,7 +285,7 @@ const RankSystem: React.FC<RankSystemProps> = ({ userXP, onPress }) => {
                   styles.progressFill,
                   {
                     backgroundColor: currentRank.color,
-                    width: `${Math.min(100, ((userXP - currentSubRank.xpRequired) / (nextRank.subRank.xpRequired - currentSubRank.xpRequired)) * 100)}%`,
+                    width: `${Math.min(100, Math.max(0, ((userXP - currentSubRank.xpRequired) / (nextRank.subRank.xpRequired - currentSubRank.xpRequired)) * 100))}%`,
                   }
                 ]}
               />
