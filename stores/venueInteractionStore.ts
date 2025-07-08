@@ -177,7 +177,6 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
         }
       },
 
-      // Flame icon handles likes with time slot selection
       likeVenue: (venueId, timeSlot) => {
         try {
           if (!venueId || !timeSlot) return;
