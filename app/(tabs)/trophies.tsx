@@ -1,69 +1,59 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Pressable, RefreshControl, Alert, ActivityIndicator } from 'react-native';
-import { Trophy, Award, Target, Star, BarChart3, TrendingUp, RefreshCw } from 'lucide-react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  Alert,
+  RefreshControl,
+  ActivityIndicator,
+} from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { 
+  Trophy, 
+  Award, 
+  Star, 
+  Users, 
+  MapPin, 
+  Calendar,
+  Target,
+  Zap
+} from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
-import { useUserProfileStore } from '@/stores/userProfileStore';
-import { useAchievementStoreSafe } from '@/stores/achievementStore';
+import { useDailyStatsStore } from '@/stores/dailyStatsStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
-import { supabase } from '@/lib/supabase';
+import LifetimeStats from '@/components/LifetimeStats';
+import { useRouter } from 'expo-router';
 
-const CATEGORY_CONFIG = {
-  bars: { 
-    label: 'Bar Hopping', 
-    icon: Target, 
-    color: '#FF6B35',
-    gradient: ['#FF6B35', '#FF8F65'] as const
-  },
-  activities: { 
-    label: 'Activities', 
-    icon: Trophy, 
-    color: '#007AFF',
-    gradient: ['#007AFF', '#40A9FF'] as const
-  },
-  social: { 
-    label: 'Social', 
-    icon: Star, 
-    color: '#34C759',
-    gradient: ['#34C759', '#52D681'] as const
-  },
-  milestones: { 
-    label: 'Milestones', 
-    icon: Award, 
-    color: '#AF52DE',
-    gradient: ['#AF52DE', '#C77DFF'] as const
-  },
-};
-
-interface LifetimeStats {
-  totalBeers: number;
-  totalShots: number;
-  totalBeerTowers: number;
-  totalFunnels: number;
-  totalShotguns: number;
-  totalPoolGames: number;
-  totalDartGames: number;
-  totalDrinksLogged: number;
-  avgDrunkScale: number;
-  barsHit: number;
-  nightsOut: number;
-  totalXP: number;
+interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  category: 'bars' | 'activities' | 'social' | 'milestones';
+  level: 'bronze' | 'silver' | 'gold' | 'platinum';
+  xpReward: number;
+  progress: number;
+  maxProgress: number;
+  isCompleted: boolean;
+  dateCompleted?: string;
 }
 
 export default function TrophiesScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { isAuthenticated } = useAuthStore();
-  const { profile, syncStatsFromDailyStats } = useUserProfileStore();
-  const { completedAchievements } = useAchievementStoreSafe();
-  
+  const { profile, isAuthenticated } = useAuthStore();
+  const { dailyStats, loadDailyStats } = useDailyStatsStore();
+  const router = useRouter();
+
   const [activeTab, setActiveTab] = useState<'stats' | 'trophies'>('stats');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'bars' | 'activities' | 'social' | 'milestones'>('all');
   const [refreshing, setRefreshing] = useState(false);
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
-  const [lastStatsUpdate, setLastStatsUpdate] = useState<string | null>(null);
-  const [lifetimeStats, setLifetimeStats] = useState<LifetimeStats>({
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [completedAchievements, setCompletedAchievements] = useState<Achievement[]>([]);
+  const [lifetimeStats, setLifetimeStats] = useState({
     totalBeers: 0,
     totalShots: 0,
     totalBeerTowers: 0,
@@ -78,57 +68,42 @@ export default function TrophiesScreen() {
     totalXP: 0,
   });
 
-  // 🔧 CRITICAL FIX: Simplified data ready check
-  const isDataReady = useMemo(() => {
-    return isAuthenticated && profile !== null && profile !== undefined;
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadLifetimeStats();
+    }
   }, [isAuthenticated, profile]);
 
-  // 🔧 FIXED: Simplified stats loading that actually works
-  const loadLifetimeStats = useCallback(async () => {
-    if (!isAuthenticated) {
-      console.log('🏆 Not authenticated, skipping stats load');
-      return;
-    }
-
-    // Don't wait for profile to be "ready" - use whatever profile data we have
-    const currentProfile = profile;
-    if (!currentProfile) {
-      console.log('🏆 No profile data available yet');
-      setIsLoadingStats(false);
-      return;
-    }
-
-    console.log('🏆 Loading lifetime stats with profile data...');
-    setIsLoadingStats(true);
+  const loadLifetimeStats = async () => {
+    if (!isAuthenticated || !profile) return;
 
     try {
-      // 🔧 CRITICAL: Use profile data immediately, don't wait for daily stats
-      const directStats = {
-        totalBeers: currentProfile.total_beers || 0,
-        totalShots: currentProfile.total_shots || 0,
-        totalBeerTowers: currentProfile.total_beer_towers || 0,
-        totalFunnels: currentProfile.total_funnels || 0,
-        totalShotguns: currentProfile.total_shotguns || 0,
-        totalPoolGames: currentProfile.pool_games_won || 0,
-        totalDartGames: currentProfile.dart_games_won || 0,
-        totalDrinksLogged: (currentProfile.total_beers || 0) + (currentProfile.total_shots || 0) + (currentProfile.total_beer_towers || 0) + (currentProfile.total_funnels || 0) + (currentProfile.total_shotguns || 0),
-        avgDrunkScale: currentProfile.drunk_scale_ratings && currentProfile.drunk_scale_ratings.length > 0 
-          ? Math.round((currentProfile.drunk_scale_ratings.reduce((sum, rating) => sum + rating, 0) / currentProfile.drunk_scale_ratings.length) * 10) / 10
-          : 0,
-        barsHit: currentProfile.bars_hit || 0,
-        nightsOut: currentProfile.nights_out || 0,
-        totalXP: currentProfile.xp || 0,
-      };
-
-      // Set the stats immediately
-      setLifetimeStats(directStats);
-      setLastStatsUpdate(new Date().toISOString());
-      console.log('✅ Lifetime stats loaded successfully:', directStats);
-
-    } catch (error) {
-      console.error('❌ Error loading lifetime stats:', error);
-      // Still show basic stats even if there's an error
-      setLifetimeStats({
+      setIsLoadingStats(true);
+      
+      // Load daily stats
+      await loadDailyStats();
+      
+      // Calculate totals from daily stats
+      const totals = Object.values(dailyStats).reduce((acc, dayStats) => {
+        return {
+          totalBeers: acc.totalBeers + (dayStats.beers || 0),
+          totalShots: acc.totalShots + (dayStats.shots || 0),
+          totalBeerTowers: acc.totalBeerTowers + (dayStats.beer_towers || 0),
+          totalFunnels: acc.totalFunnels + (dayStats.funnels || 0),
+          totalShotguns: acc.totalShotguns + (dayStats.shotguns || 0),
+          totalPoolGames: acc.totalPoolGames + (dayStats.pool_games_won || 0),
+          totalDartGames: acc.totalDartGames + (dayStats.dart_games_won || 0),
+          totalDrinksLogged: acc.totalDrinksLogged + 
+            (dayStats.beers || 0) + 
+            (dayStats.shots || 0) + 
+            (dayStats.beer_towers || 0) + 
+            (dayStats.funnels || 0) + 
+            (dayStats.shotguns || 0),
+          drunkScaleSum: acc.drunkScaleSum + (dayStats.drunk_scale || 0),
+          drunkScaleCount: acc.drunkScaleCount + (dayStats.drunk_scale ? 1 : 0),
+          nightsOut: acc.nightsOut + 1, // Each day with stats counts as a night out
+        };
+      }, {
         totalBeers: 0,
         totalShots: 0,
         totalBeerTowers: 0,
@@ -137,30 +112,194 @@ export default function TrophiesScreen() {
         totalPoolGames: 0,
         totalDartGames: 0,
         totalDrinksLogged: 0,
-        avgDrunkScale: 0,
-        barsHit: 0,
+        drunkScaleSum: 0,
+        drunkScaleCount: 0,
         nightsOut: 0,
-        totalXP: 0,
       });
+
+      // Calculate average drunk scale
+      const avgDrunkScale = totals.drunkScaleCount > 0 
+        ? Math.round((totals.drunkScaleSum / totals.drunkScaleCount) * 10) / 10 
+        : 0;
+
+      setLifetimeStats({
+        totalBeers: totals.totalBeers,
+        totalShots: totals.totalShots,
+        totalBeerTowers: totals.totalBeerTowers,
+        totalFunnels: totals.totalFunnels,
+        totalShotguns: totals.totalShotguns,
+        totalPoolGames: totals.totalPoolGames,
+        totalDartGames: totals.totalDartGames,
+        totalDrinksLogged: totals.totalDrinksLogged,
+        avgDrunkScale: avgDrunkScale,
+        barsHit: profile?.bars_hit || 0, // Still from profile
+        nightsOut: totals.nightsOut,
+        totalXP: profile?.xp || 0, // XP still comes from profile
+      });
+
+      // Generate achievements based on stats
+      generateAchievements(totals, profile);
+
+      console.log('✅ Achievement progress updated successfully');
+    } catch (error) {
+      console.error('🏆 Trophies: Error loading lifetime stats:', error);
+      Alert.alert('Error', 'Failed to load stats. Please try again.');
     } finally {
       setIsLoadingStats(false);
     }
-  }, [isAuthenticated, profile]);
+  };
 
-  // 🔧 FIXED: Load stats when we have profile data
-  useEffect(() => {
-    if (isAuthenticated && profile) {
-      console.log('🏆 Profile available, loading stats...');
-      loadLifetimeStats();
-    }
-  }, [isAuthenticated, profile, loadLifetimeStats]);
+  const generateAchievements = (stats: any, userProfile: any) => {
+    const achievements: Achievement[] = [
+      // Bar achievements
+      {
+        id: 'first_bar',
+        title: 'First Bar',
+        description: 'Visit your first bar',
+        category: 'bars',
+        level: 'bronze',
+        xpReward: 100,
+        progress: Math.min(userProfile?.bars_hit || 0, 1),
+        maxProgress: 1,
+        isCompleted: (userProfile?.bars_hit || 0) >= 1,
+        dateCompleted: (userProfile?.bars_hit || 0) >= 1 ? new Date().toISOString() : undefined,
+      },
+      {
+        id: 'bar_explorer',
+        title: 'Bar Explorer',
+        description: 'Visit 5 different bars',
+        category: 'bars',
+        level: 'silver',
+        xpReward: 250,
+        progress: Math.min(userProfile?.bars_hit || 0, 5),
+        maxProgress: 5,
+        isCompleted: (userProfile?.bars_hit || 0) >= 5,
+        dateCompleted: (userProfile?.bars_hit || 0) >= 5 ? new Date().toISOString() : undefined,
+      },
+      {
+        id: 'bar_master',
+        title: 'Bar Master',
+        description: 'Visit 10 different bars',
+        category: 'bars',
+        level: 'gold',
+        xpReward: 500,
+        progress: Math.min(userProfile?.bars_hit || 0, 10),
+        maxProgress: 10,
+        isCompleted: (userProfile?.bars_hit || 0) >= 10,
+        dateCompleted: (userProfile?.bars_hit || 0) >= 10 ? new Date().toISOString() : undefined,
+      },
+      // Drinking achievements
+      {
+        id: 'first_beer',
+        title: 'First Beer',
+        description: 'Log your first beer',
+        category: 'activities',
+        level: 'bronze',
+        xpReward: 50,
+        progress: Math.min(stats.totalBeers, 1),
+        maxProgress: 1,
+        isCompleted: stats.totalBeers >= 1,
+        dateCompleted: stats.totalBeers >= 1 ? new Date().toISOString() : undefined,
+      },
+      {
+        id: 'beer_lover',
+        title: 'Beer Lover',
+        description: 'Log 25 beers',
+        category: 'activities',
+        level: 'silver',
+        xpReward: 200,
+        progress: Math.min(stats.totalBeers, 25),
+        maxProgress: 25,
+        isCompleted: stats.totalBeers >= 25,
+        dateCompleted: stats.totalBeers >= 25 ? new Date().toISOString() : undefined,
+      },
+      {
+        id: 'shot_master',
+        title: 'Shot Master',
+        description: 'Log 50 shots',
+        category: 'activities',
+        level: 'gold',
+        xpReward: 300,
+        progress: Math.min(stats.totalShots, 50),
+        maxProgress: 50,
+        isCompleted: stats.totalShots >= 50,
+        dateCompleted: stats.totalShots >= 50 ? new Date().toISOString() : undefined,
+      },
+      // Game achievements
+      {
+        id: 'pool_shark',
+        title: 'Pool Shark',
+        description: 'Win 5 pool games',
+        category: 'activities',
+        level: 'silver',
+        xpReward: 250,
+        progress: Math.min(stats.totalPoolGames, 5),
+        maxProgress: 5,
+        isCompleted: stats.totalPoolGames >= 5,
+        dateCompleted: stats.totalPoolGames >= 5 ? new Date().toISOString() : undefined,
+      },
+      {
+        id: 'dart_champion',
+        title: 'Dart Champion',
+        description: 'Win 5 dart games',
+        category: 'activities',
+        level: 'silver',
+        xpReward: 250,
+        progress: Math.min(stats.totalDartGames, 5),
+        maxProgress: 5,
+        isCompleted: stats.totalDartGames >= 5,
+        dateCompleted: stats.totalDartGames >= 5 ? new Date().toISOString() : undefined,
+      },
+      // Social achievements
+      {
+        id: 'night_owl',
+        title: 'Night Owl',
+        description: 'Complete 10 nights out',
+        category: 'social',
+        level: 'gold',
+        xpReward: 400,
+        progress: Math.min(stats.nightsOut, 10),
+        maxProgress: 10,
+        isCompleted: stats.nightsOut >= 10,
+        dateCompleted: stats.nightsOut >= 10 ? new Date().toISOString() : undefined,
+      },
+      // Milestone achievements
+      {
+        id: 'xp_collector',
+        title: 'XP Collector',
+        description: 'Earn 1000 XP',
+        category: 'milestones',
+        level: 'silver',
+        xpReward: 500,
+        progress: Math.min(userProfile?.xp || 0, 1000),
+        maxProgress: 1000,
+        isCompleted: (userProfile?.xp || 0) >= 1000,
+        dateCompleted: (userProfile?.xp || 0) >= 1000 ? new Date().toISOString() : undefined,
+      },
+      {
+        id: 'xp_master',
+        title: 'XP Master',
+        description: 'Earn 5000 XP',
+        category: 'milestones',
+        level: 'gold',
+        xpReward: 1000,
+        progress: Math.min(userProfile?.xp || 0, 5000),
+        maxProgress: 5000,
+        isCompleted: (userProfile?.xp || 0) >= 5000,
+        dateCompleted: (userProfile?.xp || 0) >= 5000 ? new Date().toISOString() : undefined,
+      },
+    ];
+
+    // Only show completed achievements
+    const completed = achievements.filter(achievement => achievement.isCompleted);
+    setCompletedAchievements(completed);
+  };
 
   const onRefresh = async () => {
-    if (!isAuthenticated || !isDataReady) return;
+    if (!isAuthenticated) return;
     
     setRefreshing(true);
     try {
-      await syncStatsFromDailyStats();
       await loadLifetimeStats();
     } catch (error) {
       console.error('Error refreshing stats:', error);
@@ -168,13 +307,6 @@ export default function TrophiesScreen() {
     } finally {
       setRefreshing(false);
     }
-  };
-
-  const handleManualRefresh = async () => {
-    if (!isAuthenticated || isLoadingStats) return;
-    
-    console.log('🏆 Trophies: Manual refresh triggered');
-    await loadLifetimeStats();
   };
 
   // Memoize trophy categories
@@ -190,7 +322,7 @@ export default function TrophiesScreen() {
         trophies: categoryTrophies,
         count: categoryTrophies.length
       };
-    }).filter(category => category.count > 0);
+    }).filter(category => category.count > 0); // Only show categories with trophies
   }, [completedAchievements]);
 
   const filteredTrophies = useMemo(() => {
@@ -198,109 +330,48 @@ export default function TrophiesScreen() {
     return completedAchievements.filter(trophy => trophy.category === selectedCategory);
   }, [completedAchievements, selectedCategory]);
 
-  const StatCard = ({ title, value, subtitle, size = 'normal' }: { 
-    title: string; 
-    value: number | string; 
-    subtitle?: string; 
-    size?: 'normal' | 'large';
-  }) => (
-    <View style={[
-      styles.statCard, 
-      { backgroundColor: themeColors.card },
-      size === 'large' && styles.statCardLarge
-    ]}>
-      <View style={styles.statCardInner}>
-        <Text style={[
-          styles.statValue, 
-          { color: themeColors.primary },
-          size === 'large' && styles.statValueLarge
-        ]}>
-          {typeof value === 'number' ? value.toLocaleString() : value}
-        </Text>
-        <Text style={[
-          styles.statTitle, 
-          { color: themeColors.text },
-          size === 'large' && styles.statTitleLarge
-        ]}>
-          {title}
-        </Text>
-        {subtitle && (
-          <Text style={[styles.statSubtitle, { color: themeColors.subtext }]}>
-            {subtitle}
-          </Text>
-        )}
-      </View>
-      
-      <View style={[styles.statAccent, { backgroundColor: themeColors.primary }]} />
-    </View>
-  );
-
-  const TrophyCard = ({ trophy }: { trophy: any }) => {
-    const category = CATEGORY_CONFIG[trophy.category as keyof typeof CATEGORY_CONFIG];
-    const IconComponent = category?.icon || Trophy;
-    
-    return (
-      <View style={[styles.trophyCard, { backgroundColor: themeColors.card }]}>
-        <View style={[styles.trophyIconContainer, { backgroundColor: category?.color || themeColors.primary }]}>
-          <IconComponent size={24} color="white" />
-        </View>
-        
-        <View style={styles.trophyContent}>
-          <Text style={[styles.trophyTitle, { color: themeColors.text }]}>{trophy.title}</Text>
-          <Text style={[styles.trophyDescription, { color: themeColors.subtext }]}>
-            {trophy.description}
-          </Text>
-          {trophy.level > 1 && (
-            <View style={[styles.levelBadge, { backgroundColor: category?.color || themeColors.primary }]}>
-              <Text style={styles.levelText}>Level {trophy.level}</Text>
-            </View>
-          )}
-        </View>
-        
-        <View style={styles.trophyMeta}>
-          <View style={[styles.xpBadge, { backgroundColor: '#FFD60A20' }]}>
-            <Text style={styles.xpText}>+{trophy.xpReward || 100}</Text>
-          </View>
-        </View>
-      </View>
-    );
+  const getLevelColor = (level: string) => {
+    switch (level) {
+      case 'bronze': return '#CD7F32';
+      case 'silver': return '#C0C0C0';
+      case 'gold': return '#FFD700';
+      case 'platinum': return '#E5E4E2';
+      default: return themeColors.primary;
+    }
   };
 
-  const renderCategoryFilters = () => (
-    <View style={styles.filtersContainer}>
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filtersContent}
-      >
-        <Pressable
-          style={[
-            styles.filterChip,
-            {
-              backgroundColor: selectedCategory === 'all' ? '#FF6B35' : 'rgba(255,255,255,0.05)',
-              borderColor: selectedCategory === 'all' ? '#FF6B35' : 'rgba(255,255,255,0.1)',
-            }
-          ]}
-          onPress={() => setSelectedCategory('all')}
-        >
-          <Text style={[
-            styles.filterText,
-            { color: selectedCategory === 'all' ? 'white' : '#8E8E93' }
-          ]}>
-            All ({completedAchievements.length})
-          </Text>
-        </Pressable>
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'bars': return MapPin;
+      case 'activities': return Target;
+      case 'social': return Users;
+      case 'milestones': return Star;
+      default: return Trophy;
+    }
+  };
 
-        {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
-          const IconComponent = config.icon;
+  const FilterTabs = () => (
+    <View style={styles.filterContainer}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScrollView}>
+        {[
+          { key: 'all', label: 'All', icon: Trophy, color: themeColors.primary },
+          ...trophyCategories.map(cat => ({
+            key: cat.name,
+            label: cat.displayName,
+            icon: getCategoryIcon(cat.name),
+            color: themeColors.primary
+          }))
+        ].map(({ key, label, icon: IconComponent, color: config.color }) => {
           const isActive = selectedCategory === key;
-          const categoryCount = completedAchievements.filter(t => t.category === key).length;
-          
+          const categoryCount = key === 'all' 
+            ? completedAchievements.length 
+            : trophyCategories.find(cat => cat.name === key)?.count || 0;
+
           return (
             <Pressable
               key={key}
               style={[
-                styles.filterChip,
+                styles.filterTab,
                 {
                   backgroundColor: isActive ? config.color : 'rgba(255,255,255,0.05)',
                   borderColor: isActive ? config.color : 'rgba(255,255,255,0.1)',
@@ -316,7 +387,7 @@ export default function TrophiesScreen() {
                 styles.filterText,
                 { color: isActive ? 'white' : '#8E8E93' }
               ]}>
-                {config.label} ({categoryCount})
+                {label} ({categoryCount})
               </Text>
             </Pressable>
           );
@@ -325,106 +396,9 @@ export default function TrophiesScreen() {
     </View>
   );
 
-  // 🔧 FIXED: Simplified render logic
-  const renderStatsContent = () => {
-    if (!isAuthenticated) {
-      return (
-        <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
-          <Text style={styles.emptyEmoji}>📊</Text>
-          <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
-            Sign In to View Stats
-          </Text>
-          <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
-            Track your activities and see your lifetime stats here!
-          </Text>
-        </View>
-      );
-    }
-
-    if (!profile) {
-      return (
-        <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
-          <ActivityIndicator size="large" color={themeColors.primary} />
-          <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
-            Loading Profile
-          </Text>
-          <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
-            Getting your profile data...
-          </Text>
-        </View>
-      );
-    }
-
-    if (isLoadingStats) {
-      return (
-        <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
-          <ActivityIndicator size="large" color={themeColors.primary} />
-          <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
-            Loading Stats
-          </Text>
-          <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
-            Calculating your lifetime statistics...
-          </Text>
-        </View>
-      );
-    }
-
-    // Show actual stats
-    return (
-      <>
-        <View style={styles.statsGrid}>
-          <StatCard title="Shots Taken" value={lifetimeStats.totalShots} />
-          <StatCard title="Beers Logged" value={lifetimeStats.totalBeers} />
-          <StatCard title="Beer Towers" value={lifetimeStats.totalBeerTowers} />
-          <StatCard title="Funnels" value={lifetimeStats.totalFunnels} />
-          <StatCard title="Shotguns" value={lifetimeStats.totalShotguns} />
-          <StatCard title="Pool Games Won" value={lifetimeStats.totalPoolGames} />
-          <StatCard title="Dart Games Won" value={lifetimeStats.totalDartGames} />
-        </View>
-
-        <View style={styles.bottomStatsGrid}>
-          <StatCard 
-            title="Bars Hit" 
-            value={lifetimeStats.barsHit}
-            size="large"
-          />
-          <StatCard 
-            title="Nights Out" 
-            value={lifetimeStats.nightsOut}
-            subtitle="Days with stats"
-            size="large"
-          />
-        </View>
-
-        <View style={styles.bottomStatsGrid}>
-          <StatCard 
-            title="Total Drinks Logged" 
-            value={lifetimeStats.totalDrinksLogged}
-            size="large"
-          />
-          <StatCard 
-            title="Average Drunk Scale" 
-            value={lifetimeStats.avgDrunkScale}
-            subtitle="out of 10"
-            size="large"
-          />
-        </View>
-
-        <View style={styles.bottomStatsGrid}>
-          <StatCard 
-            title="Total XP Earned" 
-            value={lifetimeStats.totalXP}
-            subtitle="Experience Points"
-            size="large"
-          />
-        </View>
-      </>
-    );
-  };
-
   return (
     <View style={[styles.container, { backgroundColor: '#000000' }]}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar style="light" backgroundColor="transparent" translucent />
       
       <ScrollView 
         style={styles.scrollView}
@@ -439,12 +413,14 @@ export default function TrophiesScreen() {
           />
         }
       >
+        {/* Header with Logo */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
             <BarBuddyLogo size="large" />
           </View>
         </View>
 
+        {/* Page Title */}
         <View style={styles.titleSection}>
           <Text style={[styles.pageTitle, { color: themeColors.text }]}>
             Your Achievements
@@ -459,13 +435,9 @@ export default function TrophiesScreen() {
               Sign in to track your stats and earn trophies
             </Text>
           )}
-          {lastStatsUpdate && (
-            <Text style={[styles.lastUpdate, { color: themeColors.subtext }]}>
-              Last updated: {new Date(lastStatsUpdate).toLocaleTimeString()}
-            </Text>
-          )}
         </View>
 
+        {/* Tab Navigation */}
         <View style={styles.tabContainer}>
           <Pressable 
             style={[
@@ -480,371 +452,3 @@ export default function TrophiesScreen() {
             ]}>
               Lifetime Stats
             </Text>
-          </Pressable>
-          <Pressable 
-            style={[
-              styles.tab, 
-              activeTab === 'trophies' && { backgroundColor: themeColors.primary + '20', borderColor: themeColors.primary }
-            ]}
-            onPress={() => setActiveTab('trophies')}
-          >
-            <Text style={[
-              styles.tabText, 
-              { color: activeTab === 'trophies' ? themeColors.primary : themeColors.subtext }
-            ]}>
-              Trophies ({completedAchievements.length})
-            </Text>
-          </Pressable>
-          
-          <Pressable 
-            style={[styles.refreshButton, { backgroundColor: themeColors.primary + '20' }]}
-            onPress={handleManualRefresh}
-            disabled={isLoadingStats}
-          >
-            <RefreshCw 
-              size={16} 
-              color={themeColors.primary}
-              style={[isLoadingStats && { transform: [{ rotate: '45deg' }] }]}
-            />
-          </Pressable>
-        </View>
-
-        {activeTab === 'stats' ? (
-          <View style={styles.section}>
-            {renderStatsContent()}
-          </View>
-        ) : (
-          <View style={styles.section}>
-            {!isAuthenticated ? (
-              <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
-                <Text style={styles.emptyEmoji}>🏆</Text>
-                <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
-                  Sign In to View Trophies
-                </Text>
-                <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
-                  Earn trophies by tracking your activities and achievements!
-                </Text>
-              </View>
-            ) : (
-              <>
-                {renderCategoryFilters()}
-
-                {filteredTrophies.length === 0 ? (
-                  <View style={[styles.emptyState, { backgroundColor: themeColors.card }]}>
-                    <Text style={styles.emptyEmoji}>🏆</Text>
-                    <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
-                      No Trophies Yet
-                    </Text>
-                    <Text style={[styles.emptyDescription, { color: themeColors.subtext }]}>
-                      Start tracking your activities to earn your first trophy!
-                    </Text>
-                    <Pressable 
-                      style={[styles.refreshButtonLarge, { backgroundColor: themeColors.primary }]}
-                      onPress={handleManualRefresh}
-                      disabled={isLoadingStats}
-                    >
-                      <RefreshCw size={16} color="white" />
-                      <Text style={styles.refreshButtonText}>
-                        {isLoadingStats ? 'Checking...' : 'Check for New Trophies'}
-                      </Text>
-                    </Pressable>
-                  </View>
-                ) : (
-                  <View style={styles.trophyList}>
-                    {filteredTrophies.map((trophy) => (
-                      <TrophyCard key={trophy.id} trophy={trophy} />
-                    ))}
-                  </View>
-                )}
-              </>
-            )}
-          </View>
-        )}
-
-        <View style={styles.footer} />
-      </ScrollView>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 40,
-  },
-  header: {
-    paddingTop: 50,
-    paddingBottom: 8,
-    paddingHorizontal: 16,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  titleSection: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-    alignItems: 'center',
-  },
-  pageTitle: {
-    fontSize: 28,
-    fontWeight: '800' as const,
-    letterSpacing: 0.5,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 16,
-    fontWeight: '500' as const,
-    textAlign: 'center',
-  },
-  lastUpdate: {
-    fontSize: 12,
-    fontWeight: '400' as const,
-    textAlign: 'center',
-    marginTop: 4,
-    fontStyle: 'italic',
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    marginBottom: 24,
-    gap: 12,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  tabText: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-  },
-  refreshButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  section: {
-    paddingHorizontal: 16,
-    marginBottom: 32,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -6,
-    marginBottom: 20,
-  },
-  bottomStatsGrid: {
-    flexDirection: 'row',
-    marginHorizontal: -6,
-    marginBottom: 16,
-  },
-  statCard: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 20,
-    margin: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  statCardLarge: {
-    padding: 24,
-    minHeight: 120,
-  },
-  statCardInner: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: '800' as const,
-    marginBottom: 8,
-    letterSpacing: 0.5,
-  },
-  statValueLarge: {
-    fontSize: 36,
-    marginBottom: 12,
-  },
-  statTitle: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  statTitleLarge: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-  },
-  statSubtitle: {
-    fontSize: 12,
-    fontWeight: '500' as const,
-    textAlign: 'center',
-    marginTop: 4,
-    opacity: 0.8,
-  },
-  statAccent: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    opacity: 0.7,
-  },
-  filtersContainer: {
-    marginBottom: 20,
-  },
-  filtersContent: {
-    paddingHorizontal: 4,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginRight: 12,
-  },
-  filterText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    marginLeft: 6,
-  },
-  trophyList: {
-    gap: 12,
-  },
-  trophyCard: {
-    flexDirection: 'row',
-    padding: 16,
-    borderRadius: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  trophyIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  trophyContent: {
-    flex: 1,
-  },
-  trophyTitle: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    marginBottom: 4,
-    letterSpacing: 0.2,
-  },
-  trophyDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '500' as const,
-  },
-  levelBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 8,
-  },
-  levelText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600' as const,
-    letterSpacing: 0.2,
-  },
-  trophyMeta: {
-    alignItems: 'flex-end',
-  },
-  xpBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  xpText: {
-    color: '#FFD60A',
-    fontSize: 12,
-    fontWeight: '600' as const,
-    marginLeft: 4,
-  },
-  emptyState: {
-    padding: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  emptyEmoji: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    marginBottom: 8,
-    letterSpacing: 0.3,
-  },
-  emptyDescription: {
-    fontSize: 16,
-    textAlign: 'center',
-    lineHeight: 22,
-    fontWeight: '500' as const,
-  },
-  refreshButtonLarge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 16,
-    gap: 8,
-  },
-  refreshButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600' as const,
-  },
-  footer: {
-    height: 24,
-  },
-});
