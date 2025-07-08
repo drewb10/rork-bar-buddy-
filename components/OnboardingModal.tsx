@@ -188,50 +188,37 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
         <View style={[styles.termsContent, { backgroundColor: themeColors.card }]}>
           <Text style={[styles.termsSection, { color: themeColors.text }]}>
             <Text style={[styles.termsSectionTitle, { color: themeColors.primary }]}>
-              Responsible Use{'
-'}
+              Responsible Use{"\n"}
             </Text>
-            • Use BarBuddy responsibly and in accordance with all applicable laws{'
-'}
-            • Do not drink and drive - always arrange safe transportation{'
-'}
-            • Respect venue policies and local regulations{'
-'}
+            • Use BarBuddy responsibly and in accordance with all applicable laws{"\n"}
+            • Do not drink and drive - always arrange safe transportation{"\n"}
+            • Respect venue policies and local regulations{"\n"}
             • Be respectful to other users and venue staff
           </Text>
 
           <Text style={[styles.termsSection, { color: themeColors.text }]}>
             <Text style={[styles.termsSectionTitle, { color: themeColors.primary }]}>
-              Anonymous Chat Guidelines{'
-'}
+              Anonymous Chat Guidelines{"\n"}
             </Text>
-            • Chat messages are anonymous and reset daily at 5:00 AM{'
-'}
-            • Prohibited content includes hate speech, harassment, threats, and spam{'
-'}
-            • Messages are automatically moderated for safety{'
-'}
+            • Chat messages are anonymous and reset daily at 5:00 AM{"\n"}
+            • Prohibited content includes hate speech, harassment, threats, and spam{"\n"}
+            • Messages are automatically moderated for safety{"\n"}
             • Violations may result in chat restrictions or account suspension
           </Text>
 
           <Text style={[styles.termsSection, { color: themeColors.text }]}>
             <Text style={[styles.termsSectionTitle, { color: themeColors.primary }]}>
-              Privacy & Data{'
-'}
+              Privacy & Data{"\n"}
             </Text>
-            • We collect minimal data necessary for app functionality{'
-'}
-            • Anonymous chat messages are not permanently stored{'
-'}
-            • Location data is used only for venue recommendations{'
-'}
+            • We collect minimal data necessary for app functionality{"\n"}
+            • Anonymous chat messages are not permanently stored{"\n"}
+            • Location data is used only for venue recommendations{"\n"}
             • We do not sell your personal information to third parties
           </Text>
 
           <Text style={[styles.termsSection, { color: themeColors.text }]}>
             <Text style={[styles.termsSectionTitle, { color: themeColors.primary }]}>
-              Limitation of Liability{'
-'}
+              Limitation of Liability{"\n"}
             </Text>
             BarBuddy is a social platform for discovering nightlife venues. We are not responsible for your actions, venue policies, or any incidents that may occur at venues. Always drink responsibly and prioritize your safety.
           </Text>
