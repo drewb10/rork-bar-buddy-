@@ -1,17 +1,24 @@
 import React from 'react';
-import { StyleSheet, View, Text, Modal, ScrollView, Pressable } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Pressable, Modal } from 'react-native';
 import { X, Crown, Award, Star, Target, Zap } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
+import { LinearGradient } from 'expo-linear-gradient';
 
-interface RankModalProps {
-  visible: boolean;
-  onClose: () => void;
-  currentXP: number;
+interface RankLevel {
+  id: number;
+  title: string;
+  subTitle: string;
+  minXP: number;
+  maxXP: number;
+  color: string;
+  gradient: readonly string[];
+  icon: React.ComponentType<any>;
+  description: string;
+  perks: string[];
 }
 
-export const RANK_SYSTEM = [
+export const RANK_SYSTEM: RankLevel[] = [
   {
     id: 1,
     title: 'Newbie',
@@ -99,12 +106,18 @@ export const getRankInfo = (xp: number) => {
   };
 };
 
+interface RankModalProps {
+  visible: boolean;
+  onClose: () => void;
+  currentXP: number;
+}
+
 export default function RankModal({ visible, onClose, currentXP }: RankModalProps) {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const rankInfo = getRankInfo(currentXP);
 
-  const renderRankCard = (rank: typeof RANK_SYSTEM[0], isCurrentRank: boolean, isUnlocked: boolean) => {
+  const renderRankCard = (rank: RankLevel, isCurrentRank: boolean, isUnlocked: boolean) => {
     const IconComponent = rank.icon;
     
     return (
