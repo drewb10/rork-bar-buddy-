@@ -16,7 +16,7 @@ export default function ProfileScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const { 
-    profile, 
+    profile: authProfile, 
     signOut,
     isLoading: authLoading,
     isAuthenticated,
@@ -37,38 +37,44 @@ export default function ProfileScreen() {
   const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
-  // 🔧 FIXED: Simplified initialization without chatbot dependencies
+  // 🔧 CRITICAL FIX: Simplified initialization that actually works
   useEffect(() => {
-    const initProfile = async () => {
+    const initializeAuth = async () => {
       try {
-        console.log('🔄 Profile tab: Starting initialization...');
+        console.log('🔄 Profile: Starting auth check...');
         
-        // 1. Check session first
+        // First check if we have a session
         if (!sessionChecked) {
-          console.log('🔄 Profile tab: Checking session...');
           await checkSession();
         }
         
-        // 2. If authenticated, load profile immediately
-        if (isAuthenticated) {
-          console.log('🔄 Profile tab: User authenticated, loading profile...');
-          await loadProfile();
-        } else {
-          console.log('🔄 Profile tab: User not authenticated');
-        }
+        console.log('🔄 Profile: Auth status:', { isAuthenticated, sessionChecked });
         
       } catch (error) {
-        console.error('❌ Profile tab initialization error:', error);
+        console.error('❌ Profile: Auth error:', error);
       } finally {
         setIsInitializing(false);
       }
     };
 
-    // Only run once on mount
-    if (isInitializing) {
-      initProfile();
-    }
-  }, [isInitializing, sessionChecked, isAuthenticated, checkSession, loadProfile]);
+    initializeAuth();
+  }, [sessionChecked, checkSession]);
+
+  // 🔧 CRITICAL FIX: Load profile when authenticated
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (isAuthenticated && !profileLoading && !userProfile) {
+        console.log('🔄 Profile: Loading user profile...');
+        try {
+          await loadProfile();
+        } catch (error) {
+          console.error('❌ Profile: Load error:', error);
+        }
+      }
+    };
+
+    loadUserProfile();
+  }, [isAuthenticated, profileLoading, userProfile, loadProfile]);
 
   const handleProfilePicturePress = async () => {
     try {
@@ -80,7 +86,6 @@ export default function ProfileScreen() {
       });
 
       if (!result.canceled) {
-        // In a real app, you'd upload to a storage service
         console.log('Profile picture selected:', result.assets[0].uri);
       }
     } catch (error) {
@@ -127,22 +132,17 @@ export default function ProfileScreen() {
     setDailyTrackerVisible(true);
   };
 
-  // Mock rank info since we removed the complex ranking system
-  const rankInfo = {
-    title: 'Bar Explorer',
-    subTitle: 'Getting Started',
-    color: '#FF6A00',
-  };
-
-  // 🔧 FIXED: Better loading check
-  if (isInitializing || (isAuthenticated && (!profileReady || authLoading || profileLoading))) {
+  // 🔧 CRITICAL FIX: Simplified loading state check
+  const showLoading = isInitializing || authLoading || (isAuthenticated && profileLoading);
+  
+  if (showLoading) {
     return (
       <View style={[styles.container, { backgroundColor: '#000000' }]}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6A00" />
+          <ActivityIndicator size="large" color="#FF6B35" />
           <Text style={[styles.loadingText, { color: themeColors.text, marginTop: 16 }]}>
-            {authLoading ? 'Checking authentication...' : profileLoading ? 'Loading your profile...' : 'Getting ready...'}
+            {isInitializing ? 'Starting up...' : authLoading ? 'Checking authentication...' : 'Loading your profile...'}
           </Text>
         </View>
       </View>
@@ -168,8 +168,8 @@ export default function ProfileScreen() {
     );
   }
 
-  // Use profile from userProfileStore or auth store as fallback
-  const displayProfile = userProfile || profile || user;
+  // 🔧 CRITICAL FIX: Use any available profile data
+  const displayProfile = userProfile || authProfile || user;
 
   if (!displayProfile) {
     return (
@@ -177,24 +177,31 @@ export default function ProfileScreen() {
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
           <Text style={[styles.loadingText, { color: themeColors.text }]}>
-            No profile found. Please try refreshing.
+            No profile data found.
           </Text>
           <Pressable 
             style={[styles.signInButton, { backgroundColor: themeColors.primary, marginTop: 20 }]}
             onPress={() => loadProfile()}
           >
-            <Text style={styles.signInButtonText}>Refresh Profile</Text>
+            <Text style={styles.signInButtonText}>Retry</Text>
           </Pressable>
         </View>
       </View>
     );
   }
 
+  // Mock rank info
+  const rankInfo = {
+    title: 'Bar Explorer',
+    subTitle: 'Getting Started',
+    color: '#FF6B35',
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: '#000000' }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
-      {/* Header with Logo and Title */}
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <BarBuddyLogo size="small" />
@@ -202,15 +209,11 @@ export default function ProfileScreen() {
             Your Bar Buddy Profile
           </Text>
         </View>
-        {displayProfile && (
-          <Pressable style={styles.signOutButton} onPress={handleSignOut}>
-            <LogOut size={20} color={themeColors.error} />
-          </Pressable>
-        )}
+        <Pressable style={styles.signOutButton} onPress={handleSignOut}>
+          <LogOut size={20} color={themeColors.error} />
+        </Pressable>
       </View>
 
-      {/* 🔧 REMOVED: Tab Navigation (BarBuddy AI tab removed) */}
-      
       <ScrollView 
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -230,15 +233,15 @@ export default function ProfileScreen() {
           
           <View style={styles.profileInfo}>
             <Text style={[styles.displayName, { color: themeColors.text }]}>
-              {displayProfile.username || 'Bar Buddy User'}
+              {displayProfile.username || displayProfile.email || 'Bar Buddy User'}
             </Text>
             <Text style={[styles.joinDate, { color: themeColors.subtext }]}>
-              Joined {new Date(displayProfile.created_at).toLocaleDateString()}
+              Joined {displayProfile.created_at ? new Date(displayProfile.created_at).toLocaleDateString() : 'Recently'}
             </Text>
           </View>
         </View>
 
-        {/* 🔧 FIXED: Lifetime Stats Section - Display profile stats directly */}
+        {/* 🔧 FIXED: Lifetime Stats Section - Use actual profile data */}
         <View style={[styles.lifetimeStatsCard, { backgroundColor: themeColors.card }]}>
           <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
             Lifetime Stats
@@ -286,19 +289,19 @@ export default function ProfileScreen() {
                 {displayProfile.pool_games_won || 0}
               </Text>
               <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                Pool Games Won
+                Pool Games
               </Text>
             </View>
             
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: themeColors.primary }]}>
-                {displayProfile.drunk_scale_ratings ? 
+                {displayProfile.drunk_scale_ratings && displayProfile.drunk_scale_ratings.length > 0 ? 
                   (displayProfile.drunk_scale_ratings.reduce((sum, rating) => sum + rating, 0) / displayProfile.drunk_scale_ratings.length).toFixed(1) : 
                   '0.0'
                 }
               </Text>
               <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                Avg Drunk Scale
+                Drunk Scale
               </Text>
             </View>
           </View>
@@ -383,6 +386,7 @@ export default function ProfileScreen() {
   );
 }
 
+// Styles remain the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -391,10 +395,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 32,
   },
   loadingText: {
     fontSize: 16,
     fontWeight: '500',
+    textAlign: 'center',
   },
   signInButton: {
     paddingVertical: 12,
