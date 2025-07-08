@@ -1,205 +1,219 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Alert, Modal, Image, ActivityIndicator } from 'react-native';
-import { User, Award, Users, LogOut } from 'lucide-react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
+  Image,
+  Modal,
+} from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
+import { LogOut, RefreshCw, Camera, Users } from 'lucide-react-native';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
+import BarBuddyChatbot from '@/components/BarBuddyChatbot';
 import FriendsModal from '@/components/FriendsModal';
 import OnboardingModal from '@/components/OnboardingModal';
-import DailyTracker from '@/components/DailyTracker';
-import * as ImagePicker from 'expo-image-picker';
+import RankSystem from '@/components/RankSystem';
 import { useRouter } from 'expo-router';
 import { useUserProfileStore } from '@/stores/userProfileStore';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function ProfileScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
   const { 
-    profile: authProfile, 
-    signOut,
-    isLoading: authLoading,
-    isAuthenticated,
-    checkSession,
+    profile, 
+    isAuthenticated, 
+    isLoading, 
+    signOut, 
+    checkSession, 
+    error,
+    clearError,
+    isConfigured,
     sessionChecked,
     user
   } = useAuthStore();
-  const { 
-    profile: userProfile, 
-    profileReady, 
-    isLoading: profileLoading,
-    loadProfile 
-  } = useUserProfileStore();
+  const { setProfilePicture } = useUserProfileStore();
   const router = useRouter();
-  
+  const [activeTab, setActiveTab] = useState<'profile' | 'chatbot'>('profile');
+  const [refreshing, setRefreshing] = useState(false);
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
-  // 🔧 CRITICAL FIX: Simplified initialization that actually works
+  // Initialize profile
   useEffect(() => {
-    const initializeAuth = async () => {
+    const initializeProfile = async () => {
       try {
-        console.log('🔄 Profile: Starting auth check...');
-        
-        // First check if we have a session
         if (!sessionChecked) {
           await checkSession();
         }
-        
-        console.log('🔄 Profile: Auth status:', { isAuthenticated, sessionChecked });
-        
       } catch (error) {
-        console.error('❌ Profile: Auth error:', error);
+        console.warn('Error checking session:', error);
       } finally {
         setIsInitializing(false);
       }
     };
 
-    initializeAuth();
+    initializeProfile();
   }, [sessionChecked, checkSession]);
 
-  // 🔧 CRITICAL FIX: Load profile when authenticated
+  // Show onboarding for new users
   useEffect(() => {
-    const loadUserProfile = async () => {
-      if (isAuthenticated && !profileLoading && !userProfile) {
-        console.log('🔄 Profile: Loading user profile...');
-        try {
-          await loadProfile();
-        } catch (error) {
-          console.error('❌ Profile: Load error:', error);
-        }
-      }
-    };
-
-    loadUserProfile();
-  }, [isAuthenticated, profileLoading, userProfile, loadProfile]);
-
-  const handleProfilePicturePress = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled) {
-        console.log('Profile picture selected:', result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error('Error selecting profile picture:', error);
-      Alert.alert('Error', 'Failed to select profile picture. Please try again.');
+    if (isAuthenticated && profile && !profile.has_completed_onboarding && !isLoading) {
+      setShowOnboarding(true);
     }
-  };
+  }, [isAuthenticated, profile, isLoading]);
 
-  const handleSignOut = () => {
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated && !isLoading && sessionChecked) {
+      router.replace('/auth/sign-in');
+    }
+  }, [isAuthenticated, isLoading, sessionChecked]);
+
+  const handleSignOut = async () => {
     Alert.alert(
       'Sign Out',
       'Are you sure you want to sign out?',
       [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Sign Out', 
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
-            await signOut();
-            router.replace('/auth/sign-in');
-          }
-        }
+            try {
+              await signOut();
+              router.replace('/auth/sign-in');
+            } catch (error) {
+              console.error('Sign out error:', error);
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
+          },
+        },
       ]
     );
+  };
+
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      clearError();
+      await checkSession();
+    } catch (error) {
+      console.error('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleProfilePicturePress = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (permissionResult.granted === false) {
+      Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      try {
+        await setProfilePicture(result.assets[0].uri);
+        Alert.alert('Success', 'Profile picture updated!');
+      } catch (error) {
+        console.error('Error updating profile picture:', error);
+        Alert.alert('Error', 'Failed to update profile picture');
+      }
+    }
   };
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
   };
 
-  const handleDailyTrackerPress = () => {
-    if (!isAuthenticated) {
-      Alert.alert(
-        'Sign In Required',
-        'Please sign in to track your daily stats.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Sign In', onPress: () => router.push('/auth/sign-in') }
-        ]
-      );
-      return;
-    }
-
-    setDailyTrackerVisible(true);
-  };
-
-  // 🔧 CRITICAL FIX: Simplified loading state check
-  const showLoading = isInitializing || authLoading || (isAuthenticated && profileLoading);
-  
-  if (showLoading) {
+  // Show loading screen while checking authentication
+  if (isLoading || isInitializing) {
     return (
-      <View style={[styles.container, { backgroundColor: '#000000' }]}>
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
-          <Text style={[styles.loadingText, { color: themeColors.text, marginTop: 16 }]}>
-            {isInitializing ? 'Starting up...' : authLoading ? 'Checking authentication...' : 'Loading your profile...'}
-          </Text>
-        </View>
+      <View style={[styles.loadingContainer, { backgroundColor: '#000000' }]}>
+        <StatusBar style="light" backgroundColor="transparent" translucent />
+        <ActivityIndicator size="large" color={themeColors.primary} />
+        <Text style={[styles.loadingText, { color: themeColors.text }]}>
+          Loading profile...
+        </Text>
       </View>
     );
   }
 
-  if (!isAuthenticated) {
+  // Show error state if profile failed to load
+  if (!profile && !isLoading && sessionChecked) {
     return (
-      <View style={[styles.container, { backgroundColor: '#000000' }]}>
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-        <View style={styles.loadingContainer}>
-          <Text style={[styles.loadingText, { color: themeColors.text }]}>
-            Please sign in to view your profile.
+      <View style={[styles.errorContainer, { backgroundColor: '#000000' }]}>
+        <StatusBar style="light" backgroundColor="transparent" translucent />
+        
+        <View style={styles.errorContent}>
+          <BarBuddyLogo size="medium" />
+          
+          <Text style={[styles.errorTitle, { color: themeColors.text }]}>
+            Unable to Load Profile
           </Text>
+          
+          {error && (
+            <Text style={[styles.errorMessage, { color: themeColors.error }]}>
+              {error}
+            </Text>
+          )}
+          
+          <Text style={[styles.errorDescription, { color: themeColors.subtext }]}>
+            {!isConfigured 
+              ? 'Database not configured. Check your Supabase setup or try demo mode.'
+              : 'Please check your connection and try again.'
+            }
+          </Text>
+          
           <Pressable 
-            style={[styles.signInButton, { backgroundColor: themeColors.primary, marginTop: 20 }]}
-            onPress={() => router.replace('/auth/sign-in')}
+            style={[styles.retryButton, { backgroundColor: themeColors.primary }]}
+            onPress={handleRefresh}
           >
-            <Text style={styles.signInButtonText}>Sign In</Text>
+            <RefreshCw size={20} color="#FFFFFF" />
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </Pressable>
+          
+          <Pressable 
+            style={[styles.signOutButton, { borderColor: themeColors.border }]}
+            onPress={handleSignOut}
+          >
+            <Text style={[styles.signOutButtonText, { color: themeColors.subtext }]}>
+              Sign Out
+            </Text>
           </Pressable>
         </View>
       </View>
     );
   }
 
-  // 🔧 CRITICAL FIX: Use any available profile data
-  const displayProfile = userProfile || authProfile || user;
+  // Use profile from auth store or user data as fallback
+  const displayProfile = profile || user;
 
-  if (!displayProfile) {
-    return (
-      <View style={[styles.container, { backgroundColor: '#000000' }]}>
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-        <View style={styles.loadingContainer}>
-          <Text style={[styles.loadingText, { color: themeColors.text }]}>
-            No profile data found.
-          </Text>
-          <Pressable 
-            style={[styles.signInButton, { backgroundColor: themeColors.primary, marginTop: 20 }]}
-            onPress={() => loadProfile()}
-          >
-            <Text style={styles.signInButtonText}>Retry</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
-
-  // Mock rank info
-  const rankInfo = {
-    title: 'Bar Explorer',
-    subTitle: 'Getting Started',
-    color: '#FF6B35',
-  };
-
+  // Main profile view
   return (
     <View style={[styles.container, { backgroundColor: '#000000' }]}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar style="light" backgroundColor="transparent" translucent />
       
       {/* Header */}
       <View style={styles.header}>
@@ -209,184 +223,184 @@ export default function ProfileScreen() {
             Your Bar Buddy Profile
           </Text>
         </View>
-        <Pressable style={styles.signOutButton} onPress={handleSignOut}>
+        <Pressable style={styles.headerSignOutButton} onPress={handleSignOut}>
           <LogOut size={20} color={themeColors.error} />
         </Pressable>
       </View>
 
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Profile Card */}
-        <View style={[styles.profileCard, { backgroundColor: themeColors.card }]}>
-          <Pressable style={styles.avatarContainer} onPress={handleProfilePicturePress}>
-            {displayProfile.profile_picture ? (
-              <Image source={{ uri: displayProfile.profile_picture }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatarPlaceholder, { backgroundColor: themeColors.border }]}>
-                <User size={32} color={themeColors.subtext} />
-              </View>
-            )}
-          </Pressable>
-          
-          <View style={styles.profileInfo}>
-            <Text style={[styles.displayName, { color: themeColors.text }]}>
-              {displayProfile.username || displayProfile.email || 'Bar Buddy User'}
-            </Text>
-            <Text style={[styles.joinDate, { color: themeColors.subtext }]}>
-              Joined {displayProfile.created_at ? new Date(displayProfile.created_at).toLocaleDateString() : 'Recently'}
-            </Text>
-          </View>
-        </View>
-
-        {/* 🔧 FIXED: Lifetime Stats Section - Use actual profile data */}
-        <View style={[styles.lifetimeStatsCard, { backgroundColor: themeColors.card }]}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-            Lifetime Stats
+      {/* Tab Navigation */}
+      <View style={styles.tabContainer}>
+        <Pressable 
+          style={[
+            styles.tab, 
+            activeTab === 'profile' && { borderBottomColor: themeColors.primary, borderBottomWidth: 2 }
+          ]}
+          onPress={() => setActiveTab('profile')}
+        >
+          <Text style={[
+            styles.tabText, 
+            { color: activeTab === 'profile' ? themeColors.primary : themeColors.subtext }
+          ]}>
+            Profile
           </Text>
-          
-          <View style={styles.statsGrid}>
-            <View style={styles.statItem}>
+        </Pressable>
+        <Pressable 
+          style={[
+            styles.tab, 
+            activeTab === 'chatbot' && { borderBottomColor: themeColors.primary, borderBottomWidth: 2 }
+          ]}
+          onPress={() => setActiveTab('chatbot')}
+        >
+          <Text style={[
+            styles.tabText, 
+            { color: activeTab === 'chatbot' ? themeColors.primary : themeColors.subtext }
+          ]}>
+            BarBuddy AI
+          </Text>
+        </Pressable>
+      </View>
+      
+      {activeTab === 'profile' ? (
+        <ScrollView 
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={themeColors.primary}
+            />
+          }
+        >
+          {/* Profile Card */}
+          <View style={[styles.profileCard, { backgroundColor: themeColors.card }]}>
+            <View style={styles.profileHeader}>
+              <Pressable style={styles.avatarContainer} onPress={handleProfilePicturePress}>
+                {displayProfile?.profile_picture ? (
+                  <Image 
+                    source={{ uri: displayProfile.profile_picture }} 
+                    style={styles.avatarImage}
+                  />
+                ) : (
+                  <View style={[styles.avatarPlaceholder, { backgroundColor: themeColors.primary }]}>
+                    <Text style={styles.avatarText}>
+                      {displayProfile?.display_name?.charAt(0) || displayProfile?.username?.charAt(0) || 'U'}
+                    </Text>
+                  </View>
+                )}
+                <View style={[styles.cameraIcon, { backgroundColor: themeColors.primary }]}>
+                  <Camera size={16} color="#FFFFFF" />
+                </View>
+              </Pressable>
+              
+              <View style={styles.profileInfo}>
+                <Text style={[styles.profileName, { color: themeColors.text }]}>
+                  {displayProfile?.display_name || displayProfile?.username || 'Bar Buddy User'}
+                </Text>
+                <Text style={[styles.profileUsername, { color: themeColors.subtext }]}>
+                  @{displayProfile?.username || 'user'}
+                </Text>
+                {displayProfile?.bio && (
+                  <Text style={[styles.profileBio, { color: themeColors.subtext }]}>
+                    {displayProfile.bio}
+                  </Text>
+                )}
+              </View>
+            </View>
+          </View>
+
+          {/* Rank System Card */}
+          <View style={styles.rankContainer}>
+            <RankSystem 
+              userXP={displayProfile?.xp || 0}
+            />
+          </View>
+
+          {/* Stats Cards */}
+          <View style={styles.statsContainer}>
+            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
               <Text style={[styles.statNumber, { color: themeColors.primary }]}>
-                {displayProfile.bars_hit || 0}
+                {displayProfile?.xp || 0}
+              </Text>
+              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
+                XP
+              </Text>
+            </View>
+            
+            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
+              <Text style={[styles.statNumber, { color: themeColors.primary }]}>
+                {displayProfile?.level || 1}
+              </Text>
+              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
+                Level
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.statsContainer}>
+            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
+              <Text style={[styles.statNumber, { color: themeColors.primary }]}>
+                {displayProfile?.bars_hit || 0}
               </Text>
               <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
                 Bars Hit
               </Text>
             </View>
             
-            <View style={styles.statItem}>
+            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
               <Text style={[styles.statNumber, { color: themeColors.primary }]}>
-                {displayProfile.nights_out || 0}
+                {displayProfile?.nights_out || 0}
               </Text>
               <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
                 Nights Out
               </Text>
             </View>
-            
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: themeColors.primary }]}>
-                {displayProfile.total_beers || 0}
-              </Text>
-              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                Total Beers
-              </Text>
-            </View>
-            
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: themeColors.primary }]}>
-                {displayProfile.total_shots || 0}
-              </Text>
-              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                Total Shots
-              </Text>
-            </View>
-            
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: themeColors.primary }]}>
-                {displayProfile.pool_games_won || 0}
-              </Text>
-              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                Pool Games
-              </Text>
-            </View>
-            
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: themeColors.primary }]}>
-                {displayProfile.drunk_scale_ratings && displayProfile.drunk_scale_ratings.length > 0 ? 
-                  (displayProfile.drunk_scale_ratings.reduce((sum, rating) => sum + rating, 0) / displayProfile.drunk_scale_ratings.length).toFixed(1) : 
-                  '0.0'
-                }
-              </Text>
-              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                Drunk Scale
-              </Text>
-            </View>
           </View>
+
+          {/* Friends Section */}
+          <Pressable 
+            style={[styles.actionCard, { backgroundColor: themeColors.card }]}
+            onPress={() => setFriendsModalVisible(true)}
+          >
+            <Users size={24} color={themeColors.primary} />
+            <Text style={[styles.actionCardText, { color: themeColors.text }]}>
+              Friends
+            </Text>
+          </Pressable>
+
+          {/* Configuration Status */}
+          {!isConfigured && (
+            <View style={[styles.configCard, { backgroundColor: '#FFA500' + '20', borderColor: '#FFA500' }]}>
+              <Text style={[styles.configTitle, { color: '#FFA500' }]}>
+                Demo Mode Active
+              </Text>
+              <Text style={[styles.configDescription, { color: '#FFA500' }]}>
+                You're using demo data. Configure Supabase to sync real data across devices.
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      ) : (
+        <View style={[styles.chatbotContainer, { backgroundColor: themeColors.card }]}>
+          <BarBuddyChatbot />
         </View>
+      )}
 
-        {/* XP and Rank Card */}
-        <Pressable style={[styles.xpCard, { backgroundColor: themeColors.card }]}>
-          <View style={styles.xpHeader}>
-            <Award size={24} color={rankInfo.color} />
-            <View style={styles.xpInfo}>
-              <Text style={[styles.xpAmount, { color: themeColors.text }]}>
-                {displayProfile.xp || 0} XP
-              </Text>
-              <Text style={[styles.nextRankText, { color: themeColors.subtext }]}>
-                Keep tracking to earn more XP
-              </Text>
-            </View>
-          </View>
-          
-          <View style={styles.rankContainer}>
-            <Text style={[styles.rankTitle, { color: rankInfo.color }]}>
-              {rankInfo.title}
-            </Text>
-            <Text style={[styles.rankSubtitle, { color: themeColors.text }]}>
-              {rankInfo.subTitle}
-            </Text>
-          </View>
-        </Pressable>
-
-        {/* Daily Tracker Button */}
-        <Pressable 
-          style={[styles.dailyTrackerButton, { backgroundColor: themeColors.card }]}
-          onPress={handleDailyTrackerPress}
-        >
-          <Text style={[styles.dailyTrackerButtonText, { color: themeColors.primary }]}>
-            📊 Daily Tracker
-          </Text>
-          <Text style={[styles.dailyTrackerSubtext, { color: themeColors.subtext }]}>
-            Track your night & save stats
-          </Text>
-        </Pressable>
-
-        {/* Friends Button */}
-        <Pressable 
-          style={[styles.friendsButton, { backgroundColor: themeColors.card }]}
-          onPress={() => setFriendsModalVisible(true)}
-        >
-          <Users size={20} color={themeColors.primary} />
-          <Text style={[styles.friendsButtonText, { color: themeColors.primary }]}>
-            Friends
-          </Text>
-        </Pressable>
-
-        <View style={styles.footer} />
-      </ScrollView>
-
-      {/* Daily Tracker Modal */}
-      <DailyTracker
-        visible={dailyTrackerVisible}
-        onClose={() => setDailyTrackerVisible(false)}
+      {/* Modals */}
+      <FriendsModal 
+        visible={friendsModalVisible} 
+        onClose={() => setFriendsModalVisible(false)} 
       />
-
-      {/* Onboarding Modal */}
-      <OnboardingModal
-        visible={showOnboarding}
+      
+      <OnboardingModal 
+        visible={showOnboarding} 
         onComplete={handleOnboardingComplete}
       />
-
-      {/* Friends Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={friendsModalVisible}
-        onRequestClose={() => setFriendsModalVisible(false)}
-      >
-        <FriendsModal
-          visible={friendsModalVisible}
-          onClose={() => setFriendsModalVisible(false)}
-        />
-      </Modal>
     </View>
   );
 }
 
-// Styles remain the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -395,174 +409,231 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
+    padding: 20,
   },
   loadingText: {
+    marginTop: 16,
     fontSize: 16,
     fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorContent: {
+    alignItems: 'center',
+    maxWidth: 300,
+  },
+  errorTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
     textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 12,
   },
-  signInButton: {
-    paddingVertical: 12,
+  errorMessage: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  errorDescription: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 30,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 24,
+    paddingVertical: 12,
     borderRadius: 8,
+    marginBottom: 16,
   },
-  signInButtonText: {
-    color: 'white',
+  retryButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+    marginLeft: 8,
+  },
+  signOutButton: {
+    borderWidth: 1,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  signOutButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: 'bold',
     marginLeft: 12,
   },
-  signOutButton: {
+  headerSignOutButton: {
     padding: 8,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: 20,
   },
   profileCard: {
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 16,
   },
   avatarContainer: {
+    position: 'relative',
     marginRight: 16,
   },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
   },
   avatarPlaceholder: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  avatarText: {
+    color: '#FFFFFF',
+    fontSize: 32,
+    fontWeight: 'bold',
+  },
+  cameraIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#000000',
   },
   profileInfo: {
     flex: 1,
   },
-  displayName: {
-    fontSize: 20,
-    fontWeight: '700',
+  profileName: {
+    fontSize: 24,
+    fontWeight: 'bold',
     marginBottom: 4,
   },
-  joinDate: {
+  profileUsername: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  profileBio: {
     fontSize: 14,
+    lineHeight: 20,
   },
-  lifetimeStatsCard: {
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 16,
+  rankContainer: {
+    marginBottom: 20,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 16,
-  },
-  statsGrid: {
+  statsContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    marginBottom: 16,
     gap: 16,
   },
-  statItem: {
+  statCard: {
     flex: 1,
-    minWidth: '30%',
+    borderRadius: 12,
+    padding: 20,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 32,
+    fontWeight: 'bold',
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '500',
-    textAlign: 'center',
   },
-  xpCard: {
+  actionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 20,
     borderRadius: 16,
-    marginBottom: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  xpHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  xpInfo: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  xpAmount: {
+  actionCardText: {
     fontSize: 18,
-    fontWeight: '700',
-  },
-  nextRankText: {
-    fontSize: 12,
-  },
-  rankContainer: {
-    alignItems: 'center',
-  },
-  rankTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  rankSubtitle: {
-    fontSize: 14,
-  },
-  dailyTrackerButton: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  dailyTrackerButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  dailyTrackerSubtext: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  friendsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    gap: 8,
-  },
-  friendsButtonText: {
-    fontSize: 16,
     fontWeight: '600',
+    marginLeft: 16,
   },
-  footer: {
-    height: 32,
+  configCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    marginTop: 20,
+  },
+  configTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  configDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  chatbotContainer: {
+    flex: 1,
+    margin: 20,
+    borderRadius: 16,
+    padding: 20,
   },
 });
