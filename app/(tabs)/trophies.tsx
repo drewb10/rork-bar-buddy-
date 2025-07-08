@@ -82,7 +82,7 @@ export default function TrophiesScreen() {
 
   // 🔧 SIMPLIFIED: Replace the loadLifetimeStats function with this direct approach
   const loadLifetimeStats = async () => {
-    if (!isDataReady) {
+    if (!isDataReady || !profile) {
       console.log('🏆 Not ready to load stats - auth:', isAuthenticated, 'profile:', !!profile, 'ready:', profileReady);
       return;
     }
@@ -93,20 +93,20 @@ export default function TrophiesScreen() {
     try {
       // 🔧 DIRECT: Use profile data immediately as fallback
       const fallbackStats = {
-        totalBeers: profile.total_beers || 0,
-        totalShots: profile.total_shots || 0,
-        totalBeerTowers: profile.total_beer_towers || 0,
-        totalFunnels: profile.total_funnels || 0,
-        totalShotguns: profile.total_shotguns || 0,
-        totalPoolGames: profile.pool_games_won || 0,
-        totalDartGames: profile.dart_games_won || 0,
-        totalDrinksLogged: (profile.total_beers || 0) + (profile.total_shots || 0) + (profile.total_beer_towers || 0) + (profile.total_funnels || 0) + (profile.total_shotguns || 0),
-        avgDrunkScale: profile.drunk_scale_ratings && profile.drunk_scale_ratings.length > 0 
+        totalBeers: profile?.total_beers || 0,
+        totalShots: profile?.total_shots || 0,
+        totalBeerTowers: profile?.total_beer_towers || 0,
+        totalFunnels: profile?.total_funnels || 0,
+        totalShotguns: profile?.total_shotguns || 0,
+        totalPoolGames: profile?.pool_games_won || 0,
+        totalDartGames: profile?.dart_games_won || 0,
+        totalDrinksLogged: (profile?.total_beers || 0) + (profile?.total_shots || 0) + (profile?.total_beer_towers || 0) + (profile?.total_funnels || 0) + (profile?.total_shotguns || 0),
+        avgDrunkScale: profile?.drunk_scale_ratings && profile.drunk_scale_ratings.length > 0 
           ? Math.round((profile.drunk_scale_ratings.reduce((sum, rating) => sum + rating, 0) / profile.drunk_scale_ratings.length) * 10) / 10
           : 0,
-        barsHit: profile.bars_hit || 0,
-        nightsOut: profile.nights_out || 0,
-        totalXP: profile.xp || 0,
+        barsHit: profile?.bars_hit || 0,
+        nightsOut: profile?.nights_out || 0,
+        totalXP: profile?.xp || 0,
       };
 
       // Set fallback data immediately
@@ -144,8 +144,8 @@ export default function TrophiesScreen() {
                 ...totals,
                 totalDrinksLogged: totals.totalBeers + totals.totalShots + totals.totalBeerTowers + totals.totalFunnels + totals.totalShotguns,
                 avgDrunkScale: totals.drunkScaleCount > 0 ? Math.round((totals.drunkScaleSum / totals.drunkScaleCount) * 10) / 10 : 0,
-                barsHit: profile.bars_hit || 0,
-                totalXP: profile.xp || 0,
+                barsHit: profile?.bars_hit || 0,
+                totalXP: profile?.xp || 0,
               };
 
               setLifetimeStats(enhancedStats);
@@ -165,18 +165,18 @@ export default function TrophiesScreen() {
       // Still show something rather than empty screen
       if (profile) {
         setLifetimeStats({
-          totalBeers: profile.total_beers || 0,
-          totalShots: profile.total_shots || 0,
-          totalBeerTowers: profile.total_beer_towers || 0,
-          totalFunnels: profile.total_funnels || 0,
-          totalShotguns: profile.total_shotguns || 0,
-          totalPoolGames: profile.pool_games_won || 0,
-          totalDartGames: profile.dart_games_won || 0,
+          totalBeers: profile?.total_beers || 0,
+          totalShots: profile?.total_shots || 0,
+          totalBeerTowers: profile?.total_beer_towers || 0,
+          totalFunnels: profile?.total_funnels || 0,
+          totalShotguns: profile?.total_shotguns || 0,
+          totalPoolGames: profile?.pool_games_won || 0,
+          totalDartGames: profile?.dart_games_won || 0,
           totalDrinksLogged: 0,
           avgDrunkScale: 0,
-          barsHit: profile.bars_hit || 0,
-          nightsOut: profile.nights_out || 0,
-          totalXP: profile.xp || 0,
+          barsHit: profile?.bars_hit || 0,
+          nightsOut: profile?.nights_out || 0,
+          totalXP: profile?.xp || 0,
         });
       }
     } finally {

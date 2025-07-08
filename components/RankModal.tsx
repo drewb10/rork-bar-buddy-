@@ -10,7 +10,7 @@ interface RankLevel {
   minXP: number;
   maxXP: number;
   color: string;
-  gradientColors: string[];
+  gradientColors: [string, string];
   description: string;
   icon: string;
 }
@@ -21,7 +21,7 @@ const RANK_LEVELS: RankLevel[] = [
     minXP: 0, 
     maxXP: 499, 
     color: '#8B8B8B', 
-    gradientColors: ['#8B8B8B', '#A0A0A0'],
+    gradientColors: ['#8B8B8B', '#A0A0A0'] as [string, string],
     description: 'Just getting started on your bar journey',
     icon: '🌟'
   },
@@ -30,7 +30,7 @@ const RANK_LEVELS: RankLevel[] = [
     minXP: 500, 
     maxXP: 1499, 
     color: '#4A90E2', 
-    gradientColors: ['#4A90E2', '#5BA0F2'],
+    gradientColors: ['#4A90E2', '#5BA0F2'] as [string, string],
     description: 'Finding your rhythm in the nightlife scene',
     icon: '🍺'
   },
@@ -39,7 +39,7 @@ const RANK_LEVELS: RankLevel[] = [
     minXP: 1500, 
     maxXP: 2999, 
     color: '#FF6A00', 
-    gradientColors: ['#FF6A00', '#FF8533'],
+    gradientColors: ['#FF6A00', '#FF8533'] as [string, string],
     description: 'Discovering new places and experiences',
     icon: '🗺️'
   },
@@ -48,7 +48,7 @@ const RANK_LEVELS: RankLevel[] = [
     minXP: 3000, 
     maxXP: 4999, 
     color: '#7B68EE', 
-    gradientColors: ['#7B68EE', '#9B88FF'],
+    gradientColors: ['#7B68EE', '#9B88FF'] as [string, string],
     description: 'You know the scene like the back of your hand',
     icon: '🎯'
   },
@@ -57,7 +57,7 @@ const RANK_LEVELS: RankLevel[] = [
     minXP: 5000, 
     maxXP: 9999, 
     color: '#FFD700', 
-    gradientColors: ['#FFD700', '#FFED4A'],
+    gradientColors: ['#FFD700', '#FFED4A'] as [string, string],
     description: 'A respected veteran of the bar scene',
     icon: '👑'
   },
@@ -66,7 +66,7 @@ const RANK_LEVELS: RankLevel[] = [
     minXP: 10000, 
     maxXP: Infinity, 
     color: '#FF1493', 
-    gradientColors: ['#FF1493', '#FF69B4'],
+    gradientColors: ['#FF1493', '#FF69B4'] as [string, string],
     description: 'The ultimate bar buddy - legendary status',
     icon: '🏆'
   }
