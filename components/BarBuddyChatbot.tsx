@@ -111,7 +111,7 @@ export default function BarBuddyChatbot({ onClose }: BarBuddyChatbotProps) {
       if (todaySpecials.length > 0) {
         const specialsList = todaySpecials.slice(0, 3).map(({ venue, special }) => 
           `🍻 ${venue}: ${special.title} - ${special.description}`
-        ).join('\n\n');
+        ).join('\n');
         
         return {
           text: `Here are tonight's hottest specials! 🔥\n\n${specialsList}\n\nWant me to show you more or help you pick the perfect spot?`,
