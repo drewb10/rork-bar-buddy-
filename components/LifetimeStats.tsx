@@ -8,20 +8,31 @@ import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 
 interface LifetimeStatsProps {
-  stats: {
-    barsHit: number;
-    nightsOut: number;
-    totalBeers: number;
-    totalShots: number;
-    totalPoolGames: number;
-    totalDartGames: number;
-    avgDrunkScale: number;
+  stats?: {
+    barsHit?: number;
+    nightsOut?: number;
+    totalBeers?: number;
+    totalShots?: number;
+    totalPoolGames?: number;
+    totalDartGames?: number;
+    avgDrunkScale?: number;
   };
 }
 
 const LifetimeStats: React.FC<LifetimeStatsProps> = ({ stats }) => {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
+
+  // Provide default values to prevent crashes
+  const safeStats = {
+    barsHit: stats?.barsHit || 0,
+    nightsOut: stats?.nightsOut || 0,
+    totalBeers: stats?.totalBeers || 0,
+    totalShots: stats?.totalShots || 0,
+    totalPoolGames: stats?.totalPoolGames || 0,
+    totalDartGames: stats?.totalDartGames || 0,
+    avgDrunkScale: stats?.avgDrunkScale || 0,
+  };
 
   const StatCard = ({ 
     title, 
@@ -33,25 +44,52 @@ const LifetimeStats: React.FC<LifetimeStatsProps> = ({ stats }) => {
     value: number | string; 
     subtitle?: string; 
     size?: 'normal' | 'large';
-  }) => (
-    <View style={[
-      styles.statCard, 
-      { backgroundColor: themeColors.card },
-      size === 'large' && styles.largeStatCard
-    ]}>
-      <Text style={[styles.statValue, { color: themeColors.primary }, size === 'large' && styles.largeStatValue]}>
-        {typeof value === 'number' ? value.toLocaleString() : value}
-      </Text>
-      <Text style={[styles.statTitle, { color: themeColors.text }]}>
-        {title}
-      </Text>
-      {subtitle && (
-        <Text style={[styles.statSubtitle, { color: themeColors.subtext }]}>
-          {subtitle}
+  }) => {
+    // Safely format the value
+    const formatValue = (val: number | string) => {
+      if (typeof val === 'number') {
+        if (isNaN(val)) return '0';
+        return val.toLocaleString();
+      }
+      return String(val);
+    };
+
+    return (
+      <View style={[
+        styles.statCard, 
+        { backgroundColor: themeColors.card },
+        size === 'large' && styles.largeStatCard
+      ]}>
+        <Text style={[
+          styles.statValue, 
+          { color: themeColors.primary }, 
+          size === 'large' && styles.largeStatValue
+        ]}>
+          {formatValue(value)}
         </Text>
-      )}
-    </View>
-  );
+        <Text style={[styles.statTitle, { color: themeColors.text }]}>
+          {title}
+        </Text>
+        {subtitle && (
+          <Text style={[styles.statSubtitle, { color: themeColors.subtext }]}>
+            {subtitle}
+          </Text>
+        )}
+      </View>
+    );
+  };
+
+  if (!stats && !safeStats) {
+    return (
+      <View style={styles.container}>
+        <View style={[styles.errorCard, { backgroundColor: themeColors.card }]}>
+          <Text style={[styles.errorText, { color: themeColors.subtext }]}>
+            No stats available
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -59,12 +97,12 @@ const LifetimeStats: React.FC<LifetimeStatsProps> = ({ stats }) => {
       <View style={styles.statsRow}>
         <StatCard 
           title="Bars Hit" 
-          value={stats.barsHit}
+          value={safeStats.barsHit}
           size="large"
         />
         <StatCard 
           title="Nights Out" 
-          value={stats.nightsOut}
+          value={safeStats.nightsOut}
           subtitle="Days with stats"
           size="large"
         />
@@ -74,11 +112,11 @@ const LifetimeStats: React.FC<LifetimeStatsProps> = ({ stats }) => {
       <View style={styles.statsRow}>
         <StatCard 
           title="Total Beers" 
-          value={stats.totalBeers}
+          value={safeStats.totalBeers}
         />
         <StatCard 
           title="Total Shots" 
-          value={stats.totalShots}
+          value={safeStats.totalShots}
         />
       </View>
 
@@ -86,11 +124,11 @@ const LifetimeStats: React.FC<LifetimeStatsProps> = ({ stats }) => {
       <View style={styles.statsRow}>
         <StatCard 
           title="Pool Games" 
-          value={stats.totalPoolGames}
+          value={safeStats.totalPoolGames}
         />
         <StatCard 
           title="Dart Games" 
-          value={stats.totalDartGames}
+          value={safeStats.totalDartGames}
         />
       </View>
 
@@ -98,7 +136,7 @@ const LifetimeStats: React.FC<LifetimeStatsProps> = ({ stats }) => {
       <View style={styles.statsRow}>
         <StatCard 
           title="Drunk Scale" 
-          value={stats.avgDrunkScale}
+          value={safeStats.avgDrunkScale.toFixed(1)}
           subtitle="Average rating"
           size="large"
         />
@@ -149,6 +187,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     marginTop: 2,
+  },
+  errorCard: {
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  errorText: {
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 
