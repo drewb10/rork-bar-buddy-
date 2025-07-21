@@ -114,15 +114,15 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     if (selectedLikeTime) {
       try {
         // CRITICAL FIX: Immediately update local state for real-time UI feedback
-        const currentLikeCount = getLikeCount(venue.id);
-        setLocalLikeCount(currentLikeCount + 1);
+        const currentGlobalLikeCount = getGlobalLikeCount(venue.id);
+        setLocalLikeCount(currentGlobalLikeCount + 1);
         setLocalCanLike(false);
         
         // Update hot time data immediately
         const newHotTime = { time: selectedLikeTime, likes: 1 };
         setLocalHotTime(newHotTime);
         
-        // Submit the like to the store
+        // Submit the like to the store (this will sync to Supabase)
         likeVenue(venue.id, selectedLikeTime);
         
         // Force update to trigger re-renders across all components
@@ -135,7 +135,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         setSelectedLikeTime(null);
         setIsLiking(false);
         
-        console.log('✅ Like venue completed with real-time UI update and force refresh');
+        console.log('✅ Like venue completed with real-time UI update and global sync');
       } catch (error) {
         console.error('Error submitting like:', error);
         // Revert local state on error
@@ -145,7 +145,7 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
         setIsLiking(false);
       }
     }
-  }, [selectedLikeTime, venue.id, likeVenue, getLikeCount, forceUpdate]);
+  }, [selectedLikeTime, venue.id, likeVenue, getGlobalLikeCount, forceUpdate]);
 
   const handleRsvpCancel = useCallback(() => {
     setRsvpModalVisible(false);
