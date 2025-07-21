@@ -34,7 +34,7 @@ try {
 }
 
 try {
-  FriendsModal = require('@/components/FriendsModal').default;
+  FriendsModal = require('@/components/ModernFriendsModal').default;
 } catch (error) {
   console.warn('FriendsModal component not found');
 }
