@@ -43,12 +43,16 @@ const LifetimeStats: React.FC<LifetimeStatsProps> = ({ stats }) => {
     title, 
     value, 
     subtitle, 
-    size = 'normal' 
+    size = 'normal',
+    gradient = ['#FF6B35', '#FF8F65'],
+    icon = '📊'
   }: { 
     title: string; 
     value: number | string; 
     subtitle?: string; 
     size?: 'normal' | 'large';
+    gradient?: string[];
+    icon?: string;
   }) => {
     // Safely format the value
     const formatValue = (val: number | string) => {
@@ -60,27 +64,47 @@ const LifetimeStats: React.FC<LifetimeStatsProps> = ({ stats }) => {
     };
 
     return (
-      <View style={[
-        styles.statCard, 
-        { backgroundColor: themeColors.card },
-        size === 'large' && styles.largeStatCard
-      ]}>
-        <Text style={[
-          styles.statValue, 
-          { color: themeColors.primary }, 
-          size === 'large' && styles.largeStatValue
-        ]}>
-          {formatValue(value)}
-        </Text>
-        <Text style={[styles.statTitle, { color: themeColors.text }]}>
-          {title}
-        </Text>
-        {subtitle && (
-          <Text style={[styles.statSubtitle, { color: themeColors.subtext }]}>
-            {subtitle}
+      <LinearGradient
+        colors={size === 'large' ? gradient : ['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.02)']}
+        style={[
+          styles.statCard, 
+          size === 'large' && styles.largeStatCard
+        ]}
+      >
+        {/* Glass morphism overlay */}
+        <View style={[styles.glassOverlay, size === 'large' && styles.largeGlassOverlay]}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardIcon}>{icon}</Text>
+            {size === 'large' && (
+              <View style={[styles.primaryIndicator, { backgroundColor: '#FFFFFF30' }]} />
+            )}
+          </View>
+          
+          <Text style={[
+            styles.statValue, 
+            { color: size === 'large' ? '#FFFFFF' : themeColors.primary }, 
+            size === 'large' && styles.largeStatValue
+          ]}>
+            {formatValue(value)}
           </Text>
-        )}
-      </View>
+          
+          <Text style={[
+            styles.statTitle, 
+            { color: size === 'large' ? 'rgba(255, 255, 255, 0.9)' : themeColors.text }
+          ]}>
+            {title}
+          </Text>
+          
+          {subtitle && (
+            <Text style={[
+              styles.statSubtitle, 
+              { color: size === 'large' ? 'rgba(255, 255, 255, 0.7)' : themeColors.subtext }
+            ]}>
+              {subtitle}
+            </Text>
+          )}
+        </View>
+      </LinearGradient>
     );
   };
 
