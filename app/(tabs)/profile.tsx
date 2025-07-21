@@ -30,7 +30,7 @@ let ImagePicker: any = null;
 try {
   RankModal = require('@/components/ModernRankModal').default;
 } catch (error) {
-  console.warn('RankModal component not found');
+  console.warn('ModernRankModal component not found');
 }
 
 try {
