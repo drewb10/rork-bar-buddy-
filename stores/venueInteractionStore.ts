@@ -212,7 +212,12 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
                         likeTimeSlot: timeSlot,
                       } 
                     : i
-                ).filter(Boolean)
+                ).filter(Boolean),
+                // Update global like count cache immediately
+                globalLikeCounts: {
+                  ...state.globalLikeCounts,
+                  [venueId]: (state.globalLikeCounts[venueId] || 0) + 1
+                }
               };
             } else {
               return {
@@ -229,7 +234,12 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
                     dailyLikesUsed: 1,
                     likeTimeSlot: timeSlot,
                   }
-                ]
+                ],
+                // Update global like count cache immediately
+                globalLikeCounts: {
+                  ...state.globalLikeCounts,
+                  [venueId]: (state.globalLikeCounts[venueId] || 0) + 1
+                }
               };
             }
           });
@@ -239,6 +249,9 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           
           // Update achievements for bars visited
           debouncedUpdateAchievements();
+          
+          // Sync to Supabase for global like tracking
+          get().syncLikeToSupabase(venueId, timeSlot);
           
           console.log('✅ Like venue completed, triggering re-render...');
           
