@@ -568,6 +568,14 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
         set((state) => ({ ...state }));
       },
 
+      syncToSupabase: async (venueId: string, arrivalTime?: string) => {
+        try {
+          // Mock implementation - would sync to Supabase in real app
+        } catch (error) {
+          console.warn('Error syncing venue interaction to Supabase:', error);
+        }
+      },
+
       syncLikeToSupabase: async (venueId: string, timeSlot: string) => {
         try {
           if (!isSupabaseConfigured() || !supabase) {
