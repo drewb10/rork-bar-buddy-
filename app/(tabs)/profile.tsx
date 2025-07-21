@@ -635,9 +635,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-  chatbotDescription: {
-    fontSize: 16,
-    textAlign: 'center',
-    lineHeight: 22,
   },
 });
