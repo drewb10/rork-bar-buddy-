@@ -51,32 +51,28 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
   };
 
   const handleComplete = async () => {
-    if (!profile) {
-      router.push('/auth/sign-up');
-      return;
-    }
-    
     if (!ageVerified || !termsAccepted) {
-      Alert.alert('Verification Required', 'Please complete age verification and accept terms to continue.');
+      Alert.alert('Error', 'Please complete all steps before continuing.');
       return;
     }
 
+    setIsSubmitting(true);
+    
     try {
-      setIsSubmitting(true);
-      await updateProfile({ 
-        has_completed_onboarding: true,
-        updated_at: new Date().toISOString()
-      });
-      
-      setIsSubmitting(false);
+      if (profile && updateProfile) {
+        await updateProfile({
+          has_completed_onboarding: true
+        });
+      }
       
       if (onComplete) {
         onComplete();
       }
     } catch (error) {
-      setIsSubmitting(false);
       console.error('Error completing onboarding:', error);
-      Alert.alert('Error', 'Failed to complete setup. Please try again.');
+      Alert.alert('Error', 'Failed to complete onboarding. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -90,39 +86,42 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
         Welcome to BarBuddy!
       </Text>
       
-      <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
-        Your ultimate nightlife companion for discovering bars, tracking your adventures, and connecting with fellow bar enthusiasts.
+      <Text style={[styles.description, { color: themeColors.subtext }]}>
+        Your ultimate companion for discovering nightlife, tracking your adventures, and connecting with fellow bar enthusiasts.
       </Text>
-
+      
       <View style={styles.featureList}>
         <View style={styles.featureItem}>
-          <Text style={styles.featureIcon}>🍻</Text>
+          <Check size={20} color={themeColors.primary} />
           <Text style={[styles.featureText, { color: themeColors.text }]}>
-            Discover the best bars in your area
+            Discover local bars and venues
           </Text>
         </View>
+        
         <View style={styles.featureItem}>
-          <Text style={styles.featureIcon}>📊</Text>
+          <Check size={20} color={themeColors.primary} />
           <Text style={[styles.featureText, { color: themeColors.text }]}>
-            Track your nightlife stats and achievements
+            Track your nightlife activities
           </Text>
         </View>
+        
         <View style={styles.featureItem}>
-          <Text style={styles.featureIcon}>💬</Text>
+          <Check size={20} color={themeColors.primary} />
           <Text style={[styles.featureText, { color: themeColors.text }]}>
-            Chat anonymously with other bar-goers
+            Earn XP and unlock achievements
           </Text>
         </View>
+        
         <View style={styles.featureItem}>
-          <Text style={styles.featureIcon}>🏆</Text>
+          <Check size={20} color={themeColors.primary} />
           <Text style={[styles.featureText, { color: themeColors.text }]}>
-            Earn XP and unlock new ranks
+            Connect with other bar enthusiasts
           </Text>
         </View>
       </View>
       
       <Pressable 
-        style={[styles.primaryButton, { backgroundColor: themeColors.primary }]} 
+        style={[styles.primaryButton, { backgroundColor: themeColors.primary }]}
         onPress={() => setCurrentStep('age_verification')}
       >
         <Text style={styles.primaryButtonText}>Get Started</Text>
@@ -137,40 +136,30 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
       </View>
       
       <Text style={[styles.title, { color: themeColors.text }]}>
-        Age Verification Required
+        Age Verification
       </Text>
       
-      <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
-        BarBuddy is designed for responsible adults who are of legal drinking age.
-      </Text>
-      
-      <Text style={[styles.question, { color: themeColors.text }]}>
-        Are you 21 years of age or older?
+      <Text style={[styles.description, { color: themeColors.subtext }]}>
+        BarBuddy is designed for adults who are of legal drinking age. Please confirm that you are at least 21 years old.
       </Text>
       
       <View style={styles.buttonContainer}>
         <Pressable 
-          style={[styles.secondaryButton, { borderColor: themeColors.error }]}
-          onPress={() => handleAgeVerification(false)}
-        >
-          <Text style={[styles.secondaryButtonText, { color: themeColors.error }]}>
-            No, I'm under 21
-          </Text>
-        </Pressable>
-        
-        <Pressable 
           style={[styles.primaryButton, { backgroundColor: themeColors.primary }]}
           onPress={() => handleAgeVerification(true)}
         >
-          <Text style={styles.primaryButtonText}>
-            Yes, I'm 21 or older
+          <Text style={styles.primaryButtonText}>I am 21 or older</Text>
+        </Pressable>
+        
+        <Pressable 
+          style={[styles.secondaryButton, { borderColor: themeColors.border }]}
+          onPress={() => handleAgeVerification(false)}
+        >
+          <Text style={[styles.secondaryButtonText, { color: themeColors.subtext }]}>
+            I am under 21
           </Text>
         </Pressable>
       </View>
-      
-      <Text style={[styles.disclaimer, { color: themeColors.subtext }]}>
-        By continuing, you confirm that you are of legal drinking age in your jurisdiction.
-      </Text>
     </View>
   );
 
@@ -240,18 +229,7 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
             {termsAccepted && <Check size={16} color="white" />}
           </View>
           <Text style={[styles.checkboxText, { color: themeColors.text }]}>
-            I have read and accept the Terms of Service and Privacy Policy
-          </Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.buttonContainer}>
-        <Pressable 
-          style={[styles.secondaryButton, { borderColor: themeColors.subtext }]}
-          onPress={() => setCurrentStep('age_verification')}
-        >
-          <Text style={[styles.secondaryButtonText, { color: themeColors.subtext }]}>
-            Back
+            I agree to the Terms of Service
           </Text>
         </Pressable>
         
@@ -259,16 +237,14 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
           style={[
             styles.primaryButton, 
             { 
-              backgroundColor: themeColors.primary,
+              backgroundColor: termsAccepted ? themeColors.primary : themeColors.border,
               opacity: termsAccepted ? 1 : 0.5
             }
           ]}
           onPress={handleTermsAcceptance}
           disabled={!termsAccepted}
         >
-          <Text style={styles.primaryButtonText}>
-            Accept & Continue
-          </Text>
+          <Text style={styles.primaryButtonText}>Accept & Continue</Text>
         </Pressable>
       </View>
     </View>
@@ -284,30 +260,9 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
         You're All Set!
       </Text>
       
-      <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
-        Welcome to the BarBuddy community! Start exploring bars, tracking your adventures, and earning XP.
+      <Text style={[styles.description, { color: themeColors.subtext }]}>
+        Welcome to the BarBuddy community! Start exploring venues, tracking your adventures, and earning XP.
       </Text>
-
-      <View style={styles.featureList}>
-        <View style={styles.completedItem}>
-          <Check size={20} color={themeColors.primary} />
-          <Text style={[styles.completedText, { color: themeColors.text }]}>
-            Age verified (21+)
-          </Text>
-        </View>
-        <View style={styles.completedItem}>
-          <Check size={20} color={themeColors.primary} />
-          <Text style={[styles.completedText, { color: themeColors.text }]}>
-            Terms accepted
-          </Text>
-        </View>
-        <View style={styles.completedItem}>
-          <Check size={20} color={themeColors.primary} />
-          <Text style={[styles.completedText, { color: themeColors.text }]}>
-            Account ready
-          </Text>
-        </View>
-      </View>
       
       <Pressable 
         style={[
@@ -316,7 +271,7 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
             backgroundColor: themeColors.primary,
             opacity: isSubmitting ? 0.7 : 1
           }
-        ]} 
+        ]}
         onPress={handleComplete}
         disabled={isSubmitting}
       >
@@ -342,28 +297,13 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
     }
   };
 
-  if (!visible) return null;
-
   return (
-    <Modal visible={visible} transparent={false} animationType="slide">
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+    >
       <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-        {/* Progress Indicator */}
-        <View style={styles.progressContainer}>
-          {['welcome', 'age_verification', 'terms', 'complete'].map((step, index) => (
-            <View
-              key={step}
-              style={[
-                styles.progressDot,
-                {
-                  backgroundColor: ['welcome', 'age_verification', 'terms', 'complete'].indexOf(currentStep) >= index
-                    ? themeColors.primary
-                    : themeColors.border
-                }
-              ]}
-            />
-          ))}
-        </View>
-
         {renderCurrentStep()}
       </View>
     </Modal>
@@ -374,160 +314,108 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 60,
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
-  progressContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 40,
-    gap: 8,
-  },
-  progressDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
   },
   stepContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 32,
   },
   logoContainer: {
+    alignItems: 'center',
     marginBottom: 32,
   },
   iconContainer: {
-    marginBottom: 24,
+    alignItems: 'center',
+    marginBottom: 32,
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: '800',
+    textAlign: 'center',
     marginBottom: 16,
-    textAlign: 'center',
   },
-  subtitle: {
+  description: {
     fontSize: 16,
+    lineHeight: 24,
     textAlign: 'center',
     marginBottom: 32,
-    lineHeight: 22,
-    paddingHorizontal: 16,
-  },
-  question: {
-    fontSize: 20,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 28,
   },
   featureList: {
-    alignSelf: 'stretch',
     marginBottom: 40,
-    gap: 16,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 16,
     paddingHorizontal: 16,
-  },
-  featureIcon: {
-    fontSize: 24,
-    marginRight: 16,
   },
   featureText: {
     fontSize: 16,
-    lineHeight: 22,
-    flex: 1,
-  },
-  completedItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  completedText: {
-    fontSize: 16,
     marginLeft: 12,
-    fontWeight: '500',
-  },
-  termsScrollView: {
-    maxHeight: 200,
-    alignSelf: 'stretch',
-    marginBottom: 20,
-  },
-  termsContent: {
-    padding: 16,
-    borderRadius: 12,
-    margin: 4,
-  },
-  termsSection: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  termsSectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  acceptanceContainer: {
-    alignSelf: 'stretch',
-    marginBottom: 24,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: 16,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderWidth: 2,
-    borderRadius: 6,
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  checkboxText: {
-    fontSize: 14,
     flex: 1,
-    lineHeight: 20,
   },
   buttonContainer: {
-    flexDirection: 'row',
     gap: 16,
-    alignSelf: 'stretch',
-    paddingHorizontal: 16,
   },
   primaryButton: {
-    flex: 1,
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 12,
     alignItems: 'center',
+    marginBottom: 16,
   },
   primaryButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   secondaryButton: {
-    flex: 1,
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 12,
+    borderWidth: 1,
     alignItems: 'center',
-    borderWidth: 2,
-    backgroundColor: 'transparent',
   },
   secondaryButtonText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
   },
-  disclaimer: {
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 16,
-    marginTop: 16,
-    paddingHorizontal: 16,
+  termsScrollView: {
+    flex: 1,
+    marginBottom: 24,
+  },
+  termsContent: {
+    padding: 20,
+    borderRadius: 12,
+  },
+  termsSection: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  termsSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  acceptanceContainer: {
+    paddingTop: 16,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  checkboxText: {
+    fontSize: 14,
+    flex: 1,
   },
 });
