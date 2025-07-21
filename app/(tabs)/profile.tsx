@@ -279,7 +279,7 @@ export default function ProfileScreen() {
       </View>
 
       
-      {activeTab === 'profile' ? (
+      
         <ScrollView 
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
