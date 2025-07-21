@@ -28,7 +28,7 @@ let useUserProfileStore: any = null;
 let ImagePicker: any = null;
 
 try {
-  RankModal = require('@/components/RankModal').default;
+  RankModal = require('@/components/ModernRankModal').default;
 } catch (error) {
   console.warn('RankModal component not found');
 }
