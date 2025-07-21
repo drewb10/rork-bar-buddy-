@@ -278,37 +278,6 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
-      {/* Tab Navigation */}
-      <View style={styles.tabContainer}>
-        <Pressable 
-          style={[
-            styles.tab, 
-            activeTab === 'profile' && { borderBottomColor: themeColors.primary, borderBottomWidth: 2 }
-          ]}
-          onPress={() => setActiveTab('profile')}
-        >
-          <Text style={[
-            styles.tabText, 
-            { color: activeTab === 'profile' ? themeColors.primary : themeColors.subtext }
-          ]}>
-            Profile
-          </Text>
-        </Pressable>
-        <Pressable 
-          style={[
-            styles.tab, 
-            activeTab === 'chatbot' && { borderBottomColor: themeColors.primary, borderBottomWidth: 2 }
-          ]}
-          onPress={() => setActiveTab('chatbot')}
-        >
-          <Text style={[
-            styles.tabText, 
-            { color: activeTab === 'chatbot' ? themeColors.primary : themeColors.subtext }
-          ]}>
-            BarBuddy AI
-          </Text>
-        </Pressable>
-      </View>
       
       {activeTab === 'profile' ? (
         <ScrollView 
