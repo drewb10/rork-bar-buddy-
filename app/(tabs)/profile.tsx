@@ -9,33 +9,28 @@ import {
   Alert,
   RefreshControl,
   Image,
+  Dimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
-import { LogOut, RefreshCw, Camera, Users } from 'lucide-react-native';
+import { LogOut, RefreshCw, Camera, Users, Award, Trophy, Star } from 'lucide-react-native';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import { useRouter } from 'expo-router';
 
 // Safe imports with error handling
-let RankSystem: React.ComponentType<any> | null = null;
-let BarBuddyChatbot: React.ComponentType<any> | null = null;
+let RankModal: React.ComponentType<any> | null = null;
 let FriendsModal: React.ComponentType<any> | null = null;
 let OnboardingModal: React.ComponentType<any> | null = null;
 let useUserProfileStore: any = null;
 let ImagePicker: any = null;
 
 try {
-  RankSystem = require('@/components/RankSystem').default;
+  RankModal = require('@/components/RankModal').default;
 } catch (error) {
-  console.warn('RankSystem component not found');
-}
-
-try {
-  BarBuddyChatbot = require('@/components/BarBuddyChatbot').default;
-} catch (error) {
-  console.warn('BarBuddyChatbot component not found');
+  console.warn('RankModal component not found');
 }
 
 try {
@@ -62,6 +57,8 @@ try {
   console.warn('expo-image-picker not found');
 }
 
+const { width: screenWidth } = Dimensions.get('window');
+
 export default function ProfileScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
@@ -79,9 +76,9 @@ export default function ProfileScreen() {
   } = useAuthStore();
   
   const router = useRouter();
-  // Removed activeTab state - no more BarBuddy AI tab
   const [refreshing, setRefreshing] = useState(false);
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
+  const [rankModalVisible, setRankModalVisible] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
@@ -197,6 +194,36 @@ export default function ProfileScreen() {
     setShowOnboarding(false);
   };
 
+  // Get current rank info
+  const getCurrentRank = (xp: number) => {
+    const RANK_SYSTEM = [
+      { name: 'Sober Star', xpRequired: 0, color: '#9CA3AF', icon: '⭐', subLevels: [0, 250, 500, 750] },
+      { name: 'Tipsy Talent', xpRequired: 1000, color: '#60A5FA', icon: '🌟', subLevels: [1000, 1500, 2000, 2500] },
+      { name: 'Buzzed Beginner', xpRequired: 3000, color: '#34D399', icon: '✨', subLevels: [3000, 3750, 4500, 5250] },
+      { name: 'Drunk Dynamo', xpRequired: 6000, color: '#F59E0B', icon: '🔥', subLevels: [6000, 7500, 9000, 10500] },
+      { name: 'Wasted Warrior', xpRequired: 12000, color: '#EF4444', icon: '⚡', subLevels: [12000, 15000, 18000, 21000] },
+      { name: 'Blackout Baron', xpRequired: 24000, color: '#8B5CF6', icon: '👑', subLevels: [24000, 30000, 36000, 42000] },
+    ];
+
+    let currentRank = RANK_SYSTEM[0];
+    for (let i = RANK_SYSTEM.length - 1; i >= 0; i--) {
+      if (xp >= RANK_SYSTEM[i].xpRequired) {
+        currentRank = RANK_SYSTEM[i];
+        break;
+      }
+    }
+
+    // Find sub-level
+    let subLevel = 1;
+    for (let i = 0; i < currentRank.subLevels.length; i++) {
+      if (xp >= currentRank.subLevels[i]) {
+        subLevel = i + 1;
+      }
+    }
+
+    return { ...currentRank, subLevel };
+  };
+
   // Show loading screen while checking authentication
   if (isLoading || isInitializing) {
     return (
@@ -259,6 +286,8 @@ export default function ProfileScreen() {
 
   // Use profile from auth store or user data as fallback
   const displayProfile = profile || user;
+  const userXP = displayProfile?.xp || 0;
+  const currentRank = getCurrentRank(userXP);
 
   // Main profile view
   return (
@@ -278,20 +307,24 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
-        <ScrollView 
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor={themeColors.primary}
-            />
-          }
+      <ScrollView 
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={themeColors.primary}
+          />
+        }
+      >
+        {/* Profile Hero Card */}
+        <LinearGradient
+          colors={['#FF6B35', '#FF8F65']}
+          style={styles.profileHeroCard}
         >
-          {/* Profile Card */}
-          <View style={[styles.profileCard, { backgroundColor: themeColors.card }]}>
+          <View style={styles.glassOverlay}>
             <View style={styles.profileHeader}>
               <Pressable style={styles.avatarContainer} onPress={handleProfilePicturePress}>
                 {displayProfile?.profile_picture ? (
@@ -300,108 +333,145 @@ export default function ProfileScreen() {
                     style={styles.avatarImage}
                   />
                 ) : (
-                  <View style={[styles.avatarPlaceholder, { backgroundColor: themeColors.primary }]}>
+                  <View style={styles.avatarPlaceholder}>
                     <Text style={styles.avatarText}>
                       {displayProfile?.display_name?.charAt(0) || displayProfile?.username?.charAt(0) || 'U'}
                     </Text>
                   </View>
                 )}
-                <View style={[styles.cameraIcon, { backgroundColor: themeColors.primary }]}>
+                <View style={styles.cameraIconContainer}>
                   <Camera size={16} color="#FFFFFF" />
                 </View>
               </Pressable>
               
               <View style={styles.profileInfo}>
-                <Text style={[styles.profileName, { color: themeColors.text }]}>
+                <Text style={styles.profileName}>
                   {displayProfile?.display_name || displayProfile?.username || 'Bar Buddy User'}
                 </Text>
-                <Text style={[styles.profileUsername, { color: themeColors.subtext }]}>
+                <Text style={styles.profileUsername}>
                   @{displayProfile?.username || 'user'}
                 </Text>
                 {displayProfile?.bio && (
-                  <Text style={[styles.profileBio, { color: themeColors.subtext }]}>
+                  <Text style={styles.profileBio}>
                     {displayProfile.bio}
                   </Text>
                 )}
               </View>
             </View>
           </View>
+        </LinearGradient>
 
-          {/* Rank System Card - Safe Rendering */}
-          {RankSystem && (
-            <View style={styles.rankContainer}>
-              <RankSystem 
-                userXP={displayProfile?.xp || 0}
-              />
-            </View>
-          )}
-
-          {/* Stats Cards */}
-          <View style={styles.statsContainer}>
-            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
-              <Text style={[styles.statNumber, { color: themeColors.primary }]}>
-                {displayProfile?.xp || 0}
-              </Text>
-              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                XP
-              </Text>
+        {/* XP Card - Prominently Featured */}
+        <LinearGradient
+          colors={['#007AFF', '#40A9FF']}
+          style={styles.xpCard}
+        >
+          <View style={styles.glassOverlay}>
+            <View style={styles.xpHeader}>
+              <Text style={styles.xpIcon}>⚡</Text>
+              <View style={styles.xpBadge}>
+                <Text style={styles.xpBadgeText}>XP</Text>
+              </View>
             </View>
             
-            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
-              <Text style={[styles.statNumber, { color: themeColors.primary }]}>
-                {displayProfile?.level || 1}
-              </Text>
-              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                Level
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.statsContainer}>
-            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
-              <Text style={[styles.statNumber, { color: themeColors.primary }]}>
-                {displayProfile?.bars_hit || 0}
-              </Text>
-              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                Bars Hit
-              </Text>
-            </View>
-            
-            <View style={[styles.statCard, { backgroundColor: themeColors.card }]}>
-              <Text style={[styles.statNumber, { color: themeColors.primary }]}>
-                {displayProfile?.nights_out || 0}
-              </Text>
-              <Text style={[styles.statLabel, { color: themeColors.subtext }]}>
-                Nights Out
-              </Text>
-            </View>
-          </View>
-
-          {/* Friends Section - Safe Rendering */}
-          <Pressable 
-            style={[styles.actionCard, { backgroundColor: themeColors.card }]}
-            onPress={() => FriendsModal ? setFriendsModalVisible(true) : Alert.alert('Friends', 'Friends feature not available')}
-          >
-            <Users size={24} color={themeColors.primary} />
-            <Text style={[styles.actionCardText, { color: themeColors.text }]}>
-              Friends
+            <Text style={styles.xpValue}>
+              {userXP.toLocaleString()}
             </Text>
+            
+            <Text style={styles.xpTitle}>
+              Experience Points
+            </Text>
+            
+            <Text style={styles.xpSubtitle}>
+              Level {Math.floor(userXP / 1000) + 1} Bar Buddy
+            </Text>
+          </View>
+        </LinearGradient>
+
+        {/* Action Cards Row */}
+        <View style={styles.actionRow}>
+          {/* Rank Card */}
+          <Pressable 
+            style={styles.actionCard} 
+            onPress={() => setRankModalVisible(true)}
+          >
+            <LinearGradient
+              colors={['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.02)']}
+              style={styles.actionCardGradient}
+            >
+              <View style={styles.glassOverlay}>
+                <View style={styles.actionCardHeader}>
+                  <Text style={styles.actionCardIcon}>{currentRank.icon}</Text>
+                </View>
+                
+                <Text style={[styles.actionCardTitle, { color: themeColors.text }]}>
+                  {currentRank.name}
+                </Text>
+                
+                <Text style={[styles.actionCardSubtitle, { color: themeColors.subtext }]}>
+                  Rank {currentRank.subLevel}
+                </Text>
+              </View>
+            </LinearGradient>
           </Pressable>
 
-          {/* Configuration Status */}
-          {!isConfigured && (
-            <View style={[styles.configCard, { backgroundColor: '#FFA500' + '20', borderColor: '#FFA500' }]}>
-              <Text style={[styles.configTitle, { color: '#FFA500' }]}>
+          {/* Friends Card */}
+          <Pressable 
+            style={styles.actionCard} 
+            onPress={() => FriendsModal ? setFriendsModalVisible(true) : Alert.alert('Friends', 'Friends feature not available')}
+          >
+            <LinearGradient
+              colors={['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.02)']}
+              style={styles.actionCardGradient}
+            >
+              <View style={styles.glassOverlay}>
+                <View style={styles.actionCardHeader}>
+                  <Users size={28} color={themeColors.primary} />
+                </View>
+                
+                <Text style={[styles.actionCardTitle, { color: themeColors.text }]}>
+                  Friends
+                </Text>
+                
+                <Text style={[styles.actionCardSubtitle, { color: themeColors.subtext }]}>
+                  Connect & Share
+                </Text>
+              </View>
+            </LinearGradient>
+          </Pressable>
+        </View>
+
+        {/* Configuration Status */}
+        {!isConfigured && (
+          <LinearGradient
+            colors={['#FFA500', '#FFB84D']}
+            style={styles.configCard}
+          >
+            <View style={styles.glassOverlay}>
+              <Text style={styles.configIcon}>⚠️</Text>
+              <Text style={styles.configTitle}>
                 Demo Mode Active
               </Text>
-              <Text style={[styles.configDescription, { color: '#FFA500' }]}>
+              <Text style={styles.configDescription}>
                 You're using demo data. Configure Supabase to sync real data across devices.
               </Text>
             </View>
-          )}
-        </ScrollView>
+          </LinearGradient>
+        )}
+
+        {/* Footer Spacing */}
+        <View style={styles.footer} />
+      </ScrollView>
 
       {/* Modals - Safe Rendering */}
+      {RankModal && (
+        <RankModal 
+          visible={rankModalVisible} 
+          onClose={() => setRankModalVisible(false)} 
+          userXP={userXP}
+        />
+      )}
+      
       {FriendsModal && (
         <FriendsModal 
           visible={friendsModalVisible} 
@@ -490,7 +560,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 20,
   },
@@ -510,17 +580,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    paddingHorizontal: 20,
   },
-  profileCard: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
+  profileHeroCard: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    marginBottom: 24,
+    minHeight: 140,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowRadius: 20,
+    elevation: 15,
+  },
+  glassOverlay: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    backdropFilter: 'blur(20px)',
   },
   profileHeader: {
     flexDirection: 'row',
@@ -539,6 +618,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -547,92 +627,164 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
   },
-  cameraIcon: {
+  cameraIconContainer: {
     position: 'absolute',
     bottom: 0,
     right: 0,
     width: 32,
     height: 32,
     borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#000000',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   profileInfo: {
     flex: 1,
   },
   profileName: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.95)',
     marginBottom: 4,
+    letterSpacing: -0.5,
   },
   profileUsername: {
     fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '500',
     marginBottom: 8,
   },
   profileBio: {
     fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 20,
   },
-  rankContainer: {
-    marginBottom: 20,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    gap: 16,
-  },
-  statCard: {
-    flex: 1,
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
+  xpCard: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    marginBottom: 24,
+    minHeight: 160,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
   },
-  statNumber: {
+  xpHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  xpIcon: {
     fontSize: 32,
-    fontWeight: 'bold',
+  },
+  xpBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  xpBadgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  xpValue: {
+    color: 'white',
+    fontSize: 48,
+    fontWeight: '700',
+    letterSpacing: -2,
+    marginBottom: 8,
+    fontVariant: ['tabular-nums'],
+  },
+  xpTitle: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 17,
+    fontWeight: '600',
+    letterSpacing: -0.3,
     marginBottom: 4,
   },
-  statLabel: {
+  xpSubtitle: {
+    color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 14,
     fontWeight: '500',
+    letterSpacing: -0.1,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    marginBottom: 24,
+    gap: 16,
   },
   actionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 20,
+    flex: 1,
+    borderRadius: 20,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
   },
-  actionCardText: {
-    fontSize: 18,
+  actionCardGradient: {
+    flex: 1,
+    minHeight: 120,
+  },
+  actionCardHeader: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  actionCardIcon: {
+    fontSize: 28,
+  },
+  actionCardTitle: {
+    fontSize: 16,
     fontWeight: '600',
-    marginLeft: 16,
+    letterSpacing: -0.2,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  actionCardSubtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    textAlign: 'center',
+    letterSpacing: -0.1,
   },
   configCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 16,
-    marginTop: 20,
+    borderRadius: 24,
+    overflow: 'hidden',
+    marginBottom: 20,
+    minHeight: 120,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  configIcon: {
+    fontSize: 32,
+    textAlign: 'center',
+    marginBottom: 12,
   },
   configTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.95)',
+    textAlign: 'center',
     marginBottom: 8,
+    letterSpacing: -0.3,
   },
   configDescription: {
     fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
     lineHeight: 20,
+    letterSpacing: -0.1,
+  },
+  footer: {
+    height: 40,
   },
 });
