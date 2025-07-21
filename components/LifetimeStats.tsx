@@ -121,56 +121,105 @@ const LifetimeStats: React.FC<LifetimeStatsProps> = ({ stats }) => {
   }
 
   return (
-    <View style={styles.container}>
-      {/* First Row - Main Stats */}
-      <View style={styles.statsRow}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={[styles.headerTitle, { color: themeColors.text }]}>
+          Lifetime Stats
+        </Text>
+        <Text style={[styles.headerSubtitle, { color: themeColors.subtext }]}>
+          Your nightlife achievements
+        </Text>
+      </View>
+
+      {/* Hero Stats Row - Primary metrics with gradients */}
+      <View style={styles.heroRow}>
         <StatCard 
-          title="Bars Hit" 
+          title="Bars Explored" 
           value={safeStats.barsHit}
+          subtitle="Unique venues"
           size="large"
+          gradient={['#FF6B35', '#FF8F65']}
+          icon="🏛️"
         />
         <StatCard 
           title="Nights Out" 
           value={safeStats.nightsOut}
-          subtitle="Days with stats"
+          subtitle="Epic adventures"
           size="large"
+          gradient={['#007AFF', '#40A9FF']}
+          icon="🌙"
         />
       </View>
 
-      {/* Second Row - Drink Stats */}
-      <View style={styles.statsRow}>
-        <StatCard 
-          title="Total Beers" 
-          value={safeStats.totalBeers}
-        />
-        <StatCard 
-          title="Total Shots" 
-          value={safeStats.totalShots}
-        />
+      {/* Secondary Stats Grid */}
+      <View style={styles.gridContainer}>
+        <View style={styles.gridRow}>
+          <StatCard 
+            title="Total Beers" 
+            value={safeStats.totalBeers}
+            icon="🍺"
+          />
+          <StatCard 
+            title="Total Shots" 
+            value={safeStats.totalShots}
+            icon="🥃"
+          />
+        </View>
+
+        <View style={styles.gridRow}>
+          <StatCard 
+            title="Pool Games" 
+            value={safeStats.totalPoolGames}
+            icon="🎱"
+          />
+          <StatCard 
+            title="Dart Games" 
+            value={safeStats.totalDartGames}
+            icon="🎯"
+          />
+        </View>
       </View>
 
-      {/* Third Row - Game Stats */}
-      <View style={styles.statsRow}>
-        <StatCard 
-          title="Pool Games" 
-          value={safeStats.totalPoolGames}
-        />
-        <StatCard 
-          title="Dart Games" 
-          value={safeStats.totalDartGames}
-        />
-      </View>
+      {/* Drunk Scale Card - Special highlight */}
+      <LinearGradient
+        colors={['#AF52DE', '#C77DFF']}
+        style={styles.drunkScaleCard}
+      >
+        <View style={styles.glassOverlay}>
+          <View style={styles.drunkScaleHeader}>
+            <Text style={styles.drunkScaleIcon}>🔥</Text>
+            <View style={styles.drunkScaleBadge}>
+              <Text style={styles.drunkScaleBadgeText}>AVG</Text>
+            </View>
+          </View>
+          
+          <Text style={styles.drunkScaleValue}>
+            {safeStats.avgDrunkScale.toFixed(1)}
+          </Text>
+          
+          <Text style={styles.drunkScaleTitle}>
+            Drunk Scale Rating
+          </Text>
+          
+          <View style={styles.drunkScaleBar}>
+            <View 
+              style={[
+                styles.drunkScaleFill, 
+                { width: `${(safeStats.avgDrunkScale / 10) * 100}%` }
+              ]} 
+            />
+          </View>
+          
+          <Text style={styles.drunkScaleSubtitle}>
+            Out of 10.0
+          </Text>
+        </View>
+      </LinearGradient>
 
-      {/* Fourth Row - Drunk Scale */}
-      <View style={styles.statsRow}>
-        <StatCard 
-          title="Drunk Scale" 
-          value={safeStats.avgDrunkScale.toFixed(1)}
-          subtitle="Average rating"
-          size="large"
-        />
-      </View>
-    </View>
+      {/* Footer spacing */}
+      <View style={styles.footer} />
+    </ScrollView>
   );
 };
 
