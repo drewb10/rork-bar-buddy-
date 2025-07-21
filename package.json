@@ -11,6 +11,7 @@
   "dependencies": {
     "@expo/cli": "^0.24.15",
     "@expo/vector-icons": "^14.1.0",
+    "@hono/node-server": "^1.17.1",
     "@hono/trpc-server": "^0.3.4",
     "@nkzw/create-context-hook": "^1.1.0",
     "@react-native-async-storage/async-storage": "2.1.2",
@@ -33,7 +34,6 @@
     "expo-linear-gradient": "~14.1.4",
     "expo-linking": "~7.1.4",
     "expo-location": "~18.1.4",
-    "expo-linking": "~7.1.4",
     "expo-router": "~5.0.3",
     "expo-splash-screen": "~0.30.7",
     "expo-status-bar": "~2.2.3",
