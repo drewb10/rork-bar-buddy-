@@ -273,6 +273,16 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
         }
       },
       
+      getLikeCount: (venueId) => {
+        try {
+          if (!venueId) return 0;
+          const interaction = get().interactions.find(i => i && i.venueId === venueId);
+          return interaction ? interaction.likes : 0;
+        } catch {
+          return 0;
+        }
+      },
+      
       getGlobalLikeCount: (venueId) => {
         try {
           if (!venueId) return 0;
