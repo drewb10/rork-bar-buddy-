@@ -35,6 +35,7 @@ export interface CompletedAchievement {
 interface AchievementState {
   achievements: Achievement[];
   completedAchievements: CompletedAchievement[];
+  shownAchievements: string[]; // Track which achievements have shown popup notifications
   lastPopupDate?: string;
   isInitialized: boolean;
   canShowPopup: () => boolean;
@@ -43,6 +44,8 @@ interface AchievementState {
   initializeAchievements: () => void;
   completeAchievement: (id: string) => void;
   markPopupShown: () => void;
+  markAchievementShown: (id: string) => void; // New method to track shown achievements
+  hasAchievementBeenShown: (id: string) => boolean; // Check if achievement popup was shown
   getCompletedCount: () => number;
   getAchievementsByCategory: (category: Achievement['category']) => Achievement[];
   getCompletedAchievementsByCategory: (category: Achievement['category']) => CompletedAchievement[];
