@@ -373,9 +373,11 @@ export const useAchievementStore = create<AchievementState>()(
         }
       },
 
-      // Enhanced: Complete achievement with XP award and trophy popup
+      // Enhanced: Complete achievement with XP award and trophy popup (only first time)
       completeAchievement: (id: string) => {
         try {
+          const { hasAchievementBeenShown, markAchievementShown } = get();
+          
           set((state) => {
             const achievement = state.achievements.find(a => a.id === id);
             if (!achievement || achievement.completed) return state;
@@ -402,7 +404,9 @@ export const useAchievementStore = create<AchievementState>()(
               a.id === id ? { ...a, completed: true, completedAt: new Date().toISOString() } : a
             );
 
-            // Award XP when trophy is unlocked
+            // Award XP and show popup only if this achievement hasn't been shown before
+            const shouldShowPopup = !hasAchievementBeenShown(achievement.id);
+            
             setTimeout(() => {
               if (achievement.xpReward && typeof window !== 'undefined' && (window as any).__userProfileStore) {
                 const userProfileStore = (window as any).__userProfileStore;
@@ -412,13 +416,19 @@ export const useAchievementStore = create<AchievementState>()(
                   
                   console.log(`🏆 Trophy unlocked: ${achievement.title} (+${achievement.xpReward} XP)`);
                   
-                  // Show trophy completion popup
-                  if (typeof window !== 'undefined') {
+                  // Show trophy completion popup only first time
+                  if (shouldShowPopup && typeof window !== 'undefined') {
                     (window as any).__showTrophyCompletionPopup = {
                       title: achievement.title,
                       xpReward: achievement.xpReward,
                       type: 'trophy'
                     };
+                    
+                    // Mark as shown to prevent future popups
+                    markAchievementShown(achievement.id);
+                    console.log(`✅ First-time achievement popup shown for: ${achievement.title}`);
+                  } else {
+                    console.log(`⏭️  Achievement popup skipped (already shown): ${achievement.title}`);
                   }
                 }
               }
