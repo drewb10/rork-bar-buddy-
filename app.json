@@ -18,7 +18,8 @@
       "bundleIdentifier": "app.rork.bar-buddy",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos for profile pictures",
-        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to access your microphone"
+        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to access your microphone",
+        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera"
       }
     },
     "android": {
@@ -31,7 +32,8 @@
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "android.permission.VIBRATE",
-        "INTERNET"
+        "INTERNET",
+        "CAMERA"
       ]
     },
     "web": {

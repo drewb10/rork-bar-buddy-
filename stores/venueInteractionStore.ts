@@ -579,14 +579,19 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
       syncLikeToSupabase: async (venueId: string, timeSlot: string) => {
         try {
           if (!isSupabaseConfigured() || !supabase) {
-            console.log('⚠️ Supabase not configured, skipping like sync');
+            console.log('⚠️ Supabase not configured, using local storage only');
             return;
           }
 
           // Get venue name from mocks - in real app this would come from API
-          const { venues } = require('@/mocks/venues');
-          const venue = venues.find((v: any) => v.id === venueId);
-          const venueName = venue?.name || 'Unknown Venue';
+          let venueName = 'Unknown Venue';
+          try {
+            const { venues } = require('@/mocks/venues');
+            const venue = venues.find((v: any) => v.id === venueId);
+            venueName = venue?.name || 'Unknown Venue';
+          } catch (mockError) {
+            console.warn('Could not load venue name from mocks:', mockError);
+          }
 
           // Get current user ID - you'll need to get this from auth store
           const userStore = typeof window !== 'undefined' && (window as any).__authStore;
@@ -597,65 +602,78 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
             userId = user?.id || 'demo-user';
           }
 
-          const { data, error } = await supabase
-            .from('bar_likes')
-            .insert({
-              user_id: userId,
-              bar_id: venueId,
-              bar_name: venueName,
-              like_time_slot: timeSlot,
-              liked_at: new Date().toISOString()
-            })
-            .select()
-            .single();
+          // Try to sync to Supabase, but don't fail if it doesn't work
+          try {
+            const { data, error } = await supabase
+              .from('bar_likes')
+              .insert({
+                user_id: userId,
+                bar_id: venueId,
+                bar_name: venueName,
+                like_time_slot: timeSlot,
+                liked_at: new Date().toISOString()
+              })
+              .select()
+              .single();
 
-          if (error) {
-            console.error('❌ Error syncing like to Supabase:', error);
-          } else {
-            console.log('✅ Like synced to Supabase:', data);
-            
-            // Refresh global like counts after successful sync
-            await get().loadGlobalLikeCounts();
+            if (error) {
+              console.warn('⚠️ Could not sync like to Supabase (app will continue working):', error.message);
+            } else {
+              console.log('✅ Like synced to Supabase:', data);
+              
+              // Try to refresh global like counts, but don't fail if it doesn't work
+              try {
+                await get().loadGlobalLikeCounts();
+              } catch (loadError) {
+                console.warn('Could not refresh global like counts:', loadError);
+              }
+            }
+          } catch (supabaseError) {
+            console.warn('⚠️ Supabase sync failed (app will continue working):', supabaseError);
           }
         } catch (error) {
-          console.error('❌ Error in syncLikeToSupabase:', error);
+          console.warn('⚠️ Error in syncLikeToSupabase (app will continue working):', error);
         }
       },
 
       loadGlobalLikeCounts: async () => {
         try {
           if (!isSupabaseConfigured() || !supabase) {
-            console.log('⚠️ Supabase not configured, using local like counts');
+            console.log('⚠️ Supabase not configured, using local like counts only');
             return;
           }
 
-          // Get all bar like counts from Supabase
-          const { data, error } = await supabase
-            .from('bar_likes')
-            .select('bar_id, bar_name')
-            .order('liked_at', { ascending: false });
+          // Try to get all bar like counts from Supabase
+          try {
+            const { data, error } = await supabase
+              .from('bar_likes')
+              .select('bar_id, bar_name')
+              .order('liked_at', { ascending: false });
 
-          if (error) {
-            console.error('❌ Error loading global like counts:', error);
-            return;
-          }
-
-          // Count likes per bar
-          const likeCounts: Record<string, number> = {};
-          data?.forEach((like) => {
-            if (like.bar_id) {
-              likeCounts[like.bar_id] = (likeCounts[like.bar_id] || 0) + 1;
+            if (error) {
+              console.warn('⚠️ Could not load global like counts (app will continue working):', error.message);
+              return;
             }
-          });
 
-          // Update the store with global counts
-          set((state) => ({
-            globalLikeCounts: likeCounts
-          }));
+            // Count likes per bar
+            const likeCounts: Record<string, number> = {};
+            data?.forEach((like) => {
+              if (like.bar_id) {
+                likeCounts[like.bar_id] = (likeCounts[like.bar_id] || 0) + 1;
+              }
+            });
 
-          console.log('✅ Global like counts loaded:', likeCounts);
+            // Update the store with global counts
+            set((state) => ({
+              globalLikeCounts: likeCounts
+            }));
+
+            console.log('✅ Global like counts loaded:', likeCounts);
+          } catch (supabaseError) {
+            console.warn('⚠️ Supabase query failed (app will continue working):', supabaseError);
+          }
         } catch (error) {
-          console.error('❌ Error in loadGlobalLikeCounts:', error);
+          console.warn('⚠️ Error in loadGlobalLikeCounts (app will continue working):', error);
         }
       },
 

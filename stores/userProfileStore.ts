@@ -123,7 +123,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
               pool_games_won: 2,
               dart_games_won: 1,
               photos_taken: 15,
-              profile_picture: undefined,
+              profile_picture: null,
               friends: [],
               friend_requests: [],
               xp_activities: [],
@@ -144,7 +144,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
           }
           
           // Direct Supabase auth call
-          const { data: { user }, error: authError } = await supabase!.auth.getUser();
+          const { data: { user }, error: authError } = await supabase.auth.getUser();
           
           if (authError || !user) {
             console.log('🔄 No authenticated user found:', authError?.message);
@@ -159,7 +159,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
           console.log('🔄 Found authenticated user:', user.id);
 
           // Direct profile fetch
-          const { data: profileData, error: profileError } = await supabase!
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', user.id)
@@ -189,7 +189,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
                 pool_games_won: 0,
                 dart_games_won: 0,
                 photos_taken: 0,
-                profile_picture: undefined,
+                profile_picture: null,
                 visited_bars: [],
                 xp_activities: [],
                 has_completed_onboarding: false,
@@ -197,7 +197,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
                 updated_at: new Date().toISOString(),
               };
 
-              const { data: createdProfile, error: createError } = await supabase!
+              const { data: createdProfile, error: createError } = await supabase
                 .from('profiles')
                 .insert(newProfile)
                 .select()
@@ -303,8 +303,8 @@ export const useUserProfileStore = create<UserProfileStore>()(
         try {
           set({ isUpdating: true });
 
-          if (isSupabaseConfigured()) {
-            const { error } = await supabase!
+          if (isSupabaseConfigured() && supabase) {
+            const { error } = await supabase
               .from('profiles')
               .update({
                 ...updates,
@@ -472,8 +472,28 @@ export const useUserProfileStore = create<UserProfileStore>()(
       },
 
       loadFriends: async () => {
-        // Simplified implementation - just log for now
-        console.log('👥 Friends load requested (simplified implementation)');
+        try {
+          if (!isSupabaseConfigured() || !supabase) {
+            console.log('👥 Supabase not configured, using empty friends list');
+            set({ friends: [] });
+            return;
+          }
+
+          const state = get();
+          if (!state.profile) {
+            console.log('👥 No profile available for loading friends');
+            return;
+          }
+
+          // For now, just set empty friends to avoid the table relationship error
+          // This prevents the app from crashing while we fix the database schema
+          set({ friends: [] });
+          console.log('👥 Friends loaded (empty list to prevent crashes)');
+        } catch (error) {
+          console.error('❌ Error loading friends:', error);
+          // Set empty friends list on error to prevent crashes
+          set({ friends: [] });
+        }
       }
     }),
     {
