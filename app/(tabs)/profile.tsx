@@ -79,7 +79,7 @@ export default function ProfileScreen() {
   } = useAuthStore();
   
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'profile' | 'chatbot'>('profile');
+  // Removed activeTab state - no more BarBuddy AI tab
   const [refreshing, setRefreshing] = useState(false);
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
