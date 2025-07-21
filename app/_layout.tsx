@@ -2,13 +2,12 @@ import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useAgeVerificationStore } from "@/stores/ageVerificationStore";
 import { useAuthStore } from "@/stores/authStore";
-import { useFrameworkReady } from "@/hooks/useFrameworkReady";
-import { isSupabaseConfigured } from "@/lib/supabase";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
 import CompletionPopup from "@/components/CompletionPopup";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -79,69 +78,62 @@ function useCompletionPopups() {
 }
 
 export default function RootLayout() {
-  const isFrameworkReady = useFrameworkReady();
-
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
-  const initializationRef = useRef(false);
 
   const { currentPopup, closeCurrentPopup } = useCompletionPopups();
 
+  // Simplified store access with fallbacks
   const ageVerificationStore = useAgeVerificationStore();
   const authStore = useAuthStore();
 
   const isVerified = ageVerificationStore?.isVerified || false;
   const setVerified = ageVerificationStore?.setVerified || (() => {});
-  const isAuthenticated = authStore?.isAuthenticated || false;
-  const isConfigured = authStore?.isConfigured || false;
   const initializeAuth = authStore?.initialize || (() => Promise.resolve());
   const checkConfiguration = authStore?.checkConfiguration || (() => {});
 
   useEffect(() => {
-    if (!isFrameworkReady || initializationRef.current) return;
-    
-    try {
-      if (checkConfiguration && typeof checkConfiguration === 'function') {
-        checkConfiguration();
-      }
-      
-      const initializeApp = async () => {
-        try {
-          if (initializationRef.current) return;
-          initializationRef.current = true;
-          
-          const initTimeout = setTimeout(() => {
-            console.warn('App initialization timeout, continuing anyway');
-            setIsInitialized(true);
-          }, 10000);
-
-          if (initializeAuth && typeof initializeAuth === 'function') {
-            await initializeAuth();
-          }
-          
-          clearTimeout(initTimeout);
-          setIsInitialized(true);
-        } catch (error) {
-          console.warn('Error initializing app:', error);
-          setIsInitialized(true);
+    // Simplified initialization
+    const initializeApp = async () => {
+      try {
+        console.log('🚀 Starting app initialization...');
+        
+        // Check configuration first
+        if (checkConfiguration && typeof checkConfiguration === 'function') {
+          checkConfiguration();
         }
-      };
-
-      if (!isVerified) {
-        setShowAgeVerification(true);
+        
+        // Initialize auth with timeout
+        if (initializeAuth && typeof initializeAuth === 'function') {
+          const initPromise = initializeAuth();
+          const timeoutPromise = new Promise((resolve) => {
+            setTimeout(() => {
+              console.warn('Auth initialization timeout, continuing...');
+              resolve(null);
+            }, 5000);
+          });
+          
+          await Promise.race([initPromise, timeoutPromise]);
+        }
+        
+        // Show age verification if not verified
+        if (!isVerified) {
+          setShowAgeVerification(true);
+        }
+        
         setIsInitialized(true);
-      } else {
-        if (!isInitialized && !initializationRef.current) {
-          setTimeout(() => {
-            initializeApp();
-          }, 100);
-        }
+        console.log('✅ App initialization complete');
+      } catch (error) {
+        console.warn('⚠️ Error during initialization:', error);
+        // Continue anyway to prevent app from being stuck
+        setIsInitialized(true);
       }
-    } catch (error) {
-      console.warn('Error in main useEffect:', error);
-      setIsInitialized(true);
-    }
-  }, [isFrameworkReady, isVerified]);
+    };
+
+    // Start initialization after a short delay
+    const timer = setTimeout(initializeApp, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleAgeVerification = (verified: boolean) => {
     try {
@@ -155,13 +147,11 @@ export default function RootLayout() {
     }
   };
 
-  if (!isFrameworkReady) {
-    return null;
-  }
-
+  // Always render the app structure, even if not fully initialized
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
+    <ErrorBoundary>
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>
         <StatusBar style="light" />
         <Stack
           screenOptions={{
