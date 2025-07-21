@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { StyleSheet, View, Text, Pressable, Image, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MapPin, Clock, Star, Flame, TrendingUp, MessageCircle } from 'lucide-react-native';
