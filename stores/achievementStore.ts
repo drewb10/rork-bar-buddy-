@@ -644,6 +644,7 @@ export const useAchievementStore = create<AchievementState>()(
               progress: a.maxProgress ? 0 : undefined
             })),
             completedAchievements: [],
+            shownAchievements: [], // Reset shown achievements tracking
             lastPopupDate: undefined,
             isInitialized: true,
           });
