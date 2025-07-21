@@ -18,10 +18,12 @@ interface VenueInteraction {
 
 interface VenueInteractionState {
   interactions: VenueInteraction[];
+  globalLikeCounts: Record<string, number>; // Cache global like counts
   incrementInteraction: (venueId: string, arrivalTime?: string) => void;
   likeVenue: (venueId: string, timeSlot: string) => void;
   getInteractionCount: (venueId: string) => number;
   getLikeCount: (venueId: string) => number;
+  getGlobalLikeCount: (venueId: string) => number; // New method for global likes
   getTotalLikes: () => number;
   resetInteractionsIfNeeded: () => void;
   canInteract: (venueId: string) => boolean;
@@ -29,7 +31,9 @@ interface VenueInteractionState {
   getPopularArrivalTime: (venueId: string) => string | null;
   getHotTimeWithLikes: (venueId: string) => { time: string; likes: number } | null;
   syncToSupabase: (venueId: string, arrivalTime?: string) => Promise<void>;
+  syncLikeToSupabase: (venueId: string, timeSlot: string) => Promise<void>; // New method
   loadPopularTimesFromSupabase: () => Promise<void>;
+  loadGlobalLikeCounts: () => Promise<void>; // New method
   getMostPopularVenues: () => { venueId: string; likes: number }[];
   getTimeSlotData: (venueId: string) => { time: string; count: number; likes: number }[];
   getAllInteractionsForVenue: (venueId: string) => VenueInteraction[];
