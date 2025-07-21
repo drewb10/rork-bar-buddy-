@@ -496,7 +496,9 @@ export const useAchievementStore = create<AchievementState>()(
 
               newCompletedAchievements = [...filteredCompletedAchievements, completedAchievementData];
 
-              // Award XP and show popup for newly completed achievement
+              // Award XP and show popup for newly completed achievement (only first time)
+              const shouldShowPopup = !get().hasAchievementBeenShown(completedAchievement.id);
+              
               setTimeout(() => {
                 if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
                   const userProfileStore = (window as any).__userProfileStore;
@@ -506,12 +508,20 @@ export const useAchievementStore = create<AchievementState>()(
                     
                     console.log(`🏆 Trophy auto-unlocked: ${completedAchievement.title} (+${completedAchievement.xpReward} XP)`);
                     
-                    // Show trophy completion popup
-                    (window as any).__showTrophyCompletionPopup = {
-                      title: completedAchievement.title,
-                      xpReward: completedAchievement.xpReward,
-                      type: 'trophy'
-                    };
+                    // Show trophy completion popup only first time
+                    if (shouldShowPopup) {
+                      (window as any).__showTrophyCompletionPopup = {
+                        title: completedAchievement.title,
+                        xpReward: completedAchievement.xpReward,
+                        type: 'trophy'
+                      };
+                      
+                      // Mark as shown to prevent future popups
+                      get().markAchievementShown(completedAchievement.id);
+                      console.log(`✅ First-time achievement popup shown for: ${completedAchievement.title}`);
+                    } else {
+                      console.log(`⏭️  Achievement popup skipped (already shown): ${completedAchievement.title}`);
+                    }
                   }
                 }
               }, 100);
