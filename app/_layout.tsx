@@ -152,64 +152,65 @@ export default function RootLayout() {
     <ErrorBoundary>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-        <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerStyle: {
-              backgroundColor: '#000000',
-            },
-            headerTintColor: '#FFFFFF',
-            headerShadowVisible: false,
-            contentStyle: {
-              backgroundColor: '#000000',
-            },
-            headerShown: false,
-          }}
-        >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="auth" options={{ headerShown: false }} />
-          <Stack.Screen 
-            name="venue/[id]" 
-            options={{
-              headerShown: true,
-              presentation: 'card',
-              headerBackTitle: 'Home',
-              headerTitle: '',
+          <StatusBar style="light" />
+          <Stack
+            screenOptions={{
               headerStyle: {
                 backgroundColor: '#000000',
               },
               headerTintColor: '#FFFFFF',
+              headerShadowVisible: false,
+              contentStyle: {
+                backgroundColor: '#000000',
+              },
+              headerShown: false,
             }}
-          />
-          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="camera-roll" options={{ 
-            headerShown: true,
-            presentation: 'card',
-            headerBackTitle: 'Camera',
-            headerTitle: 'Camera Roll',
-            headerStyle: {
-              backgroundColor: '#000000',
-            },
-            headerTintColor: '#FFFFFF',
-          }} />
-        </Stack>
+          >
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="auth" options={{ headerShown: false }} />
+            <Stack.Screen 
+              name="venue/[id]" 
+              options={{
+                headerShown: true,
+                presentation: 'card',
+                headerBackTitle: 'Home',
+                headerTitle: '',
+                headerStyle: {
+                  backgroundColor: '#000000',
+                },
+                headerTintColor: '#FFFFFF',
+              }}
+            />
+            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="camera-roll" options={{ 
+              headerShown: true,
+              presentation: 'card',
+              headerBackTitle: 'Camera',
+              headerTitle: 'Camera Roll',
+              headerStyle: {
+                backgroundColor: '#000000',
+              },
+              headerTintColor: '#FFFFFF',
+            }} />
+          </Stack>
 
-        <AgeVerificationModal
-          visible={showAgeVerification}
-          onVerify={handleAgeVerification}
-        />
-
-        {/* Render CompletionPopup only when ready and popup exists */}
-        {currentPopup && (
-          <CompletionPopup
-            visible={!!currentPopup}
-            title={currentPopup.title}
-            xpReward={currentPopup.xpReward}
-            type={currentPopup.type}
-            onClose={closeCurrentPopup}
+          <AgeVerificationModal
+            visible={showAgeVerification}
+            onVerify={handleAgeVerification}
           />
-        )}
-      </QueryClientProvider>
-    </trpc.Provider>
+
+          {/* Render CompletionPopup only when ready and popup exists */}
+          {currentPopup && (
+            <CompletionPopup
+              visible={!!currentPopup}
+              title={currentPopup.title}
+              xpReward={currentPopup.xpReward}
+              type={currentPopup.type}
+              onClose={closeCurrentPopup}
+            />
+          )}
+        </QueryClientProvider>
+      </trpc.Provider>
+    </ErrorBoundary>
   );
 }
