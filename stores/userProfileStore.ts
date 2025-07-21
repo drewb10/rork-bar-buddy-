@@ -123,7 +123,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
               pool_games_won: 2,
               dart_games_won: 1,
               photos_taken: 15,
-              profile_picture: null,
+              profile_picture: undefined,
               friends: [],
               friend_requests: [],
               xp_activities: [],
@@ -144,7 +144,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
           }
           
           // Direct Supabase auth call
-          const { data: { user }, error: authError } = await supabase.auth.getUser();
+          const { data: { user }, error: authError } = await supabase!.auth.getUser();
           
           if (authError || !user) {
             console.log('🔄 No authenticated user found:', authError?.message);
@@ -159,7 +159,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
           console.log('🔄 Found authenticated user:', user.id);
 
           // Direct profile fetch
-          const { data: profileData, error: profileError } = await supabase
+          const { data: profileData, error: profileError } = await supabase!
             .from('profiles')
             .select('*')
             .eq('id', user.id)
@@ -189,7 +189,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
                 pool_games_won: 0,
                 dart_games_won: 0,
                 photos_taken: 0,
-                profile_picture: null,
+                profile_picture: undefined,
                 visited_bars: [],
                 xp_activities: [],
                 has_completed_onboarding: false,
@@ -197,7 +197,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
                 updated_at: new Date().toISOString(),
               };
 
-              const { data: createdProfile, error: createError } = await supabase
+              const { data: createdProfile, error: createError } = await supabase!
                 .from('profiles')
                 .insert(newProfile)
                 .select()
@@ -304,7 +304,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
           set({ isUpdating: true });
 
           if (isSupabaseConfigured()) {
-            const { error } = await supabase
+            const { error } = await supabase!
               .from('profiles')
               .update({
                 ...updates,
@@ -347,9 +347,8 @@ export const useUserProfileStore = create<UserProfileStore>()(
             id: Date.now().toString(),
             type,
             description,
-            xp: xpAmount,
-            timestamp: new Date().toISOString(),
-            venue_id: venueId
+            xpAwarded: xpAmount,
+            timestamp: new Date().toISOString()
           };
 
           const updatedActivities = [activity, ...(state.profile.xp_activities || [])].slice(0, 50);
