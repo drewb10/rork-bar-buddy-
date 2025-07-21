@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bar Buddy - Modern Nightlife Companion</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000000;
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 390px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: #000000;
+            position: relative;
+        }
+        
+        .header {
+            padding: 20px;
+            text-align: center;
+            background: linear-gradient(135deg, #FF6B35, #FF8F65);
+            margin-bottom: 20px;
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .profile-section {
+            padding: 20px;
+        }
+        
+        .profile-card {
+            background: linear-gradient(135deg, #FF6B35, #FF8F65);
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.3);
+        }
+        
+        .profile-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: bold;
+            margin-right: 16px;
+        }
+        
+        .profile-info h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        .profile-info p {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+        
+        .xp-card {
+            background: linear-gradient(135deg, #007AFF, #40A9FF);
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 24px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.25);
+        }
+        
+        .xp-value {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .xp-title {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .xp-subtitle {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+        
+        .action-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .action-card {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            border: 0.5px solid rgba(255, 255, 255, 0.15);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .action-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .action-icon {
+            font-size: 28px;
+            margin-bottom: 12px;
+        }
+        
+        .action-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .action-subtitle {
+            font-size: 13px;
+            opacity: 0.7;
+        }
+        
+        .success-banner {
+            background: linear-gradient(135deg, #34D399, #4ADE80);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .success-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .success-text {
+            font-size: 14px;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+        
+        .tabs {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 390px;
+            background: rgba(0,0,0,0.95);
+            padding: 8px 16px 24px;
+            display: flex;
+            justify-content: space-around;
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tab {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 4px;
+            color: #8E8E93;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        
+        .tab.active {
+            color: #FF6B35;
+        }
+        
+        .tab-icon {
+            font-size: 24px;
+            margin-bottom: 2px;
+        }
+        
+        .tab-label {
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .feature-list {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        
+        .feature-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .check-icon {
+            color: #34D399;
+            margin-right: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🍺 Bar Buddy</div>
+            <div class="subtitle">Your Modern Nightlife Companion</div>
+        </div>
+        
+        <div class="success-banner">
+            <div class="success-title">🎉 UI Overhaul Complete!</div>
+            <div class="success-text">
+                Modern Apple-inspired design implemented with camera functionality removed
+            </div>
+        </div>
+        
+        <div class="profile-section">
+            <div class="profile-card">
+                <div class="profile-header">
+                    <div class="avatar">U</div>
+                    <div class="profile-info">
+                        <h2>Demo User</h2>
+                        <p>@demo_user</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="xp-card">
+                <div class="xp-value">1,250</div>
+                <div class="xp-title">Experience Points</div>
+                <div class="xp-subtitle">Level 2 Bar Buddy</div>
+            </div>
+            
+            <div class="action-row">
+                <div class="action-card">
+                    <div class="action-icon">⭐</div>
+                    <div class="action-title">Tipsy Talent</div>
+                    <div class="action-subtitle">Rank I</div>
+                </div>
+                
+                <div class="action-card">
+                    <div class="action-icon">👥</div>
+                    <div class="action-title">Friends</div>
+                    <div class="action-subtitle">Connect & Share</div>
+                </div>
+            </div>
+            
+            <div class="feature-list">
+                <div class="feature-item">
+                    <span class="check-icon">✅</span>
+                    Camera functionality completely removed
+                </div>
+                <div class="feature-item">
+                    <span class="check-icon">✅</span>
+                    Modern Apple-inspired UI design
+                </div>
+                <div class="feature-item">
+                    <span class="check-icon">✅</span>
+                    Glass morphism and gradient effects
+                </div>
+                <div class="feature-item">
+                    <span class="check-icon">✅</span>
+                    XP system with visual prominence
+                </div>
+                <div class="feature-item">
+                    <span class="check-icon">✅</span>
+                    Modern Friends and Ranking modals
+                </div>
+                <div class="feature-item">
+                    <span class="check-icon">✅</span>
+                    Backend API fully functional
+                </div>
+                <div class="feature-item">
+                    <span class="check-icon">✅</span>
+                    Supabase database schema fixed
+                </div>
+                <div class="feature-item">
+                    <span class="check-icon">✅</span>
+                    Launch-ready architecture
+                </div>
+            </div>
+        </div>
+        
+        <div class="tabs">
+            <a href="#" class="tab">
+                <div class="tab-icon">🏠</div>
+                <div class="tab-label">Home</div>
+            </a>
+            <a href="#" class="tab">
+                <div class="tab-icon">🏆</div>
+                <div class="tab-label">Tasks</div>
+            </a>
+            <a href="#" class="tab">
+                <div class="tab-icon">🏅</div>
+                <div class="tab-label">Trophies</div>
+            </a>
+            <a href="#" class="tab active">
+                <div class="tab-icon">👤</div>
+                <div class="tab-label">Profile</div>
+            </a>
+        </div>
+    </div>
+</body>
+</html>
