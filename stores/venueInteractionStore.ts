@@ -119,6 +119,7 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
   persist(
     (set, get): VenueInteractionState => ({
       interactions: [],
+      globalLikeCounts: {}, // Initialize global like counts cache
       
       incrementInteraction: (venueId, arrivalTime) => {
         try {
