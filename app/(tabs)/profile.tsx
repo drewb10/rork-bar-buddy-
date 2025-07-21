@@ -402,22 +402,6 @@ export default function ProfileScreen() {
             </View>
           )}
         </ScrollView>
-      ) : (
-        <View style={[styles.chatbotContainer, { backgroundColor: themeColors.card }]}>
-          {BarBuddyChatbot ? (
-            <BarBuddyChatbot />
-          ) : (
-            <View style={styles.chatbotPlaceholder}>
-              <Text style={[styles.chatbotTitle, { color: themeColors.text }]}>
-                BarBuddy AI Assistant
-              </Text>
-              <Text style={[styles.chatbotDescription, { color: themeColors.subtext }]}>
-                Coming soon! Your AI companion for nightlife recommendations and bar insights.
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
 
       {/* Modals - Safe Rendering */}
       {FriendsModal && (
