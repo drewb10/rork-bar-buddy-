@@ -41,11 +41,16 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
   // Memoize interaction data to prevent unnecessary re-calculations
   const interactionData = useMemo(() => ({
     interactionCount: getInteractionCount(venue.id),
-    likeCount: localLikeCount !== null ? localLikeCount : getLikeCount(venue.id),
+    likeCount: localLikeCount !== null ? localLikeCount : getGlobalLikeCount(venue.id), // Use global like count
     hotTimeData: localHotTime !== null ? localHotTime : getHotTimeWithLikes(venue.id),
     canInteractWithVenue: canInteract(venue.id),
     canLikeThisVenue: localCanLike !== null ? localCanLike : canLikeVenue(venue.id),
-  }), [venue.id, getInteractionCount, getLikeCount, getHotTimeWithLikes, canInteract, canLikeVenue, localLikeCount, localCanLike, localHotTime]);
+  }), [venue.id, getInteractionCount, getGlobalLikeCount, getHotTimeWithLikes, canInteract, canLikeVenue, localLikeCount, localCanLike, localHotTime]);
+
+  // Load global like counts on component mount
+  useEffect(() => {
+    loadGlobalLikeCounts();
+  }, [loadGlobalLikeCounts]);
 
   const [rsvpModalVisible, setRsvpModalVisible] = useState(false);
   const [likeModalVisible, setLikeModalVisible] = useState(false);
