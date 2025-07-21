@@ -278,8 +278,6 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
-      
-      
         <ScrollView 
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
