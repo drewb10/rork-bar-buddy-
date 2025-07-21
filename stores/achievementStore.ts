@@ -293,6 +293,7 @@ export const useAchievementStore = create<AchievementState>()(
     (set, get) => ({
       achievements: [],
       completedAchievements: [],
+      shownAchievements: [], // Initialize shown achievements tracking
       lastPopupDate: undefined,
       isInitialized: false,
 
@@ -335,6 +336,26 @@ export const useAchievementStore = create<AchievementState>()(
           set({ lastPopupDate: new Date().toISOString() });
         } catch (error) {
           console.warn('Error marking 3AM popup shown:', error);
+        }
+      },
+
+      markAchievementShown: (id: string) => {
+        try {
+          set((state) => ({
+            shownAchievements: [...(state.shownAchievements || []), id]
+          }));
+        } catch (error) {
+          console.warn('Error marking achievement shown:', error);
+        }
+      },
+
+      hasAchievementBeenShown: (id: string) => {
+        try {
+          const { shownAchievements } = get();
+          return (shownAchievements || []).includes(id);
+        } catch (error) {
+          console.warn('Error checking if achievement was shown:', error);
+          return false;
         }
       },
 
