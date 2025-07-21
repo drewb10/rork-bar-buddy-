@@ -506,19 +506,6 @@ const styles = StyleSheet.create({
   headerSignOutButton: {
     padding: 8,
   },
-  tabContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  tabText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
   scrollView: {
     flex: 1,
   },
