@@ -154,7 +154,7 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
           onPress={() => handleAgeVerification(false)}
         >
           <Text style={[styles.secondaryButtonText, { color: themeColors.error }]}>
-            No, I am under 21
+            No, I'm under 21
           </Text>
         </Pressable>
         
@@ -163,7 +163,7 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
           onPress={() => handleAgeVerification(true)}
         >
           <Text style={styles.primaryButtonText}>
-            Yes, I am 21 or older
+            Yes, I'm 21 or older
           </Text>
         </Pressable>
       </View>
@@ -281,7 +281,7 @@ export default function OnboardingModal({ visible, onComplete }: OnboardingModal
       </View>
       
       <Text style={[styles.title, { color: themeColors.text }]}>
-        You are All Set!
+        You're All Set!
       </Text>
       
       <Text style={[styles.subtitle, { color: themeColors.subtext }]}>

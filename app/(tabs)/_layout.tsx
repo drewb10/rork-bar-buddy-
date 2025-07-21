@@ -96,13 +96,7 @@ export default function TabLayout() {
         }}
       />
       
-      {/* CRITICAL: Hide camera tab completely */}
-      <Tabs.Screen
-        name="camera"
-        options={{
-          href: null, // This completely hides the tab
-        }}
-      />
+
     </Tabs>
   );
 }
