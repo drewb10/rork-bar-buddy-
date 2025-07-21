@@ -585,7 +585,6 @@ export const useVenueInteractionStore = create<VenueInteractionState>()(
           }
 
           // Get venue name from mocks - in real app this would come from API
-          const { venues } = require('@/mocks/venues');
           const venue = venues.find((v: any) => v.id === venueId);
           const venueName = venue?.name || 'Unknown Venue';
 
