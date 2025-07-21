@@ -101,43 +101,49 @@ export const useUserProfileStore = create<UserProfileStore>()(
           set({ isLoading: true, profileReady: false });
           console.log('🔄 Starting simplified profile load...');
           
+          // Check if Supabase is configured
           if (!isSupabaseConfigured()) {
-            console.log('🔧 Supabase not configured, using demo profile');
+            console.log('🔄 Supabase not configured, creating demo profile...');
+            
+            // Create a demo profile for testing
             const demoProfile: UserProfile = {
               id: 'demo-user',
-              username: 'demo_user',
-              email: 'demo@example.com',
-              xp: 0,
-              nights_out: 0,
-              bars_hit: 0,
-              total_shots: 0,
-              total_beers: 0,
-              total_beer_towers: 0,
-              total_funnels: 0,
-              total_shotguns: 0,
-              pool_games_won: 0,
-              dart_games_won: 0,
-              photos_taken: 0,
-              drunk_scale_ratings: [],
-              visited_bars: [],
+              username: 'Demo User',
+              phone: '',
+              email: 'demo@barbuddy.com',
+              xp: 150,
+              nights_out: 3,
+              bars_hit: 5,
+              drunk_scale_ratings: [6, 7, 5],
+              total_shots: 12,
+              total_beers: 8,
+              total_beer_towers: 2,
+              total_funnels: 3,
+              total_shotguns: 1,
+              pool_games_won: 2,
+              dart_games_won: 1,
+              photos_taken: 15,
+              profile_picture: null,
+              friends: [],
+              friend_requests: [],
               xp_activities: [],
-              has_completed_onboarding: false,
-              profile_picture: undefined,
+              visited_bars: ['library-taphouse', 'late-night-library'],
+              has_completed_onboarding: true,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             };
-            set({ profile: demoProfile, isLoading: false, profileReady: true, isInitialized: true });
-            return;
-          }
 
-          // Add null check for supabase
-          if (!supabase) {
-            console.warn('🔄 Supabase client not available');
-            set({ isLoading: false, profile: null, profileReady: false });
+            set({ 
+              profile: demoProfile,
+              isLoading: false,
+              profileReady: true
+            });
+
+            console.log('✅ Demo profile created successfully');
             return;
           }
           
-          // 🔧 CRITICAL: Direct Supabase auth call without complex error handling
+          // Direct Supabase auth call
           const { data: { user }, error: authError } = await supabase.auth.getUser();
           
           if (authError || !user) {
@@ -152,7 +158,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
 
           console.log('🔄 Found authenticated user:', user.id);
 
-          // 🔧 CRITICAL: Direct profile fetch with minimal error handling
+          // Direct profile fetch
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
@@ -162,7 +168,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
           if (profileError) {
             console.error('🔄 Profile fetch error:', profileError.message);
             
-            // 🔧 SIMPLIFIED: Create profile if it doesn't exist
+            // Create profile if it doesn't exist
             if (profileError.code === 'PGRST116') {
               console.log('🆕 Creating new profile...');
               
@@ -225,8 +231,8 @@ export const useUserProfileStore = create<UserProfileStore>()(
             return;
           }
 
-          // 🔧 CRITICAL: Set profile immediately with minimal data
-          const finalProfile: UserProfile = {
+          // Set profile immediately with minimal data
+          const finalProfile = {
             id: profileData.id,
             username: profileData.username,
             phone: profileData.phone || '',
@@ -255,7 +261,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
             updated_at: profileData.updated_at,
           };
 
-          // 🔧 CRITICAL: Set profile ready IMMEDIATELY
+          // Set profile ready IMMEDIATELY
           set({ 
             profile: finalProfile,
             isLoading: false,
@@ -275,67 +281,95 @@ export const useUserProfileStore = create<UserProfileStore>()(
       },
 
       initializeProfile: async (userId: string) => {
-        if (!isSupabaseConfigured() || !userId) {
-          console.log('🔧 UserProfile: Creating demo profile for user:', userId);
-          const demoProfile: UserProfile = {
-            id: userId,
-            username: 'demo_user',
-            email: 'demo@example.com',
-            xp: 0,
-            nights_out: 0,
-            bars_hit: 0,
-            total_shots: 0,
-            total_beers: 0,
-            total_beer_towers: 0,
-            total_funnels: 0,
-            total_shotguns: 0,
-            pool_games_won: 0,
-            dart_games_won: 0,
-            photos_taken: 0,
-            drunk_scale_ratings: [],
-            visited_bars: [],
-            xp_activities: [],
-            has_completed_onboarding: false,
-            profile_picture: undefined,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+        try {
+          console.log('🔄 Initializing profile for user:', userId);
+          
+          if (!isSupabaseConfigured()) {
+            console.log('🔄 Supabase not configured, skipping profile initialization');
+            return;
+          }
+
+          // Load the profile
+          await get().loadProfile();
+        } catch (error) {
+          console.error('❌ Error initializing profile:', error);
+        }
+      },
+
+      updateProfile: async (updates: Partial<UserProfile>) => {
+        const state = get();
+        if (!state.profile) return;
+
+        try {
+          set({ isUpdating: true });
+
+          if (isSupabaseConfigured()) {
+            const { error } = await supabase
+              .from('profiles')
+              .update({
+                ...updates,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', state.profile.id);
+
+            if (error) {
+              console.error('Error updating profile:', error);
+              return;
+            }
+          }
+
+          // Update local state
+          set({
+            profile: {
+              ...state.profile,
+              ...updates,
+              updated_at: new Date().toISOString()
+            },
+            isUpdating: false
+          });
+
+          console.log('✅ Profile updated successfully');
+        } catch (error) {
+          console.error('❌ Error updating profile:', error);
+          set({ isUpdating: false });
+        }
+      },
+
+      awardXP: async (type: XPType, description: string, venueId?: string) => {
+        const state = get();
+        if (!state.profile) return;
+
+        try {
+          const xpAmount = XP_VALUES[type];
+          const newXP = state.profile.xp + xpAmount;
+
+          const activity: XPActivity = {
+            id: Date.now().toString(),
+            type,
+            description,
+            xp: xpAmount,
+            timestamp: new Date().toISOString(),
+            venue_id: venueId
           };
-          set({ profile: demoProfile, isInitialized: true, profileReady: true });
-          return;
+
+          const updatedActivities = [activity, ...(state.profile.xp_activities || [])].slice(0, 50);
+
+          await get().updateProfile({
+            xp: newXP,
+            xp_activities: updatedActivities
+          });
+
+          console.log(`✅ Awarded ${xpAmount} XP for ${type}: ${description}`);
+        } catch (error) {
+          console.error('❌ Error awarding XP:', error);
         }
-
-        await get().loadProfile();
       },
 
-      setProfilePicture: async (uri: string) => {
-        const { profile } = get();
-        if (!profile) {
-          console.warn('❌ No profile available for profile picture update');
-          return;
-        }
-        await get().updateProfile({ profile_picture: uri });
-      },
-
-      canIncrementNightsOut: () => {
-        const { profile } = get();
-        if (!profile) return false;
-        const today = new Date().toISOString().split('T')[0];
-        const lastNightOut = profile.last_night_out_date;
-        if (!lastNightOut) return true;
-        const lastNightOutDate = new Date(lastNightOut).toISOString().split('T')[0];
-        return today !== lastNightOutDate;
-      },
-
-      // 🔧 ENHANCED: Better incrementNightsOut with date checking
       incrementNightsOut: async () => {
         const state = get();
-        if (!state.profile) {
-          console.error('❌ No profile available for incrementNightsOut');
-          return;
-        }
+        if (!state.profile) return;
 
-        // Check if already incremented today
-        if (!state.canIncrementNightsOut()) {
+        if (!get().canIncrementNightsOut()) {
           console.log('🌃 Nights out already incremented today');
           return;
         }
@@ -344,424 +378,104 @@ export const useUserProfileStore = create<UserProfileStore>()(
           const newNightsOut = state.profile.nights_out + 1;
           const today = new Date().toISOString();
           
-          console.log('🌃 Incrementing nights out:', newNightsOut);
-          
-          // Update local state immediately
-          set(currentState => ({
-            profile: currentState.profile ? {
-              ...currentState.profile,
-              nights_out: newNightsOut,
-              last_night_out_date: today,
-              updated_at: today
-            } : null
-          }));
+          await get().updateProfile({
+            nights_out: newNightsOut,
+            last_night_out_date: today
+          });
 
-          // Add null check for supabase
-          if (!supabase) {
-            console.warn('🔄 Supabase client not available for nights out update');
-            return;
-          }
-
-          // Get current user
-          const { data: { user }, error: userError } = await supabase.auth.getUser();
-          if (userError || !user) {
-            console.error('❌ No authenticated user for nights out update');
-            return;
-          }
-
-          // Update Supabase
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ 
-              nights_out: newNightsOut,
-              last_night_out_date: today,
-              updated_at: today
-            })
-            .eq('id', user.id);
-
-          if (updateError) {
-            console.error('❌ Error updating nights_out in Supabase:', updateError);
-            
-            // Revert local state on error
-            set(currentState => ({
-              profile: currentState.profile ? {
-                ...currentState.profile,
-                nights_out: state.profile.nights_out, // Revert to original value
-                last_night_out_date: state.profile.last_night_out_date,
-                updated_at: new Date().toISOString()
-              } : null
-            }));
-            return;
-          }
-
-          console.log('✅ Successfully incremented nights out to:', newNightsOut);
+          console.log('✅ Incremented nights out to:', newNightsOut);
         } catch (error) {
-          console.error('❌ Error in incrementNightsOut:', error);
-          
-          // Revert local state on error
-          set(currentState => ({
-            profile: currentState.profile ? {
-              ...currentState.profile,
-              nights_out: state.profile.nights_out, // Revert to original value
-              last_night_out_date: state.profile.last_night_out_date,
-              updated_at: new Date().toISOString()
-            } : null
-          }));
+          console.error('❌ Error incrementing nights out:', error);
         }
       },
 
-      // 🔧 ENHANCED: Better incrementBarsHit with immediate sync
       incrementBarsHit: async () => {
         const state = get();
-        if (!state.profile) {
-          console.error('❌ No profile available for incrementBarsHit');
-          return;
-        }
+        if (!state.profile) return;
 
         try {
           const newBarsHit = state.profile.bars_hit + 1;
           
-          console.log('🏛️ Incrementing bars hit:', newBarsHit);
-          
-          // Update local state immediately
-          set(currentState => ({
-            profile: currentState.profile ? {
-              ...currentState.profile,
-              bars_hit: newBarsHit,
-              updated_at: new Date().toISOString()
-            } : null
-          }));
+          await get().updateProfile({
+            bars_hit: newBarsHit
+          });
 
-          // Add null check for supabase
-          if (!supabase) {
-            console.warn('🔄 Supabase client not available for bars hit update');
-            return;
-          }
-
-          // Get current user
-          const { data: { user }, error: userError } = await supabase.auth.getUser();
-          if (userError || !user) {
-            console.error('❌ No authenticated user for bars hit update');
-            return;
-          }
-
-          // Update Supabase
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ 
-              bars_hit: newBarsHit,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', user.id);
-
-          if (updateError) {
-            console.error('❌ Error updating bars_hit in Supabase:', updateError);
-            
-            // Revert local state on error
-            set(currentState => ({
-              profile: currentState.profile ? {
-                ...currentState.profile,
-                bars_hit: state.profile.bars_hit, // Revert to original value
-                updated_at: new Date().toISOString()
-              } : null
-            }));
-            return;
-          }
-
-          console.log('✅ Successfully incremented bars hit to:', newBarsHit);
+          console.log('✅ Incremented bars hit to:', newBarsHit);
         } catch (error) {
-          console.error('❌ Error in incrementBarsHit:', error);
-          
-          // Revert local state on error
-          set(currentState => ({
-            profile: currentState.profile ? {
-              ...currentState.profile,
-              bars_hit: state.profile.bars_hit, // Revert to original value
-              updated_at: new Date().toISOString()
-            } : null
-          }));
+          console.error('❌ Error incrementing bars hit:', error);
         }
       },
 
       incrementPhotosTaken: async () => {
-        const { profile } = get();
-        if (!profile) return;
-        const newPhotosTaken = (profile.photos_taken || 0) + 1;
-        await get().updateProfile({ photos_taken: newPhotosTaken });
-        await get().awardXP('photo_taken', 'Took a photo');
-      },
-      
-      addDrunkScaleRating: async (rating: number) => {
-        const { profile } = get();
-        if (!profile) {
-          console.error('❌ No profile available for drunk scale rating');
-          return;
-        }
-        const today = new Date().toISOString();
-        const currentRatings = profile.drunk_scale_ratings || [];
-        await get().updateProfile({
-          drunk_scale_ratings: [...currentRatings, rating],
-          last_drunk_scale_date: today
-        });
-        await get().awardXP('drunk_scale_submission', `Submitted drunk scale rating: ${rating}/10`);
-      },
-      
-      getAverageDrunkScale: () => {
-        const { profile } = get();
-        if (!profile || !profile.drunk_scale_ratings || profile.drunk_scale_ratings.length === 0) return 0;
-        const sum = profile.drunk_scale_ratings.reduce((acc, rating) => acc + rating, 0);
-        return Math.round((sum / profile.drunk_scale_ratings.length) * 10) / 10;
-      },
-      
-      awardXP: async (type: XPType, description: string, venueId?: string) => {
-        const { profile } = get();
-
-        if (!profile) {
-          console.warn('❌ No profile available for XP award. Please ensure profile is initialized first.');
-          return;
-        }
-
-        const xpAmount = XP_VALUES[type];
-        if (!xpAmount) {
-          console.warn('Invalid XP type:', type);
-          return;
-        }
-
-        console.log(`🎯 Awarding ${xpAmount} XP for ${type}: ${description}`);
-        
-        const activityId = Math.random().toString(36).substr(2, 9);
-        
-        const newActivity: XPActivity = {
-          id: activityId,
-          type,
-          xpAwarded: xpAmount,
-          timestamp: new Date().toISOString(),
-          description,
-        };
-        
-        const currentXPActivities = profile.xp_activities || [];
-        
-        let updates: Partial<UserProfile> = {
-          xp: (profile.xp || 0) + xpAmount,
-          xp_activities: [...currentXPActivities, newActivity],
-        };
-        
-        // Handle specific XP type updates
-        switch (type) {
-          case 'visit_new_bar':
-            if (venueId && !profile.visited_bars?.includes(venueId)) {
-              updates.visited_bars = [...(profile.visited_bars || []), venueId];
-              updates.bars_hit = (profile.bars_hit || 0) + 1;
-            }
-            break;
-          case 'photo_taken':
-            updates.photos_taken = (profile.photos_taken || 0) + 1;
-            break;
-          case 'pool_games':
-            updates.pool_games_won = (profile.pool_games_won || 0) + 1;
-            break;
-          case 'dart_games':
-            updates.dart_games_won = (profile.dart_games_won || 0) + 1;
-            break;
-        }
-        
-        await get().updateProfile(updates);
-        
-        // Show task completion popup
-        if (typeof window !== 'undefined') {
-          (window as any).__showTaskCompletionPopup = {
-            title: description,
-            xpReward: xpAmount,
-            type: 'task'
-          };
-        }
-        
-        // Trigger achievement checking after XP award
-        setTimeout(() => {
-          if (typeof window !== 'undefined' && (window as any).__achievementStore) {
-            const achievementStore = (window as any).__achievementStore;
-            if (achievementStore?.getState) {
-              const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
-              const currentProfile = get().profile;
-              if (currentProfile) {
-                checkAndUpdateMultiLevelAchievements({
-                  totalBeers: currentProfile.total_beers || 0,
-                  totalShots: currentProfile.total_shots || 0,
-                  totalBeerTowers: currentProfile.total_beer_towers || 0,
-                  totalScoopAndScores: currentProfile.total_scoop_and_scores || 0,
-                  totalFunnels: currentProfile.total_funnels || 0,
-                  totalShotguns: currentProfile.total_shotguns || 0,
-                  poolGamesWon: currentProfile.pool_games_won || 0,
-                  dartGamesWon: currentProfile.dart_games_won || 0,
-                  barsHit: currentProfile.bars_hit || 0,
-                  nightsOut: currentProfile.nights_out || 0,
-                });
-              }
-            }
-          }
-        }, 100);
-        
-        console.log(`✅ XP awarded successfully. New total: ${(profile.xp || 0) + xpAmount}`);
-      },
-
-      // 🔧 FIX: Better stats sync that doesn't block profile loading
-      syncStatsFromDailyStats: async () => {
-        const { profile } = get();
-        if (!profile || !isSupabaseConfigured()) {
-          console.warn('❌ Cannot sync stats: No profile or Supabase not configured');
-          return;
-        }
-
-        try {
-          console.log('🔄 Syncing stats from daily_stats table...');
-          
-          // Add null check for supabase
-          if (!supabase) {
-            console.warn('🔄 Supabase client not available for stats sync');
-            return;
-          }
-          
-          const { data: dailyStats, error } = await supabase
-            .from('daily_stats')
-            .select('*')
-            .eq('user_id', profile.id);
-
-          if (error) {
-            console.error('Error syncing stats from daily_stats:', error);
-            return;
-          }
-
-          if (!dailyStats || dailyStats.length === 0) return;
-
-          const totals = dailyStats.reduce((acc, day) => ({
-            total_beers: acc.total_beers + (day.beers || 0),
-            total_shots: acc.total_shots + (day.shots || 0),
-            total_beer_towers: acc.total_beer_towers + (day.beer_towers || 0),
-            total_funnels: acc.total_funnels + (day.funnels || 0),
-            total_shotguns: acc.total_shotguns + (day.shotguns || 0),
-            pool_games_won: acc.pool_games_won + (day.pool_games_won || 0),
-            dart_games_won: acc.dart_games_won + (day.dart_games_won || 0),
-            nights_out: acc.nights_out + 1,
-          }), {
-            total_beers: 0,
-            total_shots: 0,
-            total_beer_towers: 0,
-            total_funnels: 0,
-            total_shotguns: 0,
-            pool_games_won: 0,
-            dart_games_won: 0,
-            nights_out: 0,
-          });
-
-          await get().updateProfile(totals);
-          console.log('✅ Stats synced from daily_stats table');
-        } catch (error) {
-          console.warn('Error syncing stats from daily_stats:', error);
-        }
-      },
-
-      updateProfile: async (updates: Partial<UserProfile>) => {
         const state = get();
-        if (!state.profile) {
-          console.error('❌ No profile available for update');
-          return;
-        }
+        if (!state.profile) return;
 
         try {
-          console.log('🔄 Updating profile with:', updates);
+          const newPhotosTaken = state.profile.photos_taken + 1;
           
-          set({
-            profile: { ...state.profile, ...updates },
-            isUpdating: true
+          await get().updateProfile({
+            photos_taken: newPhotosTaken
           });
 
-          if (isSupabaseConfigured()) {
-            // Add null check for supabase
-            if (!supabase) {
-              console.warn('🔄 Supabase client not available for profile update');
-              set({ isUpdating: false });
-              return;
-            }
-            
-            let retryCount = 0;
-            const maxRetries = 3;
-            
-            while (retryCount < maxRetries) {
-              try {
-                const { error } = await supabase
-                  .from('profiles')
-                  .update({
-                    ...updates,
-                    updated_at: new Date().toISOString()
-                  })
-                  .eq('id', state.profile.id);
-
-                if (error) {
-                  throw error;
-                }
-
-                console.log('✅ Profile updated in Supabase successfully');
-                break;
-                
-              } catch (supabaseError) {
-                retryCount++;
-                console.warn(`Attempt ${retryCount} failed:`, supabaseError);
-                
-                if (retryCount === maxRetries) {
-                  console.warn('Failed to update profile in Supabase after retries, keeping local changes');
-                } else {
-                  await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-                }
-              }
-            }
-          }
-
-          set({ isUpdating: false });
-
-          // Trigger achievement checking after profile updates
-          setTimeout(() => {
-            if (typeof window !== 'undefined' && (window as any).__achievementStore) {
-              const achievementStore = (window as any).__achievementStore;
-              if (achievementStore?.getState) {
-                const { checkAndUpdateMultiLevelAchievements } = achievementStore.getState();
-                const currentProfile = get().profile;
-                if (currentProfile) {
-                  checkAndUpdateMultiLevelAchievements({
-                    totalBeers: currentProfile.total_beers || 0,
-                    totalShots: currentProfile.total_shots || 0,
-                    totalBeerTowers: currentProfile.total_beer_towers || 0,
-                    totalScoopAndScores: currentProfile.total_scoop_and_scores || 0,
-                    totalFunnels: currentProfile.total_funnels || 0,
-                    totalShotguns: currentProfile.total_shotguns || 0,
-                    poolGamesWon: currentProfile.pool_games_won || 0,
-                    dartGamesWon: currentProfile.dart_games_won || 0,
-                    barsHit: currentProfile.bars_hit || 0,
-                    nightsOut: currentProfile.nights_out || 0,
-                  });
-                }
-              }
-            }
-          }, 100);
-
+          console.log('✅ Incremented photos taken to:', newPhotosTaken);
         } catch (error) {
-          console.error('❌ Error updating profile:', error);
-          set({ profile: state.profile, isUpdating: false });
-          throw error;
+          console.error('❌ Error incrementing photos taken:', error);
         }
+      },
+
+      addDrunkScaleRating: async (rating: number) => {
+        const state = get();
+        if (!state.profile) return;
+
+        try {
+          const newRatings = [...(state.profile.drunk_scale_ratings || []), rating];
+          
+          await get().updateProfile({
+            drunk_scale_ratings: newRatings,
+            last_drunk_scale_date: new Date().toISOString()
+          });
+
+          console.log('✅ Added drunk scale rating:', rating);
+        } catch (error) {
+          console.error('❌ Error adding drunk scale rating:', error);
+        }
+      },
+
+      getAverageDrunkScale: () => {
+        const state = get();
+        if (!state.profile?.drunk_scale_ratings || state.profile.drunk_scale_ratings.length === 0) {
+          return 0;
+        }
+
+        const sum = state.profile.drunk_scale_ratings.reduce((acc, rating) => acc + rating, 0);
+        return Math.round((sum / state.profile.drunk_scale_ratings.length) * 10) / 10;
+      },
+
+      canIncrementNightsOut: () => {
+        const state = get();
+        if (!state.profile) return false;
+
+        const today = new Date().toDateString();
+        const lastNightOut = state.profile.last_night_out_date 
+          ? new Date(state.profile.last_night_out_date).toDateString()
+          : null;
+
+        return today !== lastNightOut;
+      },
+
+      syncStatsFromDailyStats: async () => {
+        // Simplified implementation - just log for now
+        console.log('📊 Stats sync requested (simplified implementation)');
+      },
+
+      setProfilePicture: async (uri: string) => {
+        await get().updateProfile({ profile_picture: uri });
       },
 
       loadFriends: async () => {
-        const { profile } = get();
-        if (!profile || !isSupabaseConfigured()) return;
-
-        try {
-          console.log('Loading friends...');
-          set({ friends: [] });
-          console.log('Friends loaded (placeholder implementation)');
-        } catch (error) {
-          console.error('Error loading friends:', error);
-        }
-      },
+        // Simplified implementation - just log for now
+        console.log('👥 Friends load requested (simplified implementation)');
+      }
     }),
     {
       name: 'user-profile-storage',
@@ -770,7 +484,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
         profile: state.profile ? {
           id: state.profile.id,
           username: state.profile.username,
-          email: state.profile.email,
+          phone: state.profile.phone,
           xp: state.profile.xp,
           nights_out: state.profile.nights_out,
           bars_hit: state.profile.bars_hit,
@@ -791,8 +505,6 @@ export const useUserProfileStore = create<UserProfileStore>()(
           profile_picture: state.profile.profile_picture,
           photos_taken: state.profile.photos_taken,
         } : null,
-        isInitialized: state.isInitialized,
-        profileReady: state.profileReady,
       }),
     }
   )
