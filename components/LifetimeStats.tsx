@@ -3,9 +3,14 @@ import {
   View,
   Text,
   StyleSheet,
+  ScrollView,
+  Dimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 interface LifetimeStatsProps {
   stats?: {
