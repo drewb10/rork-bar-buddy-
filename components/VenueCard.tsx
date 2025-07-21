@@ -23,11 +23,13 @@ export default function VenueCard({ venue, compact = false }: VenueCardProps) {
     incrementInteraction, 
     getInteractionCount, 
     getLikeCount, 
+    getGlobalLikeCount, // Add global like count method
     canInteract, 
     getHotTimeWithLikes,
     likeVenue,
     canLikeVenue,
-    forceUpdate
+    forceUpdate,
+    loadGlobalLikeCounts, // Add method to load global counts
   } = useVenueInteractionStore();
   const { incrementNightsOut, incrementBarsHit, canIncrementNightsOut } = useUserProfileStore();
   
