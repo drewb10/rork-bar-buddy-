@@ -182,16 +182,6 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-            <Stack.Screen name="camera-roll" options={{ 
-              headerShown: true,
-              presentation: 'card',
-              headerBackTitle: 'Camera',
-              headerTitle: 'Camera Roll',
-              headerStyle: {
-                backgroundColor: '#000000',
-              },
-              headerTintColor: '#FFFFFF',
-            }} />
           </Stack>
 
           <AgeVerificationModal
