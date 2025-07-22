@@ -79,16 +79,6 @@ export default function SignInScreen() {
             </Text>
           </View>
 
-          {/* Configuration Warning */}
-          {!isConfigured && (
-            <View style={[styles.warningContainer, { backgroundColor: '#FFA500' + '20', borderColor: '#FFA500' }]}>
-              <AlertCircle size={20} color="#FFA500" />
-              <Text style={[styles.warningText, { color: '#FFA500' }]}>
-                Database not configured. Check setup instructions or try demo mode.
-              </Text>
-            </View>
-          )}
-
           {/* Form */}
           <View style={styles.form}>
             {/* Phone Input */}
