@@ -1,3 +1,15 @@
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { colors } from '@/constants/colors';
+import { useThemeStore } from '@/stores/themeStore';
+import { FEATURE_FLAGS } from '@/constants/featureFlags';
+import BarBuddyLogo from '@/components/BarBuddyLogo';
+
+// FEATURE: ACHIEVEMENTS - All complex achievement logic preserved below
+// This component is disabled in MVP but all code is preserved for future restoration
+
+/* FEATURE: ACHIEVEMENTS - PRESERVED CODE BELOW (Set ENABLE_ACHIEVEMENTS to true to restore)
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal, Alert } from 'react-native';
 import { Trophy, Target, Users, Star, CheckCircle2, Circle, Clock, Zap, Calendar } from 'lucide-react-native';
