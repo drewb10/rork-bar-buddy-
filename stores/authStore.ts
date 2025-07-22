@@ -41,6 +41,55 @@ const handleSuccessfulAuth = async (user: any) => {
   }
 };
 
+// Fallback authentication for when Supabase auth is not properly configured
+const fallbackAuth = {
+  signIn: async (phone: string, password: string, username?: string) => {
+    // Simple validation
+    if (!phone || !password) {
+      throw new Error('Phone and password are required');
+    }
+    
+    // For demo purposes, accept any phone/password combination
+    const user = {
+      id: `user_${Date.now()}`,
+      phone,
+      email: `${username || 'user'}@barbuddy.com`,
+      created_at: new Date().toISOString()
+    };
+    
+    const profile = {
+      id: user.id,
+      username: username || `user_${Date.now()}`,
+      phone,
+      email: user.email,
+      xp: 0,
+      nights_out: 0,
+      bars_hit: 0,
+      drunk_scale_ratings: [],
+      total_shots: 0,
+      total_beers: 0,
+      total_beer_towers: 0,
+      total_funnels: 0,
+      total_shotguns: 0,
+      pool_games_won: 0,
+      dart_games_won: 0,
+      photos_taken: 0,
+      visited_bars: [],
+      xp_activities: [],
+      friends: [],
+      friend_requests: [],
+      has_completed_onboarding: false,
+      last_night_out_date: undefined,
+      last_drunk_scale_date: undefined,
+      profile_picture: undefined,
+      created_at: user.created_at,
+      updated_at: user.created_at,
+    };
+    
+    return { user, profile };
+  }
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
