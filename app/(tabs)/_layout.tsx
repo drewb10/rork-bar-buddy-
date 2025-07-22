@@ -2,6 +2,7 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
 import { Home, Award, Trophy, User } from 'lucide-react-native';
+import { MVP_CONFIG } from '@/constants/mvp-config';
 
 export default function TabLayout() {
   return (
@@ -36,7 +37,7 @@ export default function TabLayout() {
         headerShown: false,
       }}
     >
-      {/* Home Tab */}
+      {/* Home Tab - Always enabled */}
       <Tabs.Screen
         name="index"
         options={{
@@ -51,37 +52,41 @@ export default function TabLayout() {
         }}
       />
       
-      {/* Tasks Tab */}
-      <Tabs.Screen
-        name="achievements"
-        options={{
-          title: 'Tasks',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Award 
-              size={size} 
-              color={color} 
-              strokeWidth={focused ? 2.5 : 2}
-            />
-          ),
-        }}
-      />
+      {/* Tasks Tab - Disabled in MVP */}
+      {MVP_CONFIG.ENABLE_TASKS && (
+        <Tabs.Screen
+          name="achievements"
+          options={{
+            title: 'Tasks',
+            tabBarIcon: ({ color, size, focused }) => (
+              <Award 
+                size={size} 
+                color={color} 
+                strokeWidth={focused ? 2.5 : 2}
+              />
+            ),
+          }}
+        />
+      )}
       
-      {/* Trophies Tab */}
-      <Tabs.Screen
-        name="trophies"
-        options={{
-          title: 'Trophies',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Trophy 
-              size={size} 
-              color={color} 
-              strokeWidth={focused ? 2.5 : 2}
-            />
-          ),
-        }}
-      />
+      {/* Trophies Tab - Disabled in MVP */}
+      {MVP_CONFIG.ENABLE_TROPHIES && (
+        <Tabs.Screen
+          name="trophies"
+          options={{
+            title: 'Trophies',
+            tabBarIcon: ({ color, size, focused }) => (
+              <Trophy 
+                size={size} 
+                color={color} 
+                strokeWidth={focused ? 2.5 : 2}
+              />
+            ),
+          }}
+        />
+      )}
       
-      {/* Profile Tab */}
+      {/* Profile Tab - Always enabled */}
       <Tabs.Screen
         name="profile"
         options={{
@@ -95,8 +100,6 @@ export default function TabLayout() {
           ),
         }}
       />
-      
-
     </Tabs>
   );
 }

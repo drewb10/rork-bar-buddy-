@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable, Modal, Alert } from 'react-native';
-import { Trophy, Target, Users, Star, CheckCircle2, Circle, Clock, Zap, Calendar } from 'lucide-react-native';
+import { Trophy, Target, Users, Star, CheckCircle2, Circle, Clock, Zap, Calendar, Construction } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAchievementStore, Achievement } from '@/stores/achievementStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
+import { MVP_CONFIG } from '@/constants/mvp-config';
 
 const CATEGORY_CONFIG = {
   bars: {
@@ -41,6 +42,51 @@ const CATEGORY_CONFIG = {
 export default function AchievementsScreen() {
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
+  
+  // MVP: Tasks system is disabled, show coming soon message
+  if (!MVP_CONFIG.ENABLE_TASKS) {
+    return (
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+        
+        <ScrollView 
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <BarBuddyLogo size="small" />
+            <Text style={[styles.headerTitle, { color: themeColors.text }]}>
+              Tasks & Achievements
+            </Text>
+          </View>
+
+          {/* Coming Soon Card */}
+          <View style={[styles.comingSoonCard, { backgroundColor: themeColors.card }]}>
+            <Construction size={48} color={themeColors.primary} />
+            <Text style={[styles.comingSoonTitle, { color: themeColors.text }]}>
+              Coming Soon!
+            </Text>
+            <Text style={[styles.comingSoonDescription, { color: themeColors.subtext }]}>
+              Tasks and achievements are being prepared for launch. Focus on discovering bars and using the like system for now!
+            </Text>
+            <View style={[styles.featureList, { borderColor: themeColors.border }]}>
+              <Text style={[styles.featureTitle, { color: themeColors.text }]}>Coming Features:</Text>
+              <Text style={[styles.featureItem, { color: themeColors.subtext }]}>• Bar hopping challenges</Text>
+              <Text style={[styles.featureItem, { color: themeColors.subtext }]}>• Social achievements</Text>
+              <Text style={[styles.featureItem, { color: themeColors.subtext }]}>• Activity tracking</Text>
+              <Text style={[styles.featureItem, { color: themeColors.subtext }]}>• XP rewards system</Text>
+            </View>
+          </View>
+
+          <View style={styles.footer} />
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // Original achievements code preserved but unreachable in MVP
   const { 
     achievements, 
     initializeAchievements, 
@@ -642,6 +688,53 @@ const styles = StyleSheet.create({
   },
   footer: {
     height: 32,
+  },
+  // MVP Coming Soon Styles
+  comingSoonCard: {
+    margin: 20,
+    padding: 32,
+    borderRadius: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  comingSoonTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    marginTop: 16,
+    marginBottom: 12,
+    letterSpacing: 0.5,
+  },
+  comingSoonDescription: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+    fontWeight: '500',
+  },
+  featureList: {
+    width: '100%',
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+  },
+  featureTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+    letterSpacing: 0.3,
+  },
+  featureItem: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 6,
+    fontWeight: '500',
   },
   modalOverlay: {
     flex: 1,

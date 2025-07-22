@@ -18,13 +18,15 @@ import {
   MapPin, 
   Calendar,
   Target,
-  Zap
+  Zap,
+  Construction
 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import { useRouter } from 'expo-router';
+import { MVP_CONFIG } from '@/constants/mvp-config';
 
 // Safe imports with error handling
 let LifetimeStats: React.ComponentType<any> | null = null;
@@ -60,6 +62,60 @@ export default function TrophiesScreen() {
   const themeColors = colors[theme];
   const { profile, isAuthenticated } = useAuthStore();
   const router = useRouter();
+
+  // MVP: Trophies system is disabled, show coming soon message
+  if (!MVP_CONFIG.ENABLE_TROPHIES) {
+    return (
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
+        <StatusBar style="light" backgroundColor="transparent" translucent />
+        
+        <ScrollView 
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Header with Logo */}
+          <View style={styles.header}>
+            <View style={styles.logoContainer}>
+              <BarBuddyLogo size="large" />
+            </View>
+          </View>
+
+          {/* Page Title */}
+          <View style={styles.titleSection}>
+            <Text style={[styles.pageTitle, { color: themeColors.text }]}>
+              Trophies & Stats
+            </Text>
+            <Text style={[styles.subtitle, { color: themeColors.subtext }]}>
+              Achievement system coming soon
+            </Text>
+          </View>
+
+          {/* Coming Soon Card */}
+          <View style={[styles.comingSoonCard, { backgroundColor: themeColors.card }]}>
+            <Trophy size={48} color={themeColors.primary} />
+            <Text style={[styles.comingSoonTitle, { color: themeColors.text }]}>
+              Trophies Coming Soon!
+            </Text>
+            <Text style={[styles.comingSoonDescription, { color: themeColors.subtext }]}>
+              We're building an amazing trophy and statistics system. For now, focus on discovering bars and using the global like system!
+            </Text>
+            <View style={[styles.featureList, { borderColor: themeColors.border }]}>
+              <Text style={[styles.featureTitle, { color: themeColors.text }]}>Planned Features:</Text>
+              <Text style={[styles.featureItem, { color: themeColors.subtext }]}>• Lifetime statistics tracking</Text>
+              <Text style={[styles.featureItem, { color: themeColors.subtext }]}>• Achievement trophies</Text>
+              <Text style={[styles.featureItem, { color: themeColors.subtext }]}>• Progress tracking</Text>
+              <Text style={[styles.featureItem, { color: themeColors.subtext }]}>• Leaderboards</Text>
+            </View>
+          </View>
+
+          <View style={styles.footer} />
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // Original trophies code preserved but unreachable in MVP
 
   // Safe daily stats store usage
   const dailyStats = useDailyStatsStore?.((state: any) => state.dailyStats) || {};
@@ -826,5 +882,52 @@ const styles = StyleSheet.create({
   },
   footer: {
     height: 24,
+  },
+  // MVP Coming Soon Styles
+  comingSoonCard: {
+    margin: 20,
+    padding: 32,
+    borderRadius: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  comingSoonTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    marginTop: 16,
+    marginBottom: 12,
+    letterSpacing: 0.5,
+  },
+  comingSoonDescription: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+    fontWeight: '500',
+  },
+  featureList: {
+    width: '100%',
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+  },
+  featureTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+    letterSpacing: 0.3,
+  },
+  featureItem: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 6,
+    fontWeight: '500',
   },
 });

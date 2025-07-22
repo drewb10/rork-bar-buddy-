@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, StatusBar, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { TrendingUp } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useVenueInteractionStore } from '@/stores/venueInteractionStore';
@@ -10,8 +9,8 @@ import { venues } from '@/mocks/venues';
 import VenueCard from '@/components/VenueCard';
 import TopPickCard from '@/components/TopPickCard';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
-import DailyTracker from '@/components/DailyTracker';
 import FilterBar from '@/components/FilterBar';
+import { MVP_CONFIG } from '@/constants/mvp-config';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -19,12 +18,7 @@ export default function HomeScreen() {
   const themeColors = colors[theme];
   const { profile } = useUserProfileStore();
   const { getMostPopularVenues } = useVenueInteractionStore();
-  const [dailyTrackerVisible, setDailyTrackerVisible] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
-
-  const handleDailyTrackerPress = () => {
-    setDailyTrackerVisible(true);
-  };
 
   // Filter venues based on selected filters
   const filteredVenues = selectedFilters.length > 0 
@@ -69,16 +63,18 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* Daily Stat Tracker Tab */}
-        <Pressable 
-          style={[styles.dailyTrackerTab, { backgroundColor: '#111111' }]}
-          onPress={handleDailyTrackerPress}
-        >
-          <TrendingUp size={20} color={themeColors.primary} />
-          <Text style={[styles.dailyTrackerText, { color: '#FFFFFF' }]}>
-            Daily Stat Tracker
-          </Text>
-        </Pressable>
+        {/* Daily Stat Tracker Tab - Disabled in MVP */}
+        {MVP_CONFIG.ENABLE_DAILY_TRACKER && (
+          <Pressable 
+            style={[styles.dailyTrackerTab, { backgroundColor: '#111111' }]}
+            onPress={() => {}}
+          >
+            <TrendingUp size={20} color={themeColors.primary} />
+            <Text style={[styles.dailyTrackerText, { color: '#FFFFFF' }]}>
+              Daily Stat Tracker
+            </Text>
+          </Pressable>
+        )}
 
         {/* Bar Buddy's Top Picks Section */}
         <View style={styles.topPicksSection}>
@@ -114,11 +110,13 @@ export default function HomeScreen() {
         <View style={styles.footer} />
       </ScrollView>
 
-      {/* Daily Tracker Modal */}
-      <DailyTracker
-        visible={dailyTrackerVisible}
-        onClose={() => setDailyTrackerVisible(false)}
-      />
+      {/* Daily Tracker Modal - Disabled in MVP */}
+      {MVP_CONFIG.ENABLE_DAILY_TRACKER && (
+        <DailyTracker
+          visible={false}
+          onClose={() => {}}
+        />
+      )}
     </View>
   );
 }
