@@ -1,0 +1,7 @@
+🚀 Starting BarBuddy backend server...
+✅ BarBuddy backend is running on http://0.0.0.0:8001/
+📊 Health check: http://0.0.0.0:8001/api
+🔧 Admin panel: http://0.0.0.0:8001/api/admin
+👤 User API: http://0.0.0.0:8001/api/user/{userId}/profile
+🍺 Venues API: http://0.0.0.0:8001/api/venues/likes/global
+🎯 Launch ready! Camera functionality removed, modern profile UI implemented.
