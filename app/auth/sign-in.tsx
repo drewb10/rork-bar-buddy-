@@ -56,10 +56,6 @@ export default function SignInScreen() {
     router.push('/auth/sign-up');
   };
 
-  const navigateToDemo = () => {
-    router.replace('/(tabs)');
-  };
-
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
