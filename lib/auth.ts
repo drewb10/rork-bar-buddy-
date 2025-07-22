@@ -1,4 +1,4 @@
-import { safeSupabase, isSupabaseConfigured } from './supabase';
+import { safeSupabase } from './supabase';
 
 export interface UserProfile {
   id: string;
