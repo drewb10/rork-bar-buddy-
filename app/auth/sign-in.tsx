@@ -148,18 +148,6 @@ export default function SignInScreen() {
               </Pressable>
             </LinearGradient>
 
-            {/* Demo Mode Button */}
-            {!isConfigured && (
-              <Pressable
-                style={[styles.demoButton, { borderColor: '#FF6A00' }]}
-                onPress={navigateToDemo}
-              >
-                <Text style={[styles.demoButtonText, { color: '#FF6A00' }]}>
-                  Continue in Demo Mode
-                </Text>
-              </Pressable>
-            )}
-
             {/* Sign Up Link */}
             <View style={styles.signUpContainer}>
               <Text style={[styles.signUpText, { color: themeColors.subtext }]}>
