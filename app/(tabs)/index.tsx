@@ -11,8 +11,15 @@ import VenueCard from '@/components/VenueCard';
 import TopPickCard from '@/components/TopPickCard';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import FilterBar from '@/components/FilterBar';
-import DailyTracker from '@/components/DailyTracker';
 import { MVP_CONFIG } from '@/constants/mvp-config';
+
+// Safe import for DailyTracker
+let DailyTracker: React.ComponentType<any> | null = null;
+try {
+  DailyTracker = require('@/components/DailyTracker').default;
+} catch (error) {
+  console.warn('DailyTracker component not found');
+}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -113,7 +120,7 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* Daily Tracker Modal - Disabled in MVP */}
-      {MVP_CONFIG.ENABLE_DAILY_TRACKER && (
+      {MVP_CONFIG.ENABLE_DAILY_TRACKER && DailyTracker && (
         <DailyTracker
           visible={false}
           onClose={() => {}}

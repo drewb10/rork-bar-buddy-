@@ -79,9 +79,9 @@ const fallbackAuth = {
       friends: [],
       friend_requests: [],
       has_completed_onboarding: false,
-      last_night_out_date: undefined,
-      last_drunk_scale_date: undefined,
-      profile_picture: undefined,
+      last_night_out_date: null,
+      last_drunk_scale_date: null,
+      profile_picture: null,
       created_at: user.created_at,
       updated_at: user.created_at,
     };

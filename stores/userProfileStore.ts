@@ -117,7 +117,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
             pool_games_won: 2,
             dart_games_won: 1,
             photos_taken: 15,
-            profile_picture: undefined,
+            profile_picture: null,
             friends: [],
             friend_requests: [],
             xp_activities: [],
@@ -159,7 +159,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
               pool_games_won: 2,
               dart_games_won: 1,
               photos_taken: 15,
-              profile_picture: undefined,
+              profile_picture: null,
               friends: [],
               friend_requests: [],
               xp_activities: [],
@@ -205,7 +205,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
             console.error('🔄 Profile fetch error:', profileError.message);
             
             // Create profile if it doesn't exist
-            if (profileError && 'code' in profileError && profileError.code === 'PGRST116') {
+            if (profileError && (profileError as any).code === 'PGRST116') {
               console.log('🆕 Creating new profile...');
               
               const newProfile = {
@@ -225,7 +225,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
                 pool_games_won: 0,
                 dart_games_won: 0,
                 photos_taken: 0,
-                profile_picture: undefined,
+                profile_picture: null,
                 visited_bars: [],
                 xp_activities: [],
                 has_completed_onboarding: false,
@@ -555,15 +555,15 @@ export const useUserProfileStore = create<UserProfileStore>()(
 
           // Transform the data to match our Friend interface
           const friends: Friend[] = (friendsData || []).map((item: any) => ({
-            id: item.profiles.id,
-            username: item.profiles.username,
-            phone: item.profiles.phone || '',
-            email: item.profiles.email,
-            xp: item.profiles.xp || 0,
-            nights_out: item.profiles.nights_out || 0,
-            bars_hit: item.profiles.bars_hit || 0,
+            id: item.profiles?.id || '',
+            username: item.profiles?.username || 'Unknown',
+            phone: item.profiles?.phone || '',
+            email: item.profiles?.email || null,
+            xp: item.profiles?.xp || 0,
+            nights_out: item.profiles?.nights_out || 0,
+            bars_hit: item.profiles?.bars_hit || 0,
             rank_title: 'Newbie', // Default rank
-            created_at: item.profiles.created_at,
+            created_at: item.profiles?.created_at || new Date().toISOString(),
           }));
 
           set({ friends });

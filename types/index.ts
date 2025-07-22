@@ -35,9 +35,9 @@ export interface UserProfile {
   nights_out: number;
   bars_hit: number;
   drunk_scale_ratings: number[];
-  last_night_out_date?: string;
-  last_drunk_scale_date?: string;
-  profile_picture?: string;
+  last_night_out_date?: string | null;
+  last_drunk_scale_date?: string | null;
+  profile_picture?: string | null;
   friends?: Friend[];
   friend_requests?: FriendRequest[];
   xp_activities: XPActivity[];
