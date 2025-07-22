@@ -1,0 +1,51 @@
+🚀 Starting BarBuddy...
+
+🧹 Clearing caches...
+🎯 Starting Expo...
+
+env: load .env
+env: export EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY
+Starting project at /app
+Starting Metro Bundler
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+The following packages should be updated for best compatibility with the installed expo version:
+  expo@53.0.12 - expected version: 53.0.20
+  expo-constants@17.1.6 - expected version: ~17.1.7
+  expo-file-system@18.1.10 - expected version: ~18.1.11
+  expo-font@13.3.1 - expected version: ~13.3.2
+  expo-image@2.1.7 - expected version: ~2.4.0
+  expo-linking@7.1.5 - expected version: ~7.1.7
+  expo-location@18.1.5 - expected version: ~18.1.6
+  expo-router@5.0.7 - expected version: ~5.1.4
+  expo-splash-screen@0.30.9 - expected version: ~0.30.10
+  expo-system-ui@5.0.9 - expected version: ~5.0.10
+  expo-web-browser@14.1.6 - expected version: ~14.2.0
+  react-native@0.79.1 - expected version: 0.79.5
+  react-native-safe-area-context@5.3.0 - expected version: 5.4.0
+  react-native-screens@4.10.0 - expected version: ~4.11.1
+Your project may not work correctly until you install the expected versions of the packages.
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+/app/node_modules/@expo/cli/build/src/utils/errors.js:130
+    throw error;
+    ^
+
+Error: ENOSPC: System limit for number of file watchers reached, watch '/app/node_modules/react-native/ReactAndroid/src/main/jni/third-party/fmt'
+    at FSWatcher.<computed> (node:internal/fs/watchers:247:19)
+    at Object.watch (node:fs:2491:36)
+    at FallbackWatcher._watchdir (/app/node_modules/metro-file-map/src/watchers/FallbackWatcher.js:88:24)
+    at /app/node_modules/metro-file-map/src/watchers/FallbackWatcher.js:23:16
+    at Walker.<anonymous> (/app/node_modules/metro-file-map/src/watchers/FallbackWatcher.js:322:31)
+    at Walker.emit (node:events:524:28)
+    at /app/node_modules/walker/lib/walker.js:69:16
+    at FSReqCallback.oncomplete (node:fs:188:23) {
+  errno: -28,
+  syscall: 'watch',
+  code: 'ENOSPC',
+  path: '/app/node_modules/react-native/ReactAndroid/src/main/jni/third-party/fmt',
+  filename: '/app/node_modules/react-native/ReactAndroid/src/main/jni/third-party/fmt'
+}
+
+Node.js v20.19.3
+
+📱 Expo process exited with code 7
