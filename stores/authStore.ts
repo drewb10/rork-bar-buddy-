@@ -49,7 +49,6 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       isAuthenticated: false,
       error: null,
-      isConfigured: isSupabaseConfigured(),
       isHydrated: false,
       sessionChecked: false,
 
@@ -58,10 +57,6 @@ export const useAuthStore = create<AuthState>()(
         
         try {
           console.log('🎯 AuthStore: Starting signup process...');
-          
-          if (!isSupabaseConfigured()) {
-            throw new Error('Authentication not configured');
-          }
           
           const { user, profile } = await authService.signUp({ phone, password, username });
           
@@ -75,7 +70,6 @@ export const useAuthStore = create<AuthState>()(
             sessionChecked: true,
           });
           
-          // ✅ ADD THIS: Initialize profile after successful sign up
           await handleSuccessfulAuth(user);
           
           console.log('🎯 AuthStore: State updated successfully');
@@ -95,16 +89,11 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      // ✅ MODIFY YOUR EXISTING signIn function to call handleSuccessfulAuth:
       signIn: async (phone: string, password: string): Promise<boolean> => {
         set({ isLoading: true, error: null });
         
         try {
           console.log('🎯 AuthStore: Starting signin process...');
-          
-          if (!isSupabaseConfigured()) {
-            throw new Error('Authentication not configured');
-          }
           
           const { user, profile } = await authService.signIn({ phone, password });
           
@@ -118,7 +107,6 @@ export const useAuthStore = create<AuthState>()(
             sessionChecked: true,
           });
           
-          // ✅ ADD THIS: Initialize profile after successful sign in
           await handleSuccessfulAuth(user);
           
           console.log('🎯 AuthStore: State updated successfully');
@@ -144,11 +132,8 @@ export const useAuthStore = create<AuthState>()(
         try {
           console.log('🎯 AuthStore: Starting signout process...');
           
-          if (isSupabaseConfigured()) {
-            await authService.signOut();
-          }
+          await authService.signOut();
           
-          // Clear profile store when signing out
           if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
             const userProfileStore = (window as any).__userProfileStore;
             if (userProfileStore?.getState) {
@@ -168,7 +153,6 @@ export const useAuthStore = create<AuthState>()(
           console.log('🎯 AuthStore: Signout successful');
         } catch (error) {
           console.error('🎯 AuthStore: Signout error:', error);
-          // Force sign out locally even if server call fails
           set({
             user: null,
             profile: null,
@@ -186,7 +170,6 @@ export const useAuthStore = create<AuthState>()(
 
       checkUsernameAvailable: async (username: string): Promise<boolean> => {
         try {
-          if (!isSupabaseConfigured()) return true;
           return await authService.checkUsernameAvailable(username);
         } catch (error) {
           console.error('Error checking username:', error);
@@ -198,10 +181,6 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         
         try {
-          if (!isSupabaseConfigured()) {
-            throw new Error('Profile updates not available - authentication not configured');
-          }
-          
           const updatedProfile = await authService.updateProfile(updates);
           set({
             profile: updatedProfile,
@@ -221,7 +200,6 @@ export const useAuthStore = create<AuthState>()(
 
       searchUser: async (username: string): Promise<UserProfile | null> => {
         try {
-          if (!isSupabaseConfigured()) return null;
           return await authService.searchUserByUsername(username);
         } catch (error) {
           console.error('Error searching user:', error);
@@ -230,11 +208,6 @@ export const useAuthStore = create<AuthState>()(
       },
 
       refreshSession: async (): Promise<void> => {
-        if (!isSupabaseConfigured()) {
-          console.log('🎯 AuthStore: Supabase not configured, skipping session refresh');
-          return;
-        }
-
         try {
           console.log('🎯 AuthStore: Refreshing session...');
           const { data, error } = await safeSupabase.auth.refreshSession();
@@ -256,14 +229,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      // ✅ ALSO MODIFY YOUR checkSession function:
       checkSession: async (): Promise<boolean> => {
-        if (!isSupabaseConfigured()) {
-          console.log('🎯 AuthStore: Supabase not configured');
-          set({ sessionChecked: true, isAuthenticated: false });
-          return false;
-        }
-
         try {
           console.log('🎯 AuthStore: Checking session...');
           const { data, error } = await safeSupabase.auth.getSession();
@@ -287,7 +253,6 @@ export const useAuthStore = create<AuthState>()(
                 profile: profile
               });
               
-              // ✅ ADD THIS: Initialize profile when checking existing session
               await handleSuccessfulAuth(data.session.user);
               
             } catch (profileError) {
@@ -299,7 +264,6 @@ export const useAuthStore = create<AuthState>()(
                 profile: null
               });
               
-              // ✅ ADD THIS: Initialize profile even if loading failed
               await handleSuccessfulAuth(data.session.user);
             }
           } else {
@@ -320,39 +284,6 @@ export const useAuthStore = create<AuthState>()(
       },
 
       initialize: async (): Promise<void> => {
-        // Set a timeout to prevent hanging during initialization
-        const initTimeout = setTimeout(() => {
-          console.warn('⚠️ Auth initialization timeout, setting default state...');
-          set({
-            user: null,
-            profile: null,
-            isAuthenticated: false,
-            isLoading: false,
-            error: null,
-            sessionChecked: true,
-            isConfigured: isSupabaseConfigured(),
-          });
-        }, 2000); // 2 second timeout
-        
-        const configured = isSupabaseConfigured();
-        set({ isConfigured: configured });
-        
-        if (!configured) {
-          console.log('🎯 AuthStore: Supabase not configured, skipping auth initialization');
-          clearTimeout(initTimeout);
-          set({
-            user: null,
-            profile: null,
-            isAuthenticated: false,
-            isLoading: false,
-            error: null,
-            sessionChecked: true,
-          });
-          return;
-        }
-        
-        set({ isLoading: true });
-        
         try {
           console.log('🎯 AuthStore: Initializing auth state...');
           
@@ -409,7 +340,6 @@ export const useAuthStore = create<AuthState>()(
               });
             }
             
-            // ✅ ADD THIS: Initialize profile during initialization
             await handleSuccessfulAuth(data.session.user);
             
           } catch (profileError) {
@@ -423,19 +353,10 @@ export const useAuthStore = create<AuthState>()(
               sessionChecked: true,
             });
             
-            // ✅ ADD THIS: Initialize profile even if loading failed
             await handleSuccessfulAuth(data.session.user);
           }
-          
-          // Clear timeout since we completed successfully
-          clearTimeout(initTimeout);
-          
         } catch (error) {
           console.warn('🎯 AuthStore: Auth initialization error:', error);
-          
-          // Clear timeout and set fallback state
-          clearTimeout(initTimeout);
-          
           set({
             user: null,
             profile: null,
@@ -446,11 +367,6 @@ export const useAuthStore = create<AuthState>()(
           });
         }
       },
-
-      checkConfiguration: () => {
-        const configured = isSupabaseConfigured();
-        set({ isConfigured: configured });
-      }
     }),
     {
       name: 'auth-storage',
@@ -472,34 +388,26 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// Set up auth state listener only if configured
-if (isSupabaseConfigured()) {
-  try {
-    safeSupabase.auth.onAuthStateChange(async (event: string, session: any) => {
-      console.log('🎯 Auth state change:', event);
-      const { initialize } = useAuthStore.getState();
-      
-      if (event === 'SIGNED_IN' && session) {
-        await initialize();
-      } else if (event === 'SIGNED_OUT') {
-        useAuthStore.setState({
-          user: null,
-          profile: null,
-          isAuthenticated: false,
-          error: null,
-          sessionChecked: true,
-        });
-      } else if (event === 'TOKEN_REFRESHED' && session) {
-        console.log('🎯 Token refreshed, updating state...');
-        useAuthStore.setState({
-          user: session.user,
-          isAuthenticated: true,
-        });
-      }
+// Set up auth state listener
+safeSupabase.auth.onAuthStateChange(async (event: string, session: any) => {
+  console.log('🎯 Auth state change:', event);
+  const { initialize } = useAuthStore.getState();
+  
+  if (event === 'SIGNED_IN' && session) {
+    await initialize();
+  } else if (event === 'SIGNED_OUT') {
+    useAuthStore.setState({
+      user: null,
+      profile: null,
+      isAuthenticated: false,
+      error: null,
+      sessionChecked: true,
     });
-  } catch (error) {
-    console.warn('🎯 Error setting up auth state listener:', error);
+  } else if (event === 'TOKEN_REFRESHED' && session) {
+    console.log('🎯 Token refreshed, updating state...');
+    useAuthStore.setState({
+      user: session.user,
+      isAuthenticated: true,
+    });
   }
-} else {
-  console.warn('🎯 Supabase not configured, skipping auth state listener');
-}
+});
