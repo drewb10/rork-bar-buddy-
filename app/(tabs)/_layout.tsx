@@ -1,7 +1,8 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
-import { Home, Award, Trophy, User } from 'lucide-react-native';
+import { Home, Award, Trophy, User, MessageCircle } from 'lucide-react-native';
+import { FEATURE_FLAGS } from '@/constants/featureFlags';
 
 export default function TabLayout() {
   return (
@@ -36,7 +37,7 @@ export default function TabLayout() {
         headerShown: false,
       }}
     >
-      {/* Home Tab */}
+      {/* Home Tab - ALWAYS ENABLED (MVP Core) */}
       <Tabs.Screen
         name="index"
         options={{
@@ -50,14 +51,14 @@ export default function TabLayout() {
           ),
         }}
       />
-      
-      {/* Tasks Tab */}
+
+      {/* Chat Tab - ALWAYS ENABLED (MVP Core) */}
       <Tabs.Screen
-        name="achievements"
+        name="chat"
         options={{
-          title: 'Tasks',
+          title: 'Chat',
           tabBarIcon: ({ color, size, focused }) => (
-            <Award 
+            <MessageCircle 
               size={size} 
               color={color} 
               strokeWidth={focused ? 2.5 : 2}
@@ -66,22 +67,41 @@ export default function TabLayout() {
         }}
       />
       
-      {/* Trophies Tab */}
-      <Tabs.Screen
-        name="trophies"
-        options={{
-          title: 'Trophies',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Trophy 
-              size={size} 
-              color={color} 
-              strokeWidth={focused ? 2.5 : 2}
-            />
-          ),
-        }}
-      />
+      {/* Tasks Tab - FEATURE: Achievements (Hidden in MVP) */}
+      {FEATURE_FLAGS.ENABLE_ACHIEVEMENTS && (
+        <Tabs.Screen
+          name="achievements"
+          options={{
+            title: 'Tasks',
+            tabBarIcon: ({ color, size, focused }) => (
+              <Award 
+                size={size} 
+                color={color} 
+                strokeWidth={focused ? 2.5 : 2}
+              />
+            ),
+          }}
+        />
+      )}
       
-      {/* Profile Tab */}
+      {/* Trophies Tab - FEATURE: Trophies (Hidden in MVP) */}
+      {FEATURE_FLAGS.ENABLE_TROPHIES && (
+        <Tabs.Screen
+          name="trophies"
+          options={{
+            title: 'Trophies',
+            tabBarIcon: ({ color, size, focused }) => (
+              <Trophy 
+                size={size} 
+                color={color} 
+                strokeWidth={focused ? 2.5 : 2}
+              />
+            ),
+          }}
+        />
+      )}
+      
+      {/* Profile Tab - ALWAYS ENABLED (MVP Core) */}
       <Tabs.Screen
         name="profile"
         options={{
