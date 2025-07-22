@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, StatusBar, Platform } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, StatusBar, Platform, Pressable } from 'react-native';
+import { TrendingUp } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
@@ -10,6 +11,7 @@ import VenueCard from '@/components/VenueCard';
 import TopPickCard from '@/components/TopPickCard';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import FilterBar from '@/components/FilterBar';
+import DailyTracker from '@/components/DailyTracker';
 import { MVP_CONFIG } from '@/constants/mvp-config';
 
 export default function HomeScreen() {

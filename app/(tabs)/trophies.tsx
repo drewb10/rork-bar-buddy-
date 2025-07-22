@@ -164,7 +164,19 @@ export default function TrophiesScreen() {
       }
       
       // Calculate totals from daily stats
-      const totals = Object.values(dailyStats || {}).reduce((acc: any, dayStats: any) => {
+      const totals: {
+        totalBeers: number;
+        totalShots: number;
+        totalBeerTowers: number;
+        totalFunnels: number;
+        totalShotguns: number;
+        totalPoolGames: number;
+        totalDartGames: number;
+        totalDrinksLogged: number;
+        drunkScaleSum: number;
+        drunkScaleCount: number;
+        nightsOut: number;
+      } = Object.values(dailyStats || {}).reduce((acc: any, dayStats: any) => {
         if (!dayStats) return acc;
         
         return {
