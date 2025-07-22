@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService, UserProfile, AuthError } from '@/lib/auth';
-import { safeSupabase, isSupabaseConfigured } from '@/lib/supabase';
+import { safeSupabase } from '@/lib/supabase';
 
 interface AuthState {
   user: any | null;
@@ -10,7 +10,6 @@ interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
   error: string | null;
-  isConfigured: boolean;
   isHydrated: boolean;
   sessionChecked: boolean;
   
@@ -23,21 +22,16 @@ interface AuthState {
   updateProfile: (updates: Partial<UserProfile>) => Promise<boolean>;
   searchUser: (username: string) => Promise<UserProfile | null>;
   initialize: () => Promise<void>;
-  checkConfiguration: () => void;
   refreshSession: () => Promise<void>;
   checkSession: () => Promise<boolean>;
 }
 
-// ✅ ADD THIS FUNCTION to properly initialize the profile
 const handleSuccessfulAuth = async (user: any) => {
   try {
-    // Get the user profile store
     if (typeof window !== 'undefined' && (window as any).__userProfileStore) {
       const userProfileStore = (window as any).__userProfileStore;
       if (userProfileStore?.getState) {
         const { initializeProfile } = userProfileStore.getState();
-        
-        // Initialize the profile for this user
         await initializeProfile(user.id);
         console.log('✅ Profile initialized for user:', user.id);
       }
