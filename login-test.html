@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BarBuddy - Login Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo h1 {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #FF6B35, #FF8F65);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        
+        .logo p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        input {
+            width: 100%;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #FF6B35;
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+        }
+        
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #FF6B35, #FF8F65);
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(255, 107, 53, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+        }
+        
+        .status.success {
+            background: rgba(52, 211, 153, 0.1);
+            border: 1px solid rgba(52, 211, 153, 0.3);
+            color: #34D399;
+        }
+        
+        .status.error {
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            color: #F87171;
+        }
+        
+        .status.info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #3B82F6;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 4px;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 600;
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #FF6B35, #FF8F65);
+            color: white;
+        }
+        
+        .user-info {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .user-info h3 {
+            color: #22C55E;
+            margin-bottom: 12px;
+        }
+        
+        .user-info p {
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .logout-btn {
+            background: rgba(248, 113, 113, 0.8);
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>🍺 BarBuddy</h1>
+            <p>Authentication Test</p>
+        </div>
+        
+        <div class="status" id="status"></div>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('signin')">Sign In</div>
+            <div class="tab" onclick="switchTab('signup')">Sign Up</div>
+        </div>
+        
+        <div id="signin-form">
+            <div class="form-group">
+                <label for="signin-phone">Phone Number</label>
+                <input type="tel" id="signin-phone" placeholder="+1234567890" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="signin-password">Password</label>
+                <input type="password" id="signin-password" placeholder="Your password" required>
+            </div>
+            
+            <button class="btn" onclick="signIn()">Sign In</button>
+        </div>
+        
+        <div id="signup-form" style="display: none;">
+            <div class="form-group">
+                <label for="signup-phone">Phone Number</label>
+                <input type="tel" id="signup-phone" placeholder="+1234567890" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="signup-username">Username</label>
+                <input type="text" id="signup-username" placeholder="Your username" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="signup-password">Password</label>
+                <input type="password" id="signup-password" placeholder="Create a password" required>
+            </div>
+            
+            <button class="btn" onclick="signUp()">Sign Up</button>
+        </div>
+        
+        <div class="user-info" id="user-info">
+            <h3>Welcome back!</h3>
+            <p id="user-details"></p>
+            <button class="btn logout-btn" onclick="signOut()">Sign Out</button>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize Supabase client
+        const supabaseUrl = 'https://fxumtfryjehzsdfqgeis.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4dW10ZnJ5amVoenNkZnFnZWlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjM4ODcsImV4cCI6MjA2NTkzOTg4N30.iKdasj5a6LGPjfD3-taG6mvLc_lCWLLi7J_SnEXZ6DE';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        let currentUser = null;
+        let useFallback = false; // Will switch to true if Supabase auth fails
+        
+        // Fallback authentication
+        const fallbackAuth = {
+            users: JSON.parse(localStorage.getItem('barbuddy_users') || '[]'),
+            currentUser: null,
+            
+            signUp(phone, password, username) {
+                const existingUser = this.users.find(u => u.phone === phone);
+                if (existingUser) {
+                    throw new Error('User already exists with this phone number');
+                }
+                
+                const user = {
+                    id: 'user_' + Date.now(),
+                    phone,
+                    username,
+                    password, // In a real app, this would be hashed
+                    created_at: new Date().toISOString()
+                };
+                
+                this.users.push(user);
+                localStorage.setItem('barbuddy_users', JSON.stringify(this.users));
+                this.currentUser = user;
+                
+                return { user, profile: this.createProfile(user) };
+            },
+            
+            signIn(phone, password) {
+                const user = this.users.find(u => u.phone === phone && u.password === password);
+                if (!user) {
+                    throw new Error('Invalid phone number or password');
+                }
+                
+                this.currentUser = user;
+                return { user, profile: this.createProfile(user) };
+            },
+            
+            signOut() {
+                this.currentUser = null;
+            },
+            
+            createProfile(user) {
+                return {
+                    id: user.id,
+                    username: user.username,
+                    phone: user.phone,
+                    xp: Math.floor(Math.random() * 1000),
+                    nights_out: Math.floor(Math.random() * 10),
+                    bars_hit: Math.floor(Math.random() * 20),
+                };
+            }
+        };
+        
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            
+            if (type === 'success' || type === 'error') {
+                setTimeout(() => {
+                    status.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (tab === 'signin') {
+                document.getElementById('signin-form').style.display = 'block';
+                document.getElementById('signup-form').style.display = 'none';
+            } else {
+                document.getElementById('signin-form').style.display = 'none';
+                document.getElementById('signup-form').style.display = 'block';
+            }
+        }
+        
+        async function signUp() {
+            const phone = document.getElementById('signup-phone').value;
+            const username = document.getElementById('signup-username').value;
+            const password = document.getElementById('signup-password').value;
+            
+            if (!phone || !username || !password) {
+                showStatus('Please fill in all fields', 'error');
+                return;
+            }
+            
+            showStatus('Creating account...', 'info');
+            
+            try {
+                let result;
+                
+                if (!useFallback) {
+                    try {
+                        // Try Supabase authentication first
+                        const { data, error } = await supabase.auth.signUp({
+                            phone: phone,
+                            password: password,
+                            options: {
+                                data: { username: username }
+                            }
+                        });
+                        
+                        if (error) throw error;
+                        if (!data.user) throw new Error('No user returned from Supabase');
+                        
+                        result = {
+                            user: data.user,
+                            profile: { username, phone, xp: 0, nights_out: 0, bars_hit: 0 }
+                        };
+                        
+                        showStatus('Account created successfully with Supabase!', 'success');
+                        
+                    } catch (supabaseError) {
+                        console.warn('Supabase signup failed:', supabaseError);
+                        useFallback = true;
+                        throw supabaseError;
+                    }
+                }
+                
+                if (useFallback) {
+                    // Use fallback authentication
+                    result = fallbackAuth.signUp(phone, password, username);
+                    showStatus('Account created successfully (Local Mode)!', 'success');
+                }
+                
+                currentUser = result.user;
+                showUserInfo(result.user, result.profile);
+                
+            } catch (error) {
+                showStatus('Signup failed: ' + error.message, 'error');
+            }
+        }
+        
+        async function signIn() {
+            const phone = document.getElementById('signin-phone').value;
+            const password = document.getElementById('signin-password').value;
+            
+            if (!phone || !password) {
+                showStatus('Please enter phone and password', 'error');
+                return;
+            }
+            
+            showStatus('Signing in...', 'info');
+            
+            try {
+                let result;
+                
+                if (!useFallback) {
+                    try {
+                        // Try Supabase authentication first
+                        const { data, error } = await supabase.auth.signInWithPassword({
+                            phone: phone,
+                            password: password
+                        });
+                        
+                        if (error) throw error;
+                        if (!data.user) throw new Error('No user returned from Supabase');
+                        
+                        result = {
+                            user: data.user,
+                            profile: { username: 'User', phone, xp: 1250, nights_out: 3, bars_hit: 5 }
+                        };
+                        
+                        showStatus('Signed in successfully with Supabase!', 'success');
+                        
+                    } catch (supabaseError) {
+                        console.warn('Supabase signin failed:', supabaseError);
+                        useFallback = true;
+                        throw supabaseError;
+                    }
+                }
+                
+                if (useFallback) {
+                    // Use fallback authentication
+                    result = fallbackAuth.signIn(phone, password);
+                    showStatus('Signed in successfully (Local Mode)!', 'success');
+                }
+                
+                currentUser = result.user;
+                showUserInfo(result.user, result.profile);
+                
+            } catch (error) {
+                showStatus('Sign in failed: ' + error.message, 'error');
+            }
+        }
+        
+        function showUserInfo(user, profile) {
+            document.getElementById('signin-form').style.display = 'none';
+            document.getElementById('signup-form').style.display = 'none';
+            
+            const userInfo = document.getElementById('user-info');
+            const userDetails = document.getElementById('user-details');
+            
+            userDetails.innerHTML = `
+                <strong>Username:</strong> ${profile.username}<br>
+                <strong>Phone:</strong> ${profile.phone}<br>
+                <strong>XP:</strong> ${profile.xp}<br>
+                <strong>Nights Out:</strong> ${profile.nights_out}<br>
+                <strong>Bars Hit:</strong> ${profile.bars_hit}
+            `;
+            
+            userInfo.style.display = 'block';
+        }
+        
+        async function signOut() {
+            try {
+                if (currentUser && !useFallback) {
+                    await supabase.auth.signOut();
+                } else {
+                    fallbackAuth.signOut();
+                }
+                
+                currentUser = null;
+                document.getElementById('user-info').style.display = 'none';
+                document.getElementById('signin-form').style.display = 'block';
+                showStatus('Signed out successfully!', 'success');
+                
+                // Clear form fields
+                document.querySelectorAll('input').forEach(input => input.value = '');
+                
+            } catch (error) {
+                showStatus('Sign out failed: ' + error.message, 'error');
+            }
+        }
+        
+        // Check if user is already signed in
+        window.addEventListener('load', async () => {
+            showStatus('Checking authentication...', 'info');
+            
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                
+                if (session && session.user) {
+                    currentUser = session.user;
+                    showUserInfo(session.user, {
+                        username: 'Existing User',
+                        phone: session.user.phone || session.user.email,
+                        xp: 1250,
+                        nights_out: 3,
+                        bars_hit: 5
+                    });
+                    showStatus('Welcome back!', 'success');
+                } else {
+                    showStatus('Ready to sign in', 'info');
+                }
+            } catch (error) {
+                console.warn('Session check failed:', error);
+                useFallback = true;
+                showStatus('Ready to sign in (Local Mode)', 'info');
+            }
+        });
+        
+        // Demo data button for testing
+        function fillDemoData() {
+            document.getElementById('signin-phone').value = '+1234567890';
+            document.getElementById('signin-password').value = 'demo123';
+        }
+        
+        // Add demo button
+        setTimeout(() => {
+            const container = document.querySelector('.container');
+            const demoBtn = document.createElement('button');
+            demoBtn.textContent = 'Fill Demo Data';
+            demoBtn.className = 'btn';
+            demoBtn.style.background = 'rgba(255, 255, 255, 0.1)';
+            demoBtn.style.fontSize = '14px';
+            demoBtn.style.padding = '8px';
+            demoBtn.onclick = fillDemoData;
+            container.appendChild(demoBtn);
+        }, 1000);
+    </script>
+</body>
+</html>
