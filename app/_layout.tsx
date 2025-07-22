@@ -6,8 +6,19 @@ import { useEffect, useState } from "react";
 import { useAgeVerificationStore } from "@/stores/ageVerificationStore";
 import { useAuthStore } from "@/stores/authStore";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
-import CompletionPopup from "@/components/CompletionPopup";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { FEATURE_FLAGS } from "@/constants/featureFlags";
+
+// FEATURE: COMPLETION_POPUPS - Conditional import based on feature flags
+let CompletionPopup: React.ComponentType<any> | null = null;
+
+if (FEATURE_FLAGS.ENABLE_COMPLETION_POPUPS) {
+  try {
+    CompletionPopup = require('@/components/CompletionPopup').default;
+  } catch (error) {
+    console.warn('CompletionPopup component not found');
+  }
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,6 +30,7 @@ const queryClient = new QueryClient({
   },
 });
 
+// FEATURE: COMPLETION_POPUPS - Conditional completion popup logic (disabled in MVP)
 function useCompletionPopups() {
   const [currentPopup, setCurrentPopup] = useState<{
     title: string;
@@ -28,6 +40,13 @@ function useCompletionPopups() {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
+    // Only enable completion popups if feature flag is enabled
+    if (!FEATURE_FLAGS.ENABLE_COMPLETION_POPUPS) {
+      setIsReady(true);
+      return;
+    }
+
+    // FEATURE: COMPLETION_POPUPS - Achievement completion popup logic preserved but disabled
     // Wait a bit before starting to check for popups to avoid timing issues
     const readyTimer = setTimeout(() => {
       setIsReady(true);
