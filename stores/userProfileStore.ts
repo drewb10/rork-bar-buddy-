@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { UserProfile, XPActivity } from '@/types';
+import { supabase, safeSupabase, isSupabaseConfigured } from '@/lib/supabase';
+import { UserProfile, XPActivity, Friend } from '@/types';
 
 // XP VALUES constant
 const XP_VALUES = {
@@ -33,7 +33,7 @@ type XPType = keyof typeof XP_VALUES;
 interface UserProfileStore {
   profile: UserProfile | null;
   isLoading: boolean;
-  friends: UserProfile[];
+  friends: Friend[];
   isInitialized: boolean;
   profileReady: boolean;
   isUpdating: boolean;
@@ -144,13 +144,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
           }
           
           // Direct Supabase auth call
-          if (!supabase) {
-            console.error('❌ Supabase client is null');
-            set({ isLoading: false, profile: null, profileReady: false });
-            return;
-          }
-          
-          const { data: { user }, error: authError } = await supabase!.auth.getUser();
+          const { data: { user }, error: authError } = await safeSupabase.auth.getUser();
           
           if (authError || !user) {
             console.log('🔄 No authenticated user found:', authError?.message);
@@ -165,13 +159,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
           console.log('🔄 Found authenticated user:', user.id);
 
           // Direct profile fetch
-          if (!supabase) {
-            console.error('❌ Supabase client is null');
-            set({ isLoading: false, profile: null, profileReady: false });
-            return;
-          }
-          
-          const { data: profileData, error: profileError } = await supabase!
+          const { data: profileData, error: profileError } = await safeSupabase
             .from('profiles')
             .select('*')
             .eq('id', user.id)
@@ -209,13 +197,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
                 updated_at: new Date().toISOString(),
               };
 
-              if (!supabase) {
-                console.error('❌ Supabase client is null');
-                set({ isLoading: false, profile: null, profileReady: false });
-                return;
-              }
-              
-              const { data: createdProfile, error: createError } = await supabase!
+              const { data: createdProfile, error: createError } = await safeSupabase
                 .from('profiles')
                 .insert(newProfile)
                 .select()
@@ -532,7 +514,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
           const friends = (friendsData || []).map((item: any) => ({
             id: item.profiles.id,
             username: item.profiles.username,
-            phone: item.profiles.phone,
+            phone: item.profiles.phone || '',
             email: item.profiles.email,
             xp: item.profiles.xp || 0,
             nights_out: item.profiles.nights_out || 0,
