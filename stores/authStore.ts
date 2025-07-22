@@ -326,11 +326,26 @@ export const useAuthStore = create<AuthState>()(
       },
 
       initialize: async (): Promise<void> => {
+        // Set a timeout to prevent hanging during initialization
+        const initTimeout = setTimeout(() => {
+          console.warn('⚠️ Auth initialization timeout, setting default state...');
+          set({
+            user: null,
+            profile: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: null,
+            sessionChecked: true,
+            isConfigured: isSupabaseConfigured(),
+          });
+        }, 2000); // 2 second timeout
+        
         const configured = isSupabaseConfigured();
         set({ isConfigured: configured });
         
         if (!configured) {
           console.log('🎯 AuthStore: Supabase not configured, skipping auth initialization');
+          clearTimeout(initTimeout);
           set({
             user: null,
             profile: null,
@@ -417,8 +432,16 @@ export const useAuthStore = create<AuthState>()(
             // ✅ ADD THIS: Initialize profile even if loading failed
             await handleSuccessfulAuth(data.session.user);
           }
+          
+          // Clear timeout since we completed successfully
+          clearTimeout(initTimeout);
+          
         } catch (error) {
           console.warn('🎯 AuthStore: Auth initialization error:', error);
+          
+          // Clear timeout and set fallback state
+          clearTimeout(initTimeout);
+          
           set({
             user: null,
             profile: null,

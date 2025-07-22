@@ -8,6 +8,7 @@ import { useAuthStore } from "@/stores/authStore";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
 import CompletionPopup from "@/components/CompletionPopup";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import LoadingScreen from "@/components/LoadingScreen";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -93,28 +94,48 @@ export default function RootLayout() {
   const checkConfiguration = authStore?.checkConfiguration || (() => {});
 
   useEffect(() => {
-    // Simplified initialization
+    // Ultra-simplified initialization to prevent startup hang
     const initializeApp = async () => {
       try {
-        console.log('🚀 Starting app initialization...');
+        console.log('🚀 Starting minimal app initialization...');
         
-        // Check configuration first
-        if (checkConfiguration && typeof checkConfiguration === 'function') {
-          checkConfiguration();
+        // Set a maximum timeout for the entire initialization
+        const initTimeout = setTimeout(() => {
+          console.warn('⚠️ Initialization timeout reached, forcing app to continue...');
+          setIsInitialized(true);
+          if (!isVerified) {
+            setShowAgeVerification(true);
+          }
+        }, 3000); // 3 second max timeout
+        
+        // Check configuration first (non-blocking)
+        try {
+          if (checkConfiguration && typeof checkConfiguration === 'function') {
+            checkConfiguration();
+          }
+        } catch (error) {
+          console.warn('Configuration check failed:', error);
         }
         
-        // Initialize auth with timeout
-        if (initializeAuth && typeof initializeAuth === 'function') {
-          const initPromise = initializeAuth();
-          const timeoutPromise = new Promise((resolve) => {
-            setTimeout(() => {
-              console.warn('Auth initialization timeout, continuing...');
-              resolve(null);
-            }, 5000);
-          });
-          
-          await Promise.race([initPromise, timeoutPromise]);
+        // Initialize auth with very short timeout
+        try {
+          if (initializeAuth && typeof initializeAuth === 'function') {
+            const initPromise = initializeAuth();
+            const timeoutPromise = new Promise((resolve) => {
+              setTimeout(() => {
+                console.warn('Auth initialization timeout (2s), continuing...');
+                resolve(null);
+              }, 2000); // Reduced to 2 seconds
+            });
+            
+            await Promise.race([initPromise, timeoutPromise]);
+          }
+        } catch (error) {
+          console.warn('Auth initialization failed:', error);
         }
+        
+        // Clear the timeout since we completed successfully
+        clearTimeout(initTimeout);
         
         // Show age verification if not verified
         if (!isVerified) {
@@ -125,14 +146,16 @@ export default function RootLayout() {
         console.log('✅ App initialization complete');
       } catch (error) {
         console.warn('⚠️ Error during initialization:', error);
-        // Continue anyway to prevent app from being stuck
+        // Always continue to prevent app from being stuck
         setIsInitialized(true);
+        if (!isVerified) {
+          setShowAgeVerification(true);
+        }
       }
     };
 
-    // Start initialization after a short delay
-    const timer = setTimeout(initializeApp, 100);
-    return () => clearTimeout(timer);
+    // Start initialization immediately
+    initializeApp();
   }, []);
 
   const handleAgeVerification = (verified: boolean) => {
@@ -147,7 +170,16 @@ export default function RootLayout() {
     }
   };
 
-  // Always render the app structure, even if not fully initialized
+  // Show loading screen during initialization to prevent startup hang
+  if (!isInitialized) {
+    return (
+      <ErrorBoundary>
+        <LoadingScreen message="Starting BarBuddy..." />
+      </ErrorBoundary>
+    );
+  }
+
+  // Render the main app structure after initialization
   return (
     <ErrorBoundary>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
