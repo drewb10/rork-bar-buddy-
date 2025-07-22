@@ -169,7 +169,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
             console.error('🔄 Profile fetch error:', profileError.message);
             
             // Create profile if it doesn't exist
-            if (profileError.code === 'PGRST116') {
+            if ('code' in profileError && profileError.code === 'PGRST116') {
               console.log('🆕 Creating new profile...');
               
               const newProfile = {
