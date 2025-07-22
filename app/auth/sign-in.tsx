@@ -33,17 +33,6 @@ export default function SignInScreen() {
   const handleSignIn = async () => {
     clearError();
 
-    if (!isConfigured) {
-      Alert.alert(
-        'Demo Mode', 
-        'Database not configured. You can continue in demo mode to explore the app.',
-        [
-          { text: 'Continue in Demo Mode', onPress: () => router.replace('/(tabs)') }
-        ]
-      );
-      return;
-    }
-
     if (!phone || !password) {
       Alert.alert('Missing Information', 'Please enter both phone number and password');
       return;
