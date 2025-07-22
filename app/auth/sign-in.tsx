@@ -12,7 +12,7 @@ export default function SignInScreen() {
   const router = useRouter();
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { signIn, isLoading, error, clearError, isConfigured } = useAuthStore();
+  const { signIn, isLoading, error, clearError } = useAuthStore();
   
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
