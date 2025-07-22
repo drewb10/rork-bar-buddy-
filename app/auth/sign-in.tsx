@@ -35,11 +35,10 @@ export default function SignInScreen() {
 
     if (!isConfigured) {
       Alert.alert(
-        'Setup Required', 
-        'Please configure your Supabase database first. Check the setup instructions in your project.',
+        'Demo Mode', 
+        'Database not configured. You can continue in demo mode to explore the app.',
         [
-          { text: 'OK' },
-          { text: 'Go to Demo', onPress: () => router.replace('/(tabs)') }
+          { text: 'Continue in Demo Mode', onPress: () => router.replace('/(tabs)') }
         ]
       );
       return;
@@ -177,11 +176,11 @@ export default function SignInScreen() {
             {/* Demo Mode Button */}
             {!isConfigured && (
               <Pressable
-                style={[styles.demoButton, { borderColor: themeColors.border }]}
+                style={[styles.demoButton, { borderColor: '#FF6A00' }]}
                 onPress={navigateToDemo}
               >
-                <Text style={[styles.demoButtonText, { color: themeColors.text }]}>
-                  Try Demo Mode
+                <Text style={[styles.demoButtonText, { color: '#FF6A00' }]}>
+                  Continue in Demo Mode
                 </Text>
               </Pressable>
             )}
