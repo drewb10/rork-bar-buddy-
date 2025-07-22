@@ -84,58 +84,22 @@ export default function RootLayout() {
 
   const { currentPopup, closeCurrentPopup } = useCompletionPopups();
 
-  // Simplified store access with fallbacks
   const ageVerificationStore = useAgeVerificationStore();
   const authStore = useAuthStore();
 
   const isVerified = ageVerificationStore?.isVerified || false;
   const setVerified = ageVerificationStore?.setVerified || (() => {});
   const initializeAuth = authStore?.initialize || (() => Promise.resolve());
-  const checkConfiguration = authStore?.checkConfiguration || (() => {});
 
   useEffect(() => {
-    // Ultra-simplified initialization to prevent startup hang
     const initializeApp = async () => {
       try {
-        console.log('🚀 Starting minimal app initialization...');
+        console.log('🚀 Starting app initialization...');
         
-        // Set a maximum timeout for the entire initialization
-        const initTimeout = setTimeout(() => {
-          console.warn('⚠️ Initialization timeout reached, forcing app to continue...');
-          setIsInitialized(true);
-          if (!isVerified) {
-            setShowAgeVerification(true);
-          }
-        }, 3000); // 3 second max timeout
-        
-        // Check configuration first (non-blocking)
-        try {
-          if (checkConfiguration && typeof checkConfiguration === 'function') {
-            checkConfiguration();
-          }
-        } catch (error) {
-          console.warn('Configuration check failed:', error);
+        // Initialize auth
+        if (initializeAuth && typeof initializeAuth === 'function') {
+          await initializeAuth();
         }
-        
-        // Initialize auth with very short timeout
-        try {
-          if (initializeAuth && typeof initializeAuth === 'function') {
-            const initPromise = initializeAuth();
-            const timeoutPromise = new Promise((resolve) => {
-              setTimeout(() => {
-                console.warn('Auth initialization timeout (2s), continuing...');
-                resolve(null);
-              }, 2000); // Reduced to 2 seconds
-            });
-            
-            await Promise.race([initPromise, timeoutPromise]);
-          }
-        } catch (error) {
-          console.warn('Auth initialization failed:', error);
-        }
-        
-        // Clear the timeout since we completed successfully
-        clearTimeout(initTimeout);
         
         // Show age verification if not verified
         if (!isVerified) {
@@ -146,7 +110,6 @@ export default function RootLayout() {
         console.log('✅ App initialization complete');
       } catch (error) {
         console.warn('⚠️ Error during initialization:', error);
-        // Always continue to prevent app from being stuck
         setIsInitialized(true);
         if (!isVerified) {
           setShowAgeVerification(true);
@@ -154,7 +117,6 @@ export default function RootLayout() {
       }
     };
 
-    // Start initialization immediately
     initializeApp();
   }, []);
 
@@ -170,7 +132,6 @@ export default function RootLayout() {
     }
   };
 
-  // Show loading screen during initialization to prevent startup hang
   if (!isInitialized) {
     return (
       <ErrorBoundary>
