@@ -150,7 +150,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
             return;
           }
           
-          const { data: { user }, error: authError } = await supabase.auth.getUser();
+          const { data: { user }, error: authError } = await supabase!.auth.getUser();
           
           if (authError || !user) {
             console.log('🔄 No authenticated user found:', authError?.message);
@@ -171,7 +171,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
             return;
           }
           
-          const { data: profileData, error: profileError } = await supabase
+          const { data: profileData, error: profileError } = await supabase!
             .from('profiles')
             .select('*')
             .eq('id', user.id)
@@ -215,7 +215,7 @@ export const useUserProfileStore = create<UserProfileStore>()(
                 return;
               }
               
-              const { data: createdProfile, error: createError } = await supabase
+              const { data: createdProfile, error: createError } = await supabase!
                 .from('profiles')
                 .insert(newProfile)
                 .select()
@@ -503,10 +503,46 @@ export const useUserProfileStore = create<UserProfileStore>()(
             return;
           }
 
-          // For now, just set empty friends to avoid the table relationship error
-          // This prevents the app from crashing while we fix the database schema
-          set({ friends: [] });
-          console.log('👥 Friends loaded (empty list to prevent crashes)');
+          // Use the correct table name 'profiles' instead of 'user_profiles'
+          const { data: friendsData, error } = await supabase
+            .from('friends')
+            .select(`
+              friend_user_id,
+              profiles!friends_friend_user_id_fkey (
+                id,
+                username,
+                phone,
+                email,
+                xp,
+                nights_out,
+                bars_hit,
+                created_at
+              )
+            `)
+            .eq('user_id', state.profile.id);
+
+          if (error) {
+            console.error('❌ Error loading friends:', error);
+            // Set empty friends list on error to prevent crashes
+            set({ friends: [] });
+            return;
+          }
+
+          // Transform the data to match our Friend interface
+          const friends = (friendsData || []).map((item: any) => ({
+            id: item.profiles.id,
+            username: item.profiles.username,
+            phone: item.profiles.phone,
+            email: item.profiles.email,
+            xp: item.profiles.xp || 0,
+            nights_out: item.profiles.nights_out || 0,
+            bars_hit: item.profiles.bars_hit || 0,
+            rank_title: 'Newbie', // Default rank
+            created_at: item.profiles.created_at,
+          }));
+
+          set({ friends });
+          console.log(`👥 Loaded ${friends.length} friends successfully`);
         } catch (error) {
           console.error('❌ Error loading friends:', error);
           // Set empty friends list on error to prevent crashes
