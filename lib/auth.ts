@@ -38,10 +38,6 @@ export class AuthError extends Error {
 
 export const authService = {
   signUp: async ({ phone, password, username }: { phone: string; password: string; username: string }) => {
-    if (!isSupabaseConfigured()) {
-      throw new AuthError('Authentication not configured');
-    }
-
     try {
       const { data, error } = await safeSupabase.auth.signUp({
         phone,
@@ -102,10 +98,6 @@ export const authService = {
   },
 
   signIn: async ({ phone, password }: { phone: string; password: string }) => {
-    if (!isSupabaseConfigured()) {
-      throw new AuthError('Authentication not configured');
-    }
-
     try {
       const { data, error } = await safeSupabase.auth.signInWithPassword({
         phone,
@@ -133,19 +125,11 @@ export const authService = {
   },
 
   signOut: async () => {
-    if (!isSupabaseConfigured()) {
-      return; // Gracefully handle when not configured
-    }
-
     const { error } = await safeSupabase.auth.signOut();
     if (error) throw new AuthError(error.message);
   },
 
   getCurrentUser: async () => {
-    if (!isSupabaseConfigured()) {
-      throw new AuthError('Authentication not configured');
-    }
-
     const { data: { user }, error } = await safeSupabase.auth.getUser();
     if (error) throw new AuthError(error.message);
     if (!user) throw new AuthError('No authenticated user');
@@ -160,10 +144,6 @@ export const authService = {
   },
 
   checkUsernameAvailable: async (username: string): Promise<boolean> => {
-    if (!isSupabaseConfigured()) {
-      return true; // Assume available if not configured
-    }
-
     const { data } = await safeSupabase
       .from('profiles')
       .select('id')
@@ -174,10 +154,6 @@ export const authService = {
   },
 
   updateProfile: async (updates: Partial<UserProfile>): Promise<UserProfile> => {
-    if (!isSupabaseConfigured()) {
-      throw new AuthError('Profile updates not available - authentication not configured');
-    }
-
     const { data: { user } } = await safeSupabase.auth.getUser();
     if (!user) throw new AuthError('No authenticated user');
 
@@ -196,10 +172,6 @@ export const authService = {
   },
 
   searchUserByUsername: async (username: string): Promise<UserProfile | null> => {
-    if (!isSupabaseConfigured()) {
-      return null;
-    }
-
     const { data } = await safeSupabase
       .from('profiles')
       .select('*')
