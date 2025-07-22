@@ -16,33 +16,22 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
-import { LogOut, RefreshCw, Camera, Users, Award, Trophy, Star } from 'lucide-react-native';
+import { LogOut, RefreshCw, Camera, Users } from 'lucide-react-native';
 import BarBuddyLogo from '@/components/BarBuddyLogo';
 import { useRouter } from 'expo-router';
+import { FEATURE_FLAGS } from '@/constants/featureFlags';
 
-// Safe imports with error handling
-let RankModal: React.ComponentType<any> | null = null;
-let FriendsModal: React.ComponentType<any> | null = null;
+// FEATURE: ONBOARDING - Conditional imports based on feature flags
 let OnboardingModal: React.ComponentType<any> | null = null;
 let useUserProfileStore: any = null;
 let ImagePicker: any = null;
 
-try {
-  RankModal = require('@/components/ModernRankModal').default;
-} catch (error) {
-  console.warn('ModernRankModal component not found');
-}
-
-try {
-  FriendsModal = require('@/components/ModernFriendsModal').default;
-} catch (error) {
-  console.warn('ModernFriendsModal component not found');
-}
-
-try {
-  OnboardingModal = require('@/components/OnboardingModal').default;
-} catch (error) {
-  console.warn('OnboardingModal component not found');
+if (FEATURE_FLAGS.ENABLE_ONBOARDING) {
+  try {
+    OnboardingModal = require('@/components/OnboardingModal').default;
+  } catch (error) {
+    console.warn('OnboardingModal component not found');
+  }
 }
 
 try {
@@ -77,12 +66,12 @@ export default function ProfileScreen() {
   
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
-  const [friendsModalVisible, setFriendsModalVisible] = useState(false);
-  const [rankModalVisible, setRankModalVisible] = useState(false);
+  
+  // FEATURE: ONBOARDING - Conditional onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
-  // Safe profile store usage
+  // FEATURE: ADVANCED_PROFILE - Safe profile store usage
   const setProfilePicture = useUserProfileStore?.((state: any) => state.setProfilePicture) || (() => {});
 
   // Initialize profile
@@ -102,9 +91,9 @@ export default function ProfileScreen() {
     initializeProfile();
   }, [sessionChecked, checkSession]);
 
-  // Show onboarding for new users
+  // FEATURE: ONBOARDING - Show onboarding for new users
   useEffect(() => {
-    if (isAuthenticated && profile && !profile.has_completed_onboarding && !isLoading) {
+    if (FEATURE_FLAGS.ENABLE_ONBOARDING && isAuthenticated && profile && !profile.has_completed_onboarding && !isLoading) {
       setShowOnboarding(true);
     }
   }, [isAuthenticated, profile, isLoading]);
@@ -194,36 +183,6 @@ export default function ProfileScreen() {
     setShowOnboarding(false);
   };
 
-  // Get current rank info
-  const getCurrentRank = (xp: number) => {
-    const RANK_SYSTEM = [
-      { name: 'Sober Star', xpRequired: 0, color: '#9CA3AF', icon: '⭐', subLevels: [0, 250, 500, 750] },
-      { name: 'Tipsy Talent', xpRequired: 1000, color: '#60A5FA', icon: '🌟', subLevels: [1000, 1500, 2000, 2500] },
-      { name: 'Buzzed Beginner', xpRequired: 3000, color: '#34D399', icon: '✨', subLevels: [3000, 3750, 4500, 5250] },
-      { name: 'Drunk Dynamo', xpRequired: 6000, color: '#F59E0B', icon: '🔥', subLevels: [6000, 7500, 9000, 10500] },
-      { name: 'Wasted Warrior', xpRequired: 12000, color: '#EF4444', icon: '⚡', subLevels: [12000, 15000, 18000, 21000] },
-      { name: 'Blackout Baron', xpRequired: 24000, color: '#8B5CF6', icon: '👑', subLevels: [24000, 30000, 36000, 42000] },
-    ];
-
-    let currentRank = RANK_SYSTEM[0];
-    for (let i = RANK_SYSTEM.length - 1; i >= 0; i--) {
-      if (xp >= RANK_SYSTEM[i].xpRequired) {
-        currentRank = RANK_SYSTEM[i];
-        break;
-      }
-    }
-
-    // Find sub-level
-    let subLevel = 1;
-    for (let i = 0; i < currentRank.subLevels.length; i++) {
-      if (xp >= currentRank.subLevels[i]) {
-        subLevel = i + 1;
-      }
-    }
-
-    return { ...currentRank, subLevel };
-  };
-
   // Show loading screen while checking authentication
   if (isLoading || isInitializing) {
     return (
@@ -286,10 +245,8 @@ export default function ProfileScreen() {
 
   // Use profile from auth store or user data as fallback
   const displayProfile = profile || user;
-  const userXP = displayProfile?.xp || 0;
-  const currentRank = getCurrentRank(userXP);
 
-  // Main profile view
+  // Main profile view - MVP VERSION (Advanced features hidden by feature flags)
   return (
     <View style={[styles.container, { backgroundColor: '#000000' }]}>
       <StatusBar style="light" backgroundColor="transparent" translucent />
@@ -319,7 +276,7 @@ export default function ProfileScreen() {
           />
         }
       >
-        {/* Profile Hero Card */}
+        {/* Profile Hero Card - MVP VERSION */}
         <LinearGradient
           colors={['#FF6B35', '#FF8F65']}
           style={styles.profileHeroCard}
@@ -361,64 +318,54 @@ export default function ProfileScreen() {
           </View>
         </LinearGradient>
 
-        {/* XP Card - Prominently Featured */}
+        {/* MVP Features Card */}
         <LinearGradient
-          colors={['#007AFF', '#40A9FF']}
-          style={styles.xpCard}
+          colors={['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.02)']}
+          style={styles.featuresCard}
         >
           <View style={styles.glassOverlay}>
-            <View style={styles.xpHeader}>
-              <Text style={styles.xpIcon}>⚡</Text>
-              <View style={styles.xpBadge}>
-                <Text style={styles.xpBadgeText}>XP</Text>
+            <Text style={[styles.featuresTitle, { color: themeColors.text }]}>
+              🍺 Welcome to Bar Buddy MVP
+            </Text>
+            
+            <View style={styles.featuresList}>
+              <View style={styles.featureItem}>
+                <Text style={styles.featureIcon}>✅</Text>
+                <Text style={[styles.featureText, { color: themeColors.text }]}>
+                  Browse and like bars in your area
+                </Text>
+              </View>
+              
+              <View style={styles.featureItem}>
+                <Text style={styles.featureIcon}>✅</Text>
+                <Text style={[styles.featureText, { color: themeColors.text }]}>
+                  Chat with other bar-goers
+                </Text>
+              </View>
+              
+              <View style={styles.featureItem}>
+                <Text style={styles.featureIcon}>✅</Text>
+                <Text style={[styles.featureText, { color: themeColors.text }]}>
+                  Basic profile management
+                </Text>
+              </View>
+
+              <View style={styles.featureItem}>
+                <Text style={styles.featureIcon}>🔜</Text>
+                <Text style={[styles.featureComingSoon, { color: themeColors.subtext }]}>
+                  XP System, Achievements, Trophies coming soon!
+                </Text>
               </View>
             </View>
-            
-            <Text style={styles.xpValue}>
-              {userXP.toLocaleString()}
-            </Text>
-            
-            <Text style={styles.xpTitle}>
-              Experience Points
-            </Text>
-            
-            <Text style={styles.xpSubtitle}>
-              Level {Math.floor(userXP / 1000) + 1} Bar Buddy
-            </Text>
           </View>
         </LinearGradient>
 
-        {/* Action Cards Row */}
+        {/* Basic Actions Row - MVP VERSION */}
         <View style={styles.actionRow}>
-          {/* Rank Card */}
+          {/* Friends Card - Basic Version */}
           <Pressable 
-            style={styles.actionCard} 
-            onPress={() => setRankModalVisible(true)}
-          >
-            <LinearGradient
-              colors={['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.02)']}
-              style={styles.actionCardGradient}
-            >
-              <View style={styles.glassOverlay}>
-                <View style={styles.actionCardHeader}>
-                  <Text style={styles.actionCardIcon}>{currentRank.icon}</Text>
-                </View>
-                
-                <Text style={[styles.actionCardTitle, { color: themeColors.text }]}>
-                  {currentRank.name}
-                </Text>
-                
-                <Text style={[styles.actionCardSubtitle, { color: themeColors.subtext }]}>
-                  Rank {currentRank.subLevel}
-                </Text>
-              </View>
-            </LinearGradient>
-          </Pressable>
-
-          {/* Friends Card */}
-          <Pressable 
-            style={styles.actionCard} 
-            onPress={() => FriendsModal ? setFriendsModalVisible(true) : Alert.alert('Friends', 'Friends feature not available')}
+            style={styles.actionCard}
+            onPress={() => Alert.alert('Coming Soon', 'Friends system will be available in a future update!')}
           >
             <LinearGradient
               colors={['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.02)']}
@@ -434,7 +381,7 @@ export default function ProfileScreen() {
                 </Text>
                 
                 <Text style={[styles.actionCardSubtitle, { color: themeColors.subtext }]}>
-                  Connect & Share
+                  Coming Soon
                 </Text>
               </View>
             </LinearGradient>
@@ -463,23 +410,8 @@ export default function ProfileScreen() {
         <View style={styles.footer} />
       </ScrollView>
 
-      {/* Modals - Safe Rendering */}
-      {RankModal && (
-        <RankModal 
-          visible={rankModalVisible} 
-          onClose={() => setRankModalVisible(false)} 
-          userXP={userXP}
-        />
-      )}
-      
-      {FriendsModal && (
-        <FriendsModal 
-          visible={friendsModalVisible} 
-          onClose={() => setFriendsModalVisible(false)} 
-        />
-      )}
-      
-      {OnboardingModal && (
+      {/* FEATURE: ONBOARDING - Conditional onboarding modal */}
+      {OnboardingModal && FEATURE_FLAGS.ENABLE_ONBOARDING && (
         <OnboardingModal 
           visible={showOnboarding} 
           onComplete={handleOnboardingComplete}
@@ -661,58 +593,45 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 20,
   },
-  xpCard: {
+  featuresCard: {
     borderRadius: 24,
     overflow: 'hidden',
     marginBottom: 24,
-    minHeight: 160,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
     elevation: 12,
   },
-  xpHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  xpIcon: {
-    fontSize: 32,
-  },
-  xpBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  xpBadgeText: {
-    color: 'white',
-    fontSize: 12,
+  featuresTitle: {
+    fontSize: 20,
     fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  xpValue: {
-    color: 'white',
-    fontSize: 48,
-    fontWeight: '700',
-    letterSpacing: -2,
-    marginBottom: 8,
-    fontVariant: ['tabular-nums'],
-  },
-  xpTitle: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 17,
-    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 20,
     letterSpacing: -0.3,
-    marginBottom: 4,
   },
-  xpSubtitle: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 14,
+  featuresList: {
+    gap: 12,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  featureIcon: {
+    fontSize: 16,
+    marginRight: 12,
+    width: 20,
+  },
+  featureText: {
+    fontSize: 16,
     fontWeight: '500',
-    letterSpacing: -0.1,
+    flex: 1,
+  },
+  featureComingSoon: {
+    fontSize: 16,
+    fontWeight: '500',
+    flex: 1,
+    fontStyle: 'italic',
   },
   actionRow: {
     flexDirection: 'row',
@@ -736,9 +655,6 @@ const styles = StyleSheet.create({
   actionCardHeader: {
     alignItems: 'center',
     marginBottom: 12,
-  },
-  actionCardIcon: {
-    fontSize: 28,
   },
   actionCardTitle: {
     fontSize: 16,
@@ -788,3 +704,32 @@ const styles = StyleSheet.create({
     height: 40,
   },
 });
+
+/* 
+FEATURE: ADVANCED_PROFILE - PRESERVED CODE
+
+The full advanced profile with XP system, ranking, friends modals, and all complex features
+is preserved in the backup file: profile.tsx.backup
+
+To restore advanced profile features:
+1. Set appropriate feature flags to true in constants/featureFlags.ts:
+   - ENABLE_XP_SYSTEM: true (for XP display and level progression)
+   - ENABLE_ADVANCED_PROFILE: true (for complex profile features) 
+   - ENABLE_ONBOARDING: true (for user onboarding flow)
+   - ENABLE_STATS_TRACKING: true (for detailed user statistics)
+
+2. Restore complex imports and components from backup
+3. Test all advanced functionality 
+4. Verify Supabase integration works for complex features
+
+All complex profile logic including:
+- XP and level display
+- Ranking system integration  
+- Friends modal functionality
+- Advanced statistics
+- Onboarding flow
+- Achievement integration
+- Social features
+
+...is preserved for future restoration.
+*/
