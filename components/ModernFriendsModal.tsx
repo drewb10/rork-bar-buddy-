@@ -124,7 +124,7 @@ const FriendsModal: React.FC<FriendsModalProps> = ({ visible, onClose }) => {
             is_active
           )
         `)
-        .eq('user_id', profile?.user_id);
+        .eq('user_id', profile?.id);
 
       if (error) {
         console.error('Error loading friends:', error);
@@ -194,7 +194,7 @@ const FriendsModal: React.FC<FriendsModalProps> = ({ visible, onClose }) => {
         .from('user_profiles')
         .select('*')
         .ilike('username', `%${query}%`)
-        .neq('user_id', profile?.user_id)
+        .neq('user_id', profile?.id)
         .eq('is_active', true)
         .limit(10);
 

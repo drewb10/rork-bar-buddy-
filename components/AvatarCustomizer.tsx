@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { StyleSheet, View, Text, Pressable, ScrollView, Animated, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, Pressable, ScrollView, Animated, Dimensions, Alert } from 'react-native';
 import { colors } from '@/constants/colors';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAvatarStore } from '@/stores/avatarStore';

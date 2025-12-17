@@ -1,5 +1,6 @@
 import { createTRPCReact } from '@trpc/react-query';
 import { createTRPCClient, httpBatchLink } from '@trpc/client';
+import superjson from 'superjson';
 import type { AppRouter } from '@/backend/trpc/app-router';
 
 const getBaseUrl = () => {
@@ -23,6 +24,7 @@ export const trpcClient = createTRPCClient<AppRouter>({
   links: [
     httpBatchLink({
       url: `${getBaseUrl()}/api/trpc`,
+      transformer: superjson,
     }),
   ],
 });

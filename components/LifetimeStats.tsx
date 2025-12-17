@@ -65,7 +65,7 @@ const LifetimeStats: React.FC<LifetimeStatsProps> = ({ stats }) => {
 
     return (
       <LinearGradient
-        colors={size === 'large' ? gradient : ['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.02)']}
+        colors={(size === 'large' ? gradient : ['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.02)']) as [string, string, ...string[]]}
         style={[
           styles.statCard, 
           size === 'large' && styles.largeStatCard

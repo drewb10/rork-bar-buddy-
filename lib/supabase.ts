@@ -16,3 +16,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 });
 
 export const safeSupabase = supabase;
+
+export const isSupabaseConfigured = (): boolean => {
+  return !!(supabaseUrl && supabaseAnonKey && supabaseUrl !== '' && supabaseAnonKey !== '');
+};

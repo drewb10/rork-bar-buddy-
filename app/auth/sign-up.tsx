@@ -12,7 +12,7 @@ export default function SignUpScreen() {
   const router = useRouter();
   const { theme } = useThemeStore();
   const themeColors = colors[theme];
-  const { signUp, isLoading, error, clearError, checkUsernameAvailable, isConfigured } = useAuthStore();
+  const { signUp, isLoading, error, clearError, checkUsernameAvailable } = useAuthStore();
   
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -69,22 +69,6 @@ export default function SignUpScreen() {
 
   const handleSignUp = async () => {
     clearError();
-
-    if (!isConfigured) {
-      Alert.alert(
-        'Database Setup Required', 
-        `Your Supabase database needs to be configured. Please:
-
-1. Run the latest migration (20250625013000_fix_schema_cache_final.sql) in your Supabase dashboard
-2. Check your .env file has correct SUPABASE_URL and SUPABASE_ANON_KEY
-3. Or try Demo Mode to test the app`,
-        [
-          { text: 'Setup Instructions', onPress: () => console.log('Check SETUP_INSTRUCTIONS.md') },
-          { text: 'Try Demo Mode', onPress: () => router.replace('/(tabs)') }
-        ]
-      );
-      return;
-    }
 
     if (!validatePhone(phone)) {
       Alert.alert('Invalid Phone Number', 'Please enter a valid phone number (e.g., +1234567890)');
@@ -242,21 +226,6 @@ export default function SignUpScreen() {
               Join the best bar community
             </Text>
           </View>
-
-          {/* Configuration Warning */}
-          {!isConfigured && (
-            <View style={[styles.warningContainer, { backgroundColor: '#FFA500' + '20', borderColor: '#FFA500' }]}>
-              <Database size={20} color="#FFA500" />
-              <View style={styles.warningTextContainer}>
-                <Text style={[styles.warningTitle, { color: '#FFA500' }]}>
-                  Database Setup Required
-                </Text>
-                <Text style={[styles.warningText, { color: '#FFA500' }]}>
-                  Run migration 20250625013000_fix_schema_cache_final.sql in Supabase or try demo mode
-                </Text>
-              </View>
-            </View>
-          )}
 
           {/* Error Display */}
           {error && (

@@ -64,32 +64,40 @@ export default function DataViewer() {
                 <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>
                   User Profile (user-profile-storage)
                 </Text>
-                <Text style={[styles.dataText, { color: themeColors.text }]}>
-                  Name: {profile.firstName} {profile.lastName}
-                </Text>
-                <Text style={[styles.dataText, { color: themeColors.text }]}>
-                  Email: {profile.email}
-                </Text>
-                <Text style={[styles.dataText, { color: themeColors.text }]}>
-                  Nights Out: {profile.nightsOut}
-                </Text>
-                <Text style={[styles.dataText, { color: themeColors.text }]}>
-                  Bars Hit: {profile.barsHit}
-                </Text>
-                <Text style={[styles.dataText, { color: themeColors.text }]}>
-                  Drunk Scale Ratings: [{profile.drunkScaleRatings.join(', ')}]
-                </Text>
-                <Text style={[styles.dataText, { color: themeColors.text }]}>
-                  Join Date: {formatDate(profile.joinDate)}
-                </Text>
-                {profile.lastNightOutDate && (
-                  <Text style={[styles.dataText, { color: themeColors.text }]}>
-                    Last Night Out: {formatDate(profile.lastNightOutDate)}
-                  </Text>
-                )}
-                {profile.lastDrunkScaleDate && (
-                  <Text style={[styles.dataText, { color: themeColors.text }]}>
-                    Last Drunk Scale: {formatDate(profile.lastDrunkScaleDate)}
+                {profile ? (
+                  <>
+                    <Text style={[styles.dataText, { color: themeColors.text }]}>
+                      Username: {profile.username || 'N/A'}
+                    </Text>
+                    <Text style={[styles.dataText, { color: themeColors.text }]}>
+                      Email: {profile.email || 'N/A'}
+                    </Text>
+                    <Text style={[styles.dataText, { color: themeColors.text }]}>
+                      Nights Out: {profile.nights_out || 0}
+                    </Text>
+                    <Text style={[styles.dataText, { color: themeColors.text }]}>
+                      Bars Hit: {profile.bars_hit || 0}
+                    </Text>
+                    <Text style={[styles.dataText, { color: themeColors.text }]}>
+                      Drunk Scale Ratings: [{profile.drunk_scale_ratings?.join(', ') || 'None'}]
+                    </Text>
+                    <Text style={[styles.dataText, { color: themeColors.text }]}>
+                      Join Date: {formatDate(profile.created_at)}
+                    </Text>
+                    {profile.last_night_out_date && (
+                      <Text style={[styles.dataText, { color: themeColors.text }]}>
+                        Last Night Out: {formatDate(profile.last_night_out_date)}
+                      </Text>
+                    )}
+                    {profile.last_drunk_scale_date && (
+                      <Text style={[styles.dataText, { color: themeColors.text }]}>
+                        Last Drunk Scale: {formatDate(profile.last_drunk_scale_date)}
+                      </Text>
+                    )}
+                  </>
+                ) : (
+                  <Text style={[styles.dataText, { color: themeColors.subtext }]}>
+                    No profile data available
                   </Text>
                 )}
               </View>

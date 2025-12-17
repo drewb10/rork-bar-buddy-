@@ -28,7 +28,7 @@ export default function GradientBackground({ children, variant = 'default' }: Gr
           themeColors.glass.background + 'AA'
         ];
       default:
-        return [themeColors.gradient[0], themeColors.gradient[1]];
+        return themeColors.gradient.primary;
     }
   };
 

@@ -72,8 +72,8 @@ export default function FriendsModal({ visible, onClose }: FriendsModalProps) {
         return;
       }
 
-      const friendsList = data?.map(item => item.profiles).filter(Boolean) || [];
-      setFriends(friendsList as Friend[]);
+      const friendsList = (data?.map(item => item.profiles).filter(Boolean) || []).flat();
+      setFriends(friendsList as unknown as Friend[]);
     } catch (error) {
       console.error('Error loading friends:', error);
     }

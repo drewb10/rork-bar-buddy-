@@ -147,7 +147,7 @@ const RankModal: React.FC<RankModalProps> = ({ visible, onClose, userXP = 0 }) =
 
           {/* Current Rank Hero */}
           <LinearGradient
-            colors={currentRank.gradientColors}
+            colors={currentRank.gradientColors as [string, string, ...string[]]}
             style={styles.currentRankCard}
           >
             <View style={styles.glassOverlay}>

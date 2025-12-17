@@ -47,7 +47,7 @@ export const likeMessageProcedure = publicProcedure
         throw new Error('Message not found or access denied');
       }
 
-      const messageWithSession = messageData as MessageWithJoinedSession;
+      const messageWithSession = messageData as unknown as MessageWithJoinedSession;
       
       if (!messageWithSession.chat_sessions) {
         throw new Error('Session data not found');

@@ -70,7 +70,6 @@ export default function ProfileScreen() {
     checkSession, 
     error,
     clearError,
-    isConfigured,
     sessionChecked,
     user
   } = useAuthStore();
@@ -257,10 +256,7 @@ export default function ProfileScreen() {
           )}
           
           <Text style={[styles.errorDescription, { color: themeColors.subtext }]}>
-            {!isConfigured 
-              ? 'Database not configured. Check your Supabase setup or try demo mode.'
-              : 'Please check your connection and try again.'
-            }
+            Please check your connection and try again.
           </Text>
           
           <Pressable 
@@ -441,23 +437,7 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        {/* Configuration Status */}
-        {!isConfigured && (
-          <LinearGradient
-            colors={['#FFA500', '#FFB84D']}
-            style={styles.configCard}
-          >
-            <View style={styles.glassOverlay}>
-              <Text style={styles.configIcon}>⚠️</Text>
-              <Text style={styles.configTitle}>
-                Demo Mode Active
-              </Text>
-              <Text style={styles.configDescription}>
-                You're using demo data. Configure Supabase to sync real data across devices.
-              </Text>
-            </View>
-          </LinearGradient>
-        )}
+
 
         {/* Footer Spacing */}
         <View style={styles.footer} />

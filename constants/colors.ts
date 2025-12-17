@@ -19,6 +19,10 @@ export const colors = {
       light: '#000000',
       heavy: '#000000',
     },
+    gradient: {
+      primary: ['#FF6A00', '#FF8F00'],
+      secondary: ['#007AFF', '#0051D5'],
+    },
   },
   dark: {
     text: '#FFFFFF',
@@ -39,6 +43,10 @@ export const colors = {
     shadow: {
       light: '#000000',
       heavy: '#000000',
+    },
+    gradient: {
+      primary: ['#FF6A00', '#FF8F00'],
+      secondary: ['#007AFF', '#0051D5'],
     },
   },
 };
